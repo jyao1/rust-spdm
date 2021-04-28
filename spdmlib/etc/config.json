@@ -1,0 +1,26 @@
+{
+    "__usage": "This helps generate compile-time constant sizes for SPDM arrays. See src/config.rs generated for details.",
+    "max_version_count": 2,
+    "algo_config": {
+        "max_ext_asym_algo_count": 0,
+        "max_ext_hash_algo_count": 0,
+        "max_algo_struct_count": 4,
+        "max_ext_algo_struct_count": 0
+    },
+    "cert_config": {
+        "max_cert_portion_len": 512,
+        "max_cert_chain_data_size": 4096
+    },
+    "max_opaque_size": 64,
+    "measurement_config": {
+        "max_measurement_val_len": 64,
+        "max_measurement_block_count": 5
+    },
+    "psk_config": {
+        "max_psk_context_size": 64,
+        "max_psk_hint_size": 32
+    },
+    "max_session_count": 4,
+    "max_msg_buffer_size": 4608,
+    "max_transport_size": 1024
+}

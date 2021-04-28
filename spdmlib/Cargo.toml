@@ -1,0 +1,33 @@
+[package]
+name = "spdmlib"
+version = "0.1.0"
+authors = [
+    "Jiewen Yao <jiewen.yao@intel.com>",
+    "Xiaoyu Lu <xiaoyux.lu@intel.com>"
+    ]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codec = {path= "../codec"}
+bitflags = "1.2.1"
+log = "0.4.13"
+bytes = { version="1", default-features=false }
+conquer-once = { version = "0.3.2", default-features = false }
+
+ring = { git="https://github.com/jyao1/ring", branch="uefi_support",  optional = true }
+webpki = { git="https://github.com/jyao1/webpki", branch="uefi_support", default-features = false, features = ["alloc"], optional = true}
+untrusted = { version = "0.7.1", optional = true }
+
+[target.'cfg(target_os = "uefi")'.dependencies]
+uefi_time = {git = "https://github.com/jyao1/rust-uefi-time.git", optional = true}
+
+[build-dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+
+[features]
+default = ["spdm-ring", "std"]
+std = ["webpki/std"]
+spdm-ring = ["ring", "webpki", "untrusted", "uefi_time"]

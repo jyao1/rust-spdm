@@ -1,0 +1,18 @@
+[package]
+name = "spdm-emu"
+version = "0.1.0"
+authors = ["Jiewen Yao <jiewen.yao@intel.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.13"
+ring = { git="https://github.com/jyao1/ring", branch="uefi_support" }
+webpki = { git="https://github.com/jyao1/webpki", branch="uefi_support", default-features = false, features = ["alloc"]}
+untrusted = { version = "0.7.1" }
+codec = {path= "../../codec"}
+spdmlib = {path= "../../spdmlib"}
+mctp_transport = { path = "../../mctp_transport" }
+pcidoe_transport = { path = "../../pcidoe_transport" }
+bytes = { version="1", default-features=false }
