@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 use core::fmt::{Debug, Formatter, Result};
 
 /// POSIX errno

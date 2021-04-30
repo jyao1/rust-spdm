@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 use crate::crypto::{self, SpdmAsymVerify};
 use crate::error::SpdmResult;
 use crate::msgs::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};

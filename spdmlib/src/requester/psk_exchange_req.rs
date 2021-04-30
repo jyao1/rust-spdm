@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::error::SpdmResult;

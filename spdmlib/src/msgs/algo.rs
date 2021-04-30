@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 use crate::config;
 use bytes::BytesMut;
 use codec::{enum_builder, Codec, Reader, Writer};

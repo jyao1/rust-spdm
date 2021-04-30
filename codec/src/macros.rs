@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 /// A macro which defines an enum type.
 #[macro_export]
 macro_rules! enum_builder {
