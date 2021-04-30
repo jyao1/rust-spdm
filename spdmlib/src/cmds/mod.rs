@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 // SPDM 1.0
 pub mod algorithm;
 pub mod capability;

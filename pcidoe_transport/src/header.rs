@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 use spdmlib::common::SpdmTransportEncap;

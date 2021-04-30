@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
 use crate::error::SpdmResult;

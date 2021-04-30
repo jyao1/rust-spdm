@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#![forbid(unsafe_code)]
-
 use std::net::TcpStream;
 use std::io::{Write, Read};
 

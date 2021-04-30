@@ -71,8 +71,6 @@ macro_rules! TEMPLATE {
 // It is not intended for manual editing.
 // Please kindly configure via etc/config.json instead.
 
-#![forbid(unsafe_code)]
-
 /// This is used in SpdmVersionResponsePayload
 pub const MAX_SPDM_VERSION_COUNT: usize = {ver_cnt};
 
