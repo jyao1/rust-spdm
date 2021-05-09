@@ -86,7 +86,7 @@ fn asym_verify(
             match base_asym_algo {
                 SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256
                 | SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => {
-                    let mut der_signature = [0u8; 66 * 2 + 8];
+                    let mut der_signature = [0u8; 66 * 2 + 8 + 1];
                     let der_sign_size =
                         ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature);
 
