@@ -312,7 +312,7 @@ impl<'a> SpdmContext<'a> {
     }
 
     pub fn generate_measurement_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBuffer::default()
         message
             .append_message(self.runtime_info.message_m.as_ref())
             .ok_or_else(|| spdm_err!(ENOMEM))?;
