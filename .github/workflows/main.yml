@@ -36,3 +36,8 @@ jobs:
           cargo build
           cargo clippy
           cargo fmt
+          
+      - name: run responder and requester script
+        run: |
+          cargo run -p spdm-responder-emu & 
+          cargo run -p spdm-requester-emu
