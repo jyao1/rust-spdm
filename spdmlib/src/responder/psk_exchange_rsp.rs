@@ -4,6 +4,7 @@
 
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
+use crate::crypto;
 use crate::responder::*;
 
 use crate::common::ManagedBuffer;
@@ -35,7 +36,8 @@ impl<'a> ResponderContext<'a> {
 
         info!("send spdm psk_exchange rsp\n");
 
-        let psk_context = [0xbb; MAX_SPDM_PSK_CONTEXT_SIZE];
+        let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
+        let _ = crypto::rand::get_random (&mut psk_context);
 
         let rsp_session_id = 0xFFFD;
 

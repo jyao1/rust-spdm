@@ -42,6 +42,9 @@ impl<'a> ResponderContext<'a> {
 
         info!("send spdm challenge_auth\n");
 
+        let mut nonce = [0u8; SPDM_NONCE_SIZE];
+        let _ = crypto::rand::get_random (&mut nonce);
+
         let my_cert_chain = self.common.provision_info.my_cert_chain.unwrap();
         let cert_chain_hash = crypto::hash::hash_all(
             self.common.negotiate_info.base_hash_sel,
@@ -63,7 +66,7 @@ impl<'a> ResponderContext<'a> {
                     challenge_auth_attribute: SpdmChallengeAuthAttribute::empty(),
                     cert_chain_hash,
                     nonce: SpdmNonceStruct {
-                        data: [0x5bu8; SPDM_NONCE_SIZE],
+                        data: nonce,
                     },
                     measurement_summary_hash: SpdmDigestStruct {
                         data_size: self.common.negotiate_info.base_hash_sel.get_size(),

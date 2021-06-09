@@ -22,9 +22,8 @@ impl<'a> RequesterContext<'a> {
 
         let req_session_id = 0xFFFE;
 
-        let random = [0xafu8; SPDM_RANDOM_SIZE];
-        //let spdm_random = SpdmCryptoRandom {}; // TBD
-        //spdm_random.get_random (&mut nonce);
+        let mut random = [0u8; SPDM_RANDOM_SIZE];
+        crypto::rand::get_random (&mut random)?;
 
         let (exchange, key_exchange_context) =
             crypto::dhe::generate_key_pair(self.common.negotiate_info.dhe_sel)

@@ -110,3 +110,8 @@ pub trait SpdmDheKeyExchange {
         peer_pub_key: &SpdmDheExchangeStruct,
     ) -> Option<SpdmDheFinalKeyStruct>;
 }
+
+#[derive(Clone, Copy)]
+pub struct SpdmCryptoRandom {
+    pub get_random_cb: fn(data: &mut [u8]) -> SpdmResult<usize>,
+}

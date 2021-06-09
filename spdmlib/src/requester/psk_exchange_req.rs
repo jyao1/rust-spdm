@@ -6,6 +6,7 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::error::SpdmResult;
 use crate::requester::*;
+use crate::crypto;
 
 use crate::common::ManagedBuffer;
 
@@ -21,9 +22,9 @@ impl<'a> RequesterContext<'a> {
 
         let req_session_id = 0xFFFD;
 
-        let psk_context = [0xaa; MAX_SPDM_PSK_CONTEXT_SIZE];
-        //let spdm_random = SpdmCryptoRandom {}; // TBD
-        //spdm_random.get_random (&mut nonce);
+        let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
+        crypto::rand::get_random (&mut psk_context)?;
+
         let mut opaque = SpdmOpaqueStruct {
             data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION.len() as u16,
             ..Default::default()
