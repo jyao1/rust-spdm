@@ -51,7 +51,8 @@ impl<'a> ResponderContext<'a> {
 
         debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
 
-        let random = [0xafu8; SPDM_RANDOM_SIZE];
+        let mut random = [0u8; SPDM_RANDOM_SIZE];
+        let _ = crypto::rand::get_random (&mut random);
 
         let rsp_session_id = 0xFFFE;
 

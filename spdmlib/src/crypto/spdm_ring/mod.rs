@@ -9,3 +9,4 @@ pub mod dhe_impl;
 pub mod hash_impl;
 pub mod hkdf_impl;
 pub mod hmac_impl;
+pub mod rand_impl;

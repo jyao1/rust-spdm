@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::responder::*;
+use crate::crypto;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, bytes: &[u8]) {
@@ -46,6 +47,9 @@ impl<'a> ResponderContext<'a> {
         info!("send spdm measurement\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
+
+        let mut nonce = [0u8; SPDM_NONCE_SIZE];
+        let _ = crypto::rand::get_random (&mut nonce);
 
         let number_of_measurement = if get_measurements.measurement_operation
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll
@@ -165,7 +169,7 @@ impl<'a> ResponderContext<'a> {
                     slot_id: 0x1,
                     measurement_record,
                     nonce: SpdmNonceStruct {
-                        data: [0x5fu8; SPDM_NONCE_SIZE],
+                        data: nonce,
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,

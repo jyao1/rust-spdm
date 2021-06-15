@@ -8,8 +8,8 @@ mod crypto_callbacks;
 mod spdm_ring;
 
 pub use crypto_callbacks::{
-    SpdmAead, SpdmAsymSign, SpdmAsymVerify, SpdmCertOperation, SpdmDhe, SpdmDheKeyExchange,
-    SpdmHash, SpdmHkdf, SpdmHmac,
+    SpdmAead, SpdmAsymSign, SpdmAsymVerify, SpdmCertOperation, SpdmCryptoRandom, SpdmDhe,
+    SpdmDheKeyExchange, SpdmHash, SpdmHkdf, SpdmHmac,
 };
 
 use conquer_once::spin::OnceCell;
@@ -22,6 +22,7 @@ static CRYPTO_ASYM_VERIFY: OnceCell<SpdmAsymVerify> = OnceCell::uninit();
 static CRYPTO_DHE: OnceCell<SpdmDhe> = OnceCell::uninit();
 static CRYPTO_CERT_OPERATION: OnceCell<SpdmCertOperation> = OnceCell::uninit();
 static CRYPTO_HKDF: OnceCell<SpdmHkdf> = OnceCell::uninit();
+static CRYPTO_RAND: OnceCell<SpdmCryptoRandom> = OnceCell::uninit();
 
 pub mod hash {
     use super::CRYPTO_HASH;
@@ -328,5 +329,30 @@ pub mod aead {
             .try_get_or_init(|| DEFAULT)
             .map_err(|_| spdm_err!(EFAULT))?
             .decrypt_cb)(aead_algo, key, iv, aad, cipher_text, tag, plain_text)
+    }
+}
+
+pub mod rand {
+    use super::CRYPTO_RAND;
+    use crate::crypto::SpdmCryptoRandom;
+    use crate::error::SpdmResult;
+
+    #[cfg(not(any(feature = "spdm-ring")))]
+    static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
+        get_random_cb: |_data: &mut [u8]| -> SpdmResult<usize> { unimplemented!() },
+    };
+
+    #[cfg(feature = "spdm-ring")]
+    use super::spdm_ring::rand_impl::DEFAULT;
+
+    pub fn register(context: SpdmCryptoRandom) -> bool {
+        CRYPTO_RAND.try_init_once(|| context).is_ok()
+    }
+
+    pub fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
+        (CRYPTO_RAND
+            .try_get_or_init(|| DEFAULT)
+            .map_err(|_| spdm_err!(EFAULT))?
+            .get_random_cb)(data)
     }
 }

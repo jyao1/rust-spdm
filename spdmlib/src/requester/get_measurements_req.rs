@@ -4,6 +4,7 @@
 
 use crate::error::SpdmResult;
 use crate::requester::*;
+use crate::crypto;
 
 impl<'a> RequesterContext<'a> {
     fn send_receive_spdm_measurement_record(
@@ -16,9 +17,8 @@ impl<'a> RequesterContext<'a> {
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
 
-        let nonce = [0xafu8; SPDM_NONCE_SIZE];
-        //let spdm_random = SpdmCryptoRandom {}; // TBD
-        //spdm_random.get_random (&mut nonce);
+        let mut nonce = [0u8; SPDM_NONCE_SIZE];
+        crypto::rand::get_random (&mut nonce)?;
 
         let request = SpdmMessage {
             header: SpdmMessageHeader {
