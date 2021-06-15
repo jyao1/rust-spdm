@@ -30,7 +30,7 @@ jobs:
         run: |
           rustup component add clippy 
           rustup component add rustfmt 
-
+ 
       - name: cargo build
         run: |
           cargo build
