@@ -227,6 +227,18 @@ pub fn decode_u64(bytes: &[u8]) -> Option<u64> {
     )
 }
 
+impl Codec for u64 {
+    fn encode(&self, bytes: &mut Writer) {
+        let mut b64 = [0u8; 8];
+        put_u64(*self, &mut b64);
+        bytes.extend_from_slice(&b64);
+    }
+
+    fn read(r: &mut Reader) -> Option<u64> {
+        r.take(8).and_then(decode_u64)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::codec::Codec;
