@@ -1,3 +1,3 @@
 [workspace]
-members = ["spdmlib", "codec", "test/spdm-requester-emu", "test/spdm-responder-emu"]
+members = ["spdmlib", "codec", "test/spdm-requester-emu", "test/spdm-responder-emu", "fuzz-target"]
 exclude = ["test/spdm-emu", "external/ring", "external/webpki"]
