@@ -243,6 +243,8 @@ impl Codec for u64 {
 mod tests {
     use crate::codec::Codec;
     use crate::codec::{Reader, Writer};
+    use crate::u24;
+    
     #[test]
     fn test_u64() {
         let u8_slice = &mut [0u8; 8];
@@ -252,9 +254,39 @@ mod tests {
             let value = 100u64;
             value.encode(&mut writer);
         }
-
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
         assert_eq!(u64::read(&mut reader).unwrap(), 100);
+    }
+    #[test]
+    fn test_u32() {
+        let u8_slice = &mut [0u8; 4]; 
+        let mut witer = Writer::init(u8_slice); 
+        let value = 100u32;
+        value.encode(&mut witer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());                      
+        assert_eq!(u32::read(&mut reader).unwrap(), 100);                                                        
+    }
+    #[test]
+    fn test_u16() {
+        let u8_slice = &mut [0u8; 2];
+        let mut witer = Writer::init(u8_slice);
+        let value = 10u16;
+        value.encode(&mut witer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(2, reader.left());
+        assert_eq!(u16::read(&mut reader).unwrap(), 10);
+    }
+    #[test]
+    fn test_u24() {
+        let u8_slice = &mut [0u8; 3];
+        let mut witer = Writer::init(u8_slice);
+        let value = u24(100);
+        value.encode(&mut witer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(3, reader.left());
+        assert_eq!(u24::read(&mut reader).unwrap().0, u24(100).0);
     }
 }
