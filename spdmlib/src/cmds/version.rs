@@ -95,37 +95,3 @@ impl SpdmCodec for SpdmVersionResponsePayload {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_case1_spdmversion_struct() {
-        let u8_slice = &mut [0u8; 2];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmVersionStruct {
-            update: 0xffu8,
-            version: SpdmVersion::SpdmVersion10,
-        };
-        value.encode(&mut writer);
-        let mut reader = Reader::init(u8_slice);
-        assert_eq!(2, reader.left());
-        let spdmversionstruct = SpdmVersionStruct::read(&mut reader).unwrap();
-        assert_eq!(spdmversionstruct.update,0xff);
-        assert_eq!(spdmversionstruct.version, SpdmVersion::SpdmVersion10);
-    }
-    #[test]
-    fn test_case2_spdmversion_struct() {
-        let u8_slice = &mut [0u8; 1];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmVersionStruct {
-            update: 100u8,
-            version: SpdmVersion::SpdmVersion10,
-        };
-        value.encode(&mut writer);
-        let mut reader = Reader::init(u8_slice);
-        let spdmversionstruct = SpdmVersionStruct::read(&mut reader);
-        assert_eq!(spdmversionstruct.is_none(), true);        
-    }
-}
