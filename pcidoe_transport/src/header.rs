@@ -148,3 +148,107 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         0
     }
 }
+
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery ,
+            payload_length : 100,
+        };
+         value.encode(&mut writer);
+         let mut reader = Reader::init(u8_slice);
+        assert_eq!(8, reader.left());
+        let pcidoemessageheader =PciDoeMessageHeader::read(&mut reader).unwrap();
+        assert_eq!(0, reader.left());
+        assert_eq!(pcidoemessageheader.vendor_id,PciDoeVendorId::PciDoeVendorIdPciSig); 
+        assert_eq!(pcidoemessageheader.data_object_type,PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery); 
+        assert_eq!(pcidoemessageheader.payload_length,100); 
+    }
+    #[test]
+    fn test_case1_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery ,
+            payload_length : 0xffff8,
+        };
+         value.encode(&mut writer);
+         let mut reader = Reader::init(u8_slice);
+        let pcidoemessageheader =PciDoeMessageHeader::read(&mut reader).unwrap();
+        assert_eq!(pcidoemessageheader.payload_length,0xffff8); 
+    }
+    #[test]
+    fn test_case2_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 10];
+        let mut writer = Writer::init(u8_slice);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery ,
+            payload_length : 0,
+        };
+         value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        let pcidoemessageheader =PciDoeMessageHeader::read(&mut reader).unwrap();
+        assert_eq!(2, reader.left());
+        assert_eq!(pcidoemessageheader.payload_length,0);  
+    }
+    #[test]
+    fn test_case3_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery ,
+            payload_length : 0x100,
+        };
+
+         value.encode(&mut writer);
+        assert_eq!(0, writer.left());
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        let pcidoemessageheader =PciDoeMessageHeader::read(&mut reader);
+        assert_eq!(0, reader.left());
+        assert_eq!(pcidoemessageheader.is_none(), true); 
+    }
+    #[test]
+    #[should_panic]
+    fn test_case4_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery ,
+            payload_length : 0xffffffff,
+        };
+        value.encode(&mut writer);
+    }
+    #[test]
+    #[should_panic]
+    fn test_case5_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery ,
+            payload_length : 0xf00000,
+        };
+         value.encode(&mut writer);     
+    }
+}
