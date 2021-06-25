@@ -139,4 +139,24 @@ impl SpdmTransportEncap for MctpTransportEncap {
     }
 }
 
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
 
+    #[test]
+    fn test_case0_mctpmessageheader() {
+        let u8_slice = &mut [0u8; 1];
+        let mut writer = Writer::init(u8_slice);
+        let value =  MctpMessageHeader
+        {
+            r#type : MctpMessageType :: MctpMessageTypeMctpControl,
+        };
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(1, reader.left());
+        let mctp_message_header =MctpMessageHeader::read(&mut reader).unwrap();
+        assert_eq!(0, reader.left());
+        assert_eq!(mctp_message_header.r#type,MctpMessageType :: MctpMessageTypeMctpControl); 
+    }
+}
