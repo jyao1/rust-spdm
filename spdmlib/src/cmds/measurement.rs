@@ -139,3 +139,22 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         })
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_spdm_measuremente_attributes() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMeasurementeAttributes::INCLUDE_SIGNATURE ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmMeasurementeAttributes::read(&mut reader).unwrap(),SpdmMeasurementeAttributes::INCLUDE_SIGNATURE);  
+        assert_eq!(3, reader.left());
+    } 
+}
