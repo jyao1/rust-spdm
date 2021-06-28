@@ -116,3 +116,22 @@ impl SpdmCodec for SpdmFinishResponsePayload {
         Some(SpdmFinishResponsePayload { verify_data })
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_finish_request_attributes() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmFinishRequestAttributes::SIGNATURE_INCLUDED ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmFinishRequestAttributes::read(&mut reader).unwrap(),SpdmFinishRequestAttributes::SIGNATURE_INCLUDED);  
+        assert_eq!(3, reader.left());
+    } 
+}
