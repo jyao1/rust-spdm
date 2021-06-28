@@ -144,3 +144,22 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
         })
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_key_exchange_mut_auth_attributes() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmKeyExchangeMutAuthAttributes::read(&mut reader).unwrap(),SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ);  
+        assert_eq!(3, reader.left());
+    } 
+}
