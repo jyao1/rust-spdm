@@ -139,3 +139,34 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
         Some(SpdmCapabilitiesResponsePayload { ct_exponent, flags })
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_response_capability_flags() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmResponseCapabilityFlags::CACHE_CAP ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmResponseCapabilityFlags::read(&mut reader).unwrap(),SpdmResponseCapabilityFlags::CACHE_CAP);  
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_request_capability_flags() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmRequestCapabilityFlags::CERT_CAP ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmRequestCapabilityFlags::read(&mut reader).unwrap(),SpdmRequestCapabilityFlags::CERT_CAP);  
+        assert_eq!(0, reader.left());
+    } 
+}
