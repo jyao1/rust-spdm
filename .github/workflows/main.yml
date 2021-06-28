@@ -31,6 +31,12 @@ jobs:
           rustup component add clippy 
           rustup component add rustfmt 
  
+      - name: modify Cargo.toml
+        run: |
+          echo '[workspace]' > Cargo.toml
+          echo 'members = ["spdmlib", "codec", "test/spdm-requester-emu", "test/spdm-responder-emu"]' >> Cargo.toml
+          echo 'exclude = ["test/spdm-emu", "external/ring", "external/webpki"]' >> Cargo.toml
+
       - name: cargo build
         run: |
           cargo build -p spdm-responder-emu &
