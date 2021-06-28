@@ -68,3 +68,23 @@ impl SpdmCodec for SpdmEndSessionResponsePayload {
         Some(SpdmEndSessionResponsePayload {})
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_response_capability_flags() {
+        let u8_slice = &mut [0u8; 1];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmEndSessionRequestAttributes::all() ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(SpdmEndSessionRequestAttributes::read(&mut reader).unwrap(),SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE);  
+        assert_eq!(0, reader.left());
+    } 
+}
+
+

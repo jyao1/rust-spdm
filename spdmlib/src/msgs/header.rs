@@ -83,3 +83,26 @@ impl Codec for SpdmMessageHeader {
         })
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_message_header() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMessageHeader{
+            version : SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        let spdm_message_header=SpdmMessageHeader::read(&mut reader).unwrap();
+        assert_eq!(spdm_message_header.version,SpdmVersion::SpdmVersion10);
+        assert_eq!(spdm_message_header.request_response_code,SpdmResponseResponseCode::SpdmRequestChallenge);
+    } 
+}

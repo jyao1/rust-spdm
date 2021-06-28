@@ -996,3 +996,22 @@ impl From<BytesMut> for SpdmAeadIvStruct {
         Self { data_size, data }
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_measurement_specification() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMeasurementSpecification::all() ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmMeasurementSpecification::read(&mut reader).unwrap(),SpdmMeasurementSpecification::DMTF);  
+        assert_eq!(3, reader.left());
+    } 
+}
