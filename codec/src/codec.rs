@@ -292,4 +292,14 @@ mod tests {
         assert_eq!(3, reader.left());
         assert_eq!(u24::read(&mut reader).unwrap().0, u24(100).0);
     }
+    #[test]
+    fn test_u8() {
+        let u8_slice = &mut [0u8; 4];
+        let mut witer = Writer::init(u8_slice);
+        let value = 100u8;
+        value.encode(&mut witer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(u8::read(&mut reader).unwrap(), 100);
+    }
 }
