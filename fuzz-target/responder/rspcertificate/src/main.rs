@@ -1,7 +1,7 @@
 use fuzzlib::*;
 
-fn fuzz_handle_spdm_capability(data: &[u8]) {
-    
+fn fuzz_handle_spdm_certificate(data: &[u8]) {
+
     let (config_info, provision_info) = create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
@@ -21,16 +21,19 @@ fn fuzz_handle_spdm_capability(data: &[u8]) {
         config_info,
         provision_info,
     );
-
-    // context.handle_spdm_capability(&[0x10, 0x84, 00,00, 0x11, 0xE1, 00, 00, 00, 00, 00, 00, 00,00,00,0x0C]);
-    context.handle_spdm_capability(data);
-    let mut req_buf = [0u8; 512];
+    context.handle_spdm_algorithm(&[
+        17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
+    ]);
+    context.handle_spdm_digest(&[17, 129, 0, 0]);
+    context.handle_spdm_certificate(data);
+    let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf).unwrap();
     println!("Received: {:?}", req_buf);
 }
-
 fn main() {
+
     afl::fuzz!(|data: &[u8]| {
-        fuzz_handle_spdm_capability(data);
+        fuzz_handle_spdm_certificate(data);
     });
 }
