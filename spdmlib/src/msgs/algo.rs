@@ -1014,4 +1014,119 @@ mod tests
         assert_eq!(SpdmMeasurementSpecification::read(&mut reader).unwrap(),SpdmMeasurementSpecification::DMTF);  
         assert_eq!(3, reader.left());
     } 
+    #[test]
+    fn test_case0_spdm_measurement_hash_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMeasurementHashAlgo::RAW_BIT_STREAM ;
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmMeasurementHashAlgo::read(&mut reader).unwrap(),SpdmMeasurementHashAlgo::RAW_BIT_STREAM);  
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_base_asym_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048 ;
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmBaseAsymAlgo::read(&mut reader).unwrap(),SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);  
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_base_hash_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmBaseHashAlgo::read(&mut reader).unwrap(),SpdmBaseHashAlgo::TPM_ALG_SHA_256);  
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_ext_alg_struct() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value =SpdmExtAlgStruct
+        {
+            registry_id : SpdmStandardId::SpdmStandardIdDMTF,
+            reserved :100,
+            algorithm_id:200,
+        };
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        let spdm_ext_alg_struct=SpdmExtAlgStruct::read(&mut reader).unwrap();  
+        assert_eq!(spdm_ext_alg_struct.registry_id,SpdmStandardId::SpdmStandardIdDMTF);
+        assert_eq!(spdm_ext_alg_struct.reserved,100);
+        assert_eq!(spdm_ext_alg_struct.algorithm_id,200);
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case1_spdm_ext_alg_struct() {
+        let u8_slice = &mut [0u8; 2];
+        let mut writer = Writer::init(u8_slice);
+        let value =SpdmExtAlgStruct
+        {
+            registry_id : SpdmStandardId::SpdmStandardIdDMTF,
+            reserved :100,
+            algorithm_id:200,
+        };
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+    
+        assert_eq!(SpdmExtAlgStruct::read(&mut reader).is_none(), true);   
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_dhe_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmDheAlgo::FFDHE_2048;
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmDheAlgo::read(&mut reader).unwrap(),SpdmDheAlgo::FFDHE_2048);  
+        assert_eq!(2, reader.left());
+    }
+   
+    #[test] 
+    fn test_case0_spdm_aead_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value =  SpdmAeadAlgo::AES_128_GCM;
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmAeadAlgo::read(&mut reader).unwrap(), SpdmAeadAlgo::AES_128_GCM);  
+        assert_eq!(2, reader.left());
+    }
+    #[test] 
+    fn test_case0_spdm_req_asym_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value =  SpdmReqAsymAlgo::TPM_ALG_RSASSA_2048;
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmReqAsymAlgo::read(&mut reader).unwrap(), SpdmReqAsymAlgo::TPM_ALG_RSASSA_2048);  
+        assert_eq!(2, reader.left());
+    }    
+    #[test] 
+    fn test_case0_spdm_key_schedule_algo() {
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value =  SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4, reader.left());
+        assert_eq!(SpdmKeyScheduleAlgo::read(&mut reader).unwrap(), SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE);  
+        assert_eq!(2, reader.left());
+    }
+    
 }
