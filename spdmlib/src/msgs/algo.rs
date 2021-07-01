@@ -1128,5 +1128,36 @@ mod tests
         assert_eq!(SpdmKeyScheduleAlgo::read(&mut reader).unwrap(), SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE);  
         assert_eq!(2, reader.left());
     }
+    #[test] 
+    fn test_case0_spdm_nonce_struct() {
+        let u8_slice = &mut [0u8; 32];
+        let mut writer = Writer::init(u8_slice);
+        let value =SpdmNonceStruct { data: [100u8;32],}; 
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(32, reader.left());
+        let spdm_nonce_struct=SpdmNonceStruct::read(&mut reader).unwrap();
+        
+        for i in 0..32  {
+            assert_eq!(spdm_nonce_struct.data[i],100);
+        };      
+        assert_eq!(0, reader.left());
+    }
     
+    #[test] 
+    fn test_case0_spdm_random_struct() {
+        let u8_slice = &mut [0u8; 32];
+        let mut writer = Writer::init(u8_slice);
+        let value =SpdmRandomStruct { data: [100u8;32],}; 
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(32, reader.left());
+        let spdm_random_struct=SpdmRandomStruct::read(&mut reader).unwrap();
+        
+        for i in 0..32  {
+            assert_eq!(spdm_random_struct.data[i],100);
+        };      
+        assert_eq!(0, reader.left());
+    }
+
 }

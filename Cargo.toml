@@ -16,7 +16,6 @@ members = [
     "fuzz-target/pass_context",
 ]
 exclude = [
-    "test/spdm-emu",
     "external/ring",
     "external/webpki",
     "fuzz-target/fuzzlib",
