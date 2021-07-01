@@ -4,20 +4,12 @@ members = [
     "codec",
     "test/spdm-requester-emu",
     "test/spdm-responder-emu",
-    "fuzz-target/responder/rspversion",
-    "fuzz-target/responder/rspcapability",
-    "fuzz-target/responder/rspalgorithm",
-    "fuzz-target/responder/rspdigest",
-    "fuzz-target/responder/rspcertificate",
-    "fuzz-target/responder/rspchallenge",
-    "fuzz-target/responder/rspmeasurement",
-    "fuzz-target/responder/rspkeyexchange",
-    "fuzz-target/responder/rsppskexchange",
-    "fuzz-target/pass_context",
+
+
 ]
 exclude = [
     "test/spdm-emu",
     "external/ring",
     "external/webpki",
-    "fuzz-target/fuzzlib",
+    "fuzz-target/"
 ]

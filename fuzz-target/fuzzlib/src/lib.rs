@@ -13,7 +13,12 @@ pub use spdmlib::msgs::*;
 pub use spdmlib::{common, responder};
 pub use spdmlib;
 
+pub use flexi_logger;
+pub use flexi_logger::FileSpec;
 pub use afl;
+
+#[cfg(feature="fuzzlog")]
+pub mod fuzzlog{}
 
 pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
@@ -56,21 +61,21 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     };
 
     let ca_file_path = if USE_ECDSA {
-        "TestKey/EcP384/ca.cert.der"
+        "../../../TestKey/EcP384/ca.cert.der"
     } else {
-        "TestKey/Rsa3072/ca.cert.der"
+        "../../../TestKey/Rsa3072/ca.cert.der"
     };
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
     let inter_file_path = if USE_ECDSA {
-        "TestKey/EcP384/inter.cert.der"
+        "../../../TestKey/EcP384/inter.cert.der"
     } else {
-        "TestKey/Rsa3072/inter.cert.der"
+        "../../../TestKey/Rsa3072/inter.cert.der"
     };
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
     let leaf_file_path = if USE_ECDSA {
-        "TestKey/EcP384/end_responder.cert.der"
+        "../../../TestKey/EcP384/end_responder.cert.der"
     } else {
-        "TestKey/Rsa3072/end_responder.cert.der"
+        "../../../TestKey/Rsa3072/end_responder.cert.der"
     };
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 

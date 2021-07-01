@@ -15,3 +15,4 @@ mctp_transport = { path = "../../mctp_transport" }
 pcidoe_transport = { path = "../../pcidoe_transport" }
 simple_logger = "1.11.0"
 log = "0.4.13"
+flexi_logger = "0.18.0"
