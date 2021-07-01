@@ -110,3 +110,28 @@ pub fn send_message (
 
     buffer_size
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+
+    #[test]
+    fn test_case0_spdm_socket_header() {
+        let u8_slice = &mut [0u8;16];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmSocketHeader{
+            command : 0x100u32,
+            transport_type : 0x200u32,
+            payload_size : 0x300u32,
+        };
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(16, reader.left());
+        let spdm_socket_header=SpdmSocketHeader::read(&mut reader).unwrap();
+        assert_eq!(spdm_socket_header.command,0x100u32);
+        assert_eq!(spdm_socket_header.transport_type,0x200u32);
+        assert_eq!(spdm_socket_header.payload_size,0x300u32);
+    } 
+}
