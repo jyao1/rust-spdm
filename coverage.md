@@ -27,15 +27,15 @@
 5. generate raw coverage profiling data:
 
    ```bash
-   LLVM_PROFILE_FILE="responder.profraw" target/debug/spdm-responder-emu.exe &
-   LLVM_PROFILE_FILE="requester.profraw" target/debug/spdm-requester-emu.exe
+   LLVM_PROFILE_FILE="responder.profraw" target/debug/spdm-responder-emu &
+   LLVM_PROFILE_FILE="requester.profraw" target/debug/spdm-requester-emu
    ```
 
 6. Creating coverage reports:
 
    ```bash
-   llvm-profdata.exe merge -sparse requester.profraw responder.profraw -o total.profdata
-   llvm-cov.exe export -Xdemangler=rustfilt target/debug/spdm-responder-emu.exe target/debug/spdm-requester-emu.exe --instr-profile=total.profdata --format=lcov > lcov.info
+   llvm-profdata merge -sparse requester.profraw responder.profraw -o total.profdata
+   llvm-cov export -Xdemangler=rustfilt target/debug/spdm-responder-emu target/debug/spdm-requester-emu --instr-profile=total.profdata --format=lcov > lcov.info
    grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
    ```
 
