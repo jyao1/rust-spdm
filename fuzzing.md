@@ -31,13 +31,11 @@ echo "abcdef" > in/input2
 
 ## example Build rspversion
 
-`cd fuzz-target/responder/rspversion`
-
 `cargo afl build`
 
 ### Start fuzzing
 
-`cargo afl fuzz -i ../../in -o out target/debug/rspversion`
+`cargo afl fuzz -i fuzz-target/in -o fuzz-target/outrspversion target/debug/rspversion`
 
 As soon as you run this command, you should see AFL’s interface start up:
 
@@ -45,13 +43,19 @@ As soon as you run this command, you should see AFL’s interface start up:
 
 ### view coverage 
 
-If you need to check coverage, follow the coverage.md operation.
+If you need to check coverage, follow the coverage.md operation, View multiple fuzz coverage results.
 
     ```
-    RUSTFLAGS="-Zinstrument-coverage" cargo afl build 
-    LLVM_PROFILE_FILE="rspversion.profraw" cargo afl fuzz -i ../../in -o out target/debug/rspversion
-    llvm-profdata merge -sparse rspversion.profraw -o total.profdata
-    llvm-cov export -Xdemangler=rustfilt fuzz-target/responder/rspversion/target/debug/rspversion --instr-profile=total.profdata --format=lcov > lcov.info
+    RUSTFLAGS="-Zinstrument-coverage" cargo afl build -p rspversion
+    LLVM_PROFILE_FILE="rspversion.profraw" cargo afl fuzz -i fuzz-target/in -o fuzz-target/outrspversion target/debug/rspversion
+    llvm-profdata merge -sparse rspversion.profraw -o rspversion.profdata
+    llvm-cov export -Xdemangler=rustfilt fuzz-target/responder/rspversion/target/debug/rspversion --instr-profile=total.profdata --format=lcov > rspversion.info
+
+    RUSTFLAGS="-Zinstrument-coverage" cargo afl build -p rspcapability
+    LLVM_PROFILE_FILE="rspcapability.profraw" cargo afl fuzz -i fuzz-target/in -o fuzz-target/outrspcapability target/debug/rspcapability
+    llvm-profdata merge -sparse rspcapability.profraw -o rspcapability.profdata
+    llvm-cov export -Xdemangler=rustfilt fuzz-target/responder/rspversion/target/debug/rspcapability --instr-profile=total.profdata --format=lcov > rspcapability.info
+
     grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
     ```
 
