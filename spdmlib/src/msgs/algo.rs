@@ -1159,5 +1159,81 @@ mod tests
         };      
         assert_eq!(0, reader.left());
     }
+    #[test] 
+    fn test_case0_spdm_alg_struct() {
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  SpdmAlgStruct
+        {
+            alg_type : SpdmAlgType::SpdmAlgTypeDHE,
+            alg_fixed_count :2,
+            alg_supported :SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+            alg_ext_count :0, 
+        };
+        value.encode(&mut writer);
 
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(8, reader.left());
+        let spdm_alg_struct=SpdmAlgStruct::read(&mut reader).unwrap();  
+        assert_eq!(4, reader.left());
+        assert_eq!(spdm_alg_struct.alg_type,SpdmAlgType::SpdmAlgTypeDHE);
+        assert_eq!(spdm_alg_struct.alg_fixed_count,2);
+        assert_eq!(spdm_alg_struct.alg_ext_count,0); 
+
+        // After SpdmAlgo impl PartialEq it can be replaced by
+        // assert_eq!(spdm_alg_struct.alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
+        match spdm_alg_struct.alg_supported {
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048) => 
+            println!("spdm_alg_struct.alg_supported are {:?}\n",spdm_alg_struct.alg_supported), 
+            _ => {
+                panic!(r#"assertion failed: `(left == right)`
+                left: `{:?}`,
+                right: `{:?}`"#, SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048), spdm_alg_struct.alg_supported)
+            },
+        }
+    }
+    #[test]
+    #[should_panic]  
+    fn test_case1_spdm_alg_struct(){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  SpdmAlgStruct
+        {
+            alg_type : SpdmAlgType::SpdmAlgTypeDHE,
+            alg_fixed_count :0,
+            alg_supported :SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+            alg_ext_count :0, 
+        };
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(8, reader.left());
+        let spdm_alg_struct=SpdmAlgStruct::read(&mut reader).unwrap();  
+        assert_eq!(spdm_alg_struct.alg_type,SpdmAlgType::SpdmAlgTypeDHE);
+        assert_eq!(spdm_alg_struct.alg_fixed_count,0);
+        assert_eq!(spdm_alg_struct.alg_ext_count,0);
+        match spdm_alg_struct.alg_supported {
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048) => 
+            println!("spdm_alg_struct.alg_supported are {:?}\n",spdm_alg_struct.alg_supported), 
+            _ => {
+                panic!(r#"assertion failed: `(left == right)`
+                left: `{:?}`,
+                right: `{:?}`"#, SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048), spdm_alg_struct.alg_supported)
+            },
+        }
+    }
+    #[test]
+    #[should_panic]  
+    fn test_case2_spdm_alg_struct(){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value =  SpdmAlgStruct
+        {
+            alg_type : SpdmAlgType::SpdmAlgTypeDHE,
+            alg_fixed_count :0,
+            alg_supported :SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+            alg_ext_count :100, 
+        };
+        value.encode(&mut writer);
+    }
 }
