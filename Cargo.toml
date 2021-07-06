@@ -21,6 +21,7 @@ members = [
     "fuzz-target/responder/rspmeasurement",
     "fuzz-target/responder/rspkeyexchange",
     "fuzz-target/responder/rsppskexchange",
+    "fuzz-target/requester/reqversion",
     "fuzz-target/pass_context",
 ]
 exclude = [
