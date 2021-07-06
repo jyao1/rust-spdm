@@ -144,6 +144,8 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
 mod tests 
 {
     use super::*;
+    use crate::testlib::*;
+
 
     #[test]
     fn test_case0_spdm_request_capability_flags() {
@@ -168,5 +170,59 @@ mod tests
         assert_eq!(4, reader.left());
         assert_eq!(SpdmRequestCapabilityFlags::read(&mut reader).unwrap(),SpdmRequestCapabilityFlags::CERT_CAP);  
         assert_eq!(0, reader.left());
-    } 
+    }
+    #[test]
+     fn test_case0_spdm_get_capabilities_request_payload(){
+         let u8_slice = &mut [0u8; 12];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmGetCapabilitiesRequestPayload {
+             ct_exponent: 100,
+             flags: SpdmRequestCapabilityFlags::CERT_CAP,
+         };
+ 
+         let (config_info, provision_info) = create_info();
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context =  common::SpdmContext::new(
+             my_spdm_device_io,
+             pcidoe_transport_encap,
+             config_info,
+             provision_info,
+         );
+ 
+         value.spdm_encode(&mut context,&mut writer);
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(12, reader.left());
+         let spdm_get_capabilities_request_payload = SpdmGetCapabilitiesRequestPayload::spdm_read(&mut context,&mut reader).unwrap();
+         assert_eq!(spdm_get_capabilities_request_payload.ct_exponent,100);
+         assert_eq!(spdm_get_capabilities_request_payload.flags,SpdmRequestCapabilityFlags::CERT_CAP);
+         assert_eq!(2, reader.left());     
+     }
+     #[test]
+     fn test_case0_spdm_capabilities_response_payload(){
+         let u8_slice = &mut [0u8; 12];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmCapabilitiesResponsePayload {
+             ct_exponent: 100,
+             flags: SpdmResponseCapabilityFlags::CACHE_CAP,
+         };
+ 
+         let (config_info, provision_info) = create_info();
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context =  common::SpdmContext::new(
+             my_spdm_device_io,
+             pcidoe_transport_encap,
+             config_info,
+             provision_info,
+         );
+ 
+         value.spdm_encode(&mut context,&mut writer);
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(12, reader.left());
+         let spdm_capabilities_response_payload = SpdmCapabilitiesResponsePayload::spdm_read(&mut context,&mut reader).unwrap();
+         assert_eq!(spdm_capabilities_response_payload.ct_exponent,100);
+         assert_eq!(spdm_capabilities_response_payload.flags,SpdmResponseCapabilityFlags::CACHE_CAP);
+         assert_eq!(2, reader.left());
+     } 
 }

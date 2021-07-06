@@ -563,7 +563,7 @@ impl Codec for SpdmKeyScheduleAlgo {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct SpdmUnknownAlgo {}
 impl Codec for SpdmUnknownAlgo {
     fn encode(&self, _bytes: &mut Writer) {}
@@ -584,7 +584,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SpdmAlg {
     SpdmAlgoDhe(SpdmDheAlgo),
     SpdmAlgoAead(SpdmAeadAlgo),
@@ -1178,19 +1178,8 @@ mod tests
         assert_eq!(4, reader.left());
         assert_eq!(spdm_alg_struct.alg_type,SpdmAlgType::SpdmAlgTypeDHE);
         assert_eq!(spdm_alg_struct.alg_fixed_count,2);
-        assert_eq!(spdm_alg_struct.alg_ext_count,0); 
-
-        // After SpdmAlgo impl PartialEq it can be replaced by
-        // assert_eq!(spdm_alg_struct.alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
-        match spdm_alg_struct.alg_supported {
-            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048) => 
-            println!("spdm_alg_struct.alg_supported are {:?}\n",spdm_alg_struct.alg_supported), 
-            _ => {
-                panic!(r#"assertion failed: `(left == right)`
-                left: `{:?}`,
-                right: `{:?}`"#, SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048), spdm_alg_struct.alg_supported)
-            },
-        }
+        assert_eq!(spdm_alg_struct.alg_ext_count,0);  
+        assert_eq!(spdm_alg_struct.alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
     }
     #[test]
     #[should_panic]  
@@ -1212,15 +1201,7 @@ mod tests
         assert_eq!(spdm_alg_struct.alg_type,SpdmAlgType::SpdmAlgTypeDHE);
         assert_eq!(spdm_alg_struct.alg_fixed_count,0);
         assert_eq!(spdm_alg_struct.alg_ext_count,0);
-        match spdm_alg_struct.alg_supported {
-            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048) => 
-            println!("spdm_alg_struct.alg_supported are {:?}\n",spdm_alg_struct.alg_supported), 
-            _ => {
-                panic!(r#"assertion failed: `(left == right)`
-                left: `{:?}`,
-                right: `{:?}`"#, SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048), spdm_alg_struct.alg_supported)
-            },
-        }
+        assert_eq!(spdm_alg_struct.alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
     }
     #[test]
     #[should_panic]  
