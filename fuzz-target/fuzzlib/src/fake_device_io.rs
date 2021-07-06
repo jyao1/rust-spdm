@@ -4,7 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-use spdmlib::responder;
+use spdmlib::{responder, requester};
 use spdmlib::common::SpdmDeviceIo;
 use spdmlib::error::SpdmResult;
 use crate::SharedBuffer;
@@ -46,7 +46,7 @@ pub struct FakeSpdmDeviceIo<'a> {
 }
 
 impl<'a> FakeSpdmDeviceIo<'a> {
-   pub fn _new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
+   pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
         FakeSpdmDeviceIo {
             data: data,
             responder,
@@ -73,4 +73,15 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
     fn flush_all(&mut self) -> SpdmResult {
         Ok(())
     }
+}
+
+#[test]
+fn test_single_run() {
+    let buffer = SharedBuffer::new();
+    let mut server = FakeSpdmDeviceIoReceve::new(&buffer);
+    let mut client = FakeSpdmDeviceIoReceve::new(&buffer);   
+    client.send(&[1,2]).unwrap();
+    let mut rev = [0u8, 64]; 
+    client.receive(&mut rev).unwrap();
+    println!("rev: {:?}", rev);
 }

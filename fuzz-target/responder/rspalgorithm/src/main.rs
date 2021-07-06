@@ -2,7 +2,7 @@ use fuzzlib::*;
 
 fn fuzz_handle_spdm_algorithm(data: &[u8]) {
 
-    let (config_info, provision_info) = create_info();
+    let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
@@ -29,6 +29,21 @@ fn fuzz_handle_spdm_algorithm(data: &[u8]) {
 }
 
 fn main() {
+
+    #[cfg(feature = "fuzzlog")]
+    flexi_logger::Logger::try_with_str("info")
+        .unwrap()
+        .log_to_file(
+            FileSpec::default()
+                .directory("traces")
+                .basename("foo")
+                .discriminant("Sample4711A")
+                .suffix("trc"),
+        )
+        .print_message()
+        .create_symlink("current_run")
+        .start()
+        .unwrap();
 
     afl::fuzz!(|data: &[u8]| {
         fuzz_handle_spdm_algorithm(data);

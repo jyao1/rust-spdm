@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies]
 fuzzlib = { path = "../../fuzzlib" }
+
+
+[features]
+fuzzlog = []

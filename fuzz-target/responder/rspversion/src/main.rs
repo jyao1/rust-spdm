@@ -1,7 +1,7 @@
 use fuzzlib::*;
 
 fn fuzz_handle_spdm_version(data: &[u8]) {
-    let (config_info, provision_info) = create_info();
+    let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
