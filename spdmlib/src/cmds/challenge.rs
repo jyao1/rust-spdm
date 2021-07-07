@@ -90,7 +90,6 @@ impl SpdmCodec for SpdmChallengeAuthResponsePayload {
         };
         let opaque = SpdmOpaqueStruct::spdm_read(context, r)?;
         let signature = SpdmSignatureStruct::spdm_read(context, r)?;
-
         Some(SpdmChallengeAuthResponsePayload {
             slot_id,
             slot_mask,
@@ -101,5 +100,49 @@ impl SpdmCodec for SpdmChallengeAuthResponsePayload {
             opaque,
             signature,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testlib::*;
+    use crate::msgs::*;
+
+    #[test]
+    fn test_case0_spdm_challenge_request_payload() {
+        let u8_slice = &mut [0u8; 34];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmChallengeRequestPayload {
+            slot_id: 100,
+            measurement_summary_hash_type:
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            nonce: SpdmNonceStruct { data: [100u8; 32] },
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(34, reader.left());
+        let spdm_challenge_request_payload =
+            SpdmChallengeRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_challenge_request_payload.slot_id, 100);
+        assert_eq!(
+            spdm_challenge_request_payload.measurement_summary_hash_type,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
+        );
+        for i in 0..32 {
+            assert_eq!(spdm_challenge_request_payload.nonce.data[i], 100u8);
+        }
+        assert_eq!(0, reader.left());
     }
 }
