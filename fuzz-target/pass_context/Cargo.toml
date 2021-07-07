@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 
 fuzzlib = { path = "../fuzzlib" }
+log = "0.4.13"
+simple_logger = "1.11.0"
