@@ -279,3 +279,39 @@ impl SpdmCodec for SpdmMeasurementBlockStructure {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testlib::*;
+    #[test]
+    fn test_case0_spdm_digest_struct() {
+        let u8_slice = &mut [0u8; 68];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmDigestStruct {
+            data_size:64,
+            data: [100u8; SPDM_MAX_HASH_SIZE],
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(68, reader.left());
+        let spdm_digest_struct =SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_digest_struct.data_size, 64);
+        println!("spdm_digest_struct.data_size=={}",spdm_digest_struct.data_size);
+        for i in 0..64 {
+            assert_eq!(spdm_digest_struct.data[i], 100u8);
+        }
+        assert_eq!(4, reader.left());
+    }
+}
