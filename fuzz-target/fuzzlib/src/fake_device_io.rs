@@ -4,7 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-use spdmlib::{responder, requester};
+use spdmlib::responder;
 use spdmlib::common::SpdmDeviceIo;
 use spdmlib::error::SpdmResult;
 use crate::SharedBuffer;

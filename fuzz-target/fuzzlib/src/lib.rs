@@ -10,6 +10,7 @@ pub use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 pub use spdm_emu::spdm_emu::*;
 pub use spdmlib::common::{SpdmDeviceIo, SpdmTransportEncap};
 pub use spdmlib::msgs::*;
+pub use spdmlib::error::SpdmResult;
 pub use spdmlib::{common, responder, requester};
 pub use spdmlib;
 

@@ -45,9 +45,11 @@ As soon as you run this command, you should see AFL’s interface start up:
 
 If you need to check coverage, follow the coverage.md operation, Script rspfuzzrun.sh runs for 1 hour in each case. 
 Fuzzcoverage.sh collects info information and generates html files. The html file location is target/debug/coverge.
-If you need to run a specific case, please modify the cmd tuple in the script
+If you need to run a specific case, please modify the cmd tuple in the script.
+Can run at the same time but merge will cause problems
 
     ```
+    sudo apt install screen
     bash rspfuzzrun.sh
     bash fuzzcoverage.sh
     ```
