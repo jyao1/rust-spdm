@@ -1,6 +1,6 @@
 use fuzzlib::*;
 
-fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
+fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8], number: i8) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
@@ -30,11 +30,16 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
         req_provision_info   
     );
 
-    let _ = requester.send_receive_spdm_version().is_err();
+    requester.init_connection().expect("init connection failed");
+
+    let _ = requester.send_receive_spdm_digest().is_err();
 }
 
 fn main() {
-    // afl::fuzz!(|data: &[u8]| {
-        fuzz_send_receive_spdm_version(&[01, 00, 01, 00, 05, 00, 00, 00, 11, 04, 00, 00, 00, 02, 00, 10, 00, 11, 00, 00], 1);
-    // });
+    // new_logger_from_env().init().unwrap();
+    // std::fs::write("test_spdm_version_ok.raw", &[01, 00, 01, 00, 05, 00, 00, 00, 11, 04, 00, 00, 00, 02, 00, 10, 00, 11, 00, 00]);
+    afl::fuzz!(|data: &[u8]| {
+        // fuzz_send_receive_spdm_digest(&[01, 00, 01, 00, 05, 00, 00, 00, 11, 04, 00, 00, 00, 02, 00, 10, 00, 11, 00, 00], 4);
+        fuzz_send_receive_spdm_digest(data, 4);
+    });
 }

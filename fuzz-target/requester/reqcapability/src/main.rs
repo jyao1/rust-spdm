@@ -1,6 +1,6 @@
 use fuzzlib::*;
 
-fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
+fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8], number: i8) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
@@ -30,11 +30,11 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
         req_provision_info   
     );
 
-    let _ = requester.send_receive_spdm_version().is_err();
+    let _ = requester.send_receive_spdm_capability().is_err();
 }
 
 fn main() {
-    // afl::fuzz!(|data: &[u8]| {
-        fuzz_send_receive_spdm_version(&[01, 00, 01, 00, 05, 00, 00, 00, 11, 04, 00, 00, 00, 02, 00, 10, 00, 11, 00, 00], 1);
-    // });
+    afl::fuzz!(|data: &[u8]| {
+        fuzz_send_receive_spdm_capability(data, 1);
+    });
 }
