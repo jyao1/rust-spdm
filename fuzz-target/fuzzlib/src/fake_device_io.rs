@@ -4,10 +4,7 @@
 
 #![forbid(unsafe_code)]
 
-use spdmlib::responder;
-use spdmlib::common::SpdmDeviceIo;
-use spdmlib::error::SpdmResult;
-use crate::SharedBuffer;
+use super::*;
 
 pub struct FakeSpdmDeviceIoReceve<'a> {
     data: &'a SharedBuffer,
@@ -39,6 +36,49 @@ impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
         Ok(())
     }
 }
+
+
+pub struct FuzzSpdmDeviceIoReceve<'a> {
+    data: &'a SharedBuffer,
+    fuzzdata: &'a [u8],
+    number: i8,
+}
+
+impl<'a> FuzzSpdmDeviceIoReceve<'a> {
+    pub fn new(data: &'a SharedBuffer, fuzzdata:&'a [u8], number: i8) -> Self {
+        FuzzSpdmDeviceIoReceve {
+            data: data,
+            fuzzdata,
+            number,
+        }
+    }
+}
+
+impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
+
+
+    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+        let len = self.data.get_buffer(read_buffer);
+        log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
+        Ok(len)
+    }
+
+    fn send(&mut self, buffer: &[u8]) -> SpdmResult {
+        if self.number != 1 {
+            self.number -= 1;
+            self.data.set_buffer(buffer);
+        } else {
+            self.data.set_buffer(self.fuzzdata);
+        }
+        log::info!("responder send    RAW - {:02x?}\n", buffer);
+        Ok(())
+    }
+
+    fn flush_all(&mut self) -> SpdmResult {
+        Ok(())
+    }
+}
+
 
 pub struct FakeSpdmDeviceIo<'a> {
     pub data: &'a SharedBuffer,
