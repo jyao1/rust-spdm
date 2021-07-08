@@ -36,7 +36,8 @@ pub trait SpdmCodec: Debug + Sized {
 }
 
 impl SpdmCodec for SpdmDigestStruct {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+        assert_eq!(self.data_size,context.get_hash_size());
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
@@ -52,7 +53,8 @@ impl SpdmCodec for SpdmDigestStruct {
 }
 
 impl SpdmCodec for SpdmSignatureStruct {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+        assert_eq!(self.data_size,context.get_asym_key_size());
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
@@ -308,10 +310,39 @@ mod tests {
         assert_eq!(68, reader.left());
         let spdm_digest_struct =SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_digest_struct.data_size, 64);
-        println!("spdm_digest_struct.data_size=={}",spdm_digest_struct.data_size);
         for i in 0..64 {
             assert_eq!(spdm_digest_struct.data[i], 100u8);
         }
         assert_eq!(4, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_signature_struct(){
+        let u8_slice = &mut [0u8; 512];
+        let mut writer = Writer::init(u8_slice);
+        let value= SpdmSignatureStruct {
+            data_size: 512,
+            data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context =  common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        
+        value.spdm_encode(&mut context,&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(512, reader.left());
+        let spdm_signature_struct = SpdmSignatureStruct::spdm_read(&mut context,&mut reader).unwrap();
+        assert_eq!(spdm_signature_struct.data_size,512);
+        for i in 0..512
+        {
+            assert_eq!(spdm_signature_struct.data[i],100);
+        }
     }
 }
