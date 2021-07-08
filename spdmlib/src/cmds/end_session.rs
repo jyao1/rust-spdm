@@ -25,7 +25,7 @@ impl Codec for SpdmEndSessionRequestAttributes {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct SpdmEndSessionRequestPayload {
     pub end_session_request_attributes: SpdmEndSessionRequestAttributes,
 }
@@ -73,7 +73,7 @@ impl SpdmCodec for SpdmEndSessionResponsePayload {
 mod tests 
 {
     use super::*;
-
+    use crate::testlib::*;
     #[test]
     fn test_case0_spdm_response_capability_flags() {
         let u8_slice = &mut [0u8; 1];
@@ -82,9 +82,40 @@ mod tests
         value.encode(&mut writer);
 
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(SpdmEndSessionRequestAttributes::read(&mut reader).unwrap(),SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE);  
+        assert_eq!(
+            SpdmEndSessionRequestAttributes::read(&mut reader).unwrap(),
+            SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE
+        );  
         assert_eq!(0, reader.left());
     } 
-}
+    #[test]
+    fn test_case0_spdm_end_session_request_payload(){
+        let u8_slice = &mut [0u8; 12];
+        let mut writer = Writer::init(u8_slice);
+        let value= SpdmEndSessionRequestPayload {
+            end_session_request_attributes: SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
+        };
 
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context =  common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        value.spdm_encode(&mut context,&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(12, reader.left());
+        let spdm_end_session_request_payload=
+            SpdmEndSessionRequestPayload::spdm_read(&mut context,&mut reader).unwrap();
+        assert_eq!(
+            spdm_end_session_request_payload.end_session_request_attributes,
+            SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE
+        );
+        assert_eq!(10, reader.left());
+    } 
+}
 
