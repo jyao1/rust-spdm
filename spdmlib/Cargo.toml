@@ -27,6 +27,9 @@ uefi_time = {git = "https://github.com/jyao1/rust-uefi-time.git", optional = tru
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 
+[dev-dependencies]
+pcidoe_transport = { path = "../pcidoe_transport" }
+
 [features]
 default = ["spdm-ring", "std"]
 std = ["webpki/std"]
