@@ -28,4 +28,6 @@ pub mod session;
 
 pub mod crypto;
 pub mod key_schedule;
-pub mod testlib;
+
+#[cfg(test)]
+mod testlib;
