@@ -1,3 +1,7 @@
+// Copyright (c) 2020 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 use fuzzlib::*;
 
 pub fn pass_rsp_handle_spdm_version() {
