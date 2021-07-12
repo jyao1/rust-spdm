@@ -1,3 +1,7 @@
+// Copyright (c) 2020 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 use fuzzlib::*;
 
 fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8], number: i8) {

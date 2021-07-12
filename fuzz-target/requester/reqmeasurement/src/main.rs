@@ -4,7 +4,7 @@
 
 use fuzzlib::*;
 
-fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
+fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8], number:i8) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
@@ -34,11 +34,17 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
         req_provision_info   
     );
 
-    let _ = requester.send_receive_spdm_version().is_err();
+    let _ = requester.send_receive_spdm_digest().is_err();
+
+    let _ = requester.send_receive_spdm_certificate(0).is_err();
+
+    let _ = requester.send_receive_spdm_challenge(0, SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone).is_err();
+
+    let _ = requester.send_receive_spdm_measurement(SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber, 0).is_err();
 }
 
 fn main() {
     afl::fuzz!(|data: &[u8]| {
-        fuzz_send_receive_spdm_version(data, 1);
+        fuzz_send_receive_spdm_challenge(data, 7);
     });
 }
