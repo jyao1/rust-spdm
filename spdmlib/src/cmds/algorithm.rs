@@ -204,3 +204,99 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
         })
     }
 }
+
+#[cfg(test)]
+mod tests 
+{
+    use super::*;
+    use crate::testlib::*;
+
+    #[test]
+    fn test_case0_spdm_negotiate_algorithms_request_payload() {
+        let u8_slice = &mut [0u8; 48];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmNegotiateAlgorithmsRequestPayload {
+            measurement_specification: SpdmMeasurementSpecification::DMTF,
+            base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+            base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+            alg_struct_count: 4,
+            alg_struct: [SpdmAlgStruct{
+                alg_type : SpdmAlgType::SpdmAlgTypeDHE,
+                alg_fixed_count :2,
+                alg_supported :SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                alg_ext_count :0, 
+            }; config::MAX_SPDM_ALG_STRUCT_COUNT],
+         };
+
+         let (config_info, provision_info) = create_info();
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context =  common::SpdmContext::new(
+             my_spdm_device_io,
+             pcidoe_transport_encap,
+             config_info,
+             provision_info,
+         );
+
+         value.spdm_encode(&mut context,&mut writer);
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(48, reader.left());
+         let spdm_sturct_data = SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut context,&mut reader).unwrap();
+         assert_eq!(spdm_sturct_data.measurement_specification,SpdmMeasurementSpecification::DMTF);
+         assert_eq!(spdm_sturct_data.base_asym_algo,SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
+         assert_eq!(spdm_sturct_data.base_hash_algo,SpdmBaseHashAlgo::TPM_ALG_SHA_256);
+         assert_eq!(spdm_sturct_data.alg_struct_count,4);
+         for i in 0..4{
+                assert_eq!(spdm_sturct_data.alg_struct[i].alg_type,SpdmAlgType::SpdmAlgTypeDHE);
+                assert_eq!(spdm_sturct_data.alg_struct[i].alg_fixed_count,2);
+                assert_eq!(spdm_sturct_data.alg_struct[1].alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
+                assert_eq!(spdm_sturct_data.alg_struct[i].alg_ext_count,0);
+         }
+         assert_eq!(2, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_algorithms_response_payload() {
+        let u8_slice = &mut [0u8; 50];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmAlgorithmsResponsePayload {
+            measurement_specification_sel: SpdmMeasurementSpecification::DMTF,
+            measurement_hash_algo: SpdmMeasurementHashAlgo::RAW_BIT_STREAM,
+            base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+            base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+            alg_struct_count: 4,
+            alg_struct: [SpdmAlgStruct{
+                alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                alg_fixed_count: 2,
+                alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                alg_ext_count: 0, 
+            }; config::MAX_SPDM_ALG_STRUCT_COUNT],
+         };
+
+         let (config_info, provision_info) = create_info();
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context =  common::SpdmContext::new(
+             my_spdm_device_io,
+             pcidoe_transport_encap,
+             config_info,
+             provision_info,
+         );
+
+         value.spdm_encode(&mut context,&mut writer);
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(50, reader.left());
+         let spdm_sturct_data = SpdmAlgorithmsResponsePayload::spdm_read(&mut context,&mut reader).unwrap();
+         assert_eq!(spdm_sturct_data.measurement_specification_sel,SpdmMeasurementSpecification::DMTF);
+         assert_eq!(spdm_sturct_data.measurement_hash_algo,SpdmMeasurementHashAlgo::RAW_BIT_STREAM);
+         assert_eq!(spdm_sturct_data.base_asym_sel,SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
+         assert_eq!(spdm_sturct_data.base_hash_sel,SpdmBaseHashAlgo::TPM_ALG_SHA_256);
+         assert_eq!(spdm_sturct_data.alg_struct_count,4);
+         for i in 0..4{
+                assert_eq!(spdm_sturct_data.alg_struct[i].alg_type,SpdmAlgType::SpdmAlgTypeDHE);
+                assert_eq!(spdm_sturct_data.alg_struct[i].alg_fixed_count,2);
+                assert_eq!(spdm_sturct_data.alg_struct[1].alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
+                assert_eq!(spdm_sturct_data.alg_struct[i].alg_ext_count,0);
+         }
+         assert_eq!(0, reader.left());
+    }
+}
