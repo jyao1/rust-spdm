@@ -345,4 +345,46 @@ mod tests {
             assert_eq!(spdm_signature_struct.data[i],100);
         }
     }
+    #[test]
+    fn test_case0_spdm_cert_chain(){
+        let u8_slice = &mut [0u8; 4192];
+        let mut writer = Writer::init(u8_slice);
+        let value= SpdmCertChain {
+            root_hash: SpdmDigestStruct {
+                data_size: 64,
+                data: [100u8; SPDM_MAX_HASH_SIZE],
+            },
+            cert_chain: SpdmCertChainData {
+                data_size: 4096u16,
+                data: [100u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            },
+
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context =  common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+
+        value.spdm_encode(&mut context,&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(4192, reader.left());
+        let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context,&mut reader).unwrap();
+        assert_eq!(spdm_cert_chain.root_hash.data_size,64);
+        for i in 0..64
+        {
+            assert_eq!(spdm_cert_chain.root_hash.data[i],100);
+        }
+        assert_eq!(spdm_cert_chain.cert_chain.data_size,4096);
+        for i in 0..4096
+        {
+            assert_eq!(spdm_cert_chain.cert_chain.data[i],100);
+        }
+    }
 }

@@ -113,7 +113,7 @@ impl SpdmCodec for SpdmErrorResponseVendorExtData {
     }
 }
 
-#[derive(Debug, Copy, Clone ,PartialEq)]
+#[derive(Debug, Copy, Clone , PartialEq)]
 pub enum SpdmErrorResponseExtData {
     SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData),
     SpdmErrorExtDataNotReady(SpdmErrorResponseNotReadyExtData),
