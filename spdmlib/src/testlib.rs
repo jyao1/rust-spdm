@@ -2,16 +2,22 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::SpdmDeviceIo;
-use crate::msgs::*;
-use crate::common::SpdmTransportEncap;
-use crate::error::SpdmResult;
 
 use crate::{common};
-use crate::{spdm_err, spdm_result_err};
+use crate::common::*;
 
+use crate::msgs::*;
+use crate::error::SpdmResult;
+use crate::{spdm_err, spdm_result_err};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
+use std::path::PathBuf;
+
+pub fn get_test_key_directory() -> PathBuf {
+    let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let crate_dir = crate_dir.parent().expect("can't find parent dir");
+    crate_dir.to_path_buf()
+}
 
 pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
@@ -44,11 +50,12 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
         ..Default::default()
     };
 
-    let ca_file_path = "../TestKey/EcP384/ca.cert.der";
+    let crate_dir = get_test_key_directory();
+    let ca_file_path = crate_dir.join("TestKey/EcP384/ca.cert.der");
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
-    let inter_file_path = "../TestKey/EcP384/inter.cert.der";
+    let inter_file_path =crate_dir.join("TestKey/EcP384/inter.cert.der");
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
-    let leaf_file_path = "../TestKey/EcP384/end_responder.cert.der";
+    let leaf_file_path = crate_dir.join("TestKey/EcP384/end_responder.cert.der");
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 
     let ca_len = ca_cert.len();
@@ -70,7 +77,7 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
 
     (config_info, provision_info)
 }
-// #[derive(Debug, Copy, Clone, Default)]
+
 pub struct MySpdmDeviceIo;
 
 impl SpdmDeviceIo for MySpdmDeviceIo {
