@@ -174,6 +174,8 @@ impl SpdmCodec for SpdmDheExchangeStruct {
 
 impl SpdmCodec for SpdmPskContextStruct {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+        //Missing self.data_size.encode method
+        self.data_size.encode(bytes);
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
@@ -193,6 +195,8 @@ impl SpdmCodec for SpdmPskContextStruct {
 
 impl SpdmCodec for SpdmPskHintStruct {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+        //Missing self.data_size.encode method
+        self.data_size.encode(bytes);
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
@@ -386,5 +390,96 @@ mod tests {
         {
             assert_eq!(spdm_cert_chain.cert_chain.data[i],100);
         }
+    }
+
+    #[test]
+    fn test_case0_spdm_dhe_exchange_struct() {
+        let u8_slice = &mut [0u8; 512];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmDheExchangeStruct {
+            data_size: 512,
+            data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(512, reader.left());
+        let spdm_dhe_exchange_struct =
+            SpdmDheExchangeStruct::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_dhe_exchange_struct.data_size, 512);
+        for i in 0..512 {
+            assert_eq!(spdm_dhe_exchange_struct.data[i], 100);
+        }
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_psk_context_struct() {
+        let u8_slice = &mut [0u8; 68];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmPskContextStruct {
+            data_size: 64,
+            data: [100u8; config::MAX_SPDM_PSK_CONTEXT_SIZE],
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(68, reader.left());
+        let spdm_psk_context_struct =
+            SpdmPskContextStruct::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_psk_context_struct.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(spdm_psk_context_struct.data[i], 100);
+        }
+        assert_eq!(2, reader.left());
+    }
+    #[test]
+    fn test_case0_spdm_psk_hint_struct() {
+        let u8_slice = &mut [0u8; 68];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmPskHintStruct {
+            data_size: 32,
+            data: [100u8; config::MAX_SPDM_PSK_HINT_SIZE],
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(68, reader.left());
+        let spdm_psk_hint_struct = SpdmPskHintStruct::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_psk_hint_struct.data_size, 32);
+        for i in 0..32 {
+            assert_eq!(spdm_psk_hint_struct.data[i], 100);
+        }
+        assert_eq!(34, reader.left());
     }
 }
