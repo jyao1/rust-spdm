@@ -4,12 +4,12 @@
 
 use fuzzlib::*;
 
-fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
+fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
     let shared_buffer = SharedBuffer::new();
-    let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata, number);
+    let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
@@ -39,6 +39,6 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8], number:i8) {
 
 fn main() {
     afl::fuzz!(|data: &[u8]| {
-        fuzz_send_receive_spdm_version(data, 1);
+        fuzz_send_receive_spdm_version(data);
     });
 }
