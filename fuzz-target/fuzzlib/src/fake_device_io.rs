@@ -41,15 +41,13 @@ impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
 pub struct FuzzSpdmDeviceIoReceve<'a> {
     data: &'a SharedBuffer,
     fuzzdata: &'a [u8],
-    number: i8,
 }
 
 impl<'a> FuzzSpdmDeviceIoReceve<'a> {
-    pub fn new(data: &'a SharedBuffer, fuzzdata:&'a [u8], number: i8) -> Self {
+    pub fn new(data: &'a SharedBuffer, fuzzdata:&'a [u8]) -> Self {
         FuzzSpdmDeviceIoReceve {
             data: data,
             fuzzdata,
-            number,
         }
     }
 }
@@ -64,12 +62,7 @@ impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
     }
 
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {
-        if self.number != 1 {
-            self.number -= 1;
             self.data.set_buffer(buffer);
-        } else {
-            self.data.set_buffer(self.fuzzdata);
-        }
         log::info!("responder send    RAW - {:02x?}\n", buffer);
         Ok(())
     }

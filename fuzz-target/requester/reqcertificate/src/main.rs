@@ -4,12 +4,12 @@
 
 use fuzzlib::*;
 
-fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8], number: i8) {
+fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
     let shared_buffer = SharedBuffer::new();
-    let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata, number);
+    let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
@@ -24,7 +24,13 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8], number: i8) {
 
     // version_rsp
     responder.common.reset_runtime_info();
-    responder.common.runtime_info.message_a.append_message(&[16, 132, 0, 0]);
+    responder.common.runtime_info.message_a.append_message(&[
+        16, 132, 0, 0, 17, 4, 0, 0, 0, 2, 0, 16, 0, 17, 17, 225, 0, 0, 0, 0, 0, 0, 198, 118, 0, 0,
+        17, 97, 0, 0, 0, 0, 0, 0, 246, 122, 0, 0, 17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2,
+        0, 5, 32, 1, 0, 17, 99, 4, 0, 52, 0, 1, 0, 4, 0, 0, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0
+    ]);
 
     // capability_rsp
     responder.common.negotiate_info.req_ct_exponent_sel = 0;
@@ -235,8 +241,16 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8], number: i8) {
     });
 
     // digest_rsp
-    responder.common.runtime_info.message_b.append_message(&[17, 129, 0, 0]);
-    responder.common.runtime_info.message_b.append_message(&[17, 1, 0, 1, 40, 175, 112, 39, 188, 45, 149, 181, 160, 228, 38, 4, 197, 140, 92, 60, 191, 162, 200, 36, 166, 48, 202, 47, 15, 74, 121, 53, 87, 251, 57, 59, 221, 138, 200, 138, 146, 216, 163, 112, 23, 18, 131, 155, 102, 225, 58, 58]);
+    responder
+        .common
+        .runtime_info
+        .message_b
+        .append_message(&[17, 129, 0, 0]);
+    responder.common.runtime_info.message_b.append_message(&[
+        17, 1, 0, 1, 40, 175, 112, 39, 188, 45, 149, 181, 160, 228, 38, 4, 197, 140, 92, 60, 191,
+        162, 200, 36, 166, 48, 202, 47, 15, 74, 121, 53, 87, 251, 57, 59, 221, 138, 200, 138, 146,
+        216, 163, 112, 23, 18, 131, 155, 102, 225, 58, 58,
+    ]);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
@@ -249,9 +263,19 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8], number: i8) {
         req_provision_info,
     );
 
-    // version_req 
+    // version_req
     requester.common.reset_runtime_info();
-    requester.common.runtime_info.message_a.append_message(&[16,132,0,0]);
+    requester
+        .common
+        .runtime_info
+        .message_a
+        .append_message(&[
+            16, 132, 0, 0, 17, 4, 0, 0, 0, 2, 0, 16, 0, 17, 17, 225, 0, 0, 0, 0, 0, 0, 198, 118, 0, 0,
+            17, 97, 0, 0, 0, 0, 0, 0, 246, 122, 0, 0, 17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2,
+            0, 5, 32, 1, 0, 17, 99, 4, 0, 52, 0, 1, 0, 4, 0, 0, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0
+        ]);
 
     // capability_req
     requester.common.negotiate_info.req_ct_exponent_sel = 0;
@@ -295,23 +319,23 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8], number: i8) {
     requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
     // digest_req
-    requester.common.runtime_info.message_b.append_message(&[17,129,0,0]);
-    requester.common.runtime_info.message_b.append_message(&[17, 1, 0, 1, 40, 175, 112, 39, 188, 45, 149, 181, 160, 228, 38, 4, 197, 140, 92, 60, 191, 162, 200, 36, 166, 48, 202, 47, 15, 74, 121, 53, 87, 251, 57, 59, 221, 138, 200, 138, 146, 216, 163, 112, 23, 18, 131, 155, 102, 225, 58, 58]);
-    
-
-    // let _ = requester.init_connection().is_err();
-
-    // let _ = requester.send_receive_spdm_digest().is_err();
+    requester
+        .common
+        .runtime_info
+        .message_b
+        .append_message(&[17, 129, 0, 0]);
+    requester.common.runtime_info.message_b.append_message(&[
+        17, 1, 0, 1, 40, 175, 112, 39, 188, 45, 149, 181, 160, 228, 38, 4, 197, 140, 92, 60, 191,
+        162, 200, 36, 166, 48, 202, 47, 15, 74, 121, 53, 87, 251, 57, 59, 221, 138, 200, 138, 146,
+        216, 163, 112, 23, 18, 131, 155, 102, 225, 58, 58,
+    ]);
 
     let _ = requester.send_receive_spdm_certificate(0).is_err();
 }
 
 fn main() {
-    // afl::fuzz!(|data: &[u8]| {
-    // fuzz_send_receive_spdm_certificate(data, 5);
+    //     afl::fuzz!(|data: &[u8]| {
+    //     fuzz_send_receive_spdm_certificate(data, 5);
     // });
-    fuzz_send_receive_spdm_certificate(
-        &[10, 11, 23, 12, 44, 66, 78, 8, 5, 33, 4, 5, 6, 8, 2, 44],
-        5,
-    );
+    fuzz_send_receive_spdm_certificate(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 }
