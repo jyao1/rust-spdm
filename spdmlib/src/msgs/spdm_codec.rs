@@ -37,7 +37,7 @@ pub trait SpdmCodec: Debug + Sized {
 
 impl SpdmCodec for SpdmDigestStruct {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        assert_eq!(self.data_size,context.get_hash_size());
+        assert_eq!(self.data_size, context.get_hash_size());
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
@@ -54,7 +54,7 @@ impl SpdmCodec for SpdmDigestStruct {
 
 impl SpdmCodec for SpdmSignatureStruct {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        assert_eq!(self.data_size,context.get_asym_key_size());
+        assert_eq!(self.data_size, context.get_asym_key_size());
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
@@ -172,49 +172,11 @@ impl SpdmCodec for SpdmDheExchangeStruct {
     }
 }
 
-impl SpdmCodec for SpdmPskContextStruct {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        //Missing self.data_size.encode method
-        self.data_size.encode(bytes);
-        for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
-        }
-    }
-    fn spdm_read(
-        _context: &mut common::SpdmContext,
-        r: &mut Reader,
-    ) -> Option<SpdmPskContextStruct> {
-        let data_size = u16::read(r)?;
-        let mut data = [0u8; config::MAX_SPDM_PSK_CONTEXT_SIZE];
-        for d in data.iter_mut().take(data_size as usize) {
-            *d = u8::read(r)?;
-        }
-        Some(SpdmPskContextStruct { data_size, data })
-    }
-}
-
-impl SpdmCodec for SpdmPskHintStruct {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        //Missing self.data_size.encode method
-        self.data_size.encode(bytes);
-        for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
-        }
-    }
-    fn spdm_read(_context: &mut common::SpdmContext, r: &mut Reader) -> Option<SpdmPskHintStruct> {
-        let data_size = u16::read(r)?;
-        let mut data = [0u8; config::MAX_SPDM_PSK_HINT_SIZE];
-        for d in data.iter_mut().take(data_size as usize) {
-            *d = u8::read(r)?;
-        }
-        Some(SpdmPskHintStruct { data_size, data })
-    }
-}
-
 impl SpdmCodec for SpdmDmtfMeasurementStructure {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
         let type_value = self.r#type.get_u8();
-        let representation_value = self.r#type.get_u8();
+        //Code error should be self.representation
+        let representation_value = self.representation.get_u8();
         let final_value = type_value + representation_value;
         final_value.encode(bytes);
 
@@ -242,7 +204,8 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         };
         let representation = match representation_value {
             0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            1 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
+            // Code error should be 128
+            128 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
             val => SpdmDmtfMeasurementRepresentation::Unknown(val),
         };
 
@@ -295,7 +258,7 @@ mod tests {
         let u8_slice = &mut [0u8; 68];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmDigestStruct {
-            data_size:64,
+            data_size: 64,
             data: [100u8; SPDM_MAX_HASH_SIZE],
         };
 
@@ -308,11 +271,11 @@ mod tests {
             config_info,
             provision_info,
         );
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(68, reader.left());
-        let spdm_digest_struct =SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
+        let spdm_digest_struct = SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_digest_struct.data_size, 64);
         for i in 0..64 {
             assert_eq!(spdm_digest_struct.data[i], 100u8);
@@ -320,40 +283,40 @@ mod tests {
         assert_eq!(4, reader.left());
     }
     #[test]
-    fn test_case0_spdm_signature_struct(){
+    fn test_case0_spdm_signature_struct() {
         let u8_slice = &mut [0u8; 512];
         let mut writer = Writer::init(u8_slice);
-        let value= SpdmSignatureStruct {
+        let value = SpdmSignatureStruct {
             data_size: 512,
             data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
         };
 
         let (config_info, provision_info) = create_info();
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context =  common::SpdmContext::new(
+        let mut context = common::SpdmContext::new(
             my_spdm_device_io,
             pcidoe_transport_encap,
             config_info,
             provision_info,
         );
-        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        
-        value.spdm_encode(&mut context,&mut writer);
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+
+        value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(512, reader.left());
-        let spdm_signature_struct = SpdmSignatureStruct::spdm_read(&mut context,&mut reader).unwrap();
-        assert_eq!(spdm_signature_struct.data_size,512);
-        for i in 0..512
-        {
-            assert_eq!(spdm_signature_struct.data[i],100);
+        let spdm_signature_struct =
+            SpdmSignatureStruct::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_signature_struct.data_size, 512);
+        for i in 0..512 {
+            assert_eq!(spdm_signature_struct.data[i], 100);
         }
     }
     #[test]
-    fn test_case0_spdm_cert_chain(){
+    fn test_case0_spdm_cert_chain() {
         let u8_slice = &mut [0u8; 4192];
         let mut writer = Writer::init(u8_slice);
-        let value= SpdmCertChain {
+        let value = SpdmCertChain {
             root_hash: SpdmDigestStruct {
                 data_size: 64,
                 data: [100u8; SPDM_MAX_HASH_SIZE],
@@ -362,36 +325,100 @@ mod tests {
                 data_size: 4096u16,
                 data: [100u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
             },
-
         };
 
         let (config_info, provision_info) = create_info();
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context =  common::SpdmContext::new(
+        let mut context = common::SpdmContext::new(
             my_spdm_device_io,
             pcidoe_transport_encap,
             config_info,
             provision_info,
         );
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-        value.spdm_encode(&mut context,&mut writer);
+        value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4192, reader.left());
-        let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context,&mut reader).unwrap();
-        assert_eq!(spdm_cert_chain.root_hash.data_size,64);
-        for i in 0..64
-        {
-            assert_eq!(spdm_cert_chain.root_hash.data[i],100);
+        let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_cert_chain.root_hash.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(spdm_cert_chain.root_hash.data[i], 100);
         }
-        assert_eq!(spdm_cert_chain.cert_chain.data_size,4096);
-        for i in 0..4096
-        {
-            assert_eq!(spdm_cert_chain.cert_chain.data[i],100);
+        assert_eq!(spdm_cert_chain.cert_chain.data_size, 4096);
+        for i in 0..4096 {
+            assert_eq!(spdm_cert_chain.cert_chain.data[i], 100);
         }
     }
+    #[test]
+    fn test_case0_spdm_measurement_record_structure() {
+        let u8_slice = &mut [0u8; 512];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMeasurementRecordStructure {
+            number_of_blocks: 5,
+            record: [SpdmMeasurementBlockStructure{
+                index: 100u8,
+                measurement_specification: SpdmMeasurementSpecification::DMTF,
+                measurement_size: 67u16,
+                measurement: SpdmDmtfMeasurementStructure {
+                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                    representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                    value_size: 64u16,
+                    value: [100u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                },
+            };config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+        };
+       
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
 
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(512, reader.left());
+        let measurement_record =
+            SpdmMeasurementRecordStructure::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(measurement_record.number_of_blocks, 5);
+        for i in 0..5{
+            assert_eq!(measurement_record.record[i].index, 100);
+            assert_eq!(measurement_record.record[i].measurement_specification, SpdmMeasurementSpecification::DMTF);
+            assert_eq!(measurement_record.record[i].measurement_size, 67);
+            assert_eq!(measurement_record.record[i].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom);
+            assert_eq!(measurement_record.record[i].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest);
+            assert_eq!(measurement_record.record[i].measurement.value_size, 64);
+            for j in 0..64 {
+                assert_eq!(measurement_record.record[i].measurement.value[j], 100);
+            }
+        }
+    }
+    #[test]
+    #[should_panic]
+    fn test_case1_spdm_measurement_record_structure() {
+        let u8_slice = &mut [0u8; 512];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMeasurementRecordStructure {
+            number_of_blocks: 5,
+            record: [SpdmMeasurementBlockStructure::default();config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+        };
+       
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        value.spdm_encode(&mut context, &mut writer);
+    }
     #[test]
     fn test_case0_spdm_dhe_exchange_struct() {
         let u8_slice = &mut [0u8; 512];
@@ -424,13 +451,21 @@ mod tests {
         assert_eq!(0, reader.left());
     }
     #[test]
-    fn test_case0_spdm_psk_context_struct() {
-        let u8_slice = &mut [0u8; 68];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmPskContextStruct {
-            data_size: 64,
-            data: [100u8; config::MAX_SPDM_PSK_CONTEXT_SIZE],
-        };
+    fn test_case0_spdm_dmtf_measurement_structure() {
+        let mut value = SpdmDmtfMeasurementStructure::default();
+        let r#type = [
+            SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+            SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+            SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig,
+            SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig,
+            SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest,
+        ];
+        let   representation = [
+            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
+        ];
+        value.value_size = 64u16;
+        value.value = [100u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
 
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -441,27 +476,47 @@ mod tests {
             config_info,
             provision_info,
         );
-
-        value.spdm_encode(&mut context, &mut writer);
-        let mut reader = Reader::init(u8_slice);
-        assert_eq!(68, reader.left());
-        let spdm_psk_context_struct =
-            SpdmPskContextStruct::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(spdm_psk_context_struct.data_size, 64);
-        for i in 0..64 {
-            assert_eq!(spdm_psk_context_struct.data[i], 100);
+        for i in 0..5 {
+            value.r#type = r#type[i];
+            if i < 2 {
+                value.representation = representation[i];
+            }
+            let u8_slice = &mut [0u8; 68];
+            let mut writer = Writer::init(u8_slice);
+            value.spdm_encode(&mut context, &mut writer);
+            let mut reader = Reader::init(u8_slice);
+            assert_eq!(68, reader.left());
+            let spdm_dmtf_measurement_structure =
+                SpdmDmtfMeasurementStructure::spdm_read(&mut context, &mut reader).unwrap();
+            assert_eq!(spdm_dmtf_measurement_structure.r#type, r#type[i]);
+            if i < 2 {
+                assert_eq!(
+                    spdm_dmtf_measurement_structure.representation,
+                    representation[i]
+                );
+            }
+            assert_eq!(spdm_dmtf_measurement_structure.value_size, 64);
+            for j in 0..64 {
+                assert_eq!(spdm_dmtf_measurement_structure.value[j], 100);
+            }
+            assert_eq!(1, reader.left());
         }
-        assert_eq!(2, reader.left());
     }
     #[test]
-    fn test_case0_spdm_psk_hint_struct() {
-        let u8_slice = &mut [0u8; 68];
+    fn test_case0_spdm_measurement_block_structure() {
+        let u8_slice = &mut [0u8; 80];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmPskHintStruct {
-            data_size: 32,
-            data: [100u8; config::MAX_SPDM_PSK_HINT_SIZE],
+        let value = SpdmMeasurementBlockStructure {
+            index: 100u8,
+            measurement_specification: SpdmMeasurementSpecification::DMTF,
+            measurement_size: 100u16,
+            measurement: SpdmDmtfMeasurementStructure {
+                r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                value_size: 64,
+                value: [100u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            },
         };
-
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -471,15 +526,31 @@ mod tests {
             config_info,
             provision_info,
         );
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(68, reader.left());
-        let spdm_psk_hint_struct = SpdmPskHintStruct::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(spdm_psk_hint_struct.data_size, 32);
-        for i in 0..32 {
-            assert_eq!(spdm_psk_hint_struct.data[i], 100);
+        assert_eq!(80, reader.left());
+        let spdm_block_structure =
+            SpdmMeasurementBlockStructure::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_block_structure.index, 100);
+        assert_eq!(
+            spdm_block_structure.measurement_specification,
+            SpdmMeasurementSpecification::DMTF
+        );
+        assert_eq!(spdm_block_structure.measurement_size, 100);
+        assert_eq!(
+            spdm_block_structure.measurement.r#type,
+            SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+        );
+        assert_eq!(
+            spdm_block_structure.measurement.representation,
+            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+        );
+        assert_eq!(spdm_block_structure.measurement.value_size, 64);
+        for i in 0..64 {
+            assert_eq!(spdm_block_structure.measurement.value[i], 100);
         }
-        assert_eq!(34, reader.left());
+        assert_eq!(9, reader.left());
     }
 }
