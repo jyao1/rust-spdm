@@ -146,20 +146,236 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
 }
 
 #[cfg(test)]
-mod tests 
-{
+mod tests {
     use super::*;
+    use crate::msgs::*;
+    use crate::testlib::*;
 
     #[test]
     fn test_case0_spdm_key_exchange_mut_auth_attributes() {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ ;
+        let value = SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ;
         value.encode(&mut writer);
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
-        assert_eq!(SpdmKeyExchangeMutAuthAttributes::read(&mut reader).unwrap(),SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ);  
+        assert_eq!(
+            SpdmKeyExchangeMutAuthAttributes::read(&mut reader).unwrap(),
+            SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ
+        );
         assert_eq!(3, reader.left());
-    } 
+    }
+    #[test]
+    fn test_case0_spdm_key_exchange_request_payload() {
+        let u8_slice = &mut [0u8; 680];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmKeyExchangeRequestPayload {
+            measurement_summary_hash_type:
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            slot_id: 100u8,
+            req_session_id: 100u16,
+            random: SpdmRandomStruct {
+                data: [100u8; SPDM_RANDOM_SIZE],
+            },
+            exchange: SpdmDheExchangeStruct {
+                data_size: 512u16,
+                data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
+            },
+            opaque: SpdmOpaqueStruct {
+                data_size: 64u16,
+                data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+            },
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(680, reader.left());
+        let exchange_request_payload =
+            SpdmKeyExchangeRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
+
+        assert_eq!(
+            exchange_request_payload.measurement_summary_hash_type,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
+        );
+        assert_eq!(exchange_request_payload.slot_id, 100);
+        for i in 0..32 {
+            assert_eq!(exchange_request_payload.random.data[i], 100);
+        }
+        assert_eq!(exchange_request_payload.exchange.data_size, 512);
+        for i in 0..512 {
+            assert_eq!(exchange_request_payload.exchange.data[i], 100);
+        }
+        assert_eq!(exchange_request_payload.opaque.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(exchange_request_payload.opaque.data[i], 100);
+        }
+    }
+
+    #[test]
+    fn test_case0_spdm_key_exchange_response_payload() {
+        let u8_slice = &mut [0u8; 1256];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmKeyExchangeResponsePayload {
+            heartbeat_period: 100u8,
+            rsp_session_id: 100u16,
+            mut_auth_req: SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ,
+            req_slot_id: 100u8,
+            random: SpdmRandomStruct {
+                data: [100u8; SPDM_RANDOM_SIZE],
+            },
+            exchange: SpdmDheExchangeStruct {
+                data_size: 512u16,
+                data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
+            },
+            measurement_summary_hash: SpdmDigestStruct {
+                data_size: 64u16,
+                data: [0x11u8; SPDM_MAX_HASH_SIZE],
+            },
+            opaque: SpdmOpaqueStruct {
+                data_size: 64u16,
+                data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+            },
+            signature: SpdmSignatureStruct {
+                data_size: 512u16,
+                data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
+            },
+            verify_data: SpdmDigestStruct {
+                data_size: 64u16,
+                data: [0x33u8; SPDM_MAX_HASH_SIZE],
+            },
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
+        context.runtime_info.need_measurement_summary_hash=true;
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(1256, reader.left());
+        let exchange_request_payload =
+            SpdmKeyExchangeResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+
+        assert_eq!(exchange_request_payload.heartbeat_period, 100);
+        assert_eq!(exchange_request_payload.rsp_session_id, 100);
+        assert_eq!(exchange_request_payload.mut_auth_req,SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ);
+        assert_eq!(exchange_request_payload.req_slot_id, 100);
+        for i in 0..32 {
+            assert_eq!(exchange_request_payload.random.data[i], 100);
+        }
+
+        assert_eq!(exchange_request_payload.exchange.data_size, 512);
+        assert_eq!(exchange_request_payload.signature.data_size, 512);
+        for i in 0..512 {
+            assert_eq!(exchange_request_payload.exchange.data[i], 0xa5);
+            assert_eq!(exchange_request_payload.signature.data[i], 0x5a);
+        }
+
+        assert_eq!(exchange_request_payload.measurement_summary_hash.data_size, 64);
+        assert_eq!(exchange_request_payload.verify_data.data_size,64);
+        assert_eq!(exchange_request_payload.opaque.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(exchange_request_payload.measurement_summary_hash.data[i], 0x11);
+            assert_eq!(exchange_request_payload.opaque.data[i], 0x22);
+            assert_eq!(exchange_request_payload.verify_data.data[i], 0x33);
+        }
+        assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case1_spdm_key_exchange_response_payload() {
+        let u8_slice = &mut [0u8; 1256];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmKeyExchangeResponsePayload {
+            heartbeat_period: 100u8,
+            rsp_session_id: 100u16,
+            mut_auth_req: SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ,
+            req_slot_id: 100u8,
+            random: SpdmRandomStruct {
+                data: [100u8; SPDM_RANDOM_SIZE],
+            },
+            exchange: SpdmDheExchangeStruct {
+                data_size: 512u16,
+                data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
+            },
+            measurement_summary_hash: SpdmDigestStruct ::default(),
+            opaque: SpdmOpaqueStruct {
+                data_size: 64u16,
+                data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+            },
+            signature: SpdmSignatureStruct {
+                data_size: 512u16,
+                data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
+            },
+            verify_data: SpdmDigestStruct {
+                data_size: 64u16,
+                data: [0x33u8; SPDM_MAX_HASH_SIZE],
+            },
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
+        context.runtime_info.need_measurement_summary_hash=false;
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(1256, reader.left());
+        let exchange_request_payload =
+            SpdmKeyExchangeResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+
+        assert_eq!(exchange_request_payload.heartbeat_period, 100);
+        assert_eq!(exchange_request_payload.rsp_session_id, 100);
+        assert_eq!(exchange_request_payload.mut_auth_req,SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ);
+        assert_eq!(exchange_request_payload.req_slot_id, 100);
+        for i in 0..32 {
+            assert_eq!(exchange_request_payload.random.data[i], 100);
+        }
+
+        assert_eq!(exchange_request_payload.exchange.data_size, 512);
+        assert_eq!(exchange_request_payload.signature.data_size, 512);
+        for i in 0..512 {
+            assert_eq!(exchange_request_payload.exchange.data[i], 0xa5);
+            assert_eq!(exchange_request_payload.signature.data[i], 0x5a);
+        }
+
+        assert_eq!(exchange_request_payload.measurement_summary_hash.data_size, 0);
+        assert_eq!(exchange_request_payload.verify_data.data_size,64);
+        assert_eq!(exchange_request_payload.opaque.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(exchange_request_payload.measurement_summary_hash.data[i], 0);
+            assert_eq!(exchange_request_payload.opaque.data[i], 0x22);
+            assert_eq!(exchange_request_payload.verify_data.data[i], 0x33);
+        }
+        assert_eq!(64, reader.left());
+    }
 }
