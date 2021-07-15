@@ -99,7 +99,9 @@ impl SpdmCodec for SpdmVersionResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+    use crate::msgs::*;
+    use crate::testlib::*;
+
     #[test]
     fn test_case1_spdmversion_struct() {
         let u8_slice = &mut [0u8; 2];
@@ -112,7 +114,7 @@ mod tests {
         let mut reader = Reader::init(u8_slice);
         assert_eq!(2, reader.left());
         let spdmversionstruct = SpdmVersionStruct::read(&mut reader).unwrap();
-        assert_eq!(spdmversionstruct.update,0xff);
+        assert_eq!(spdmversionstruct.update, 0xff);
         assert_eq!(spdmversionstruct.version, SpdmVersion::SpdmVersion10);
     }
     #[test]
@@ -126,6 +128,41 @@ mod tests {
         value.encode(&mut writer);
         let mut reader = Reader::init(u8_slice);
         let spdmversionstruct = SpdmVersionStruct::read(&mut reader);
-        assert_eq!(spdmversionstruct.is_none(), true);        
+        assert_eq!(spdmversionstruct.is_none(), true);
+    }
+    #[test]
+    fn test_case0_spdm_key_exchange_request_payload() {
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmVersionResponsePayload {
+            version_number_entry_count: 2u8,
+            versions: [SpdmVersionStruct {
+                update: 100u8,
+                version: SpdmVersion::SpdmVersion10,
+            }; config::MAX_SPDM_VERSION_COUNT],
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(8, reader.left());
+        let version_response =
+            SpdmVersionResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+
+        assert_eq!(version_response.version_number_entry_count, 2u8);
+        for i in 0..2 {
+            assert_eq!(version_response.versions[i].update, 100u8);
+            assert_eq!(version_response.versions[i].version, SpdmVersion::SpdmVersion10);
+        }
+        assert_eq!(0, reader.left());
     }
 }

@@ -175,7 +175,6 @@ impl SpdmCodec for SpdmDheExchangeStruct {
 impl SpdmCodec for SpdmDmtfMeasurementStructure {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
         let type_value = self.r#type.get_u8();
-        //Code error should be self.representation
         let representation_value = self.representation.get_u8();
         let final_value = type_value + representation_value;
         final_value.encode(bytes);
@@ -204,8 +203,7 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         };
         let representation = match representation_value {
             0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            // Code error should be 128
-            128 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
+            0x80 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
             val => SpdmDmtfMeasurementRepresentation::Unknown(val),
         };
 
