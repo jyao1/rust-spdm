@@ -50,3 +50,45 @@ impl SpdmCodec for SpdmPskFinishResponsePayload {
         Some(SpdmPskFinishResponsePayload {})
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::msgs::*;
+    use crate::testlib::*;
+
+    #[test]
+    fn test_case0_spdm_key_exchange_request_payload() {
+        let u8_slice = &mut [0u8; 80];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmPskFinishRequestPayload {
+            verify_data: SpdmDigestStruct {
+                data_size: 64,
+                data: [100u8; SPDM_MAX_HASH_SIZE],
+            },
+        };
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = common::SpdmContext::new(
+            my_spdm_device_io,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(80, reader.left());
+        let psk_finish_request =
+            SpdmPskFinishRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
+
+        assert_eq!(psk_finish_request.verify_data.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(psk_finish_request.verify_data.data[i], 100u8);
+        }
+        assert_eq!(14, reader.left());
+    }
+}
