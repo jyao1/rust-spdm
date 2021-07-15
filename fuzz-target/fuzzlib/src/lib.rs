@@ -5,8 +5,8 @@ pub mod requesterlib;
 
 pub use fake_device_io::{FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve};
 pub use shared_buffer::SharedBuffer;
-pub use responderlib::rsp_create_info;
-pub use requesterlib::{req_create_info, ReqProcess};
+pub use responderlib::{rsp_create_info, RSP_SPDM_CERT_CHAIN_DATA};
+pub use requesterlib::{req_create_info, ReqProcess, REQ_CERT_CHAIN_DATA};
 
 pub use mctp_transport::MctpTransportEncap;
 pub use pcidoe_transport::PciDoeTransportEncap;

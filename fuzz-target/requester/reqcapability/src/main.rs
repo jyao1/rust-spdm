@@ -22,13 +22,14 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
 
+    let message_a = [16, 132, 0, 0, 17, 4, 0, 0, 0, 2, 0, 16, 0, 17,];
     // version_rsp
     responder.common.reset_runtime_info();
     responder
         .common
         .runtime_info
         .message_a
-        .append_message(&[16, 132, 0, 0]);
+        .append_message(&message_a);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
@@ -47,9 +48,11 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         .common
         .runtime_info
         .message_a
-        .append_message(&[16, 132, 0, 0]);
+        .append_message(&message_a);
 
-    let _ = requester.send_receive_spdm_capability().is_err();
+    requester
+        .send_receive_spdm_capability()
+        .expect("capability failed");
 }
 
 fn main() {

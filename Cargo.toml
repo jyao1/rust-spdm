@@ -21,6 +21,7 @@ members = [
     "fuzz-target/responder/rspmeasurement",
     "fuzz-target/responder/rspkeyexchange",
     "fuzz-target/responder/rsppskexchange",
+
     "fuzz-target/requester/reqversion",
     "fuzz-target/requester/reqcapability",
     "fuzz-target/requester/reqalgorithm",
@@ -28,6 +29,8 @@ members = [
     "fuzz-target/requester/reqcertificate",
     "fuzz-target/requester/reqchallenge",
     "fuzz-target/requester/reqmeasurement",
+    "fuzz-target/requester/key_exchange_req",
+    "fuzz-target/requester/psk_exchange_req",
     "fuzz-target/pass_context",
 ]
 exclude = [
