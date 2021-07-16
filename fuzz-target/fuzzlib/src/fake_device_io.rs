@@ -62,7 +62,7 @@ impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
     }
 
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {
-            self.data.set_buffer(buffer);
+            self.data.set_buffer(self.fuzzdata);
         log::info!("responder send    RAW - {:02x?}\n", buffer);
         Ok(())
     }
