@@ -22,13 +22,18 @@ fn fuzz_send_receive_spdm_algorithm(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
 
-    let message_a:&[u8; 38] = &[
-        16, 132, 0, 0, 17, 4, 0, 0, 0, 2, 0, 16, 0, 17, 17, 225, 0, 0, 0, 0, 0, 0, 198, 118, 0, 0,
-        17, 97, 0, 0, 0, 0, 0, 0, 246, 122, 0, 0,
+    let message_a = &[
+        0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11, 0x11,
+        0xe1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc6, 0x76, 0x00, 0x00, 0x11, 0x61, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xf6, 0x7a, 0x00, 0x00,
     ];
 
     responder.common.reset_runtime_info();
-    responder.common.runtime_info.message_b.append_message(message_a);
+    responder
+        .common
+        .runtime_info
+        .message_b
+        .append_message(message_a);
 
     // capability_rsp
     responder.common.negotiate_info.req_ct_exponent_sel = 0;
@@ -67,9 +72,13 @@ fn fuzz_send_receive_spdm_algorithm(fuzzdata: &[u8]) {
         req_provision_info,
     );
     requester.common.reset_runtime_info();
-    requester.common.runtime_info.message_a.append_message(message_a);
+    requester
+        .common
+        .runtime_info
+        .message_a
+        .append_message(message_a);
 
-    // capability 
+    // capability
     requester.common.negotiate_info.req_ct_exponent_sel = 0;
     requester.common.negotiate_info.req_capabilities_sel =
         requester.common.config_info.req_capabilities;

@@ -22,7 +22,7 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
 
-    let message_a = [16, 132, 0, 0, 17, 4, 0, 0, 0, 2, 0, 16, 0, 17,];
+    let message_a = [0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11];
     // version_rsp
     responder.common.reset_runtime_info();
     responder
