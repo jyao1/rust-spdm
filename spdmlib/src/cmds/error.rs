@@ -257,7 +257,7 @@ mod tests{
         let u8_slice = &mut [0u8; 32];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmErrorResponsePayload {
-            error_code: SpdmErrorCode::SpdmErrorInvalidRequest,
+            error_code: SpdmErrorCode::SpdmErrorResponseNotReady,
             error_data: 100,
             extended_data: SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(
                 SpdmErrorResponseNotReadyExtData{
@@ -282,10 +282,15 @@ mod tests{
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
         let spdm_error_response_payload =
-        SpdmErrorResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(spdm_error_response_payload.error_code, SpdmErrorCode::SpdmErrorInvalidRequest);
+            SpdmErrorResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_error_response_payload.error_code, SpdmErrorCode::SpdmErrorResponseNotReady);
         assert_eq!(spdm_error_response_payload.error_data, 100);
-
+        if let SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(extended_data) 
+        = &spdm_error_response_payload.extended_data {
+            assert_eq!(extended_data.rdt_exponent, 100);
+            assert_eq!(extended_data.request_code, 100);
+            assert_eq!(extended_data.token, 100);
+            assert_eq!(extended_data.tdtm, 100);
+        } 
     }
 }
-
