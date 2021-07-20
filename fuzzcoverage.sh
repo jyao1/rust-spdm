@@ -12,6 +12,15 @@ cmds=(
 "rspmeasurement"
 "rspkeyexchange"
 "rsppskexchange"
+"reqversion"
+"reqcapability"
+"reqalgorithm"
+"reqdigest"
+"reqcertificate"
+"reqchallenge"
+"reqmeasurement"
+"key_exchange_req"
+"psk_exchange_req"
 )
 
 for ((i=0;i<${#cmds[*]};i++))

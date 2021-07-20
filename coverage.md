@@ -20,8 +20,7 @@
 
    ```bash
    cd rust-sdpm
-   cargo build -p spdm-responder-emu
-   cargo build -p spdm-requester-emu
+   cargo build -p spdm-responder-emu -p spdm-requester-emu
    ```
 
 5. generate raw coverage profiling data:
@@ -34,8 +33,10 @@
 6. Creating coverage reports:
 
    ```bash
-   llvm-profdata merge -sparse requester.profraw responder.profraw -o total.profdata
-   llvm-cov export -Xdemangler=rustfilt target/debug/spdm-responder-emu target/debug/spdm-requester-emu --instr-profile=total.profdata --format=lcov > lcov.info
+   llvm-profdata merge -sparse requester.profraw -o requester.profdata
+   llvm-profdata merge -sparse responder.profraw -o responder.profdata
+   llvm-cov export -Xdemangler=rustfilt target/debug/spdm-requester-emu --instr-profile=requester.profdata --format=lcov > requester.info
+   llvm-cov export -Xdemangler=rustfilt target/debug/spdm-responder-emu --instr-profile=responder.profdata --format=lcov > responder.info
    grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
    ```
 

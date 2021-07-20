@@ -10,6 +10,15 @@ cmds=(
 "rspmeasurement"
 "rspkeyexchange"
 "rsppskexchange"
+"reqversion"
+"reqcapability"
+"reqalgorithm"
+"reqdigest"
+"reqcertificate"
+"reqchallenge"
+"reqmeasurement"
+"key_exchange_req"
+"psk_exchange_req"
 )
 
 buildpackage=''
@@ -31,6 +40,6 @@ do
     fi 
     screen -x -S ${cmds[$i]} -p 0 -X stuff "LLVM_PROFILE_FILE='${cmds[$i]}.profraw' cargo afl fuzz -i fuzz-target/in -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-    sleep 3600
+    sleep 30
     screen -S ${cmds[$i]} -X quit
 done

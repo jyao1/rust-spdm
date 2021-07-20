@@ -31,6 +31,8 @@ members = [
     "fuzz-target/requester/reqmeasurement",
     "fuzz-target/requester/key_exchange_req",
     "fuzz-target/requester/psk_exchange_req",
+
+    "fuzz-target/random_requester",
     "fuzz-target/pass_context",
 ]
 exclude = [
