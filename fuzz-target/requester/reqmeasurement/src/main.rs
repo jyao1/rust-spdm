@@ -148,9 +148,8 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         .message_c
         .append_message(MESSAGE_C);
 
-    requester
-        .send_receive_spdm_measurement(SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber, 0)
-        .expect("measurement failed");
+    let _ = requester
+        .send_receive_spdm_measurement(SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber, 0);
 }
 
 fn main() {

@@ -22,7 +22,9 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
 
-    let message_a = [0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11];
+    let message_a = [
+        0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11,
+    ];
     // version_rsp
     responder.common.reset_runtime_info();
     responder
@@ -50,10 +52,11 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         .message_a
         .append_message(&message_a);
 
-    requester
-        .send_receive_spdm_capability()
-        .expect("capability failed");
+    let _ = requester
+        .send_receive_spdm_capability();
 }
+
+
 
 fn main() {
     afl::fuzz!(|data: &[u8]| {
