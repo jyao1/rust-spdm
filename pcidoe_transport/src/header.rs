@@ -59,7 +59,7 @@ impl Codec for PciDoeMessageHeader {
         if length < 2 {
             return None;
         }
-        let payload_length = (length << 2) - 8;
+        let payload_length = (length << 2).checked_sub(8)?;
         Some(PciDoeMessageHeader {
             vendor_id,
             data_object_type,
