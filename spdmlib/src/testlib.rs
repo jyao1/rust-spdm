@@ -19,6 +19,20 @@ pub fn get_test_key_directory() -> PathBuf {
     crate_dir.to_path_buf()
 }
 
+pub fn new_context<'a>(
+    my_spdm_device_io: &'a mut MySpdmDeviceIo,
+    pcidoe_transport_encap: &'a mut PciDoeTransportEncap,
+) -> SpdmContext<'a> {
+    let (config_info, provision_info) = create_info();
+    let context = SpdmContext::new(
+        my_spdm_device_io,
+        pcidoe_transport_encap,
+        config_info,
+        provision_info,
+    );
+    context
+}
+
 pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
         spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11],

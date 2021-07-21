@@ -255,6 +255,29 @@ mod tests
          assert_eq!(2, reader.left());
     }
     #[test]
+    fn test_case1_spdm_negotiate_algorithms_request_payload() {
+        let u8_slice = &mut [0u8; 48];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmNegotiateAlgorithmsRequestPayload {
+            measurement_specification: SpdmMeasurementSpecification::DMTF,
+            base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+            base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+            alg_struct_count: 4,
+            alg_struct:[SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+         };
+
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+         value.spdm_encode(&mut context,&mut writer);
+         u8_slice[26]=1;
+         u8_slice[31]=1;
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(48, reader.left());
+         let spdm_negotiate_algorithms_request_payload=SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut context,&mut reader);
+         assert_eq!(spdm_negotiate_algorithms_request_payload.is_none(), true); 
+    }
+    #[test]
     fn test_case0_spdm_algorithms_response_payload() {
         let u8_slice = &mut [0u8; 50];
          let mut writer = Writer::init(u8_slice);

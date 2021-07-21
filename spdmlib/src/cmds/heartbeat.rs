@@ -45,3 +45,22 @@ impl SpdmCodec for SpdmHeartbeatResponsePayload {
         Some(SpdmHeartbeatResponsePayload {})
     }
 }
+#[cfg(test)]
+mod tests{
+    use super::*;
+    use crate::msgs::*;
+    use crate::testlib::*;
+
+    #[test]
+    fn test_case0_spdm_error_response_not_ready_ext_data(){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmHeartbeatResponsePayload {};
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        SpdmHeartbeatResponsePayload::spdm_read(&mut context, &mut reader);
+    }
+}
