@@ -1,35 +1,40 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2021 Intel Corporation
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use spdmlib::config;
+extern crate alloc;
+use alloc::collections::VecDeque;
 use core::cell::RefCell;
 
 pub struct SharedBuffer {
-    pub size: RefCell<usize>,
-    buffer: RefCell<[u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]>,
+    queue: RefCell<VecDeque<u8>>,
 }
 
 impl SharedBuffer {
     pub fn new() -> Self {
         SharedBuffer {
-            size: RefCell::new(0usize),
-            buffer: RefCell::new([0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE])
+            queue: RefCell::new(VecDeque::<u8>::new()),
         }
     }
     pub fn set_buffer(&self, b: &[u8]) {
-        let mut dest = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let len = b.len();
-        *self.size.borrow_mut() = len;
-        &dest[0..len].copy_from_slice(b);
-
-        *self.buffer.borrow_mut() = dest;
+        log::info!("send    {:02x?}\n", b);
+        let mut queue = self.queue.borrow_mut();
+        for i in b {
+            queue.push_back(*i);
+        }
     }
 
     pub fn get_buffer(&self, b: &mut [u8]) -> usize {
-        let len = *self.size.borrow();
-        let res = *self.buffer.borrow();
-        b[0..len].copy_from_slice(&res[0..len]);
+        let mut queue = self.queue.borrow_mut();
+        let mut len = 0usize;
+        for i in b.iter_mut() {
+            if queue.is_empty() {
+                break;
+            }
+            *i = queue.pop_front().unwrap();
+            len += 1;
+        }
+        log::info!("recieve {:02x?}\n", &b[..len]);
         len
     }
 }
