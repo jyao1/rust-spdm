@@ -54,14 +54,18 @@
    grcov codeccargotest.info spdmlibcargotest.info requestercargotest.info respondercargotest.info cargotest.info -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
    ```
 
-7. View report:
-
-   browser open the target/debug/coverage/index.html
-
+7. Create coverage reports through tools:
+   ```bash
+   cd rust-sdpm
+   UnitTestCoverge.sh
+   ```
+   
+8. View report:
+`browser open the target/debug/coverage/index.html`
 
 Reference:
 
-​	[rust-code-coverage-sample](https://github.com/marco-c/rust-code-coverage-sample)
+​[rust-code-coverage-sample](https://github.com/marco-c/rust-code-coverage-sample)
 
 ​	[source_based_code_coverage](https://doc.rust-lang.org/beta/unstable-book/compiler-flags/source-based-code-coverage.html#running-the-instrumented-binary-to-generate-raw-coverage-profiling-data)
 

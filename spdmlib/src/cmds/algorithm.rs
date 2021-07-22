@@ -228,15 +228,9 @@ mod tests
             }; config::MAX_SPDM_ALG_STRUCT_COUNT],
          };
 
-         let (config_info, provision_info) = create_info();
          let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
          let my_spdm_device_io = &mut MySpdmDeviceIo;
-         let mut context =  common::SpdmContext::new(
-             my_spdm_device_io,
-             pcidoe_transport_encap,
-             config_info,
-             provision_info,
-         );
+         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
          value.spdm_encode(&mut context,&mut writer);
          let mut reader = Reader::init(u8_slice);
@@ -295,15 +289,9 @@ mod tests
             }; config::MAX_SPDM_ALG_STRUCT_COUNT],
          };
 
-         let (config_info, provision_info) = create_info();
          let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
          let my_spdm_device_io = &mut MySpdmDeviceIo;
-         let mut context =  common::SpdmContext::new(
-             my_spdm_device_io,
-             pcidoe_transport_encap,
-             config_info,
-             provision_info,
-         );
+         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
          value.spdm_encode(&mut context,&mut writer);
          let mut reader = Reader::init(u8_slice);
@@ -321,5 +309,31 @@ mod tests
                 assert_eq!(spdm_sturct_data.alg_struct[i].alg_ext_count,0);
          }
          assert_eq!(0, reader.left());
+    }
+    #[test]
+    fn test_case1_spdm_algorithms_response_payload() {
+        let u8_slice = &mut [0u8; 48];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmAlgorithmsResponsePayload {
+            measurement_specification_sel: SpdmMeasurementSpecification::DMTF,
+            measurement_hash_algo: SpdmMeasurementHashAlgo::RAW_BIT_STREAM,
+            base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+            base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+            alg_struct_count: 0,
+            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+         };
+
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+         value.spdm_encode(&mut context,&mut writer);
+      
+         u8_slice[30]=1;
+         u8_slice[35]=1;
+         
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(48, reader.left());
+         let spdm_algorithms_response_payload=SpdmAlgorithmsResponsePayload::spdm_read(&mut context,&mut reader);
+         assert_eq!(spdm_algorithms_response_payload.is_none(), true); 
     }
 }
