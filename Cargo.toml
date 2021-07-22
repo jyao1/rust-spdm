@@ -12,6 +12,7 @@ members = [
     "codec",
     "test/spdm-requester-emu",
     "test/spdm-responder-emu",
+    
     "fuzz-target/responder/rspversion",
     "fuzz-target/responder/rspcapability",
     "fuzz-target/responder/rspalgorithm",

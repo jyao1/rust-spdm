@@ -3,6 +3,8 @@ pub mod fake_device_io;
 pub mod responderlib;
 pub mod requesterlib;
 
+use std::path::PathBuf;
+
 pub use fake_device_io::{FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve};
 pub use shared_buffer::SharedBuffer;
 pub use responderlib::rsp_create_info;
@@ -23,5 +25,9 @@ pub use flexi_logger;
 pub use flexi_logger::FileSpec;
 pub use afl;
 
-
-
+pub fn get_test_key_directory() -> PathBuf {
+    let mut crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    crate_dir.pop();
+    crate_dir.pop();
+    crate_dir.to_path_buf()
+}

@@ -40,24 +40,25 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         ..Default::default()
     };
 
+    let crate_dir = get_test_key_directory();
     let ca_file_path = if USE_ECDSA {
         "TestKey/EcP384/ca.cert.der"
     } else {
         "TestKey/Rsa3072/ca.cert.der"
     };
-    let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
+    let ca_cert = std::fs::read(crate_dir.join(ca_file_path)).expect("unable to read ca cert!");
     let inter_file_path = if USE_ECDSA {
         "TestKey/EcP384/inter.cert.der"
     } else {
         "TestKey/Rsa3072/inter.cert.der"
     };
-    let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
+    let inter_cert = std::fs::read(crate_dir.join(inter_file_path)).expect("unable to read inter cert!");
     let leaf_file_path = if USE_ECDSA {
         "TestKey/EcP384/end_responder.cert.der"
     } else {
         "TestKey/Rsa3072/end_responder.cert.der"
     };
-    let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
+    let leaf_cert = std::fs::read(crate_dir.join(leaf_file_path)).expect("unable to read leaf cert!");
 
     let ca_len = ca_cert.len();
     let inter_len = inter_cert.len();
