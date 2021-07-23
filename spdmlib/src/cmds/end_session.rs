@@ -95,16 +95,10 @@ mod tests
         let value= SpdmEndSessionRequestPayload {
             end_session_request_attributes: SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
         };
-
-        let (config_info, provision_info) = create_info();
+        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context =  common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context,&mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -117,5 +111,17 @@ mod tests
         );
         assert_eq!(10, reader.left());
     } 
+    #[test]
+    fn test_case0_spdm_end_session_response_payload (){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmEndSessionResponsePayload  {};
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        SpdmEndSessionResponsePayload::spdm_read(&mut context, &mut reader);
+    }
 }
 

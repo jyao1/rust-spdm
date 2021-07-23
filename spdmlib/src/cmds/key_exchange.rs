@@ -188,15 +188,10 @@ mod tests {
             },
         };
 
-        let (config_info, provision_info) = create_info();
+        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
 
         value.spdm_encode(&mut context, &mut writer);
@@ -257,15 +252,10 @@ mod tests {
             },
         };
 
-        let (config_info, provision_info) = create_info();
+        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
@@ -333,15 +323,10 @@ mod tests {
             },
         };
 
-        let (config_info, provision_info) = create_info();
+        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
