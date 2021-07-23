@@ -201,15 +201,9 @@ mod tests {
             },
         };
 
-        let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -259,15 +253,10 @@ mod tests {
             },
         };
 
-        let (config_info, provision_info) = create_info();
+        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_summary_hash = true;
 

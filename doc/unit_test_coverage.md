@@ -61,7 +61,8 @@
    ```
    
 8. View report:
-`browser open the target/debug/coverage/index.html`
+
+   `browser open the target/debug/coverage/index.html`
 
 Reference:
 

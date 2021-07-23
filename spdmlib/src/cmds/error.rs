@@ -113,7 +113,7 @@ impl SpdmCodec for SpdmErrorResponseVendorExtData {
     }
 }
 
-#[derive(Debug, Copy, Clone , PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SpdmErrorResponseExtData {
     SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData),
     SpdmErrorExtDataNotReady(SpdmErrorResponseNotReadyExtData),
@@ -184,113 +184,158 @@ impl SpdmCodec for SpdmErrorResponsePayload {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
     use crate::msgs::*;
     use crate::testlib::*;
 
     #[test]
-    fn test_case0_spdm_error_response_not_ready_ext_data(){
-
+    fn test_case0_spdm_error_response_not_ready_ext_data() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
-        
+
         let value = SpdmErrorResponseNotReadyExtData {
-            rdt_exponent:0xaa,
-            request_code:0xaa,
-            token:0x55,
-            tdtm:0x55,
+            rdt_exponent: 0xaa,
+            request_code: 0xaa,
+            token: 0x55,
+            tdtm: 0x55,
         };
 
-        let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
         let spdm_error_response_not_ready_ext_data =
-        SpdmErrorResponseNotReadyExtData::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(spdm_error_response_not_ready_ext_data.rdt_exponent,  0xaa);
+            SpdmErrorResponseNotReadyExtData::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_error_response_not_ready_ext_data.rdt_exponent, 0xaa);
         assert_eq!(spdm_error_response_not_ready_ext_data.request_code, 0xaa);
         assert_eq!(spdm_error_response_not_ready_ext_data.token, 0x55);
         assert_eq!(spdm_error_response_not_ready_ext_data.tdtm, 0x55);
         assert_eq!(4, reader.left());
     }
     #[test]
-    fn test_case0_spdm_error_response_vendor_ext_data(){
+    fn test_case0_spdm_error_response_vendor_ext_data() {
         let u8_slice = &mut [0u8; 32];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmErrorResponseVendorExtData {
-            data_size:32,
+        let mut value = SpdmErrorResponseVendorExtData {
+            data_size: 32,
             data: [100u8; 32],
         };
-
-        let (config_info, provision_info) = create_info();
+        value.data[30] = 0u8;
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
         let response_vendor_ext_data =
-        SpdmErrorResponseVendorExtData::spdm_read(&mut context, &mut reader).unwrap();
+            SpdmErrorResponseVendorExtData::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(response_vendor_ext_data.data_size, 32);
         for i in 0..32 {
             assert_eq!(response_vendor_ext_data.data[i], 100u8);
         }
     }
     #[test]
-    fn test_case0_spdm_error_response_payload(){
+    fn test_case1_spdm_error_response_vendor_ext_data() {
         let u8_slice = &mut [0u8; 32];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmErrorResponsePayload {
-            error_code: SpdmErrorCode::SpdmErrorResponseNotReady,
-            error_data: 100,
-            extended_data: SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(
-                SpdmErrorResponseNotReadyExtData{
-                    rdt_exponent: 100,
-                    request_code: 100,
-                    token: 100,
-                    tdtm: 100,
-                }),
-        };
-
-        let (config_info, provision_info) = create_info();
+        let value = SpdmErrorResponseVendorExtData::default();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
-        let spdm_error_response_payload =
-            SpdmErrorResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(spdm_error_response_payload.error_code, SpdmErrorCode::SpdmErrorResponseNotReady);
+        let response_vendor_ext_data =
+            SpdmErrorResponseVendorExtData::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(response_vendor_ext_data.data_size, 32);
+        for i in 0..32 {
+            assert_eq!(response_vendor_ext_data.data[i], 0);
+        }
+    }
+    #[test]
+    fn test_case0_spdm_error_response_payload() {
+        let value = SpdmErrorResponsePayload {
+            error_code: SpdmErrorCode::SpdmErrorResponseNotReady,
+            error_data: 100,
+            extended_data: SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(
+                SpdmErrorResponseNotReadyExtData {
+                    rdt_exponent: 0x11,
+                    request_code: 0x22,
+                    token: 0x33,
+                    tdtm: 0x44,
+                },
+            ),
+        };
+
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        let mut spdm_error_response_payload = new_spdm_response(value, &mut context);
+
+        assert_eq!(
+            spdm_error_response_payload.error_code,
+            SpdmErrorCode::SpdmErrorResponseNotReady
+        );
         assert_eq!(spdm_error_response_payload.error_data, 100);
-        if let SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(extended_data) 
-        = &spdm_error_response_payload.extended_data {
-            assert_eq!(extended_data.rdt_exponent, 100);
-            assert_eq!(extended_data.request_code, 100);
-            assert_eq!(extended_data.token, 100);
-            assert_eq!(extended_data.tdtm, 100);
-        } 
+        if let SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(extended_data) =
+            &spdm_error_response_payload.extended_data
+        {
+            assert_eq!(extended_data.rdt_exponent, 0x11);
+            assert_eq!(extended_data.request_code, 0x22);
+            assert_eq!(extended_data.token, 0x33);
+            assert_eq!(extended_data.tdtm, 0x44);
+        }
+
+        let mut value = SpdmErrorResponsePayload {
+            error_code: SpdmErrorCode::SpdmErrorVendorDefined,
+            error_data: 100,
+            extended_data: SpdmErrorResponseExtData::default(),
+        };
+        value.extended_data = SpdmErrorResponseExtData::SpdmErrorExtDataVendorDefined(
+            SpdmErrorResponseVendorExtData {
+                data_size: 32,
+                data: [100u8; 32],
+            },
+        );
+        spdm_error_response_payload = new_spdm_response(value, &mut context);
+
+        if let SpdmErrorResponseExtData::SpdmErrorExtDataVendorDefined(extended_data) =
+            &spdm_error_response_payload.extended_data
+        {
+            assert_eq!(extended_data.data_size, 32);
+            for i in 0..32 {
+                assert_eq!(extended_data.data[i], 100u8);
+            }
+        }
+
+        let mut value = SpdmErrorResponsePayload {
+            error_code: SpdmErrorCode::SpdmErrorInvalidRequest,
+            error_data: 100,
+            extended_data: SpdmErrorResponseExtData::default(),
+        };
+        value.extended_data = SpdmErrorResponseExtData::SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData {},);
+        new_spdm_response(value, &mut context);
+
+
+    }
+
+    fn new_spdm_response(
+        value: SpdmErrorResponsePayload,
+        context: &mut common::SpdmContext,
+    ) -> SpdmErrorResponsePayload {
+        let u8_slice = &mut [0u8; 100];
+        let mut writer = Writer::init(u8_slice);
+        value.spdm_encode(context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        let spdm_error_response_payload =
+            SpdmErrorResponsePayload::spdm_read(context, &mut reader).unwrap();
+        spdm_error_response_payload
     }
 }

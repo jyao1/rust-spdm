@@ -18,8 +18,8 @@ name=(
     "test_client_server"    
 )
 
-for ((i = 0; i < ${#name[*]}; i++)); do
-    sleep 1
+for ((i = 0; i < ${#name[*]}; i++))
+do
     llvm-profdata merge -sparse ${route[i]}/cargotest-*.profraw -o ${name[i]}.profdata
     llvm-cov export target/debug/deps/${name[i]}-*.exe --instr-profile=${name[i]}.profdata --format=lcov >${name[i]}.info
 done
