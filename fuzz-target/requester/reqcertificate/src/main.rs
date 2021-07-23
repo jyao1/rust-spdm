@@ -146,7 +146,19 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 }
 
 fn main() {
+    if cfg!(feature = "analysis") {
+        let args:Vec<String> = std::env::args().collect();
+        println!("{:?}", args);
+        if args.len() < 2 {
+            println!("Please enter the path of the crash file as the first parameter");
+            return;
+        }
+        let path = &args[1];
+        let data = std::fs::read(path).expect("read crash file fail");
+        fuzz_send_receive_spdm_certificate(data.as_slice());
+    }else {
         afl::fuzz!(|data: &[u8]| {
-        fuzz_send_receive_spdm_certificate(data);
-    });
+            fuzz_send_receive_spdm_certificate(data);
+        });
+    }
 }

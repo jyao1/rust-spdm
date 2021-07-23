@@ -10,4 +10,4 @@ edition = "2018"
 fuzzlib = { path = "../../fuzzlib" }
 
 [features]
-analyze=[]
+analysis = []
