@@ -58,7 +58,7 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
 
 
 fn main() {
-    if cfg!(feature = "analyze") {
+    if cfg!(feature = "analysis") {
         let args:Vec<String> = std::env::args().collect();
         println!("{:?}", args);
         if args.len() < 2 {

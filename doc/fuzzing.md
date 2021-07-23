@@ -21,10 +21,23 @@ afl.rs works on x86-64 Linux and x86-64 macOS.
 
 ### Provide starting inputs
 
+Use RAMdisks for input since, we don't want to destroy harddrives
+
 ```
-mkdir in 
-echo "1234567890" > in/input1
-echo "abcdef" > in/input2
+$mkdir in
+$sudo mount -t tmpfs -o 1024M tmpfs in
+```
+
+If you want to delete the in floder in the future
+
+```
+$sudo umount in
+$rm -rf in
+```
+
+```
+$echo "1234567890" > in/input1
+$echo "abcdef" > in/input2
 ```
 
 ### Build the fuzz target
@@ -39,7 +52,7 @@ echo "abcdef" > in/input2
 
 As soon as you run this command, you should see AFL’s interface start up:
 
-![image-20210628084437384](fuzz-target/fuzz1.png)
+![image-20210628084437384](../fuzz-target/fuzz1.png)
 
 ### view coverage 
 
@@ -50,8 +63,8 @@ Can run at the same time but merge will cause problems
 
     ```
     sudo apt install screen
-    bash rspfuzzrun.sh
-    bash fuzzcoverage.sh
+    bash fuzz_run.sh
+    bash fuzz_coverage.sh
     ```
 
 ### reference
