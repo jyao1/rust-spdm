@@ -89,7 +89,6 @@ mod tests{
 
     #[test]
     fn test_case0_spdm_digests_response_payload(){
-
         let u8_slice = &mut [0u8; 514];
         let mut writer = Writer::init(u8_slice);
         
@@ -106,22 +105,16 @@ mod tests{
                 value.digests[i].data[j]= (i*j) as u8;
             }
         }
-        let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(514, reader.left());
         let spdm_digests_response_payload =
-        SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+            SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_digests_response_payload.slot_mask,  0b11111111);
         assert_eq!(spdm_digests_response_payload.slot_count, 8);
         for i in 0..8 {
@@ -132,5 +125,46 @@ mod tests{
         }
         assert_eq!(0, reader.left());
     }
-    
+    #[test]
+    #[should_panic]
+    fn test_case1_spdm_digests_response_payload(){
+        let u8_slice = &mut [0u8; 10];
+        let mut writer = Writer::init(u8_slice);
+        let mut value = SpdmDigestsResponsePayload::default(); 
+        value.slot_mask = 0b00000000;
+        value.slot_count = 0;
+        value.digests = [SpdmDigestStruct::default(); SPDM_MAX_SLOT_NUMBER];
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+
+        let u8_slice = &mut [0u8; 10];
+        let mut writer = Writer::init(u8_slice);
+        let mut value = SpdmDigestsResponsePayload::default(); 
+        value.slot_mask = 0b00011111;
+        value.slot_count = 3;
+        value.digests = [SpdmDigestStruct::default(); SPDM_MAX_SLOT_NUMBER];
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        value.spdm_encode(&mut context, &mut writer);
+
+    }
+    #[test]
+    fn test_case0_spdm_get_digests_request_payload(){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmGetDigestsRequestPayload {};
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        SpdmGetDigestsRequestPayload::spdm_read(&mut context, &mut reader);
+    }
 }

@@ -175,15 +175,9 @@ mod tests {
             slot_id: 0xaau8,
         };
 
-        let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -203,6 +197,42 @@ mod tests {
             assert_eq!(get_measurements.nonce.data[i], 100u8);
         }
         assert_eq!(13, reader.left());
+    }
+    #[test]
+    fn test_case1_spdm_get_measurements_request_payload() {
+        let u8_slice = &mut [0u8; 48];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmGetMeasurementsRequestPayload {
+            measurement_attributes: SpdmMeasurementeAttributes::empty(),
+            measurement_operation: SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
+            slot_id: 0xaau8,
+        };
+        
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(48, reader.left());
+        let get_measurements =
+            SpdmGetMeasurementsRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(
+            get_measurements.measurement_attributes,
+            SpdmMeasurementeAttributes::empty()
+        );
+        assert_eq!(
+            get_measurements.measurement_operation,
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+        );
+        assert_eq!(get_measurements.slot_id, 0);
+        for i in 0..32 {
+            assert_eq!(get_measurements.nonce.data[i], 0);
+        }
+        assert_eq!(46, reader.left());
     }
     #[test]
     fn test_case0_spdm_measurements_response_payload() {
@@ -238,15 +268,10 @@ mod tests {
             },
         };
        
-        let (config_info, provision_info) = create_info();
+        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_signature = true;

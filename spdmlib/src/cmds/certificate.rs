@@ -101,21 +101,14 @@ mod tests
     fn test_case0_spdm_get_capabilities_request_payload(){
         let u8_slice = &mut [0u8; 12];
         let mut writer = Writer::init(u8_slice);
-        let value= SpdmGetCertificateRequestPayload {
-            slot_id: 100,
-            offset:  100,
-            length:  100,
-        };
+        let mut value= SpdmGetCertificateRequestPayload::default();
+        value.slot_id = 100;
+        value.offset = 100;
+        value.length = 100;
 
-        let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context =  common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
         value.spdm_encode(&mut context,&mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -130,12 +123,12 @@ mod tests
     fn test_case0_spdm_certificate_response_payload(){
         let u8_slice = &mut [0u8; 520];
         let mut writer = Writer::init(u8_slice);
-        let value= SpdmCertificateResponsePayload {
-            slot_id:100,
-            portion_length:512,
-            remainder_length:100,
-            cert_chain: [100u8;config::MAX_SPDM_CERT_PORTION_LEN],
-        };
+        let mut value= SpdmCertificateResponsePayload::default();
+        value.slot_id = 100;
+        value.portion_length = 512;
+        value.remainder_length = 100;
+        value. cert_chain =  [100u8;config::MAX_SPDM_CERT_PORTION_LEN];
+
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
