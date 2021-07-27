@@ -1,7 +1,6 @@
 // import commonly used items from the prelude:
 use fuzzlib::*;
 
-
 fn run_spdm(spdm: Vec<i32>) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
@@ -31,47 +30,80 @@ fn run_spdm(spdm: Vec<i32>) {
         req_config_info,
         req_provision_info,
     );
+    println!("Run sequence {:?}", &spdm);
     for i in spdm.iter() {
         match i {
-            1 => requester
-                .send_receive_spdm_version()
-                .expect("version error"),
-            2 => requester
-                .send_receive_spdm_capability()
-                .expect("cabability error"),
-            3 => requester
-                .send_receive_spdm_algorithm()
-                .expect("algorithms error"),
-            4 => requester.send_receive_spdm_digest().expect("digest error"),
-            5 => requester
-                .send_receive_spdm_certificate(0)
-                .expect("certificate error"),
-            6 => requester
-                .send_receive_spdm_challenge(
-                    0,
-                    SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-                )
-                .expect("challenge error"),
-            7 => requester
+            1 => {
+                if requester.send_receive_spdm_version().is_err() {
+                    println!("{:?} error in send_receive_spdm_version", &spdm);
+                    return;
+                }
+            }
+            2 => {
+                if requester.send_receive_spdm_capability().is_err() {
+                    println!("{:?} error in send_receive_spdm_capability", &spdm);
+                    return;
+                }
+            }
+            3 => {
+                if requester.send_receive_spdm_algorithm().is_err() {
+                    println!("{:?} error in send_receive_spdm_algorithm", &spdm);
+                    return;
+                }
+            }
+            4 => {
+                if requester.send_receive_spdm_digest().is_err() {
+                    println!("{:?} 4, error in send_receive_spdm_digest", &spdm);
+                    return;
+                }
+            }
+            5 => {
+                if requester.send_receive_spdm_certificate(0).is_err() {
+                    println!("{:?} 5, error in send_receive_spdm_certificate", &spdm);
+                    return;
+                }
+            }
+            6 => {
+                if requester
+                    .send_receive_spdm_challenge(
+                        0,
+                        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+                    )
+                    .is_err()
+                {
+                    println!("{:?} 6, error in send_receive_spdm_challenge", &spdm);
+                    return;
+                }
+            }
+            7 => if requester
                 .send_receive_spdm_measurement(
                     SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                     0,
                 )
-                .expect("measurement error"),
+                .is_err() {
+                    println!("{:?} 7, error in send_receive_spdm_measurement", &spdm);
+                    return;
+                },
             8 => {
-                requester
+                if requester
                     .send_receive_spdm_key_exchange(
                         0,
                         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
                     )
-                    .expect("key_exchange error");
+                    .is_err() {
+                        println!("{:?} 8, error in send_receive_spdm_key_exchange", &spdm);
+                        return;
+                    };
             }
             9 => {
-                requester
+                if requester
                     .send_receive_spdm_psk_exchange(
                         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
                     )
-                    .expect("key_exchange error");
+                    .is_err() {
+                        println!("{:?} 9, error in send_receive_spdm_psk_exchange", &spdm);
+                        return;
+                    };
             }
             _ => {}
         }
@@ -100,8 +132,6 @@ fn permutation(from: &[i32], count: usize, bool_array: &mut [bool], last_vec: Ve
 }
 
 fn main() {
-
-    let nums = vec![1,2,3,4,6,7,8,9];
+    let nums = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
     permutation(&nums, nums.len(), &mut vec![false; nums.len()], Vec::new());
-
 }

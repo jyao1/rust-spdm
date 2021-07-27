@@ -25,7 +25,7 @@ Use RAMdisks for input since, we don't want to destroy harddrives
 
 ```
 $mkdir in
-$sudo mount -t tmpfs -o 1024M tmpfs in
+$sudo mount -t tmpfs -o size=1024M tmpfs in
 ```
 
 If you want to delete the in floder in the future
