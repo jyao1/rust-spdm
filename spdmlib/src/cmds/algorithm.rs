@@ -208,8 +208,19 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 #[cfg(test)]
 mod tests 
 {
-    use super::*;
-    use crate::testlib::*;
+    use super::{
+        SpdmAlg, SpdmAlgStruct, SpdmAlgType, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo,
+        SpdmMeasurementHashAlgo, SpdmMeasurementSpecification,
+    };
+    use crate::{
+        config,
+        msgs::{SpdmAlgorithmsResponsePayload, SpdmCodec, SpdmNegotiateAlgorithmsRequestPayload},
+        testlib::{new_context, MySpdmDeviceIo, PciDoeTransportEncap},
+    };
+    use codec::{Reader, Writer};
+
+    // use super::*;
+    // use crate::testlib::*;
 
     #[test]
     fn test_case0_spdm_negotiate_algorithms_request_payload() {
@@ -253,10 +264,35 @@ mod tests
         let u8_slice = &mut [0u8; 48];
          let mut writer = Writer::init(u8_slice);
          let value= SpdmNegotiateAlgorithmsRequestPayload {
+            measurement_specification: SpdmMeasurementSpecification::empty(),
+            base_asym_algo: SpdmBaseAsymAlgo::empty(),
+            base_hash_algo: SpdmBaseHashAlgo::empty(),
+            alg_struct_count: 0,
+            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+         };
+
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+         value.spdm_encode(&mut context,&mut writer);
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(48, reader.left());
+         let spdm_sturct_data = SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut context,&mut reader).unwrap();
+         assert_eq!(spdm_sturct_data.measurement_specification,SpdmMeasurementSpecification::empty());
+         assert_eq!(spdm_sturct_data.base_asym_algo,SpdmBaseAsymAlgo::empty());
+         assert_eq!(spdm_sturct_data.base_hash_algo,SpdmBaseHashAlgo::empty());
+         assert_eq!(spdm_sturct_data.alg_struct_count,0);
+         assert_eq!(18, reader.left());
+    }
+    #[test]
+    fn test_case2_spdm_negotiate_algorithms_request_payload() {
+        let u8_slice = &mut [0u8; 48];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmNegotiateAlgorithmsRequestPayload {
             measurement_specification: SpdmMeasurementSpecification::DMTF,
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
-            alg_struct_count: 4,
+            alg_struct_count: 0,
             alg_struct:[SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
          };
 
@@ -270,6 +306,7 @@ mod tests
          assert_eq!(48, reader.left());
          let spdm_negotiate_algorithms_request_payload=SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut context,&mut reader);
          assert_eq!(spdm_negotiate_algorithms_request_payload.is_none(), true); 
+         assert_eq!(10, reader.left());
     }
     #[test]
     fn test_case0_spdm_algorithms_response_payload() {
@@ -335,5 +372,33 @@ mod tests
          assert_eq!(48, reader.left());
          let spdm_algorithms_response_payload=SpdmAlgorithmsResponsePayload::spdm_read(&mut context,&mut reader);
          assert_eq!(spdm_algorithms_response_payload.is_none(), true); 
+    }
+    #[test]
+    fn test_case2_spdm_algorithms_response_payload() {
+        let u8_slice = &mut [0u8; 50];
+         let mut writer = Writer::init(u8_slice);
+         let value= SpdmAlgorithmsResponsePayload {
+            measurement_specification_sel: SpdmMeasurementSpecification::empty(),
+            measurement_hash_algo: SpdmMeasurementHashAlgo::empty(),
+            base_asym_sel: SpdmBaseAsymAlgo::empty(),
+            base_hash_sel: SpdmBaseHashAlgo::empty(),
+            alg_struct_count: 0,
+            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+         };
+
+         let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+         let my_spdm_device_io = &mut MySpdmDeviceIo;
+         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+         value.spdm_encode(&mut context,&mut writer);
+         let mut reader = Reader::init(u8_slice);
+         assert_eq!(50, reader.left());
+         let spdm_sturct_data = SpdmAlgorithmsResponsePayload::spdm_read(&mut context,&mut reader).unwrap();
+         assert_eq!(spdm_sturct_data.measurement_specification_sel,SpdmMeasurementSpecification::empty());
+         assert_eq!(spdm_sturct_data.measurement_hash_algo,SpdmMeasurementHashAlgo::empty());
+         assert_eq!(spdm_sturct_data.base_asym_sel,SpdmBaseAsymAlgo::empty());
+         assert_eq!(spdm_sturct_data.base_hash_sel,SpdmBaseHashAlgo::empty());
+         assert_eq!(spdm_sturct_data.alg_struct_count,0);
+         assert_eq!(16, reader.left());
     }
 }
