@@ -18,6 +18,7 @@ name=(
     "spdm_responder_emu"
     "test_client_server"    
 )
+afl
 
 for ((i = 0; i < ${#name[*]}; i++))
 do
