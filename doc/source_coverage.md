@@ -4,6 +4,10 @@
 
 ​	[bug issues](https://github.com/mozilla/grcov/issues/561)
 
+**A source-based code coverage implementation, enabled with -Z instrument-coverage, which uses LLVM's native, efficient coverage instrumentation to generate very precise coverage data.**
+   
+   [instrument-coverage environment](https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/instrument-coverage.html)
+
 1. Install the grcov:
 
    `cargo install grcov`
@@ -15,29 +19,27 @@
 3. Ensure that the following environment variable is set up:
 
     `export RUSTFLAGS="-Zinstrument-coverage"`
+    `export LLVM_PROFILE_FILE="rust-spdm-%p%m.profraw"`
 
 4. Build your code:
 
    ```bash
    cd rust-sdpm
    cargo build -p spdm-responder-emu -p spdm-requester-emu
+
    ```
 
 5. generate raw coverage profiling data:
 
    ```bash
-   LLVM_PROFILE_FILE="responder.profraw" target/debug/spdm-responder-emu &
-   LLVM_PROFILE_FILE="requester.profraw" target/debug/spdm-requester-emu
+   cargo run -p spdm-responder-emu & 
+   cargo run -p spdm-requester-emu
    ```
 
-6. Creating coverage reports:
+6. Creating source based coverage reports:
 
    ```bash
-   llvm-profdata merge -sparse requester.profraw -o requester.profdata
-   llvm-profdata merge -sparse responder.profraw -o responder.profdata
-   llvm-cov export -Xdemangler=rustfilt target/debug/spdm-requester-emu --instr-profile=requester.profdata --format=lcov > requester.info
-   llvm-cov export -Xdemangler=rustfilt target/debug/spdm-responder-emu --instr-profile=responder.profdata --format=lcov > responder.info
-   grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
+   grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/source_coverage/
    ```
 
 7. View report:
