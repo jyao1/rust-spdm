@@ -1,5 +1,7 @@
 #!/bin/bash
 
+pkill screen
+
 cmds=(
 "rspversion"
 "rspcapability"
@@ -28,7 +30,11 @@ done
 
 echo $buildpackage
 
-RUSTFLAGS="-Zinstrument-coverage" cargo afl build $buildpackage
+export RUSTFLAGS="-Zinstrument-coverage"
+
+export LLVM_PROFILE_FILE='fuzz_run%p%2m.profraw'
+
+cargo afl build $buildpackage
 
 for ((i=0;i<${#cmds[*]};i++))
 do
@@ -38,8 +44,10 @@ do
     then
     screen -dmS ${cmds[$i]}
     fi 
-    screen -x -S ${cmds[$i]} -p 0 -X stuff "LLVM_PROFILE_FILE='${cmds[$i]}%2m.profraw' cargo afl fuzz -i fuzz-target/in -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
+    screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
     sleep 3600
     screen -S ${cmds[$i]} -X quit
 done
+
+grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
