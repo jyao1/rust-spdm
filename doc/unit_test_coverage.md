@@ -16,51 +16,28 @@
 
     `export RUSTFLAGS="-Zinstrument-coverage"`
 
+    `export LLVM_PROFILE_FILE="your_name-%p-%m.profraw"`
+
 4. Runtest your code:
 
-   `Since there may be more than one test binary, apply %m in the filename pattern. This generates unique names for each test binary. (Otherwise, each executed test binary would overwrite the coverage results from the previous binary.)`             
    ```bash
-   LLVM_PROFILE_FILE="cargotest-%m.profraw" cargo test --tests
+   cargo build
+
+   cargo test
    ```
-
-5. generate raw coverage profiling data:
-
-   `You should have one or more .profraw files now, one for each test binary. Run the profdata tool to merge them:`
-   ```bash
-   llvm-profdata merge -sparse codec/cargotest-*.profraw -o codeccargotest.profdata
-
-   llvm-profdata merge -sparse spdmlib/cargotest-*.profraw -o spdmlibcargotest.profdata
-
-   llvm-profdata merge -sparse test/spdm-requester-emu/cargotest-*.profraw -o requestercargotest.profdata
-
-   llvm-profdata merge -sparse test/spdm-responder-emu/cargotest-*.profraw -o respondercargotest.profdata
-   
-   llvm-profdata merge -sparse cargotest-*.profraw -o cargotest.profdata
-   ```
-
-6. Creating coverage reports:
+5. Creating coverage reports:
 
    ```bash
-    llvm-cov export target/debug/deps/codec-*.exe --instr-profile=codeccargotest.profdata --format=lcov > codeccargotest.info
-
-   llvm-cov export target/debug/deps/spdmlib-*.exe --instr-profile=spdmlibcargotest.profdata --format=lcov > spdmlibcargotest.info
-
-   llvm-cov export target/debug/deps/spdm_requester_emu-*.exe --instr-profile=requestercargotest.profdata --format=lcov > requestercargotest.info
-
-   llvm-cov export target/debug/deps/spdm_responder_emu-*.exe--instr-profile=respondercargotest.profdata --format=lcov > respondercargotest.info
-   
-   llvm-cov export target/debug/deps/test_client_server-*.exe --instr-profile=cargotest.profdata --format=lcov > cargotest.info
-   
-   grcov codeccargotest.info spdmlibcargotest.info requestercargotest.info respondercargotest.info cargotest.info -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
+   grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing -o ./target/debug/coverage/
    ```
 
-7. Create coverage reports through tools:
+6. Create coverage reports through tools:
    ```bash
    cd rust-sdpm
    UnitTestCoverge.sh
    ```
    
-8. View report:
+7. View report:
 
    `browser open the target/debug/coverage/index.html`
 
