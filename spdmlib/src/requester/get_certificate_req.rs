@@ -113,6 +113,10 @@ impl<'a> RequesterContext<'a> {
             //
             // TBD: Verify cert chain
             //
+            if self.common.peer_info.peer_cert_chain.cert_chain.data_size <= (4 + self.common.negotiate_info.base_hash_sel.get_size()) {
+                return spdm_result_err!(EIO);
+            }
+
             let data_size = self.common.peer_info.peer_cert_chain.cert_chain.data_size
                 - 4
                 - self.common.negotiate_info.base_hash_sel.get_size();

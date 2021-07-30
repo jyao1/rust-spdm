@@ -56,15 +56,18 @@ As soon as you run this command, you should see AFL’s interface start up:
 
 ### view coverage 
 
-If you need to check coverage, follow the coverage.md operation, Script rspfuzzrun.sh runs for 1 hour in each case. 
-Fuzzcoverage.sh collects info information and generates html files. The html file location is target/debug/coverge.
+If you need to check coverage, follow the coverage.md operation, Script fuzz_run.sh runs for 1 hour in each case. 
+Add the coverage string after the script collects info information and generates html files. The html file location is target/debug/fuzz_coverge.
 If you need to run a specific case, please modify the cmd tuple in the script.
 Can run at the same time but merge will cause problems
 
     ```
+    # Install screen 
     sudo apt install screen
+    # Run each fuzz for one hour
     bash fuzz_run.sh
-    bash fuzz_coverage.sh
+    # Run each fuzz for one hour and Genarate report 
+    bash fuzz_run.sh coverage
     ```
 
 ### reference

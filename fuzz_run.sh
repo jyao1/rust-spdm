@@ -30,9 +30,13 @@ done
 
 echo $buildpackage
 
-export RUSTFLAGS="-Zinstrument-coverage"
+unset RUSTFLAGS
+unset LLVM_PROFILE_FILE
 
-export LLVM_PROFILE_FILE='fuzz_run%p%2m.profraw'
+if [[ $1 = "coverage" ]]; then
+    export RUSTFLAGS="-Zinstrument-coverage"
+    export LLVM_PROFILE_FILE='fuzz_run%p%2m.profraw'
+fi 
 
 cargo afl build $buildpackage
 
@@ -50,4 +54,6 @@ do
     screen -S ${cmds[$i]} -X quit
 done
 
-grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
+if [[ $1 = "coverage" ]]; then
+grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/fuzz_coverage/
+fi
