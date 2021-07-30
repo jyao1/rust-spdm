@@ -261,14 +261,14 @@ mod tests {
     }
     #[test]
     fn test_u32() {
-        let u8_slice = &mut [0u8; 4]; 
-        let mut witer = Writer::init(u8_slice); 
+        let u8_slice = &mut [0u8; 4];
+        let mut witer = Writer::init(u8_slice);
         let value = 100u32;
         value.encode(&mut witer);
 
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(4, reader.left());                      
-        assert_eq!(u32::read(&mut reader).unwrap(), 100);                                                        
+        assert_eq!(4, reader.left());
+        assert_eq!(u32::read(&mut reader).unwrap(), 100);
     }
     #[test]
     fn test_u16() {
@@ -276,7 +276,7 @@ mod tests {
         let mut witer = Writer::init(u8_slice);
         let value = 10u16;
         value.encode(&mut witer);
-        
+
         let mut reader = Reader::init(u8_slice);
         assert_eq!(2, reader.left());
         assert_eq!(u16::read(&mut reader).unwrap(), 10);
@@ -287,7 +287,6 @@ mod tests {
         let mut witer = Writer::init(u8_slice);
         let value = u24(100);
         value.encode(&mut witer);
-
         let mut reader = Reader::init(u8_slice);
         assert_eq!(3, reader.left());
         assert_eq!(u24::read(&mut reader).unwrap().0, u24(100).0);
@@ -302,5 +301,52 @@ mod tests {
         assert_eq!(4, reader.left());
         assert_eq!(u8::read(&mut reader).unwrap(), 100);
     }
-
+    #[test]
+    fn test_case0_rest() {
+        let u8_slice = &mut [0u8; 4];
+        let mut witer = Writer::init(u8_slice);
+        let value = 0xAA5555AAu32;
+        value.encode(&mut witer);
+        let mut reader = Reader::init(u8_slice);
+        let rust_ret = reader.rest();
+        assert_eq!(rust_ret[0], 0xAA);
+        assert_eq!(rust_ret[1], 0x55);
+        assert_eq!(rust_ret[2], 0x55);
+        assert_eq!(rust_ret[3], 0xAA);
+    }
+    #[test]
+    fn test_case0_any_left() {
+        let u8_slice = &mut [0u8; 4];
+        let reader = Reader {
+            buf: u8_slice,
+            offs: 0,
+        };
+        assert_eq!(reader.any_left(), true);
+    }
+    #[test]
+    fn test_case1_any_left() {
+        let u8_slice = &mut [0u8; 4];
+        let reader = Reader {
+            buf: u8_slice,
+            offs: 4,
+        };
+        assert_eq!(reader.any_left(), false);
+    }
+    #[test]
+    fn test_case0_read_bytes() {
+        let u8_slice = &mut [0u8; 4];
+        let mut witer = Writer::init(u8_slice);
+        let value = 0xAA5555AAu32;
+        value.encode(&mut witer);
+        assert_eq!(u32::read_bytes(u8_slice).unwrap(), 0xAA5555AAu32);
+    }
+    #[test]
+    fn test_case0_sub() {
+        let u8_slice = &mut [100u8; 4];
+        let mut reader = Reader{
+            buf: u8_slice,
+            offs: 4,
+        };
+        assert_eq!(reader.sub(4).is_none(),true);
+    }
 }
