@@ -1001,6 +1001,9 @@ impl From<BytesMut> for SpdmAeadIvStruct {
 mod tests 
 {
     use super::*;
+    use crate::testlib::*;
+    use crate::msgs::*;
+    use codec::{Codec, Reader, Writer};
 
     #[test]
     fn test_case0_spdm_measurement_specification() {
@@ -1216,5 +1219,33 @@ mod tests
             alg_ext_count :100, 
         };
         value.encode(&mut writer);
+    }
+    #[test]
+    fn test_case0_spdm_digest_struct(){
+        let bytes_mut = BytesMut::new();
+        let u8_slice = &mut [0u8; 68];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmDigestStruct{
+            data_size: 64,
+            data: [100u8; SPDM_MAX_HASH_SIZE],
+        };
+
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
+        let spdm_digest_struct=SpdmDigestStruct::from(bytes_mut);
+
+        assert_eq!(spdm_digest_struct.data_size,0);
+    }
+    #[test]
+    fn test_case0_spdm_measurement_record_structure() {
+        let  value=SpdmMeasurementSpecification::DMTF;
+        let mut spdm_measurement_specification=SpdmMeasurementSpecification::empty();
+        spdm_measurement_specification.prioritize(value);
     }
 }

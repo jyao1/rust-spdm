@@ -259,6 +259,7 @@ mod tests {
             data_size: 64,
             data: [100u8; SPDM_MAX_HASH_SIZE],
         };
+        println!("SpdmDigestStruct={:#?}\n", value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
