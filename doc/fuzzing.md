@@ -66,8 +66,10 @@ Can run at the same time but merge will cause problems
     sudo apt install screen
     # Run each fuzz for one hour
     bash fuzz_run.sh
-    # Run each fuzz for one hour and Genarate report 
-    bash fuzz_run.sh coverage
+    # Run each fuzz for one hour and Genarate source-based coverage report 
+    bash fuzz_run.sh Scoverage
+    # Run each fuzz for one hour and Genarate gcov-based coverage report 
+    bash fuzz_run.sh Gcoverage
     ```
 
 ### reference
