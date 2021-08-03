@@ -283,6 +283,7 @@ mod tests {
             data_size: 512,
             data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
         };
+        println!("SpdmSignatureStruct={:#?}\n", value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -336,7 +337,8 @@ mod tests {
     fn test_case0_spdm_measurement_record_structure() {
         let u8_slice = &mut [0u8; 512];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmMeasurementRecordStructure {
+        SpdmMeasurementRecordStructure::default();
+        let value = SpdmMeasurementRecordStructure{
             number_of_blocks: 5,
             record: [SpdmMeasurementBlockStructure{
                 index: 100u8,
@@ -350,6 +352,7 @@ mod tests {
                 },
             };config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
         };
+        println!("SpdmMeasurementRecordStructure:{:#?}",value);
        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -373,6 +376,7 @@ mod tests {
             }
         }
     }
+    
     #[test]
     #[should_panic]
     fn test_case1_spdm_measurement_record_structure() {
@@ -392,10 +396,12 @@ mod tests {
     fn test_case0_spdm_dhe_exchange_struct() {
         let u8_slice = &mut [0u8; 512];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmDheExchangeStruct {
+        SpdmDheExchangeStruct::default();
+        let value= SpdmDheExchangeStruct {
             data_size: 512,
             data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
         };
+        println!("SpdmDheExchangeStruct:{:#?}",value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;

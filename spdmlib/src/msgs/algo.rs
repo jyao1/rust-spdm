@@ -1221,6 +1221,29 @@ mod tests
         value.encode(&mut writer);
     }
     #[test]
+    fn test_case3_spdm_alg_struct(){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let spdmalg=SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo{});
+        let value =  SpdmAlgStruct
+        {
+            alg_type : SpdmAlgType::Unknown(1),
+            alg_fixed_count : 2,
+            alg_supported :SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo{}),
+            alg_ext_count :0, 
+        };
+        value.encode(&mut writer);
+
+        let mut reader = Reader::init(u8_slice);
+        assert_eq!(8, reader.left());
+        let spdm_alg_struct=SpdmAlgStruct::read(&mut reader).unwrap();  
+
+        assert_eq!(spdm_alg_struct.alg_type,SpdmAlgType::Unknown(1));
+        assert_eq!(spdm_alg_struct.alg_fixed_count,2);
+        assert_eq!(spdm_alg_struct.alg_ext_count,0);
+        assert_eq!(spdm_alg_struct.alg_supported,spdmalg);
+    }
+    #[test]
     fn test_case0_spdm_digest_struct(){
         let bytes_mut = BytesMut::new();
         let u8_slice = &mut [0u8; 68];
@@ -1239,13 +1262,209 @@ mod tests
         let mut reader = Reader::init(u8_slice);
         SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
         let spdm_digest_struct=SpdmDigestStruct::from(bytes_mut);
-
         assert_eq!(spdm_digest_struct.data_size,0);
     }
     #[test]
-    fn test_case0_spdm_measurement_record_structure() {
+    fn test_case1_spdm_measurement_specification() {
         let  value=SpdmMeasurementSpecification::DMTF;
         let mut spdm_measurement_specification=SpdmMeasurementSpecification::empty();
         spdm_measurement_specification.prioritize(value);
     }
+    #[test]
+    fn test_case1_spdm_signature_struct() {
+        let bytes_mut = bytes::BytesMut::new();
+        let spdm_signature_struct=SpdmSignatureStruct::from(bytes_mut);
+        assert_eq!(spdm_signature_struct.data_size,0);
+        for i in 0..512{
+            assert_eq!(spdm_signature_struct.data[i],0);
+        }
+    }
+
+    #[test]
+    #[should_panic]  
+    fn test_case1_spdm_measurement_hash_algo() {
+        let mut value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_256 ;
+        assert_eq!(value.get_size(), SHA256_DIGEST_SIZE as u16);
+
+        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA3_256 ;
+        assert_eq!(value.get_size(), SHA3_256_DIGEST_SIZE as u16);
+        
+        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384 ;
+        assert_eq!(value.get_size(), SHA384_DIGEST_SIZE as u16);
+        
+        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA3_384 ;
+        assert_eq!(value.get_size(), SHA3_384_DIGEST_SIZE as u16);
+        
+        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_512 ;
+        assert_eq!(value.get_size(), SHA512_DIGEST_SIZE as u16);
+        
+        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512 ;
+        assert_eq!(value.get_size(), SHA3_512_DIGEST_SIZE as u16);
+        
+        value = SpdmMeasurementHashAlgo::RAW_BIT_STREAM ;
+        assert_eq!(value.get_size(), 0u16);
+        
+        value = SpdmMeasurementHashAlgo::empty() ;
+        value.get_size();
+    }
+    #[test]
+    #[should_panic]  
+    fn test_case1_spdm_base_asym_algo() {
+        let mut value = SpdmBaseAsymAlgo ::TPM_ALG_RSASSA_2048 ;
+        assert_eq!(value.get_size(), RSASSA_2048_KEY_SIZE as u16);
+
+        value = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048 ;
+        assert_eq!(value.get_size(), RSAPSS_2048_KEY_SIZE as u16);
+
+        value = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072 ;
+        assert_eq!(value.get_size(), RSASSA_3072_KEY_SIZE as u16);
+
+        value = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072 ;
+        assert_eq!(value.get_size(), RSAPSS_3072_KEY_SIZE as u16);
+
+        value = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096 ;
+        assert_eq!(value.get_size(), RSASSA_4096_KEY_SIZE as u16);
+
+        value = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096 ;
+        assert_eq!(value.get_size(), RSAPSS_4096_KEY_SIZE as u16);
+
+        value = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256 ;
+        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P256_KEY_SIZE as u16);
+        
+        value = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 ;
+        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
+
+        
+        value = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 ;
+        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P521_KEY_SIZE as u16);
+        value = SpdmBaseAsymAlgo::empty() ;
+        value.get_size();
+    }
+    #[test]
+    #[should_panic]
+    fn test_case1_spdm_dhe_algo() {
+        let mut value = SpdmDheAlgo::FFDHE_2048 ;
+        assert_eq!(value.get_size(), FFDHE_2048_KEY_SIZE as u16);
+
+        value = SpdmDheAlgo::FFDHE_3072 ;
+        assert_eq!(value.get_size(), FFDHE_3072_KEY_SIZE as u16);
+        
+        value = SpdmDheAlgo::FFDHE_4096 ;
+        assert_eq!(value.get_size(), FFDHE_4096_KEY_SIZE as u16);
+        
+        value = SpdmDheAlgo::SECP_256_R1 ;
+        assert_eq!(value.get_size(), SECP_256_R1_KEY_SIZE as u16);
+        
+        value = SpdmDheAlgo::SECP_384_R1 ;
+        assert_eq!(value.get_size(), SECP_384_R1_KEY_SIZE as u16);
+        
+        value = SpdmDheAlgo::SECP_521_R1 ;
+        assert_eq!(value.get_size(), SECP_521_R1_KEY_SIZE as u16);
+
+        value = SpdmDheAlgo::empty() ;
+        value.get_size();
+    }
+    #[test]
+    #[should_panic]
+    fn test_case1_spdm_aead_algo() {
+        let mut value = SpdmAeadAlgo ::AES_128_GCM ;
+        assert_eq!(value.get_key_size(), AEAD_AES_128_GCM_KEY_SIZE as u16);
+
+        value = SpdmAeadAlgo ::AES_256_GCM ;
+        assert_eq!(value.get_key_size(), AEAD_AES_256_GCM_KEY_SIZE as u16);
+        
+        value = SpdmAeadAlgo ::CHACHA20_POLY1305 ;
+        assert_eq!(value.get_key_size(), AEAD_CHACHA20_POLY1305_KEY_SIZE as u16);
+
+        value = SpdmAeadAlgo::empty() ;
+        value.get_key_size();
+    }
+    #[test]
+    #[should_panic]
+    fn test_case2_spdm_aead_algo() {
+        let mut value = SpdmAeadAlgo ::AES_128_GCM ;
+        assert_eq!(value.get_key_size(), AEAD_AES_128_GCM_KEY_SIZE as u16);
+
+        value = SpdmAeadAlgo ::AES_256_GCM ;
+        assert_eq!(value.get_key_size(), AEAD_AES_256_GCM_KEY_SIZE as u16);
+        
+        value = SpdmAeadAlgo ::CHACHA20_POLY1305 ;
+        assert_eq!(value.get_key_size(), AEAD_CHACHA20_POLY1305_KEY_SIZE as u16);
+
+        value = SpdmAeadAlgo::empty() ;
+        value.get_key_size();
+    }
+    #[test]
+    #[should_panic]
+    fn test_case3_spdm_aead_algo() {
+        let mut value = SpdmAeadAlgo ::AES_128_GCM ;
+        assert_eq!(value.get_iv_size(), AEAD_AES_128_GCM_IV_SIZE as u16);
+
+        value = SpdmAeadAlgo ::AES_256_GCM ;
+        assert_eq!(value.get_iv_size(), AEAD_AES_256_GCM_IV_SIZE as u16);
+        
+        value = SpdmAeadAlgo ::CHACHA20_POLY1305 ;
+        assert_eq!(value.get_iv_size(), AEAD_CHACHA20_POLY1305_IV_SIZE as u16);
+
+        value = SpdmAeadAlgo::empty() ;
+        value.get_iv_size();
+    }
+    #[test]
+    #[should_panic]
+    fn test_case4_spdm_aead_algo() {
+        let mut value = SpdmAeadAlgo ::AES_128_GCM ;
+        assert_eq!(value.get_tag_size(), AEAD_AES_128_GCM_TAG_SIZE as u16);
+
+        value = SpdmAeadAlgo ::AES_256_GCM ;
+        assert_eq!(value.get_tag_size(), AEAD_AES_256_GCM_TAG_SIZE as u16);
+        
+        value = SpdmAeadAlgo ::CHACHA20_POLY1305 ;
+        assert_eq!(value.get_tag_size(), AEAD_CHACHA20_POLY1305_TAG_SIZE as u16);
+
+        value = SpdmAeadAlgo::empty() ;
+        value.get_tag_size();
+    } 
+    #[test]
+    #[should_panic]
+    fn test_case1_spdm_req_asym_algo(){
+        let mut value = SpdmReqAsymAlgo ::TPM_ALG_RSASSA_2048 ;
+        assert_eq!(value.get_size(), RSASSA_2048_KEY_SIZE as u16);
+
+        value = SpdmReqAsymAlgo ::TPM_ALG_RSAPSS_2048 ;
+        assert_eq!(value.get_size(), RSAPSS_2048_KEY_SIZE as u16);
+
+        value = SpdmReqAsymAlgo ::TPM_ALG_RSASSA_3072 ;
+        assert_eq!(value.get_size(), RSASSA_3072_KEY_SIZE as u16);
+        
+        value = SpdmReqAsymAlgo ::TPM_ALG_RSAPSS_3072 ;
+        assert_eq!(value.get_size(), RSAPSS_3072_KEY_SIZE as u16);
+
+        value = SpdmReqAsymAlgo ::TPM_ALG_RSASSA_4096 ;
+        assert_eq!(value.get_size(), RSASSA_4096_KEY_SIZE as u16);
+        
+        value = SpdmReqAsymAlgo ::TPM_ALG_RSAPSS_4096 ;
+        assert_eq!(value.get_size(), RSAPSS_4096_KEY_SIZE as u16);
+
+        value = SpdmReqAsymAlgo ::TPM_ALG_ECDSA_ECC_NIST_P256 ;
+        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P256_KEY_SIZE as u16);
+
+        value = SpdmReqAsymAlgo ::TPM_ALG_ECDSA_ECC_NIST_P384 ;
+        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
+        
+        value = SpdmReqAsymAlgo ::TPM_ALG_ECDSA_ECC_NIST_P521 ;
+        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P521_KEY_SIZE as u16);
+        
+        value = SpdmReqAsymAlgo::empty() ;
+        value.get_size();
+    } 
+    #[test]
+    fn test_case0_spdm_unknown_algo(){
+        let u8_slice = &mut [0u8; 8];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmUnknownAlgo{};
+        value.encode(&mut writer);
+        let mut reader = Reader::init(u8_slice);
+        SpdmUnknownAlgo::read(&mut reader);
+    }
+
 }
