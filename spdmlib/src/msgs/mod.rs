@@ -386,8 +386,8 @@ impl SpdmCodec for SpdmMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{common::SpdmContext, testlib::*};
     use crate::config::*;
+    use crate::{common::SpdmContext, testlib::*};
 
     #[test]
     fn test_case0_spdm_message() {
@@ -397,184 +397,31 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
-                version_number_entry_count: 0x01,
+                version_number_entry_count: 0x02,
                 versions: [SpdmVersionStruct {
                     update: 100,
-                    version: SpdmVersion::SpdmVersion10,
+                    version: SpdmVersion::SpdmVersion11,
                 }; crate::config::MAX_SPDM_VERSION_COUNT],
             }),
         };
-        println!("SpdmMessage :{:#?}",value);
-        println!("SpdmMessagePayload  :{:#?}",value.payload);
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        let mut spdm_message = new_spdm_message(value, context);
+        println!("SpdmMessage :{:#?}", value);
+        println!("SpdmMessagePayload  :{:#?}", value.payload);
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseDigests
+            SpdmResponseResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.version_number_entry_count, 0x01);
+            assert_eq!(payload.version_number_entry_count, 0x02);
             for i in 0..2 {
                 assert_eq!(payload.versions[i].update, 100);
-                assert_eq!(payload.versions[i].version, SpdmVersion::SpdmVersion10);
+                assert_eq!(payload.versions[i].version, SpdmVersion::SpdmVersion11);
             }
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmGetCapabilitiesRequest(
-                SpdmGetCapabilitiesRequestPayload {
-                    ct_exponent: 0x02,
-                    flags: SpdmRequestCapabilityFlags::CERT_CAP,
-                },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmGetCapabilitiesRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.ct_exponent, 0x02);
-            assert_eq!(payload.flags, SpdmRequestCapabilityFlags::CERT_CAP);
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmCapabilitiesResponse(
-                SpdmCapabilitiesResponsePayload {
-                    ct_exponent: 0x03,
-                    flags: SpdmResponseCapabilityFlags::CACHE_CAP,
-                },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmCapabilitiesResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.ct_exponent, 0x03);
-            assert_eq!(payload.flags, SpdmResponseCapabilityFlags::CACHE_CAP);
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmCapabilitiesResponse(
-                SpdmCapabilitiesResponsePayload {
-                    ct_exponent: 0x03,
-                    flags: SpdmResponseCapabilityFlags::CACHE_CAP,
-                },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmCapabilitiesResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.ct_exponent, 0x03);
-            assert_eq!(payload.flags, SpdmResponseCapabilityFlags::CACHE_CAP);
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(
-                SpdmNegotiateAlgorithmsRequestPayload {
-                    measurement_specification: SpdmMeasurementSpecification::DMTF,
-                    base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
-                    base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
-                    alg_struct_count: 4,
-                    alg_struct: [SpdmAlgStruct{
-                        alg_type : SpdmAlgType::SpdmAlgTypeDHE,
-                        alg_fixed_count :2,
-                        alg_supported :SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                        alg_ext_count :0, 
-                    }; crate::config::MAX_SPDM_ALG_STRUCT_COUNT],
-                 },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.measurement_specification,SpdmMeasurementSpecification::DMTF);
-            assert_eq!(payload.base_asym_algo,SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
-            assert_eq!(payload.base_hash_algo,SpdmBaseHashAlgo::TPM_ALG_SHA_256);
-            assert_eq!(payload.alg_struct_count,4);
-            for i in 0..4{
-                   assert_eq!(payload.alg_struct[i].alg_type,SpdmAlgType::SpdmAlgTypeDHE);
-                   assert_eq!(payload.alg_struct[i].alg_fixed_count,2);
-                   assert_eq!(payload.alg_struct[1].alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
-                   assert_eq!(payload.alg_struct[i].alg_ext_count,0);
-            }
-        }
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmAlgorithmsResponse(
-                SpdmAlgorithmsResponsePayload {
-                    measurement_specification_sel: SpdmMeasurementSpecification::DMTF,
-                    measurement_hash_algo: SpdmMeasurementHashAlgo::RAW_BIT_STREAM,
-                    base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
-                    base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
-                    alg_struct_count: 4,
-                    alg_struct: [SpdmAlgStruct{
-                        alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                        alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                        alg_ext_count: 0, 
-                    }; MAX_SPDM_ALG_STRUCT_COUNT],
-                    },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmAlgorithmsResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.measurement_specification_sel,SpdmMeasurementSpecification::DMTF);
-            assert_eq!(payload.measurement_hash_algo,SpdmMeasurementHashAlgo::RAW_BIT_STREAM);
-            assert_eq!(payload.base_asym_sel,SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
-            assert_eq!(payload.base_hash_sel,SpdmBaseHashAlgo::TPM_ALG_SHA_256);
-            assert_eq!(payload.alg_struct_count,4);
-            for i in 0..4{
-                    assert_eq!(payload.alg_struct[i].alg_type,SpdmAlgType::SpdmAlgTypeDHE);
-                    assert_eq!(payload.alg_struct[i].alg_fixed_count,2);
-                    assert_eq!(payload.alg_struct[1].alg_supported,SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048));
-                    assert_eq!(payload.alg_struct[i].alg_ext_count,0);
-            }
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmCertificateResponse(
-                SpdmCertificateResponsePayload {
-                    slot_id:100,
-                    portion_length:512,
-                    remainder_length:100,
-                    cert_chain: [100u8; MAX_SPDM_CERT_PORTION_LEN],
-                },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmCertificateResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.slot_id,100);
-            assert_eq!(payload.portion_length,512);
-            assert_eq!(payload.remainder_length,100); 
-            for i in 0..512{
-            assert_eq!(payload.cert_chain[i],100u8); 
-            };
         }
     }
     #[test]
@@ -585,43 +432,249 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestGetCapabilities,
             },
-            payload: SpdmMessagePayload::SpdmChallengeRequest(
-                SpdmChallengeRequestPayload {
-                    slot_id: 100,
-                    measurement_summary_hash_type:
-                        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-                    nonce: SpdmNonceStruct { data: [100u8; 32] },
+            payload: SpdmMessagePayload::SpdmGetCapabilitiesRequest(
+                SpdmGetCapabilitiesRequestPayload {
+                    ct_exponent: 0x02,
+                    flags: SpdmRequestCapabilityFlags::CERT_CAP,
                 },
             ),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        let mut spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmChallengeRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.slot_id, 100);
-            assert_eq!(payload.measurement_summary_hash_type,SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone);
-            for i in 0..32 {
-                assert_eq!(payload.nonce.data[i], 100u8);
-            }
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestGetCapabilities
+        );
+        if let SpdmMessagePayload::SpdmGetCapabilitiesRequest(payload) = &spdm_message.payload {
+            assert_eq!(payload.ct_exponent, 0x02);
+            assert_eq!(payload.flags, SpdmRequestCapabilityFlags::CERT_CAP);
         }
+    }
+    #[test]
+    fn test_case2_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
 
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseCapabilities,
+            },
+            payload: SpdmMessagePayload::SpdmCapabilitiesResponse(
+                SpdmCapabilitiesResponsePayload {
+                    ct_exponent: 0x03,
+                    flags: SpdmResponseCapabilityFlags::CACHE_CAP,
+                },
+            ),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseCapabilities
+        );
+        if let SpdmMessagePayload::SpdmCapabilitiesResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.ct_exponent, 0x03);
+            assert_eq!(payload.flags, SpdmResponseCapabilityFlags::CACHE_CAP);
+        }
+    }
+    #[test]
+    fn test_case3_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms,
+            },
+            payload: SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(
+                SpdmNegotiateAlgorithmsRequestPayload {
+                    measurement_specification: SpdmMeasurementSpecification::DMTF,
+                    base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+                    base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+                    alg_struct_count: 4,
+                    alg_struct: [SpdmAlgStruct {
+                        alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                        alg_fixed_count: 2,
+                        alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                        alg_ext_count: 0,
+                    }; crate::config::MAX_SPDM_ALG_STRUCT_COUNT],
+                },
+            ),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms
+        );
+        if let SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(payload) = &spdm_message.payload {
+            assert_eq!(
+                payload.measurement_specification,
+                SpdmMeasurementSpecification::DMTF
+            );
+            assert_eq!(
+                payload.base_asym_algo,
+                SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048
+            );
+            assert_eq!(payload.base_hash_algo, SpdmBaseHashAlgo::TPM_ALG_SHA_256);
+            assert_eq!(payload.alg_struct_count, 4);
+            for i in 0..4 {
+                assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
+                assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
+                assert_eq!(
+                    payload.alg_struct[1].alg_supported,
+                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+                );
+                assert_eq!(payload.alg_struct[i].alg_ext_count, 0);
+            }
+        }
+    }
+    #[test]
+    fn test_case4_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseAlgorithms,
+            },
+            payload: SpdmMessagePayload::SpdmAlgorithmsResponse(SpdmAlgorithmsResponsePayload {
+                measurement_specification_sel: SpdmMeasurementSpecification::DMTF,
+                measurement_hash_algo: SpdmMeasurementHashAlgo::RAW_BIT_STREAM,
+                base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+                base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+                alg_struct_count: 4,
+                alg_struct: [SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                    alg_ext_count: 0,
+                }; MAX_SPDM_ALG_STRUCT_COUNT],
+            }),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseAlgorithms
+        );
+        if let SpdmMessagePayload::SpdmAlgorithmsResponse(payload) = &spdm_message.payload {
+            assert_eq!(
+                payload.measurement_specification_sel,
+                SpdmMeasurementSpecification::DMTF
+            );
+            assert_eq!(
+                payload.measurement_hash_algo,
+                SpdmMeasurementHashAlgo::RAW_BIT_STREAM
+            );
+            assert_eq!(payload.base_asym_sel, SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
+            assert_eq!(payload.base_hash_sel, SpdmBaseHashAlgo::TPM_ALG_SHA_256);
+            assert_eq!(payload.alg_struct_count, 4);
+            for i in 0..4 {
+                assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
+                assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
+                assert_eq!(
+                    payload.alg_struct[1].alg_supported,
+                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+                );
+                assert_eq!(payload.alg_struct[i].alg_ext_count, 0);
+            }
+        }
+    }
+    #[test]
+    fn test_case5_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseCertificate,
+            },
+            payload: SpdmMessagePayload::SpdmCertificateResponse(SpdmCertificateResponsePayload {
+                slot_id: 100,
+                portion_length: 512,
+                remainder_length: 100,
+                cert_chain: [100u8; MAX_SPDM_CERT_PORTION_LEN],
+            }),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseCertificate
+        );
+        if let SpdmMessagePayload::SpdmCertificateResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.slot_id, 100);
+            assert_eq!(payload.portion_length, 512);
+            assert_eq!(payload.remainder_length, 100);
+            for i in 0..512 {
+                assert_eq!(payload.cert_chain[i], 100u8);
+            }
+        }
+    }
+    #[test]
+    fn test_case6_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            },
+            payload: SpdmMessagePayload::SpdmChallengeRequest(SpdmChallengeRequestPayload {
+                slot_id: 100,
+                measurement_summary_hash_type:
+                    SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+                nonce: SpdmNonceStruct { data: [100u8; 32] },
+            }),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
+        if let SpdmMessagePayload::SpdmChallengeRequest(payload) = &spdm_message.payload {
+            assert_eq!(payload.slot_id, 100);
+            assert_eq!(
+                payload.measurement_summary_hash_type,
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
+            );
+            for i in 0..32 {
+                assert_eq!(payload.nonce.data[i], 100u8);
+            }
+        }
+    }
+    #[test]
+    fn test_case7_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseChallengeAuth,
             },
             payload: SpdmMessagePayload::SpdmChallengeAuthResponse(
                 SpdmChallengeAuthResponsePayload {
                     slot_id: 0x0f,
                     slot_mask: 100,
                     challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
-                    cert_chain_hash: SpdmDigestStruct{
+                    cert_chain_hash: SpdmDigestStruct {
                         data_size: 64,
                         data: [0xAAu8; SPDM_MAX_HASH_SIZE],
                     },
-                    nonce: SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] },
-                    measurement_summary_hash:  SpdmDigestStruct {
+                    nonce: SpdmNonceStruct {
+                        data: [100u8; SPDM_NONCE_SIZE],
+                    },
+                    measurement_summary_hash: SpdmDigestStruct {
                         data_size: 64,
                         data: [0x55u8; SPDM_MAX_HASH_SIZE],
                     },
@@ -629,23 +682,29 @@ mod tests {
                         data_size: 64,
                         data: [0xAAu8; MAX_SPDM_OPAQUE_SIZE],
                     },
-                    signature:  SpdmSignatureStruct {
+                    signature: SpdmSignatureStruct {
                         data_size: 512,
                         data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
                     },
                 },
             ),
         };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.runtime_info.need_measurement_summary_hash = true;
-        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        spdm_message = new_spdm_message(value, context);
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseChallengeAuth
+        );
         if let SpdmMessagePayload::SpdmChallengeAuthResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 0x0f);
             assert_eq!(payload.slot_mask, 100);
-            assert_eq!(payload.challenge_auth_attribute,SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ);
-
+            assert_eq!(
+                payload.challenge_auth_attribute,
+                SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ
+            );
             assert_eq!(payload.cert_chain_hash.data_size, 64);
             assert_eq!(payload.measurement_summary_hash.data_size, 64);
             assert_eq!(payload.opaque.data_size, 64);
@@ -661,152 +720,185 @@ mod tests {
             }
             for i in 0..512 {
                 assert_eq!(payload.signature.data[i], 0x55u8);
-            }   
-        }
-    }
-    #[test]
-    fn test_case2_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
-        let value = SpdmMessage {
-        header: SpdmMessageHeader {
-            version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-        },
-        payload: SpdmMessagePayload::SpdmGetMeasurementsRequest(
-            SpdmGetMeasurementsRequestPayload {
-                measurement_attributes: SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
-                measurement_operation: SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
-                nonce: SpdmNonceStruct {
-                    data: [100u8; SPDM_NONCE_SIZE],
-                },
-                slot_id: 0xaau8,
-            },
-        ),
-    };
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-    let mut spdm_message = new_spdm_message(value, context);
-    if let SpdmMessagePayload::SpdmGetMeasurementsRequest(payload) = &spdm_message.payload {
-        assert_eq!(
-            payload.measurement_attributes,
-            SpdmMeasurementeAttributes::INCLUDE_SIGNATURE
-        );
-        assert_eq!(
-            payload.measurement_operation,
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
-        );
-        assert_eq!(payload.slot_id, 0xaau8);
-        for i in 0..32 {
-            assert_eq!(payload.nonce.data[i], 100u8);
-        }
-    }
-
-    let value = SpdmMessage {
-        header: SpdmMessageHeader {
-            version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-        },
-        payload: SpdmMessagePayload::SpdmMeasurementsResponse(
-            SpdmMeasurementsResponsePayload {
-                number_of_measurement: 100u8,
-                slot_id: 100u8,
-                measurement_record: SpdmMeasurementRecordStructure {
-                    number_of_blocks: 5,
-                    record: [SpdmMeasurementBlockStructure{
-                        index: 100u8,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 67u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                            representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: 64u16,
-                            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    };MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
-                },
-                nonce: SpdmNonceStruct {
-                    data: [100u8; SPDM_NONCE_SIZE],
-                },
-                opaque: SpdmOpaqueStruct {
-                    data_size: 64,
-                    data: [100u8; MAX_SPDM_OPAQUE_SIZE],
-                },
-                signature: SpdmSignatureStruct {
-                    data_size: 512,
-                    data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
-                },
-            },
-        ),
-    };
-    context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-    context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-    context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-    context.runtime_info.need_measurement_signature = true;
-    spdm_message = new_spdm_message(value, context);
-    if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
-        assert_eq!(payload.number_of_measurement, 100);
-        assert_eq!(payload.slot_id, 100);
-        assert_eq!(payload.measurement_record.number_of_blocks, 5);
-        for i in 0..5{
-            assert_eq!(payload.measurement_record.record[i].index, 100);
-            assert_eq!(payload.measurement_record.record[i].measurement_specification, SpdmMeasurementSpecification::DMTF);
-            assert_eq!(payload.measurement_record.record[i].measurement_size, 67);
-            assert_eq!(payload.measurement_record.record[i].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom);
-            assert_eq!(payload.measurement_record.record[i].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest);
-            assert_eq!(payload.measurement_record.record[i].measurement.value_size, 64);
-            for j in 0..64 {
-                assert_eq!(payload.measurement_record.record[i].measurement.value[j], 100);
             }
         }
-        for i in 0..32{
-            assert_eq!(payload.nonce.data[i], 100);   
-        }
-        assert_eq!(payload.opaque.data_size,64);
-        for i in 0..64
-        {
-            assert_eq!(payload.opaque.data[i],100);
-        }
-        assert_eq!(payload.signature.data_size, 512);
-        for i in 0..512 {
-            assert_eq!(payload.signature.data[i], 100);
-        }
     }
-}
     #[test]
-    fn test_case3_spdm_message() {
+    fn test_case8_spdm_message() {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
 
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestGetMeasurements,
             },
-            payload: SpdmMessagePayload::SpdmKeyExchangeRequest(
-                SpdmKeyExchangeRequestPayload {
-                    measurement_summary_hash_type:
-                        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-                    slot_id: 100u8,
-                    req_session_id: 100u16,
-                    random: SpdmRandomStruct {
-                        data: [100u8; SPDM_RANDOM_SIZE],
+            payload: SpdmMessagePayload::SpdmGetMeasurementsRequest(
+                SpdmGetMeasurementsRequestPayload {
+                    measurement_attributes: SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
+                    measurement_operation:
+                        SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+                    nonce: SpdmNonceStruct {
+                        data: [100u8; SPDM_NONCE_SIZE],
                     },
-                    exchange: SpdmDheExchangeStruct {
-                        data_size: 512u16,
-                        data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
+                    slot_id: 0xaau8,
+                },
+            ),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestGetMeasurements
+        );
+        if let SpdmMessagePayload::SpdmGetMeasurementsRequest(payload) = &spdm_message.payload {
+            assert_eq!(
+                payload.measurement_attributes,
+                SpdmMeasurementeAttributes::INCLUDE_SIGNATURE
+            );
+            assert_eq!(
+                payload.measurement_operation,
+                SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            );
+            assert_eq!(payload.slot_id, 0xaau8);
+            for i in 0..32 {
+                assert_eq!(payload.nonce.data[i], 100u8);
+            }
+        }
+    }
+    #[test]
+    fn test_case9_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseMeasurements,
+            },
+            payload: SpdmMessagePayload::SpdmMeasurementsResponse(
+                SpdmMeasurementsResponsePayload {
+                    number_of_measurement: 100u8,
+                    slot_id: 100u8,
+                    measurement_record: SpdmMeasurementRecordStructure {
+                        number_of_blocks: 5,
+                        record: [SpdmMeasurementBlockStructure {
+                            index: 100u8,
+                            measurement_specification: SpdmMeasurementSpecification::DMTF,
+                            measurement_size: 67u16,
+                            measurement: SpdmDmtfMeasurementStructure {
+                                r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                                representation:
+                                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                                value_size: 64u16,
+                                value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                            },
+                        }; MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+                    },
+                    nonce: SpdmNonceStruct {
+                        data: [100u8; SPDM_NONCE_SIZE],
                     },
                     opaque: SpdmOpaqueStruct {
-                        data_size: 64u16,
-                        data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                        data_size: 64,
+                        data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                    },
+                    signature: SpdmSignatureStruct {
+                        data_size: 512,
+                        data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
                     },
                 },
             ),
         };
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.runtime_info.need_measurement_signature = true;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseMeasurements
+        );
+        if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.number_of_measurement, 100);
+            assert_eq!(payload.slot_id, 100);
+            assert_eq!(payload.measurement_record.number_of_blocks, 5);
+            for i in 0..5 {
+                assert_eq!(payload.measurement_record.record[i].index, 100);
+                assert_eq!(
+                    payload.measurement_record.record[i].measurement_specification,
+                    SpdmMeasurementSpecification::DMTF
+                );
+                assert_eq!(payload.measurement_record.record[i].measurement_size, 67);
+                assert_eq!(
+                    payload.measurement_record.record[i].measurement.r#type,
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+                );
+                assert_eq!(
+                    payload.measurement_record.record[i]
+                        .measurement
+                        .representation,
+                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+                );
+                assert_eq!(
+                    payload.measurement_record.record[i].measurement.value_size,
+                    64
+                );
+                for j in 0..64 {
+                    assert_eq!(
+                        payload.measurement_record.record[i].measurement.value[j],
+                        100
+                    );
+                }
+            }
+            for i in 0..32 {
+                assert_eq!(payload.nonce.data[i], 100);
+            }
+            assert_eq!(payload.opaque.data_size, 64);
+            for i in 0..64 {
+                assert_eq!(payload.opaque.data[i], 100);
+            }
+            assert_eq!(payload.signature.data_size, 512);
+            for i in 0..512 {
+                assert_eq!(payload.signature.data[i], 100);
+            }
+        }
+    }
+    #[test]
+    fn test_case10_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyExchange,
+            },
+            payload: SpdmMessagePayload::SpdmKeyExchangeRequest(SpdmKeyExchangeRequestPayload {
+                measurement_summary_hash_type:
+                    SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+                slot_id: 100u8,
+                req_session_id: 100u16,
+                random: SpdmRandomStruct {
+                    data: [100u8; SPDM_RANDOM_SIZE],
+                },
+                exchange: SpdmDheExchangeStruct {
+                    data_size: 512u16,
+                    data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
+                },
+                opaque: SpdmOpaqueStruct {
+                    data_size: 64u16,
+                    data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                },
+            }),
+        };
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        let mut spdm_message = new_spdm_message(value, context);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestKeyExchange
+        );
         if let SpdmMessagePayload::SpdmKeyExchangeRequest(payload) = &spdm_message.payload {
             assert_eq!(
                 payload.measurement_summary_hash_type,
@@ -825,54 +917,60 @@ mod tests {
                 assert_eq!(payload.opaque.data[i], 100);
             }
         }
+    }
+    #[test]
+    fn test_case11_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
 
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyExchange,
             },
-            payload: SpdmMessagePayload::SpdmKeyExchangeResponse(
-                SpdmKeyExchangeResponsePayload {
-                    heartbeat_period: 100u8,
-                    rsp_session_id: 100u16,
-                    mut_auth_req: SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ,
-                    req_slot_id: 100u8,
-                    random: SpdmRandomStruct {
-                        data: [100u8; SPDM_RANDOM_SIZE],
-                    },
-                    exchange: SpdmDheExchangeStruct {
-                        data_size: 512u16,
-                        data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
-                    },
-                    measurement_summary_hash: SpdmDigestStruct {
-                        data_size: 64u16,
-                        data: [0x11u8; SPDM_MAX_HASH_SIZE],
-                    },
-                    opaque: SpdmOpaqueStruct {
-                        data_size: 64u16,
-                        data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
-                    },
-                    signature: SpdmSignatureStruct {
-                        data_size: 512u16,
-                        data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
-                    },
-                    verify_data: SpdmDigestStruct {
-                        data_size: 64u16,
-                        data: [0x33u8; SPDM_MAX_HASH_SIZE],
-                    },
+            payload: SpdmMessagePayload::SpdmKeyExchangeResponse(SpdmKeyExchangeResponsePayload {
+                heartbeat_period: 100u8,
+                rsp_session_id: 100u16,
+                mut_auth_req: SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ,
+                req_slot_id: 100u8,
+                random: SpdmRandomStruct {
+                    data: [100u8; SPDM_RANDOM_SIZE],
                 },
-            ),
+                exchange: SpdmDheExchangeStruct {
+                    data_size: 512u16,
+                    data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
+                },
+                measurement_summary_hash: SpdmDigestStruct {
+                    data_size: 64u16,
+                    data: [0x11u8; SPDM_MAX_HASH_SIZE],
+                },
+                opaque: SpdmOpaqueStruct {
+                    data_size: 64u16,
+                    data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                },
+                signature: SpdmSignatureStruct {
+                    data_size: 512u16,
+                    data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
+                },
+                verify_data: SpdmDigestStruct {
+                    data_size: 64u16,
+                    data: [0x33u8; SPDM_MAX_HASH_SIZE],
+                },
+            }),
         };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
-        context.runtime_info.need_measurement_summary_hash=true;
-        spdm_message = new_spdm_message(value, context);
+        context.runtime_info.need_measurement_summary_hash = true;
+        let spdm_message = new_spdm_message(value, context);
         if let SpdmMessagePayload::SpdmKeyExchangeResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.heartbeat_period, 100);
             assert_eq!(payload.rsp_session_id, 100);
-            assert_eq!(payload.mut_auth_req,SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ);
+            assert_eq!(
+                payload.mut_auth_req,
+                SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ
+            );
             assert_eq!(payload.req_slot_id, 100);
             for i in 0..32 {
                 assert_eq!(payload.random.data[i], 100);
@@ -886,7 +984,7 @@ mod tests {
             }
 
             assert_eq!(payload.measurement_summary_hash.data_size, 64);
-            assert_eq!(payload.verify_data.data_size,64);
+            assert_eq!(payload.verify_data.data_size, 64);
             assert_eq!(payload.opaque.data_size, 64);
             for i in 0..64 {
                 assert_eq!(payload.measurement_summary_hash.data[i], 0x11);
@@ -894,136 +992,128 @@ mod tests {
                 assert_eq!(payload.verify_data.data[i], 0x33);
             }
         }
+    }
+    #[test]
+    fn test_case12_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
 
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestFinish,
             },
-            payload: SpdmMessagePayload::SpdmFinishRequest(
-                SpdmFinishRequestPayload {
-                    finish_request_attributes: SpdmFinishRequestAttributes::SIGNATURE_INCLUDED,
-                    req_slot_id: 100,
-                    signature: SpdmSignatureStruct {
-                        data_size: 512,
-                        data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],
-                    },
-                    verify_data: SpdmDigestStruct {
-                        data_size: 64,
-                        data: [0x5au8; SPDM_MAX_HASH_SIZE],
-                    },
-                 },
-            ),
+            payload: SpdmMessagePayload::SpdmFinishRequest(SpdmFinishRequestPayload {
+                finish_request_attributes: SpdmFinishRequestAttributes::SIGNATURE_INCLUDED,
+                req_slot_id: 100,
+                signature: SpdmSignatureStruct {
+                    data_size: 512,
+                    data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],
+                },
+                verify_data: SpdmDigestStruct {
+                    data_size: 64,
+                    data: [0x5au8; SPDM_MAX_HASH_SIZE],
+                },
+            }),
         };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        spdm_message = new_spdm_message(value, context);
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestFinish
+        );
         if let SpdmMessagePayload::SpdmFinishRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.finish_request_attributes,SpdmFinishRequestAttributes::SIGNATURE_INCLUDED);
-            assert_eq!(payload.req_slot_id,100);
-            assert_eq!(payload.signature.data_size,512);
-            for i in 0..512{
-                assert_eq!(payload.signature.data[i],0xa5u8);
+            assert_eq!(
+                payload.finish_request_attributes,
+                SpdmFinishRequestAttributes::SIGNATURE_INCLUDED
+            );
+            assert_eq!(payload.req_slot_id, 100);
+            assert_eq!(payload.signature.data_size, 512);
+            for i in 0..512 {
+                assert_eq!(payload.signature.data[i], 0xa5u8);
             }
-            assert_eq!(payload.verify_data.data_size,64);
-            for i in 0..64{
-                assert_eq!(payload.verify_data.data[i],0x5au8);
+            assert_eq!(payload.verify_data.data_size, 64);
+            for i in 0..64 {
+                assert_eq!(payload.verify_data.data[i], 0x5au8);
             }
         }
+    }
+    #[test]
+    fn test_case13_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
 
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseFinishRsp,
             },
-            payload: SpdmMessagePayload::SpdmFinishResponse(
-                SpdmFinishResponsePayload {
-                    verify_data: SpdmDigestStruct{
-                        data_size: 64,
-                        data: [100u8; SPDM_MAX_HASH_SIZE],
-                    }
-                 },
-            ),
+            payload: SpdmMessagePayload::SpdmFinishResponse(SpdmFinishResponsePayload {
+                verify_data: SpdmDigestStruct {
+                    data_size: 64,
+                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                },
+            }),
         };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        context.negotiate_info.req_capabilities_sel=SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-        context.negotiate_info.rsp_capabilities_sel=SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmFinishRequest(payload) = &spdm_message.payload {
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.req_capabilities_sel =
+            SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        context.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseFinishRsp
+        );
+        if let SpdmMessagePayload::SpdmFinishResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.verify_data.data_size, 64);
             for i in 0..64 {
                 assert_eq!(payload.verify_data.data[i], 100u8);
             }
         }
+    }
+    #[test]
+    fn test_case114_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
 
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestPskExchange,
             },
-            payload: SpdmMessagePayload::SpdmFinishRequest(
-                SpdmFinishRequestPayload {
-                    finish_request_attributes: SpdmFinishRequestAttributes::SIGNATURE_INCLUDED,
-                    req_slot_id: 100,
-                    signature: SpdmSignatureStruct {
-                        data_size: 512,
-                        data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],
-                    },
-                    verify_data: SpdmDigestStruct {
-                        data_size: 64,
-                        data: [0x5au8; SPDM_MAX_HASH_SIZE],
-                    },
-                 },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmFinishRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.finish_request_attributes,SpdmFinishRequestAttributes::SIGNATURE_INCLUDED);
-            assert_eq!(payload.req_slot_id,100);
-            assert_eq!(payload.signature.data_size,512);
-            for i in 0..512{
-                assert_eq!(payload.signature.data[i],0xa5u8);
-            }
-            assert_eq!(payload.verify_data.data_size,64);
-            for i in 0..64{
-                assert_eq!(payload.verify_data.data[i],0x5au8);
-            }
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmPskExchangeRequest(
-                SpdmPskExchangeRequestPayload {
-                    measurement_summary_hash_type:
-                        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
-                    req_session_id: 100u16,
-                    psk_hint: SpdmPskHintStruct {
-                        data_size: 32,
-                        data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
-                    },
-                    psk_context: SpdmPskContextStruct {
-                        data_size: 64,
-                        data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
-                    },
-                    opaque: SpdmOpaqueStruct {
-                        data_size: 64,
-                        data: [100u8; MAX_SPDM_OPAQUE_SIZE],
-                    },
+            payload: SpdmMessagePayload::SpdmPskExchangeRequest(SpdmPskExchangeRequestPayload {
+                measurement_summary_hash_type:
+                    SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+                req_session_id: 100u16,
+                psk_hint: SpdmPskHintStruct {
+                    data_size: 32,
+                    data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
                 },
-            ),
+                psk_context: SpdmPskContextStruct {
+                    data_size: 64,
+                    data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                },
+                opaque: SpdmOpaqueStruct {
+                    data_size: 64,
+                    data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                },
+            }),
         };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestPskExchange
+        );
         if let SpdmMessagePayload::SpdmPskExchangeRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.measurement_summary_hash_type,SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll);
+            assert_eq!(
+                payload.measurement_summary_hash_type,
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            );
             assert_eq!(payload.psk_hint.data_size, 32);
             assert_eq!(payload.psk_context.data_size, 64);
             assert_eq!(payload.opaque.data_size, 64);
@@ -1039,36 +1129,37 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmResponseResponseCode::SpdmResponsePskExchangeRsp,
             },
-            payload: SpdmMessagePayload::SpdmPskExchangeResponse(
-                SpdmPskExchangeResponsePayload {
-                    heartbeat_period: 0xaau8,
-                    rsp_session_id: 0xaa55u16,
-                    measurement_summary_hash: SpdmDigestStruct {
-                        data_size: 64,
-                        data: [100u8; SPDM_MAX_HASH_SIZE],
-                    },
-                    psk_context: SpdmPskContextStruct {
-                        data_size: 64,
-                        data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
-                    },
-                    opaque: SpdmOpaqueStruct {
-                        data_size: 64,
-                        data: [100u8; MAX_SPDM_OPAQUE_SIZE],
-                    },
-                    verify_data: SpdmDigestStruct {
-                        data_size: 64,
-                        data: [100u8; SPDM_MAX_HASH_SIZE],
-                    },
+            payload: SpdmMessagePayload::SpdmPskExchangeResponse(SpdmPskExchangeResponsePayload {
+                heartbeat_period: 0xaau8,
+                rsp_session_id: 0xaa55u16,
+                measurement_summary_hash: SpdmDigestStruct {
+                    data_size: 64,
+                    data: [100u8; SPDM_MAX_HASH_SIZE],
                 },
-            ),
+                psk_context: SpdmPskContextStruct {
+                    data_size: 64,
+                    data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                },
+                opaque: SpdmOpaqueStruct {
+                    data_size: 64,
+                    data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                },
+                verify_data: SpdmDigestStruct {
+                    data_size: 64,
+                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                },
+            }),
         };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_summary_hash = true;
-
-        spdm_message = new_spdm_message(value, context);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp
+        );
         if let SpdmMessagePayload::SpdmPskExchangeResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.heartbeat_period, 0xaau8);
             assert_eq!(payload.rsp_session_id, 0xaa55u16);
@@ -1087,7 +1178,289 @@ mod tests {
         }
     }
     #[test]
-    fn test_case4_spdm_message() {
+    fn test_case15_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestPskFinish,
+            },
+            payload: SpdmMessagePayload::SpdmPskFinishRequest(SpdmPskFinishRequestPayload {
+                verify_data: SpdmDigestStruct {
+                    data_size: 64,
+                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                },
+            }),
+        };
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestPskFinish
+        );
+        if let SpdmMessagePayload::SpdmPskFinishRequest(payload) = &spdm_message.payload {
+            assert_eq!(payload.verify_data.data_size, 64);
+            for i in 0..64 {
+                assert_eq!(payload.verify_data.data[i], 100u8);
+            }
+        }
+    }
+    #[test]
+    fn test_case17_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyUpdate,
+            },
+            payload: SpdmMessagePayload::SpdmKeyUpdateRequest(SpdmKeyUpdateRequestPayload {
+                key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+                tag: 100u8,
+            }),
+        };
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let spdm_message = new_spdm_message(value, context);
+        if let SpdmMessagePayload::SpdmKeyUpdateRequest(payload) = &spdm_message.payload {
+            assert_eq!(
+                payload.key_update_operation,
+                SpdmKeyUpdateOperation::SpdmUpdateAllKeys
+            );
+            assert_eq!(payload.tag, 100);
+        }
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
+            },
+            payload: SpdmMessagePayload::SpdmKeyUpdateResponse(SpdmKeyUpdateResponsePayload {
+                key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+                tag: 100u8,
+            }),
+        };
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck
+        );
+        if let SpdmMessagePayload::SpdmKeyUpdateResponse(payload) = &spdm_message.payload {
+            assert_eq!(
+                payload.key_update_operation,
+                SpdmKeyUpdateOperation::SpdmUpdateAllKeys
+            );
+            assert_eq!(payload.tag, 100);
+        }
+    }
+    #[test]
+    fn test_case18_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestEndSession,
+            },
+            payload: SpdmMessagePayload::SpdmEndSessionRequest(SpdmEndSessionRequestPayload {
+                end_session_request_attributes:
+                    SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
+            }),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestEndSession
+        );
+        if let SpdmMessagePayload::SpdmEndSessionRequest(payload) = &spdm_message.payload {
+            assert_eq!(
+                payload.end_session_request_attributes,
+                SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE
+            );
+        }
+    }
+    #[test]
+    fn test_case19_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseError,
+            },
+            payload: SpdmMessagePayload::SpdmErrorResponse(SpdmErrorResponsePayload {
+                error_code: SpdmErrorCode::SpdmErrorResponseNotReady,
+                error_data: 100,
+                extended_data: SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(
+                    SpdmErrorResponseNotReadyExtData {
+                        rdt_exponent: 100,
+                        request_code: 100,
+                        token: 100,
+                        tdtm: 100,
+                    },
+                ),
+            }),
+        };
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseError
+        );
+        if let SpdmMessagePayload::SpdmErrorResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.error_code, SpdmErrorCode::SpdmErrorResponseNotReady);
+            assert_eq!(payload.error_data, 100);
+            if let SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(extended_data) =
+                &payload.extended_data
+            {
+                assert_eq!(extended_data.rdt_exponent, 100);
+                assert_eq!(extended_data.request_code, 100);
+                assert_eq!(extended_data.token, 100);
+                assert_eq!(extended_data.tdtm, 100);
+            }
+        }
+    }
+    #[test]
+    fn test_case20_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestGetVersion,
+            },
+            payload: SpdmMessagePayload::SpdmGetVersionRequest(SpdmGetVersionRequestPayload {}),
+        };
+
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        new_spdm_message(value, context);
+    }
+    #[test]
+    fn test_case21_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestGetDigests,
+            },
+            payload: SpdmMessagePayload::SpdmGetDigestsRequest(SpdmGetDigestsRequestPayload {}),
+        };
+
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        new_spdm_message(value, context);
+    }
+    #[test]
+    fn test_case22_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestGetCertificate,
+            },
+            payload: SpdmMessagePayload::SpdmGetCertificateRequest(
+                SpdmGetCertificateRequestPayload {
+                    slot_id: 100,
+                    offset: 100,
+                    length: 100,
+                },
+            ),
+        };
+
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestGetCertificate
+        );
+        if let SpdmMessagePayload::SpdmGetCertificateRequest(payload) = &spdm_message.payload {
+            assert_eq!(payload.slot_id, 100);
+            assert_eq!(payload.offset, 100);
+            assert_eq!(payload.length, 100);
+        }
+    }
+    #[test]
+    fn test_case23_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponsePskFinishRsp,
+            },
+            payload: SpdmMessagePayload::SpdmPskFinishResponse(SpdmPskFinishResponsePayload {}),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        new_spdm_message(value, context);
+    }
+    #[test]
+    fn test_case24_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestHeartbeat,
+            },
+            payload: SpdmMessagePayload::SpdmHeartbeatRequest(SpdmHeartbeatRequestPayload {}),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        new_spdm_message(value, context);
+    }
+    #[test]
+    fn test_case25_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseEndSessionAck,
+            },
+            payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        new_spdm_message(value, context);
+    }
+    #[test]
+    fn test_case26_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
+
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::Unknown(0),
+            },
+            payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
+        };
+        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let u8_slice = &mut [0u8; 1000];
+        let mut writer = Writer::init(u8_slice);
+        value.spdm_encode(&mut context, &mut writer);
+        let mut reader = Reader::init(u8_slice);
+        let spdm_message = SpdmMessage::spdm_read(&mut context, &mut reader);
+        assert_eq!(spdm_message.is_none(), true);
+    }
+
+    #[test]
+    fn test_case27_spdm_message() {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
 
@@ -1096,117 +1469,44 @@ mod tests {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
             },
-            payload: SpdmMessagePayload::SpdmPskFinishRequest(
-                SpdmPskFinishRequestPayload {
-                    verify_data: SpdmDigestStruct {
-                        data_size: 64,
-                        data: [100u8; SPDM_MAX_HASH_SIZE],
-                    },
-                },
-            ),
+            payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
+                slot_mask: 0b11111111,
+                slot_count: 8,
+                digests: [SpdmDigestStruct {
+                    data_size: 64,
+                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                }; SPDM_MAX_SLOT_NUMBER],
+            }),
         };
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        let mut spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmPskFinishRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.verify_data.data_size, 64);
-            for i in 0..64 {
-                assert_eq!(payload.verify_data.data[i], 100u8);
-            }
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmKeyUpdateRequest(
-                SpdmKeyUpdateRequestPayload {
-                    key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
-                    tag: 100u8,
-                 },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmKeyUpdateRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.key_update_operation,SpdmKeyUpdateOperation::SpdmUpdateAllKeys);
-            assert_eq!(payload.tag,100);
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmKeyUpdateResponse(
-                SpdmKeyUpdateResponsePayload {
-                    key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
-                    tag: 100u8,
-                 },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmKeyUpdateResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.key_update_operation,SpdmKeyUpdateOperation::SpdmUpdateAllKeys);
-            assert_eq!(payload.tag,100);
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmEndSessionRequest(
-                SpdmEndSessionRequestPayload {
-                    end_session_request_attributes: SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
-                },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmEndSessionRequest(payload) = &spdm_message.payload {
-            assert_eq!(payload.end_session_request_attributes,SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE);
-        }
-
-        let value = SpdmMessage {
-            header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
-            },
-            payload: SpdmMessagePayload::SpdmErrorResponse(
-                SpdmErrorResponsePayload {
-                    error_code: SpdmErrorCode::SpdmErrorResponseNotReady,
-                    error_data: 100,
-                    extended_data: SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(
-                        SpdmErrorResponseNotReadyExtData{
-                            rdt_exponent: 100,
-                            request_code: 100,
-                            token: 100,
-                            tdtm: 100,
-                        }),
-                },
-            ),
-        };
-        context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        spdm_message = new_spdm_message(value, context);
-        if let SpdmMessagePayload::SpdmErrorResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.error_code, SpdmErrorCode::SpdmErrorResponseNotReady);
-            assert_eq!(payload.error_data, 100);
-            if let SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(extended_data) 
-            = &payload.extended_data {
-                assert_eq!(extended_data.rdt_exponent, 100);
-                assert_eq!(extended_data.request_code, 100);
-                assert_eq!(extended_data.token, 100);
-                assert_eq!(extended_data.tdtm, 100);
-            } 
+        let spdm_message = new_spdm_message(value, context);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseDigests
+        );
+        if let SpdmMessagePayload::SpdmDigestsResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.slot_mask, 0b11111111);
+            assert_eq!(payload.slot_count, 8);
+            assert_eq!(payload.digests[1].data_size, 64u16);
+            assert_eq!(payload.digests[1].data[1], 100u8);
         }
     }
+    #[test]
+    fn test_case28_spdm_message() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let my_spdm_device_io = &mut MySpdmDeviceIo;
 
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseHeartbeatAck ,
+            },
+            payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
+        };
+        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        new_spdm_message(value, context);
+    }
 
     fn new_spdm_message(value: SpdmMessage, mut context: SpdmContext) -> SpdmMessage {
         let u8_slice = &mut [0u8; 1000];
