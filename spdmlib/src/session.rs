@@ -683,7 +683,7 @@ impl SpdmSession {
                     r
                 }
             }
-            _ => panic!("unknown session state"),
+            _ => return spdm_result_err!(ENOMEM),
         }
     }
 

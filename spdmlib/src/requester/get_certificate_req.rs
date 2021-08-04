@@ -58,7 +58,9 @@ impl<'a> RequesterContext<'a> {
                     let used = reader.used();
                     if let Some(certificate) = certificate {
                         debug!("!!! certificate : {:02x?}\n", certificate);
-
+                        if (offset + certificate.portion_length) as usize > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE {
+                            return spdm_result_err!(ENOMEM);
+                        }
                         self.common.peer_info.peer_cert_chain.cert_chain.data[(offset as usize)
                             ..(offset as usize + certificate.portion_length as usize)]
                             .copy_from_slice(
@@ -93,7 +95,6 @@ impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_certificate(&mut self, slot_id: u8) -> SpdmResult {
         let mut offset = 0u16;
         let mut length = config::MAX_SPDM_CERT_PORTION_LEN as u16;
-
         while length != 0 {
             let result = self.send_receive_spdm_certificate_partial(slot_id, offset, length);
             match result {
@@ -133,8 +134,7 @@ impl<'a> RequesterContext<'a> {
                     &runtime_peer_cert_chain_data.data
                         [..(runtime_peer_cert_chain_data.data_size as usize)],
                     0,
-                )
-                .unwrap();
+                )?;
             let root_cert = &runtime_peer_cert_chain_data.data[root_cert_begin..root_cert_end];
             let root_hash =
                 crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
