@@ -46,9 +46,12 @@ impl<'a> ResponderContext<'a> {
         );
 
         let final_key = key_exchange_context
-            .compute_final_key(&key_exchange_req.unwrap().exchange)
-            .unwrap();
-
+        .compute_final_key(&key_exchange_req.unwrap().exchange);
+        
+        if final_key.is_none(){
+            return;
+        }
+        let final_key = final_key.unwrap();
         debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];

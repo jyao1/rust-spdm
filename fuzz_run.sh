@@ -12,6 +12,7 @@ cmds=(
 "rspmeasurement"
 "rspkeyexchange"
 "rsppskexchange"
+
 "reqversion"
 "reqcapability"
 "reqalgorithm"

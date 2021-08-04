@@ -4,6 +4,14 @@
 
 #![forbid(unsafe_code)]
 
+
+use spdmlib::spdm_result_err;
+
+use spdmlib::spdm_err;
+
+use crate::spdmlib::error::SpdmResult;
+
+
 use super::*;
 
 pub struct FakeSpdmDeviceIoReceve<'a> {
@@ -91,9 +99,10 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        self.responder
-            .process_message()
-            .expect("process message error");
+        if self.responder
+            .process_message().is_err() {
+                return spdm_result_err!(ENOMEM);
+            }
         Ok(())
     }
 
