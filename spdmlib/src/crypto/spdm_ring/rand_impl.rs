@@ -26,3 +26,21 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
 
     Ok(data.len())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_case0_get_random() {
+        let data = &mut [100u8; 16];
+        let data_len = get_random(data);
+
+        match data_len {
+            Ok(16) => {assert!(true)}
+            _ => {
+                panic!()
+            }
+        }
+    }
+}
