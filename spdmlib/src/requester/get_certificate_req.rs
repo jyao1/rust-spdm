@@ -58,7 +58,10 @@ impl<'a> RequesterContext<'a> {
                     let used = reader.used();
                     if let Some(certificate) = certificate {
                         debug!("!!! certificate : {:02x?}\n", certificate);
-                        if (offset + certificate.portion_length) as usize > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE {
+                        if certificate.portion_length as usize > config::MAX_SPDM_CERT_PORTION_LEN
+                            || (offset + certificate.portion_length) as usize
+                                > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
+                        {
                             return spdm_result_err!(ENOMEM);
                         }
                         self.common.peer_info.peer_cert_chain.cert_chain.data[(offset as usize)
@@ -114,7 +117,9 @@ impl<'a> RequesterContext<'a> {
             //
             // TBD: Verify cert chain
             //
-            if self.common.peer_info.peer_cert_chain.cert_chain.data_size <= (4 + self.common.negotiate_info.base_hash_sel.get_size()) {
+            if self.common.peer_info.peer_cert_chain.cert_chain.data_size
+                <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
+            {
                 return spdm_result_err!(EIO);
             }
 

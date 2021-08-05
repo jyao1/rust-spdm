@@ -133,6 +133,9 @@ impl<'a> ResponderContext<'a> {
         } else if let SpdmMeasurementOperation::Unknown(index) =
             get_measurements.measurement_operation
         {
+            if index > 5 {
+                return;
+            }
             SpdmMeasurementRecordStructure {
                 number_of_blocks: 1,
                 record: [
