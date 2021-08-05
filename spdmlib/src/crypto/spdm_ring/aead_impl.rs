@@ -158,3 +158,52 @@ fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
     let nonce_sequence = OneNonceSequence::new(nonce);
     K::new(key, nonce_sequence)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::msgs::*;
+
+    #[test]
+    fn test_case0_encrypt() {
+        let aead_algo = SpdmAeadAlgo::AES_128_GCM;
+        let key = &mut [100u8; 16];
+        let iv = &mut [100u8; 12];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 16];
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 16];
+
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+
+        match ret_tag_size {
+            Ok((16, 16)) => {
+                assert!(true)
+            }
+            _ => {
+                panic!()
+            }
+        }
+    }
+    #[test]
+    fn test_case1_encrypt() {
+        let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
+        let key = &mut [100u8; 32];
+        let iv = &mut [100u8; 12];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 16];
+
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 16];
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+
+        match ret_tag_size {
+            Ok((16, 16)) => {
+                assert!(true)
+            }
+            _ => {
+                panic!()
+            }
+        }
+    }
+}
