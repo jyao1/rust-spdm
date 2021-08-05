@@ -137,7 +137,7 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
 
         let mut calc_length = 0u32;
         for d in record.iter().take(number_of_blocks as usize) {
-            if d.measurement_size != d.measurement.value_size + 3 {
+            if d.measurement_size != d.measurement.value_size.checked_add(3)? {
                 return None;
             }
             calc_length += d.measurement_size as u32 + 4;

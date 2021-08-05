@@ -49,6 +49,11 @@ impl<'a> ResponderContext<'a> {
         };
         opaque.data[..(opaque.data_size as usize)]
             .copy_from_slice(crate::common::OPAQUE_DATA_VERSION_SELECTION.as_ref());
+        
+        if self.common.negotiate_info.base_hash_sel.is_empty() {
+            return;
+        }
+        
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
