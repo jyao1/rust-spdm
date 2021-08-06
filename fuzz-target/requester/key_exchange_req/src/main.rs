@@ -164,12 +164,11 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
     requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
     // -- end --
 
-    requester
+    let _ = requester
         .send_receive_spdm_key_exchange(
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-        )
-        .unwrap();
+        );
 }
 
 fn main() {
