@@ -169,7 +169,7 @@ mod tests {
         let aead_algo = SpdmAeadAlgo::AES_128_GCM;
         let key = &mut [100u8; 16];
         let iv = &mut [100u8; 12];
-        let plain_text = &mut [100u8; 16];
+        let plain_text = &mut [0u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
@@ -191,7 +191,7 @@ mod tests {
         let key = &mut [100u8; 32];
         let iv = &mut [100u8; 12];
         let plain_text = &mut [100u8; 16];
-        let tag = &mut [100u8; 16];
+        let tag = &mut [0u8; 16];
 
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
@@ -199,6 +199,93 @@ mod tests {
 
         match ret_tag_size {
             Ok((16, 16)) => {
+                assert!(true)
+            }
+            _ => {
+                panic!()
+            }
+        }
+    }
+    #[test]
+    #[should_panic]
+    fn test_case2_encrypt() {
+        let aead_algo = SpdmAeadAlgo::empty();
+        let key = &mut [100u8; 1];
+        let iv = &mut [100u8; 12];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 16];
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 16];
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        println!("ret_tag_size{:?}", ret_tag_size);
+    }
+    #[test]
+    #[should_panic]
+    fn test_case3_encrypt() {
+        let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
+        let key = &mut [100u8; 1];
+        let iv = &mut [100u8; 32];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 16];
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 16];
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        println!("ret_tag_size{:?}", ret_tag_size);
+    }
+    #[test]
+    #[should_panic]
+    fn test_case4_encrypt() {
+        let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
+        let key = &mut [100u8; 32];
+        let iv = &mut [100u8; 1];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 32];
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 16];
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        println!("ret_tag_size{:?}", ret_tag_size);
+    }
+    #[test]
+    #[should_panic]
+    fn test_case5_encrypt() {
+        let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
+        let key = &mut [100u8; 32];
+        let iv = &mut [100u8; 12];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 16];
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 1];
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        println!("ret_tag_size{:?}", ret_tag_size);
+    }
+    #[test]
+    #[should_panic]
+    fn test_case6_encrypt() {
+        let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
+        let key = &mut [100u8; 32];
+        let iv = &mut [100u8; 12];
+        let plain_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 32];
+        let aad = &mut [100u8; 16];
+        let cipher_text = &mut [100u8; 1];
+        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        println!("ret_tag_size{:?}", ret_tag_size);
+    }
+    #[test]
+    #[should_panic]
+    fn test_case0_decrypt() {
+        let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
+        let key = &mut [100u8; 32];
+        let iv = &mut [100u8; 12];
+        let cipher_text = &mut [100u8; 16];
+        let tag = &mut [100u8; 16];
+        let aad = &mut [100u8; 12];
+        let plain_text = &mut [100u8; 16];
+
+        let ret_tag_size = decrypt(aead_algo, key, iv, aad, cipher_text, tag, plain_text);
+
+        match ret_tag_size {
+            Ok(16) => {
                 assert!(true)
             }
             _ => {

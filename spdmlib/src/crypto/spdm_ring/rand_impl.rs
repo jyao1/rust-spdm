@@ -43,4 +43,17 @@ mod tests {
             }
         }
     }
+    #[test]
+    #[should_panic]
+    fn test_case1_get_random() {
+        let data = &mut [100u8; 80];
+        let data_len = get_random(data);
+
+        match data_len {
+            Ok(16) => {assert!(true)}
+            _ => {
+                panic!()
+            }
+        }
+    }
 }
