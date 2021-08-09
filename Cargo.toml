@@ -23,6 +23,10 @@ members = [
     "fuzz-target/responder/rspkeyexchange",
     "fuzz-target/responder/rsppskexchange",
     "fuzz-target/responder/finish_rsp",
+    "fuzz-target/responder/psk_finish_rsp",
+    "fuzz-target/responder/heartbeat_rsp",
+    "fuzz-target/responder/key_update_rsp",
+    "fuzz-target/responder/end_session_rsp",
 
     "fuzz-target/requester/reqversion",
     "fuzz-target/requester/reqcapability",

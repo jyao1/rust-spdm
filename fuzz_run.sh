@@ -12,6 +12,10 @@ cmds=(
 "rspmeasurement"
 "rspkeyexchange"
 "rsppskexchange"
+"finish_rsp"
+"heartbeat_rsp"
+"key_update_rsp"
+"end_session_rsp"
 
 "reqversion"
 "reqcapability"
@@ -38,7 +42,7 @@ if [[ $1 = "Scoverage" ]]; then
     echo "$1"
     export RUSTFLAGS="-Zinstrument-coverage"
     export LLVM_PROFILE_FILE='fuzz_run%p%2m.profraw'
-fi 
+fi
 
 if [[ $1 = "Gcoverage" ]]; then
     echo "$1"
@@ -56,7 +60,7 @@ do
     if [[ $? -ne 0 ]]
     then
     screen -dmS ${cmds[$i]}
-    fi 
+    fi
     screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
     sleep 3600

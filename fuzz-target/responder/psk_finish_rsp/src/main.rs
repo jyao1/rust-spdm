@@ -4,7 +4,7 @@
 
 use fuzzlib::{spdmlib::session::SpdmSession, *};
 
-fn fuzz_handle_spdm_finish(data: &[u8]) {
+fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
@@ -35,7 +35,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
 
-    context.handle_spdm_finish(4294901758, data);
+    context.handle_spdm_psk_finish(4294901758, data);
     let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf).unwrap();
     println!("Received: {:?}", req_buf);
@@ -64,10 +64,10 @@ fn main() {
         }
         let path = &args[1];
         let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_handle_spdm_finish(data.as_slice());
+        fuzz_handle_spdm_psk_finish(data.as_slice());
     } else {
         afl::fuzz!(|data: &[u8]| {
-            fuzz_handle_spdm_finish(data);
+            fuzz_handle_spdm_psk_finish(data);
         });
     }
 }
