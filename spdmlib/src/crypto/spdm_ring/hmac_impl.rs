@@ -67,4 +67,57 @@ mod tests {
             // assert_eq!(spdm_digest_struct.data[i],0);
         }
     }
+    #[test]
+    fn test_case0_hmac_verify() {
+        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let key = &mut [100u8; 64];
+        let data = &mut [100u8; 64];
+        let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
+        let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
+
+        match spdm_digest_struct {
+            Ok(()) => {
+                assert!(true)
+            }
+            _ => {
+                panic!()
+            }
+        }
+    }
+    #[test]
+    fn test_case1_hmac_verify() {
+        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+        let key = &mut [10u8; 128];
+        let data = &mut [10u8; 128];
+        let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
+        let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
+
+        match spdm_digest_struct {
+            Ok(()) => {
+                assert!(true)
+            }
+            _ => {
+                panic!()
+            }
+        }
+    }
+    #[test]
+    #[should_panic]
+    fn test_case2_hmac_verify() {
+        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+        let key = &mut [10u8; 128];
+        let data = &mut [10u8; 128];
+        let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
+        let data = &mut [100u8; 128];
+        let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
+
+        match spdm_digest_struct {
+            Ok(()) => {
+                assert!(true)
+            }
+            _ => {
+                panic!()
+            }
+        }
+    }
 }

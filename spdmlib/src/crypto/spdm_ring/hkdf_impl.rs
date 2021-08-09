@@ -53,3 +53,44 @@ impl ring::hkdf::KeyType for SpdmCryptoHkdfKeyLen {
         self.out_size
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_case0_hkdf_expand() {
+        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+        let pk = &mut [100u8; 64];
+        let info = &mut [100u8; 64];
+        let out_size = 64;
+        let hkdf_expand = hkdf_expand(base_hash_algo, pk, info, out_size);
+
+        match hkdf_expand {
+            Some(_) => {
+                assert!(true)
+            },
+            None => {
+                assert!(false)
+            },
+        }
+    }
+    #[test]
+    #[should_panic]
+    fn test_case1_hkdf_expand() {
+        let base_hash_algo = SpdmBaseHashAlgo::empty();
+        let pk = &mut [100u8; 64];
+        let info = &mut [100u8; 64];
+        let out_size = 64;
+        let hkdf_expand = hkdf_expand(base_hash_algo, pk, info, out_size);
+
+        match hkdf_expand {
+            Some(_) => {
+                assert!(true)
+            },
+            None => {
+                assert!(false)
+            },
+        }
+    }
+}
