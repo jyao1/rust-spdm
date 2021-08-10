@@ -13,13 +13,15 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
     let rng = ring::rand::SystemRandom::new();
 
     let mut len = data.len();
+    let mut offset = 0usize;
     while len > 0 {
         let rand_data: [u8; 64] = ring::rand::generate(&rng).unwrap().expose();
         if len > 64 {
-            data.copy_from_slice(&rand_data);
+            data[offset..(offset + 64)].copy_from_slice(&rand_data);
             len -= 64;
+            offset += 64;
         } else {
-            data.copy_from_slice(&rand_data[0..len]);
+            data[offset..(offset + len)].copy_from_slice(&rand_data[0..len]);
             break;
         }
     }
@@ -44,13 +46,12 @@ mod tests {
         }
     }
     #[test]
-    #[should_panic]
     fn test_case1_get_random() {
         let data = &mut [100u8; 80];
         let data_len = get_random(data);
-
+        println!("data_len:{:?}", data_len);  
         match data_len {
-            Ok(16) => {assert!(true)}
+            Ok(80) => {assert!(true)}
             _ => {
                 panic!()
             }
