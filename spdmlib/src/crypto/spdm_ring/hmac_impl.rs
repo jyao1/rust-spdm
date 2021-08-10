@@ -54,20 +54,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_case0_get_hmac() {
-        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        let key = &mut [100u8; 64];
-        let data = &mut [100u8; 64];
-
-        let spdm_digest_struct = hmac(base_hash_algo, key, data).unwrap();
-        
-        for i in 0..64 {
-            println!("i=={}", i);
-            println!("spdm_digest_struct.data[{}]=={}",i , spdm_digest_struct.data[i]);
-            // assert_eq!(spdm_digest_struct.data[i],0);
-        }
-    }
-    #[test]
     fn test_case0_hmac_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let key = &mut [100u8; 64];

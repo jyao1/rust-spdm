@@ -115,15 +115,39 @@ impl SpdmDheKeyExchangeP384 {
     }
 }
 
-#[test]
-fn test_dhe() {
-    for dhe_algo in [SpdmDheAlgo::SECP_256_R1, SpdmDheAlgo::SECP_384_R1].iter() {
-        let (exchange1, private1) = generate_key_pair(*dhe_algo).unwrap();
-        let (exchange2, private2) = generate_key_pair(*dhe_algo).unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        let peer1 = private1.compute_final_key(&exchange2).unwrap();
-        let peer2 = private2.compute_final_key(&exchange1).unwrap();
+    #[test]
+    fn test_case0_dhe() {
+        for dhe_algo in [
+            SpdmDheAlgo::SECP_256_R1,
+            SpdmDheAlgo::SECP_384_R1,
+        ]
+        .iter()
+        {
+            let (exchange1, private1) = generate_key_pair(*dhe_algo).unwrap();
+            let (exchange2, private2) = generate_key_pair(*dhe_algo).unwrap();
 
-        assert_eq!(peer1.as_ref(), peer2.as_ref());
+            let peer1 = private1.compute_final_key(&exchange2).unwrap();
+            let peer2 = private2.compute_final_key(&exchange1).unwrap();
+
+            assert_eq!(peer1.as_ref(), peer2.as_ref());
+        }
+    }
+    #[test]
+    fn test_case1_dhe() {
+        for dhe_algo in [
+            SpdmDheAlgo::SECP_521_R1,
+            SpdmDheAlgo::FFDHE_2048,
+            SpdmDheAlgo::FFDHE_3072,
+            SpdmDheAlgo::FFDHE_4096,
+            SpdmDheAlgo::empty(),
+        ]
+        .iter()
+        {
+            assert_eq!(generate_key_pair(*dhe_algo).is_none(), true);
+        }
     }
 }
