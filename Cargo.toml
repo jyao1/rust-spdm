@@ -37,6 +37,11 @@ members = [
     "fuzz-target/requester/reqmeasurement",
     "fuzz-target/requester/key_exchange_req",
     "fuzz-target/requester/psk_exchange_req",
+    "fuzz-target/requester/finish_req",
+    "fuzz-target/requester/psk_finish_req",
+    "fuzz-target/requester/heartbeat_req",
+    "fuzz-target/requester/key_update_req",
+    "fuzz-target/requester/end_session_req",
 
     "fuzz-target/random_requester",
     "fuzz-target/pass_context",

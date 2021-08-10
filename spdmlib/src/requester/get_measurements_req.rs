@@ -147,10 +147,7 @@ impl<'a> RequesterContext<'a> {
                     slot_id,
                 ) {
 
-                    if total_number.checked_add(1).is_none() {
-                        return spdm_result_err!(ENOMEM);
-                    }
-                    for block_i in 1..(total_number + 1) {
+                    for block_i in 1..total_number.checked_add(1).ok_or(spdm_err!(ENOMEM))? {
                         if self
                             .send_receive_spdm_measurement_record(
                                 if block_i == total_number {

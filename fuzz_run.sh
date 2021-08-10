@@ -13,6 +13,7 @@ cmds=(
 "rspkeyexchange"
 "rsppskexchange"
 "finish_rsp"
+"psk_finish_rsp"
 "heartbeat_rsp"
 "key_update_rsp"
 "end_session_rsp"
@@ -26,6 +27,11 @@ cmds=(
 "reqmeasurement"
 "key_exchange_req"
 "psk_exchange_req"
+"finish_req"
+"psk_finish_req"
+"heartbeat_req"
+"key_update_req"
+"end_session_req"
 )
 
 buildpackage=''
@@ -41,7 +47,7 @@ unset LLVM_PROFILE_FILE
 if [[ $1 = "Scoverage" ]]; then
     echo "$1"
     export RUSTFLAGS="-Zinstrument-coverage"
-    export LLVM_PROFILE_FILE='fuzz_run%p%2m.profraw'
+    export LLVM_PROFILE_FILE='fuzz_run%p%m.profraw'
 fi
 
 if [[ $1 = "Gcoverage" ]]; then
@@ -63,7 +69,7 @@ do
     fi
     screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-    sleep 3600
+    sleep 5
     screen -S ${cmds[$i]} -X quit
 done
 
