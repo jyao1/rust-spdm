@@ -25,6 +25,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         provision_info,
     );
 
+    context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.session = [SpdmSession::new(); 4];
     context.common.session[0].setup(4294901758).unwrap();
@@ -38,7 +39,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
     context.handle_spdm_finish(4294901758, data);
     let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf).unwrap();
-    println!("Received: {:?}", req_buf);
+    // println!("Received: {:?}", req_buf);
 }
 fn main() {
     #[cfg(feature = "fuzzlog")]

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{spdmlib::session::SpdmSession, *};
+use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
 
 fn fuzz_handle_spdm_key_update(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -34,11 +34,12 @@ fn fuzz_handle_spdm_key_update(data: &[u8]) {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     context.handle_spdm_key_update(4294901758, data);
     let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf).unwrap();
-    println!("Received: {:?}", req_buf);
+    // println!("Received: {:?}", req_buf);
 }
 fn main() {
     #[cfg(feature = "fuzzlog")]
