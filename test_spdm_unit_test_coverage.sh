@@ -1,13 +1,17 @@
 #!/bin/bash
+cargo clean
 
-rm -rf ./target
+git clean -f
+
+rm -rf ./target *.prof*
 
 export RUSTFLAGS="-Zinstrument-coverage"
-export LLVM_PROFILE_FILE="rust-spdm-%p%m.profraw"
+export LLVM_PROFILE_FILE="your_name-%p-%m.profraw"
 
-cargo build -p spdm-responder-emu -p spdm-requester-emu
+cargo build
 
-cargo run -p spdm-responder-emu & 
-cargo run -p spdm-requester-emu
+cargo test
 
-grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/test_spdm_coverage/
+grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing -o ./target/debug/coverage/
+
+grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing -o ./lcov.infoba
