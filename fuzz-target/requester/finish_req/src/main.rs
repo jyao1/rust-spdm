@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
+use fuzzlib::{
+    spdmlib::session::{SpdmSession, SpdmSessionState},
+    *,
+};
 
 fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -79,6 +82,16 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         .runtime_info
         .message_c
         .append_message(MESSAGE_C);
+
+    responder.common.session = [SpdmSession::new(); 4];
+    responder.common.session[0].setup(4294901758).unwrap();
+    responder.common.session[0].set_crypto_param(
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+        SpdmDheAlgo::SECP_384_R1,
+        SpdmAeadAlgo::AES_256_GCM,
+        SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+    );
+    responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
@@ -158,8 +171,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
     );
     requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
-    let _ = requester
-        .send_receive_spdm_finish(4294901758);
+    let _ = requester.send_receive_spdm_finish(4294901758);
 }
 
 fn main() {
