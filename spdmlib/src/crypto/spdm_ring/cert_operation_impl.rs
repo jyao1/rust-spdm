@@ -28,6 +28,11 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
         //debug!("this_cert_len - 0x{:04x?}\n", this_cert_len);
         if this_index == index {
             // return the this one
+            println!(
+                "offset:{}, offset + this_cert_len:{:x}",
+                offset,
+                offset + this_cert_len
+            );
             return Ok((offset, offset + this_cert_len));
         }
         this_index += 1;
@@ -36,6 +41,11 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
             return Ok((offset, offset + this_cert_len));
         }
         offset += this_cert_len;
+        println!(
+            "offset:{}, offset + this_cert_len:{:x}",
+            offset,
+            offset + this_cert_len
+        );
     }
 }
 
@@ -96,5 +106,117 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     } else {
         error!("Cert verification Fail\n");
         spdm_result_err!(EFAULT)
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_case0_cert_from_cert_chain() {
+        let mut offset = 0usize;
+        let cert_chain = &mut [0x1u8; 4096];
+
+        loop {
+            cert_chain[offset] = 0x30;
+            cert_chain[offset + 1] = 0x82;
+            offset = ((cert_chain[offset + 2] as usize) << 8)
+                + (cert_chain[offset + 3] as usize)
+                + 4
+                + offset;
+            if offset >= 4096 {
+                break;
+            }
+        }
+        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 0);
+
+        match get_cert_from_cert_chain {
+            Ok((0, 0x105)) => {
+                println!("Cert verification");
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+
+        // let get_cert_from_cert_chain = verify_cert_chain(cert_chain);
+        // match get_cert_from_cert_chain {
+        //     Ok(()) => {
+        //         println!("Cert verification");
+        //     }
+        //     _ => {
+        //         assert!(false);
+        //     }
+        // }
+    }
+    
+    #[test]
+    fn test_case1_cert_from_cert_chain() {
+        let mut offset = 0usize;
+        let cert_chain = &mut [0x1u8; 4096];
+
+        loop {
+            cert_chain[offset] = 0x30;
+            cert_chain[offset + 1] = 0x82;
+            offset = ((cert_chain[offset + 2] as usize) << 8)
+                + (cert_chain[offset + 3] as usize)
+                + 4
+                + offset;
+            if offset >= 4096 {
+                break;
+            }
+        }
+        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 0);
+
+        match get_cert_from_cert_chain {
+            Ok((0, 0x105)) => {
+                println!("Cert verification");
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+    #[test]
+    fn test_case2_cert_from_cert_chain() {
+        let mut offset = 0usize;
+        let cert_chain = &mut [0x1u8; 4096];
+
+        loop {
+            cert_chain[offset] = 0x30;
+            cert_chain[offset + 1] = 0x82;
+            offset = ((cert_chain[offset + 2] as usize) << 8)
+                + (cert_chain[offset + 3] as usize)
+                + 4
+                + offset;
+            if offset >= 4096 {
+                break;
+            }
+        }
+
+        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 1);
+
+        match get_cert_from_cert_chain {
+            Ok((261, 0x20a)) => {
+                println!("Cert verification");
+            }
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+    #[test]
+    fn test_case3_cert_from_cert_chain() {
+        let cert_chain = &mut [0x11u8; 3];
+        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 0);
+
+        match get_cert_from_cert_chain {
+            Ok((0, 0)) => {
+                assert!(false);
+            }
+            _ => {
+                assert!(true);
+            }
+        }
     }
 }
