@@ -15,6 +15,7 @@ pub use pcidoe_transport::PciDoeTransportEncap;
 pub use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 pub use spdm_emu::spdm_emu::*;
 pub use spdmlib::common::{SpdmDeviceIo, SpdmTransportEncap};
+pub use spdmlib::crypto::SpdmHmac;
 pub use spdmlib::msgs::*;
 pub use spdmlib::error::SpdmResult;
 pub use spdmlib::{common, responder, requester};
@@ -30,4 +31,40 @@ pub fn get_test_key_directory() -> PathBuf {
     crate_dir.pop();
     crate_dir.pop();
     crate_dir.to_path_buf()
+}
+
+
+pub static FUZZ_HMAC: SpdmHmac = SpdmHmac {
+    hmac_cb: hmac,
+    hmac_verify_cb: hmac_verify,
+};
+
+fn hmac(base_hash_algo: SpdmBaseHashAlgo, key: &[u8], data: &[u8]) -> Option<SpdmDigestStruct> {
+    let algorithm = match base_hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => {},
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => {},
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => {},
+        _ => {
+            panic!();
+        }
+    };
+
+    Some(SpdmDigestStruct::from(data))
+}
+
+fn hmac_verify(
+    base_hash_algo: SpdmBaseHashAlgo,
+    key: &[u8],
+    data: &[u8],
+    hmac: &SpdmDigestStruct,
+) -> SpdmResult {
+    let algorithm = match base_hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => {},
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => {},
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => {},
+        _ => {
+            panic!();
+        }
+    };
+    Ok(())
 }
