@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{spdmlib::session::SpdmSession, *};
+use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
 
 fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -10,6 +10,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::hmac::register(FUZZ_HMAC);
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -34,6 +35,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     context.handle_spdm_psk_finish(4294901758, data);
     let mut req_buf = [0u8; 1024];
