@@ -136,7 +136,7 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     }
     let s_size = half_size - s_index;
     let s = &signature[half_size + s_index..sign_size];
-
+    println!("si=={}", s[0]);
     if r_size == 0 || s_size == 0 {
         return 0;
     }
@@ -170,4 +170,78 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     }
 
     der_sign_size
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testlib::*;
+
+    #[test]
+    fn test_case0_ecc_signature_bin_to_der() {
+        let signature = &mut [0x00u8; 64];
+        for i in 10..signature.len() {
+            signature[i] = 0x10;
+        }
+
+        let der_signature = &mut [0u8; 64];
+
+        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature);
+        assert_eq!(der_sign_size, 60);
+    }
+    #[test]
+    fn test_case1_ecc_signature_bin_to_der() {
+        let signature = &mut [0x00u8; 32];
+        for i in 10..signature.len() {
+            signature[i] = 0xff;
+        }
+
+        let der_signature = &mut [0u8; 64];
+
+        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature);
+        assert_eq!(der_sign_size, 30);
+    }
+    // #[test]
+    // fn test_case1_ecc_signature_bin_to_der() {
+    //     let signature = &mut [0x0u8; 64];
+    //     let der_signature = &mut [0u8; 64];
+    //     signature[63]=0xff;
+    //     let der_sign_size = ecc_signature_bin_to_der(signature, der_signature);
+    //     assert_eq!(der_sign_size,0);
+    // }
+    #[test]
+    #[should_panic]
+    fn test_case3_ecc_signature_bin_to_der() {
+        let signature = &mut [0x0u8; 64];
+        let der_signature = &mut [0u8; 64];
+        ecc_signature_bin_to_der(signature, der_signature);
+    }
+    #[test]
+    fn test_case0_asym_verify() {
+        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+        let base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256;
+        let signature = &SpdmSignatureStruct {
+            data_size: 512,
+            data: [0x10u8; crate::msgs::SPDM_MAX_ASYM_KEY_SIZE],
+        };
+
+        let data = &mut cert_chain_array();
+        let public_cert_der = &mut [0u8; 64];
+
+        let asym_verify = asym_verify(
+            base_hash_algo,
+            base_asym_algo,
+            public_cert_der,
+            data,
+            &signature,
+        );
+        match asym_verify {
+            Ok(()) => {
+                assert!(true);
+            }
+            _=> {
+                assert!(true);
+            }
+        }
+    }
 }
