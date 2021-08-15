@@ -37,6 +37,20 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
+    | SpdmRequestCapabilityFlags::CHAL_CAP
+    | SpdmRequestCapabilityFlags::ENCRYPT_CAP
+    | SpdmRequestCapabilityFlags::MAC_CAP
+    //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
+    | SpdmRequestCapabilityFlags::KEY_EX_CAP
+    | SpdmRequestCapabilityFlags::PSK_CAP
+    | SpdmRequestCapabilityFlags::ENCAP_CAP
+    | SpdmRequestCapabilityFlags::HBEAT_CAP
+    | SpdmRequestCapabilityFlags::KEY_UPD_CAP
+    | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
+    context.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
     context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
 

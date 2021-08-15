@@ -36,7 +36,8 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
     | SpdmRequestCapabilityFlags::PSK_CAP
     | SpdmRequestCapabilityFlags::ENCAP_CAP
     | SpdmRequestCapabilityFlags::HBEAT_CAP
-    | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+    | SpdmRequestCapabilityFlags::KEY_UPD_CAP
+    | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
     responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
     responder.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
     | SpdmResponseCapabilityFlags::CHAL_CAP
@@ -49,7 +50,8 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
     | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
     | SpdmResponseCapabilityFlags::ENCAP_CAP
     | SpdmResponseCapabilityFlags::HBEAT_CAP
-    | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
+    | SpdmResponseCapabilityFlags::KEY_UPD_CAP
+    | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
     // algorithm_rsp
     responder
@@ -114,7 +116,8 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
     | SpdmRequestCapabilityFlags::PSK_CAP
     | SpdmRequestCapabilityFlags::ENCAP_CAP
     | SpdmRequestCapabilityFlags::HBEAT_CAP
-    | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+    | SpdmRequestCapabilityFlags::KEY_UPD_CAP
+    | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
     requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
     requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
     | SpdmResponseCapabilityFlags::CHAL_CAP
@@ -127,7 +130,8 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
     | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
     | SpdmResponseCapabilityFlags::ENCAP_CAP
     | SpdmResponseCapabilityFlags::HBEAT_CAP
-    | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
+    | SpdmResponseCapabilityFlags::KEY_UPD_CAP
+    | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
     //algorithm_req
     requester
@@ -189,19 +193,20 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
-    if cfg!(feature = "analysis") {
-        let args: Vec<String> = std::env::args().collect();
-        println!("{:?}", args);
-        if args.len() < 2 {
-            println!("Please enter the path of the crash file as the first parameter");
-            return;
-        }
-        let path = &args[1];
-        let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_send_receive_spdm_finish(data.as_slice());
-    } else {
-        afl::fuzz!(|data: &[u8]| {
-            fuzz_send_receive_spdm_finish(data);
-        });
-    }
+    // if cfg!(feature = "analysis") {
+    //     let args: Vec<String> = std::env::args().collect();
+    //     println!("{:?}", args);
+    //     if args.len() < 2 {
+    //         println!("Please enter the path of the crash file as the first parameter");
+    //         return;
+    //     }
+    //     let path = &args[1];
+    //     let data = std::fs::read(path).expect("read crash file fail");
+    //     fuzz_send_receive_spdm_finish(data.as_slice());
+    // } else {
+    //     afl::fuzz!(|data: &[u8]| {
+    //         fuzz_send_receive_spdm_finish(data);
+    //     });
+    // }
+    fuzz_send_receive_spdm_finish(&[1,2,3]);
 }

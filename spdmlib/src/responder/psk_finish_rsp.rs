@@ -28,8 +28,9 @@ impl<'a> ResponderContext<'a> {
 
         let mut message_f = ManagedBuffer::default();
         if message_f.append_message(&bytes[..temp_used]).is_none() {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return;
+            // self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            // return;
+            panic!();
         }
 
         let session = self.common.get_session_via_id(session_id).unwrap();

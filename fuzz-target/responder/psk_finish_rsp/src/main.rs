@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
+use fuzzlib::{
+    spdmlib::session::{SpdmSession, SpdmSessionState},
+    *,
+};
 
 fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
