@@ -356,3 +356,59 @@ pub mod rand {
             .get_random_cb)(data)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
+
+    #[test]
+    fn test_case0_hash_register() {
+        fn spdmhash(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
+            let algorithm = match base_hash_algo {
+                SpdmBaseHashAlgo::TPM_ALG_SHA_256 => 512u16,
+                _ => {
+                    panic!();
+                }
+            };
+            let mut data1 = [0u8; 64];
+            for (i, j) in data.iter().enumerate() {
+                data1[i] = *j;
+            }
+            Some(SpdmDigestStruct {
+                data_size: algorithm,
+                data: data1,
+            })
+        }
+        let context = SpdmHash {
+            hash_all_cb: spdmhash,
+        };
+
+        assert!(hash::register(context));
+    }
+    // #[test]
+    // fn test_case0_hmac_register() {
+    //     fn spdmhash(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
+    //         let algorithm = match base_hash_algo {
+    //             SpdmBaseHashAlgo::TPM_ALG_SHA_256 => 512u16,
+    //             _ => {
+    //                 panic!();
+    //             }
+    //         };
+    //         let mut data1 = [0u8; 64];
+    //         for (i, j) in data.iter().enumerate() {
+    //             data1[i] = *j;
+    //         }
+    //         Some(SpdmDigestStruct {
+    //             data_size: algorithm,
+    //             data: data1,
+    //         })
+    //     }
+
+    //     let context = SpdmHmac {
+    //         hash_all_cb: spdmhash,
+    //     };
+
+    //     assert!(hmac ::register(context));
+    // }
+}
