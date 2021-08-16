@@ -28,9 +28,7 @@ impl<'a> ResponderContext<'a> {
 
         let mut message_f = ManagedBuffer::default();
         if message_f.append_message(&bytes[..temp_used]).is_none() {
-            // self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            // return;
-            panic!();
+            panic!("message_f add the message error");
         }
 
         let session = self.common.get_session_via_id(session_id).unwrap();
@@ -62,8 +60,7 @@ impl<'a> ResponderContext<'a> {
             .append_message(psk_finish_req.verify_data.as_ref())
             .is_none()
         {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return;
+            panic!("message_f add the message error");
         }
 
         info!("send spdm psk_finish rsp\n");
