@@ -362,11 +362,28 @@ mod tests {
     use super::*;
     use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
+    // #[test]
+    // fn test_case0_cert_operation_register() {
+    //     fn get_cert_from_cert_chain1(
+    //         _cert_chain: &[u8],
+    //         _index: isize,
+    //     ) -> SpdmResult<(usize, usize)> {
+    //         Ok((0, 0))
+    //     }
+    //     fn verify_cert_chain1(_cert_chain: &[u8]) -> SpdmResult {
+    //         Ok(())
+    //     }
+    //     let context = SpdmCertOperation {
+    //         get_cert_from_cert_chain_cb: get_cert_from_cert_chain1,
+    //         verify_cert_chain_cb: verify_cert_chain1,
+    //     };
+    //     assert!(cert_operation::register(context));
+    // }
     #[test]
     fn test_case0_hash_register() {
         fn spdmhash(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
             let algorithm = match base_hash_algo {
-                SpdmBaseHashAlgo::TPM_ALG_SHA_256 => 512u16,
+                SpdmBaseHashAlgo::TPM_ALG_SHA_512 => 64u16,
                 _ => {
                     panic!();
                 }
@@ -380,35 +397,63 @@ mod tests {
                 data: data1,
             })
         }
+        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        let data = &mut [0u8; 64];
+        spdmhash(base_hash_algo, data);
         let context = SpdmHash {
             hash_all_cb: spdmhash,
         };
 
         assert!(hash::register(context));
     }
-    // #[test]
-    // fn test_case0_hmac_register() {
-    //     fn spdmhash(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
-    //         let algorithm = match base_hash_algo {
-    //             SpdmBaseHashAlgo::TPM_ALG_SHA_256 => 512u16,
-    //             _ => {
-    //                 panic!();
-    //             }
-    //         };
-    //         let mut data1 = [0u8; 64];
-    //         for (i, j) in data.iter().enumerate() {
-    //             data1[i] = *j;
-    //         }
-    //         Some(SpdmDigestStruct {
-    //             data_size: algorithm,
-    //             data: data1,
-    //         })
-    //     }
+    #[test]
+    fn test_case0_hmac_register() {
+        let context = SpdmHmac {
+            hmac_cb: hmac::hmac,
+            hmac_verify_cb: hmac::hmac_verify,
+        };
 
-    //     let context = SpdmHmac {
-    //         hash_all_cb: spdmhash,
-    //     };
+        assert!(hmac::register(context));
+    }
+    #[test]
+    fn test_case0_asym_verify_register() {
+        let context = SpdmAsymVerify {
+            verify_cb: asym_verify::verify,
+        };
 
-    //     assert!(hmac ::register(context));
-    // }
+        assert!(asym_verify::register(context));
+    }
+    #[test]
+    fn test_case0_dhe_register() {
+        let context = SpdmDhe {
+            generate_key_pair_cb: dhe::generate_key_pair,
+        };
+
+        assert!(dhe::register(context));
+    }
+    #[test]
+    fn test_case0_hkdf_register() {
+        let context = SpdmHkdf {
+            hkdf_expand_cb: hkdf::hkdf_expand,
+        };
+
+        assert!(hkdf::register(context));
+    }
+    #[test]
+    fn test_case0_aead_register() {
+        let context = SpdmAead {
+            encrypt_cb: aead::encrypt,
+            decrypt_cb: aead::decrypt,
+        };
+
+        assert!(aead::register(context));
+    }
+    #[test]
+    fn test_case0_rand_register() {
+        let context = SpdmCryptoRandom {
+            get_random_cb: rand::get_random,
+        };
+
+        assert!(rand::register(context));
+    }
 }
