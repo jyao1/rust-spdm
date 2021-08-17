@@ -2,10 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{
-    spdmlib::session::{SpdmSession, SpdmSessionState},
-    *,
-};
+use fuzzlib::{*, spdmlib::{config, session::{SpdmSession, SpdmSessionState}}};
 
 fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let (config_info1, provision_info1) = rsp_create_info();
@@ -14,12 +11,12 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    let shared_buffer = SharedBuffer::new();
-    let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
 
     {
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        spdmlib::crypto::hmac::register(FUZZ_HMAC);
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -48,8 +45,11 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     }
 
     {
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-
+        drop(spdmlib::crypto::hmac::register);
+        spdmlib::crypto::hmac::register(FUZZ_HMAC);
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -70,18 +70,15 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
-        let fuzz_data = [0u8; 4068];
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&fuzz_data);
         context.handle_spdm_psk_finish(4294901758, data);
         let mut req_buf = [0u8; 1024];
         socket_io_transport.receive(&mut req_buf).unwrap();
     }
     {
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::hmac::register(FUZZ_HMAC);
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
@@ -102,13 +99,8 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
+        context.common.runtime_info.message_a.append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
-        let fuzz_data = [0u8; 4068];
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&fuzz_data);
         context.handle_spdm_psk_finish(4294901758, data);
         let mut req_buf = [0u8; 1024];
         socket_io_transport.receive(&mut req_buf).unwrap();
@@ -129,20 +121,21 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
-    if cfg!(feature = "analysis") {
-        let args: Vec<String> = std::env::args().collect();
-        println!("{:?}", args);
-        if args.len() < 2 {
-            println!("Please enter the path of the crash file as the first parameter");
-            return;
-        }
-        let path = &args[1];
-        let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_handle_spdm_psk_finish(data.as_slice());
-    } else {
-        afl::fuzz!(|data: &[u8]| {
-            fuzz_handle_spdm_psk_finish(data);
-        });
-    }
+    // if cfg!(feature = "analysis") {
+    //     let args: Vec<String> = std::env::args().collect();
+    //     println!("{:?}", args);
+    //     if args.len() < 2 {
+    //         println!("Please enter the path of the crash file as the first parameter");
+    //         return;
+    //     }
+    //     let path = &args[1];
+    //     let data = std::fs::read(path).expect("read crash file fail");
+    //     fuzz_handle_spdm_psk_finish(data.as_slice());
+    // } else {
+    //     afl::fuzz!(|data: &[u8]| {
+    //         fuzz_handle_spdm_psk_finish(data);
+    //     });
+    // }
+    fuzz_handle_spdm_psk_finish(&[1u8; 92]);
 
 }
