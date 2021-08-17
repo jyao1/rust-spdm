@@ -79,10 +79,7 @@ impl<'a> ResponderContext<'a> {
         let used = writer.used();
 
         if message_f.append_message(&send_buffer[..used]).is_none() {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            let _ = session.teardown(session_id);
-            return;
+            panic!("message_f add the message error");
         }
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.runtime_info.message_f = message_f;

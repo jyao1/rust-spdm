@@ -47,7 +47,7 @@ unset LLVM_PROFILE_FILE
 if [[ $1 = "Scoverage" ]]; then
     echo "$1"
     export RUSTFLAGS="-Zinstrument-coverage"
-    export LLVM_PROFILE_FILE='fuzz_run%p%m.profraw'
+    export LLVM_PROFILE_FILE='fuzz_run%m.profraw'
 fi
 
 if [[ $1 = "Gcoverage" ]]; then
@@ -71,6 +71,7 @@ do
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
     sleep 3600
     screen -S ${cmds[$i]} -X quit
+    sleep 5
 done
 
 if [[ $1 = "Scoverage" || $1 = "Gcoverage" ]]; then
