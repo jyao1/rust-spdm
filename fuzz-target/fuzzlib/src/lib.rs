@@ -27,6 +27,8 @@ pub use afl;
 pub use flexi_logger;
 pub use flexi_logger::FileSpec;
 
+pub use spdmlib::spdm_err;
+pub use spdmlib::spdm_result_err;
 pub fn get_test_key_directory() -> PathBuf {
     let mut crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     crate_dir.pop();
@@ -39,18 +41,19 @@ pub static FUZZ_HMAC: SpdmHmac = SpdmHmac {
     hmac_verify_cb: hmac_verify,
 };
 
-fn hmac(_base_hash_algo: SpdmBaseHashAlgo, _key: &[u8], data: &[u8]) -> Option<SpdmDigestStruct> {
-    if data.len() > SPDM_MAX_HASH_SIZE {
-        return Some(SpdmDigestStruct::from(&data[..48]));
-    }
-    Some(SpdmDigestStruct::from(data))
+fn hmac(_base_hash_algo: SpdmBaseHashAlgo, _key: &[u8], _data: &[u8]) -> Option<SpdmDigestStruct> {
+    Some(SpdmDigestStruct::default())
 }
 
 fn hmac_verify(
     _base_hash_algo: SpdmBaseHashAlgo,
     _key: &[u8],
     _data: &[u8],
-    _hmac: &SpdmDigestStruct,
+    hmac: &SpdmDigestStruct,
 ) -> SpdmResult {
-    Ok(())
+    let SpdmDigestStruct{data_size,..} = hmac;
+    match data_size {
+        48 => Ok(()),
+        _ => spdm_result_err!(EFAULT),
+    }
 }
