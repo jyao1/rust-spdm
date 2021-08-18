@@ -64,3 +64,39 @@ impl<'a> ResponderContext<'a> {
             .append_message(&send_buffer[..used]);
     }
 }
+#[cfg(test)]
+mod tests {
+    use codec::{Codec, Writer};
+    use super::*;
+    use crate::testlib::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::{crypto, responder, testlib::PciDoeTransportEncap};
+
+    #[test]
+    fn test_case0_handle_spdm_version() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let u8_slice = &mut [0u8; 4];
+        let mut writer = Writer::init(u8_slice);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        context.handle_spdm_version(u8_slice);
+    }
+}

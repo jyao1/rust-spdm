@@ -362,23 +362,15 @@ mod tests {
     use super::*;
     use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
-    // #[test]
-    // fn test_case0_cert_operation_register() {
-    //     fn get_cert_from_cert_chain1(
-    //         _cert_chain: &[u8],
-    //         _index: isize,
-    //     ) -> SpdmResult<(usize, usize)> {
-    //         Ok((0, 0))
-    //     }
-    //     fn verify_cert_chain1(_cert_chain: &[u8]) -> SpdmResult {
-    //         Ok(())
-    //     }
-    //     let context = SpdmCertOperation {
-    //         get_cert_from_cert_chain_cb: get_cert_from_cert_chain1,
-    //         verify_cert_chain_cb: verify_cert_chain1,
-    //     };
-    //     assert!(cert_operation::register(context));
-    // }
+    #[test]
+    fn test_case0_cert_operation_register() {
+        let context = SpdmCertOperation {
+            get_cert_from_cert_chain_cb: cert_operation::get_cert_from_cert_chain,
+            verify_cert_chain_cb: cert_operation::verify_cert_chain,
+        };
+        let state = cert_operation::register(context);
+        assert_eq!(state, false);
+    }
     #[test]
     fn test_case0_hash_register() {
         fn spdmhash(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
@@ -403,8 +395,8 @@ mod tests {
         let context = SpdmHash {
             hash_all_cb: spdmhash,
         };
-
-        assert!(hash::register(context));
+        let state = hash::register(context);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_hmac_register() {
@@ -412,32 +404,32 @@ mod tests {
             hmac_cb: hmac::hmac,
             hmac_verify_cb: hmac::hmac_verify,
         };
-
-        assert!(hmac::register(context));
+        let state = hmac::register(context);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_asym_verify_register() {
         let context = SpdmAsymVerify {
             verify_cb: asym_verify::verify,
         };
-
-        assert!(asym_verify::register(context));
+        let state = asym_verify::register(context);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_dhe_register() {
         let context = SpdmDhe {
             generate_key_pair_cb: dhe::generate_key_pair,
         };
-
-        assert!(dhe::register(context));
+        let state = dhe::register(context);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_hkdf_register() {
         let context = SpdmHkdf {
             hkdf_expand_cb: hkdf::hkdf_expand,
         };
-
-        assert!(hkdf::register(context));
+        let state = hkdf::register(context);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_aead_register() {
@@ -445,15 +437,15 @@ mod tests {
             encrypt_cb: aead::encrypt,
             decrypt_cb: aead::decrypt,
         };
-
-        assert!(aead::register(context));
+        let state = aead::register(context);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_rand_register() {
         let context = SpdmCryptoRandom {
             get_random_cb: rand::get_random,
         };
-
-        assert!(rand::register(context));
+        let state = rand::register(context);
+        assert_eq!(state, true);
     }
 }
