@@ -174,16 +174,8 @@ mod tests {
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
 
-        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
-
-        match ret_tag_size {
-            Ok((16, 16)) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        let status = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text).is_ok();
+        assert!(status);
     }
     #[test]
     fn test_case1_encrypt() {
@@ -195,16 +187,9 @@ mod tests {
 
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
-        let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
-
-        match ret_tag_size {
-            Ok((16, 16)) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        
+        let status = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text).is_ok();
+        assert!(status);
     }
     #[test]
     #[should_panic]
