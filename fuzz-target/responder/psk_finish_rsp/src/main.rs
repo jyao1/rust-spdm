@@ -24,6 +24,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
     {
+        // all pass
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -52,6 +53,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     }
 
     {
+        // runtime_info message_a add data, err 39 lines
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -78,6 +80,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         socket_io_transport.receive(&mut req_buf).unwrap();
     }
     {
+        // negotiate info modify 512, err 46 lines
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -103,6 +106,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         socket_io_transport.receive(&mut req_buf).unwrap();
     }
     {
+        // negotiate info modify TPM_ALG_SHA3_384, err 46 lines
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {

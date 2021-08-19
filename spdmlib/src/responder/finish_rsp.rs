@@ -60,8 +60,7 @@ impl<'a> ResponderContext<'a> {
             .append_message(finish_req.verify_data.as_ref())
             .is_none()
         {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return;
+            panic!("message_f add the message error");
         }
 
         let in_clear_text = self
