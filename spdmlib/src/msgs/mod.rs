@@ -387,7 +387,7 @@ impl SpdmCodec for SpdmMessage {
 mod tests {
     use super::*;
     use crate::config::*;
-    use crate::{common::SpdmContext, testlib::*};
+    use crate::testlib::*;
 
     #[test]
     fn test_case0_spdm_message() {
@@ -407,8 +407,7 @@ mod tests {
                 }; crate::config::MAX_SPDM_VERSION_COUNT],
             }),
         };
-        println!("SpdmMessage :{:#?}", value);
-        println!("SpdmMessagePayload  :{:#?}", value.payload);
+
         let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
@@ -1425,20 +1424,11 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseHeartbeatAck ,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseHeartbeatAck,
             },
             payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
         };
         let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         new_spdm_message(value, context);
-    }
-
-    fn new_spdm_message(value: SpdmMessage, mut context: SpdmContext) -> SpdmMessage {
-        let u8_slice = &mut [0u8; 1000];
-        let mut writer = Writer::init(u8_slice);
-        value.spdm_encode(&mut context, &mut writer);
-        let mut reader = Reader::init(u8_slice);
-        let spdm_message: SpdmMessage = SpdmMessage::spdm_read(&mut context, &mut reader).unwrap();
-        spdm_message
     }
 }

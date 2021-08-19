@@ -66,11 +66,11 @@ impl<'a> ResponderContext<'a> {
 }
 #[cfg(test)]
 mod tests {
-    use codec::{Codec, Writer};
     use super::*;
-    use crate::testlib::*;
     use crate::msgs::SpdmMessageHeader;
-    use crate::{crypto, responder, testlib::PciDoeTransportEncap};
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
 
     #[test]
     fn test_case0_handle_spdm_version() {
@@ -88,15 +88,50 @@ mod tests {
             config_info,
             provision_info,
         );
+        // context.common.config_info.spdm_version[0] = SpdmVersion::SpdmVersion11;
+        // context.common.config_info.spdm_version[1] = SpdmVersion::SpdmVersion11;
 
-        let u8_slice = &mut [0u8; 4];
-        let mut writer = Writer::init(u8_slice);
+        let bytes = &mut [0u8; 1024];
+        let mut writer = Writer::init(bytes);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
+        context.handle_spdm_version(bytes);
 
-        context.handle_spdm_version(u8_slice);
+        let data = context.common.runtime_info.message_a.as_ref();
+        
+        let u8_slice = &mut [0u8; 1024];
+
+        for (i, data) in data.iter().enumerate() {
+            u8_slice[i] = *data;
+        }
+
+        let mut reader = Reader::init(u8_slice);
+        let spdm_message_header = SpdmMessageHeader::read(&mut reader).unwrap();
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(
+            spdm_message_header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
+
+        // let u8_slice = &u8_slice[1..];
+        let mut reader = Reader::init(u8_slice);
+        let spdm_message: SpdmMessage =
+            SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
+
+        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
+        if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.version_number_entry_count, 0x02);
+            for i in 0..2 {
+                assert_eq!(payload.versions[i].update, 100);
+                assert_eq!(payload.versions[i].version, SpdmVersion::SpdmVersion11);
+            }
+        }
     }
 }
