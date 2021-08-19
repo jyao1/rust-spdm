@@ -36,6 +36,15 @@ pub fn new_context<'a>(
     context
 }
 
+pub fn new_spdm_message(value: SpdmMessage, mut context: SpdmContext) -> SpdmMessage {
+    let u8_slice = &mut [0u8; 1000];
+    let mut writer = Writer::init(u8_slice);
+    value.spdm_encode(&mut context, &mut writer);
+    let mut reader = Reader::init(u8_slice);
+    let spdm_message: SpdmMessage = SpdmMessage::spdm_read(&mut context, &mut reader).unwrap();
+    spdm_message
+}
+
 pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
         spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11],
