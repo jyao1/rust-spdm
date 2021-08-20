@@ -2,6 +2,7 @@ pub mod fake_device_io;
 pub mod requesterlib;
 pub mod responderlib;
 pub mod shared_buffer;
+pub mod fuzz_crypto;
 
 use std::path::PathBuf;
 
@@ -11,6 +12,7 @@ pub use requesterlib::{
 };
 pub use responderlib::rsp_create_info;
 pub use shared_buffer::SharedBuffer;
+pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND, FUZZ_CERT, FUZZ_HASH};
 
 pub use mctp_transport::MctpTransportEncap;
 pub use pcidoe_transport::PciDoeTransportEncap;
@@ -18,8 +20,7 @@ pub use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 pub use spdm_emu::spdm_emu::*;
 pub use spdmlib;
 pub use spdmlib::common::{SpdmDeviceIo, SpdmTransportEncap};
-pub use spdmlib::crypto::SpdmHmac;
-pub use spdmlib::error::SpdmResult;
+pub use spdmlib::config;
 pub use spdmlib::msgs::*;
 pub use spdmlib::{common, requester, responder};
 
@@ -27,33 +28,10 @@ pub use afl;
 pub use flexi_logger;
 pub use flexi_logger::FileSpec;
 
-pub use spdmlib::spdm_err;
-pub use spdmlib::spdm_result_err;
+
 pub fn get_test_key_directory() -> PathBuf {
     let mut crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     crate_dir.pop();
     crate_dir.pop();
     crate_dir.to_path_buf()
-}
-
-pub static FUZZ_HMAC: SpdmHmac = SpdmHmac {
-    hmac_cb: hmac,
-    hmac_verify_cb: hmac_verify,
-};
-
-fn hmac(_base_hash_algo: SpdmBaseHashAlgo, _key: &[u8], _data: &[u8]) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
-}
-
-fn hmac_verify(
-    _base_hash_algo: SpdmBaseHashAlgo,
-    _key: &[u8],
-    _data: &[u8],
-    hmac: &SpdmDigestStruct,
-) -> SpdmResult {
-    let SpdmDigestStruct{data_size,..} = hmac;
-    match data_size {
-        48 => Ok(()),
-        _ => spdm_result_err!(EFAULT),
-    }
 }
