@@ -88,8 +88,6 @@ mod tests {
             config_info,
             provision_info,
         );
-        // context.common.config_info.spdm_version[0] = SpdmVersion::SpdmVersion11;
-        // context.common.config_info.spdm_version[1] = SpdmVersion::SpdmVersion11;
 
         let bytes = &mut [0u8; 1024];
         let mut writer = Writer::init(bytes);
@@ -98,12 +96,11 @@ mod tests {
             request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
+        
         context.handle_spdm_version(bytes);
 
         let data = context.common.runtime_info.message_a.as_ref();
-        
         let u8_slice = &mut [0u8; 1024];
-
         for (i, data) in data.iter().enumerate() {
             u8_slice[i] = *data;
         }
@@ -116,22 +113,22 @@ mod tests {
             SpdmResponseResponseCode::SpdmRequestChallenge
         );
 
-        // let u8_slice = &u8_slice[1..];
+        let u8_slice = &u8_slice[4..];
         let mut reader = Reader::init(u8_slice);
         let spdm_message: SpdmMessage =
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
 
-        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmResponseResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.version_number_entry_count, 0x02);
-            for i in 0..2 {
-                assert_eq!(payload.versions[i].update, 100);
-                assert_eq!(payload.versions[i].version, SpdmVersion::SpdmVersion11);
-            }
+            assert_eq!(payload.versions[0].update, 0);
+            assert_eq!(payload.versions[0].version, SpdmVersion::SpdmVersion10);
+            assert_eq!(payload.versions[1].update, 0);
+            assert_eq!(payload.versions[1].version, SpdmVersion::SpdmVersion11);
         }
     }
 }
