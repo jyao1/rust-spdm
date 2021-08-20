@@ -95,7 +95,9 @@ impl<'a> ResponderContext<'a> {
                 )
                 .unwrap();
             let root_cert = &cert_chain.data[root_cert_begin..root_cert_end];
-            if let Some(root_hash) = crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert) {
+            if let Some(root_hash) =
+                crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
+            {
                 let data_size = 4 + root_hash.data_size + cert_chain.data_size;
                 let mut data = [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
                 data[0] = (data_size & 0xFF) as u8;
@@ -104,12 +106,12 @@ impl<'a> ResponderContext<'a> {
                     .copy_from_slice(&root_hash.data[..(root_hash.data_size as usize)]);
                 data[(4 + root_hash.data_size as usize)..(data_size as usize)]
                     .copy_from_slice(&cert_chain.data[..(cert_chain.data_size as usize)]);
-                self.common.provision_info.my_cert_chain = Some(SpdmCertChainData { data_size, data });
+                self.common.provision_info.my_cert_chain =
+                    Some(SpdmCertChainData { data_size, data });
                 debug!("my_cert_chain - {:02x?}\n", &data[..(data_size as usize)]);
             } else {
                 return;
             }
-
         }
 
         info!("send spdm algorithm\n");
@@ -169,5 +171,66 @@ impl<'a> ResponderContext<'a> {
             .runtime_info
             .message_a
             .append_message(&send_buffer[..used]);
+    }
+}
+
+#[cfg(test)]
+mod test_case1_dhe {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
+
+    #[test]
+    fn test_case0_handle_spdm_algorithm() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+        println!("value={:#?}\n", value);
+
+        let negotiate_algorithms = &mut [0u8; 1024];
+        let mut writer = Writer::init(negotiate_algorithms);
+        let value = SpdmNegotiateAlgorithmsRequestPayload {
+            measurement_specification: SpdmMeasurementSpecification::DMTF,
+            base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
+            base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+            alg_struct_count: 4,
+            alg_struct: [SpdmAlgStruct {
+                alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                alg_fixed_count: 2,
+                alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                alg_ext_count: 0,
+            }; config::MAX_SPDM_ALG_STRUCT_COUNT],
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+        println!("SpdmNegotiateAlgorithmsRequestPayload={:#?}\n", value);
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&negotiate_algorithms[0..1022]);
+
+        // spdm_message_header[2..].copy_from_slice(&negotiate_algorithms[0..1022]);
+        // let bytes = spdm_message_header;
+
+        // context.handle_spdm_algorithm(bytes);
     }
 }

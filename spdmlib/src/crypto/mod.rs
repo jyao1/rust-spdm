@@ -360,7 +360,6 @@ pub mod rand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[test]
     fn test_case0_cert_operation_register() {
@@ -373,27 +372,8 @@ mod tests {
     }
     #[test]
     fn test_case0_hash_register() {
-        fn spdmhash(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
-            let algorithm = match base_hash_algo {
-                SpdmBaseHashAlgo::TPM_ALG_SHA_512 => 64u16,
-                _ => {
-                    panic!();
-                }
-            };
-            let mut data1 = [0u8; 64];
-            for (i, j) in data.iter().enumerate() {
-                data1[i] = *j;
-            }
-            Some(SpdmDigestStruct {
-                data_size: algorithm,
-                data: data1,
-            })
-        }
-        let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        let data = &mut [0u8; 64];
-        spdmhash(base_hash_algo, data);
         let context = SpdmHash {
-            hash_all_cb: spdmhash,
+            hash_all_cb: hash::hash_all,
         };
         let state = hash::register(context);
         assert_eq!(state, true);
