@@ -51,7 +51,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
         secured_message: bool,
     ) -> SpdmResult<usize> {
         let payload_len = spdm_buffer.len();
-        let mut writer = Writer::init(&mut transport_buffer[..]);
+        let mut writer = Writer::init(&mut *transport_buffer);
         let mctp_header = MctpMessageHeader {
             r#type: if secured_message {
                 MctpMessageType::MctpMessageTypeSecuredMctp
@@ -73,7 +73,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
         transport_buffer: &[u8],
         spdm_buffer: &mut [u8],
     ) -> SpdmResult<(usize, bool)> {
-        let mut reader = Reader::init(&transport_buffer[..]);
+        let mut reader = Reader::init(transport_buffer);
         let secured_message;
         match MctpMessageHeader::read(&mut reader) {
             Some(mctp_header) => match mctp_header.r#type {
@@ -99,7 +99,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
 
     fn encap_app(&mut self, spdm_buffer: &[u8], app_buffer: &mut [u8]) -> SpdmResult<usize> {
         let payload_len = spdm_buffer.len();
-        let mut writer = Writer::init(&mut app_buffer[..]);
+        let mut writer = Writer::init(&mut *app_buffer);
         let mctp_header = MctpMessageHeader {
             r#type: MctpMessageType::MctpMessageTypeSpdm,
         };
@@ -113,7 +113,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
     }
 
     fn decap_app(&mut self, app_buffer: &[u8], spdm_buffer: &mut [u8]) -> SpdmResult<usize> {
-        let mut reader = Reader::init(&app_buffer[..]);
+        let mut reader = Reader::init(app_buffer);
         match MctpMessageHeader::read(&mut reader) {
             Some(mctp_header) => match mctp_header.r#type {
                 MctpMessageType::MctpMessageTypeSpdm => {}

@@ -237,7 +237,7 @@ fn test_spdm(
     );
     if let Ok(session_id) = result {
         if context.end_session(session_id).is_err() {
-            return;
+            info!("\nSession session_id is err\n");
         }
     } else {
         info!("\nSession session_id not got\n");

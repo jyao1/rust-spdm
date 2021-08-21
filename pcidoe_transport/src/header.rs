@@ -80,7 +80,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     ) -> SpdmResult<usize> {
         let payload_len = spdm_buffer.len();
         let aligned_payload_len = (payload_len + 3) / 4 * 4;
-        let mut writer = Writer::init(&mut transport_buffer[..]);
+        let mut writer = Writer::init(&mut *transport_buffer);
         let pcidoe_header = PciDoeMessageHeader {
             vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
             data_object_type: if secured_message {
@@ -104,7 +104,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         transport_buffer: &[u8],
         spdm_buffer: &mut [u8],
     ) -> SpdmResult<(usize, bool)> {
-        let mut reader = Reader::init(&transport_buffer[..]);
+        let mut reader = Reader::init(transport_buffer);
         let secured_message;
         match PciDoeMessageHeader::read(&mut reader) {
             Some(pcidoe_header) => {

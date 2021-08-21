@@ -149,8 +149,7 @@ impl SpdmMeasurementHashAlgo {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512 => SHA3_512_DIGEST_SIZE as u16,
             SpdmMeasurementHashAlgo::RAW_BIT_STREAM => 0u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid MeasurementHashAlgo");
             }
         }
     }
@@ -215,8 +214,7 @@ impl SpdmBaseAsymAlgo {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => ECDSA_ECC_NIST_P384_KEY_SIZE as u16,
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => ECDSA_ECC_NIST_P521_KEY_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid AsymAlgo");
             }
         }
     }
@@ -271,8 +269,7 @@ impl SpdmBaseHashAlgo {
             SpdmBaseHashAlgo::TPM_ALG_SHA_512 => SHA512_DIGEST_SIZE as u16,
             SpdmBaseHashAlgo::TPM_ALG_SHA3_512 => SHA3_512_DIGEST_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid HashAlgo");
             }
         }
     }
@@ -372,8 +369,7 @@ impl SpdmDheAlgo {
             SpdmDheAlgo::SECP_384_R1 => SECP_384_R1_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_521_R1 => SECP_521_R1_KEY_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid DheAlgo");
             }
         }
     }
@@ -422,8 +418,7 @@ impl SpdmAeadAlgo {
             SpdmAeadAlgo::AES_256_GCM => AEAD_AES_256_GCM_KEY_SIZE as u16,
             SpdmAeadAlgo::CHACHA20_POLY1305 => AEAD_CHACHA20_POLY1305_KEY_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid AeadAlgo");
             }
         }
     }
@@ -433,8 +428,7 @@ impl SpdmAeadAlgo {
             SpdmAeadAlgo::AES_256_GCM => AEAD_AES_256_GCM_IV_SIZE as u16,
             SpdmAeadAlgo::CHACHA20_POLY1305 => AEAD_CHACHA20_POLY1305_IV_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid AeadAlgo");
             }
         }
     }
@@ -444,8 +438,7 @@ impl SpdmAeadAlgo {
             SpdmAeadAlgo::AES_256_GCM => AEAD_AES_256_GCM_TAG_SIZE as u16,
             SpdmAeadAlgo::CHACHA20_POLY1305 => AEAD_CHACHA20_POLY1305_TAG_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid AeadAlgo");
             }
         }
     }
@@ -511,8 +504,7 @@ impl SpdmReqAsymAlgo {
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => ECDSA_ECC_NIST_P384_KEY_SIZE as u16,
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => ECDSA_ECC_NIST_P521_KEY_SIZE as u16,
             _ => {
-                assert!(false);
-                0
+                panic!("invalid ReqAsymAlgo");
             }
         }
     }

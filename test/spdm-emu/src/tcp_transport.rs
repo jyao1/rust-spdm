@@ -27,7 +27,7 @@ impl SpdmDeviceIo for TcpTransport<'_> {
     }
 
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {
-        let res = self.data.write(&buffer);
+        let res = self.data.write(buffer);
         if res.is_ok() {
             Ok(())
         } else {

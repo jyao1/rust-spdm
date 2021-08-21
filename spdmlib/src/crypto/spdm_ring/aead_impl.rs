@@ -58,7 +58,7 @@ fn encrypt(
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
 
     let mut in_out = BytesMut::new();
-    in_out.extend_from_slice(&plain_text);
+    in_out.extend_from_slice(plain_text);
 
     let mut s_key: ring::aead::SealingKey<OneNonceSequence> = make_key(algorithm, key, nonce);
     match s_key.seal_in_place_append_tag(ring::aead::Aad::from(aad), &mut in_out) {
@@ -119,8 +119,8 @@ fn decrypt(
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
 
     let mut in_out = BytesMut::new();
-    in_out.extend_from_slice(&cipher_text);
-    in_out.extend_from_slice(&tag);
+    in_out.extend_from_slice(cipher_text);
+    in_out.extend_from_slice(tag);
 
     let mut o_key: ring::aead::OpeningKey<OneNonceSequence> = make_key(algorithm, key, nonce);
     match o_key.open_in_place(ring::aead::Aad::from(aad), &mut in_out) {

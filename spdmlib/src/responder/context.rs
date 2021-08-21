@@ -34,7 +34,7 @@ impl<'a> ResponderContext<'a> {
         let used =
             self.common
                 .transport_encap
-                .encap(&send_buffer[..], &mut transport_buffer, false)?;
+                .encap(send_buffer, &mut transport_buffer, false)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
 
