@@ -51,7 +51,7 @@ fn sign_ecdsa_asym_algo(
     // or  openssl.exe ecparam -name prime256v1 -genkey -out private.der -outform der
     // openssl.exe pkcs8 -in private.der -inform DER -topk8 -nocrypt -outform DER > private.p8
 
-    let key_file_path = if crate::spdm_emu::USE_ECDSA {"TestKey/EcP384/end_responder.key.p8"} else {"TestKey/Rsa3072/end_responder.key.der"};
+    let key_file_path = if crate::spdm_emu::USE_ECDSA {"test_key/EcP384/end_responder.key.p8"} else {"test_key/Rsa3072/end_responder.key.der"};
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 
@@ -86,7 +86,7 @@ fn sign_rsa_asym_algo(
 ) -> Option<SpdmSignatureStruct> {
     // openssl.exe genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537 -outform DER > private.der
 
-    let key_file_path = if crate::spdm_emu::USE_ECDSA {"TestKey/EcP384/end_responder.key.p8"} else {"TestKey/Rsa3072/end_responder.key.der"};
+    let key_file_path = if crate::spdm_emu::USE_ECDSA {"test_key/EcP384/end_responder.key.p8"} else {"test_key/Rsa3072/end_responder.key.der"};
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 

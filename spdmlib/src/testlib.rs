@@ -77,11 +77,11 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     };
 
     let crate_dir = get_test_key_directory();
-    let ca_file_path = crate_dir.join("TestKey/EcP384/ca.cert.der");
+    let ca_file_path = crate_dir.join("test_key/EcP384/ca.cert.der");
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
-    let inter_file_path =crate_dir.join("TestKey/EcP384/inter.cert.der");
+    let inter_file_path =crate_dir.join("test_key/EcP384/inter.cert.der");
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
-    let leaf_file_path = crate_dir.join("TestKey/EcP384/end_responder.cert.der");
+    let leaf_file_path = crate_dir.join("test_key/EcP384/end_responder.cert.der");
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 
     let ca_len = ca_cert.len();
@@ -302,7 +302,7 @@ fn sign_ecdsa_asym_algo(
     // or  openssl.exe ecparam -name prime256v1 -genkey -out private.der -outform der
     // openssl.exe pkcs8 -in private.der -inform DER -topk8 -nocrypt -outform DER > private.p8
 
-    let key_file_path = "TestKey/EcP384/end_responder.key.p8";
+    let key_file_path = "test_key/EcP384/end_responder.key.p8";
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 
@@ -337,7 +337,7 @@ fn sign_rsa_asym_algo(
 ) -> Option<SpdmSignatureStruct> {
     // openssl.exe genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537 -outform DER > private.der
 
-    let key_file_path = "TestKey/EcP384/end_responder.key.p8";
+    let key_file_path = "test_key/EcP384/end_responder.key.p8";
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 

@@ -7,7 +7,7 @@ use spdmlib::common;
 use spdmlib::msgs::*;
 use std::path::PathBuf;
 
-/// Get TestKey Dir
+/// Get test_key Dir
 pub fn get_test_key_directory() -> PathBuf {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let crate_dir = crate_dir.parent().expect("can't find parent dir");
@@ -54,21 +54,21 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
 
     let crate_dir = get_test_key_directory();
     let ca_file_path = if USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/ca.cert.der")
+        crate_dir.join("test_key/EcP384/ca.cert.der")
     } else {
-        crate_dir.join("TestKey/Rsa3072/ca.cert.der")
+        crate_dir.join("test_key/Rsa3072/ca.cert.der")
     };
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
     let inter_file_path = if USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/inter.cert.der")
+        crate_dir.join("test_key/EcP384/inter.cert.der")
     } else {
-        crate_dir.join("TestKey/Rsa3072/inter.cert.der")
+        crate_dir.join("test_key/Rsa3072/inter.cert.der")
     };
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
     let leaf_file_path = if USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/end_responder.cert.der")
+        crate_dir.join("test_key/EcP384/end_responder.cert.der")
     } else {
-        crate_dir.join("TestKey/Rsa3072/end_responder.cert.der")
+        crate_dir.join("test_key/Rsa3072/end_responder.cert.der")
     };
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 
@@ -140,22 +140,22 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
 
     let crate_dir = get_test_key_directory();
     let ca_file_path = if USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/ca.cert.der")
+        crate_dir.join("test_key/EcP384/ca.cert.der")
     } else {
-        crate_dir.join("TestKey/Rsa3072/ca.cert.der")
+        crate_dir.join("test_key/Rsa3072/ca.cert.der")
     };
     log::info!("{}", ca_file_path.display());
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
     let inter_file_path = if USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/inter.cert.der")
+        crate_dir.join("test_key/EcP384/inter.cert.der")
     } else {
-        crate_dir.join("TestKey/Rsa3072/inter.cert.der")
+        crate_dir.join("test_key/Rsa3072/inter.cert.der")
     };
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
     let leaf_file_path = if USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/end_responder.cert.der")
+        crate_dir.join("test_key/EcP384/end_responder.cert.der")
     } else {
-        crate_dir.join("TestKey/Rsa3072/end_responder.cert.der")
+        crate_dir.join("test_key/Rsa3072/end_responder.cert.der")
     };
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 

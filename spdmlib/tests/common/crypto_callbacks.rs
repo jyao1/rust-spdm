@@ -94,9 +94,9 @@ fn sign_ecdsa_asym_algo(
 
     let crate_dir = get_test_key_directory();
     let key_file_path = if super::USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/end_responder.key.p8")
+        crate_dir.join("test_key/EcP384/end_responder.key.p8")
     } else {
-        crate_dir.join("TestKey/Rsa3072/end_responder.key.der")
+        crate_dir.join("test_key/Rsa3072/end_responder.key.der")
     };
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
@@ -127,9 +127,9 @@ fn sign_rsa_asym_algo(
 
     let crate_dir = get_test_key_directory();
     let key_file_path = if super::USE_ECDSA {
-        crate_dir.join("TestKey/EcP384/end_responder.key.p8")
+        crate_dir.join("test_key/EcP384/end_responder.key.p8")
     } else {
-        crate_dir.join("TestKey/Rsa3072/end_responder.key.der")
+        crate_dir.join("test_key/Rsa3072/end_responder.key.der")
     };
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
