@@ -102,9 +102,7 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         self.number_of_measurement.encode(bytes); // param1
         self.slot_id.encode(bytes); // param2
         self.measurement_record.spdm_encode(context, bytes);
-        if context.runtime_info.need_measurement_signature {
-            self.nonce.encode(bytes);
-        }
+        self.nonce.encode(bytes);
         self.opaque.spdm_encode(context, bytes);
         if context.runtime_info.need_measurement_signature {
             self.signature.spdm_encode(context, bytes);
@@ -118,11 +116,7 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         let number_of_measurement = u8::read(r)?; // param1
         let slot_id = u8::read(r)?; // param2
         let measurement_record = SpdmMeasurementRecordStructure::spdm_read(context, r)?;
-        let nonce = if context.runtime_info.need_measurement_signature {
-            SpdmNonceStruct::read(r)?
-        } else {
-            SpdmNonceStruct::default()
-        };
+        let nonce = SpdmNonceStruct::read(r)?;
         let opaque = SpdmOpaqueStruct::spdm_read(context, r)?;
         let signature = if context.runtime_info.need_measurement_signature {
             SpdmSignatureStruct::spdm_read(context, r)?
