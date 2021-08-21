@@ -318,12 +318,12 @@ mod tests {
         assert_eq!(measurements_response.signature.data_size, 0);
        
         for i in 0..32{
-            assert_eq!(measurements_response.nonce.data[i], 0);   
+            assert_eq!(measurements_response.nonce.data[i], 100);   
         }
         for i in 0..512 {
             assert_eq!(measurements_response.signature.data[i], 0);
         }
-        assert_eq!(573, reader.left());
+        assert_eq!(541, reader.left());
     }
     
 }
