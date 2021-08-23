@@ -370,14 +370,14 @@ mod tests {
         let state = cert_operation::register(context);
         assert_eq!(state, false);
     }
-    #[test]
-    fn test_case0_hash_register() {
-        let context = SpdmHash {
-            hash_all_cb: hash::hash_all,
-        };
-        let state = hash::register(context);
-        assert_eq!(state, true);
-    }
+    // #[test]
+    // fn test_case0_hash_register() {
+    //     let context = SpdmHash {
+    //         hash_all_cb: hash::hash_all,
+    //     };
+    //     let state = hash::register(context);
+    //     assert_eq!(state, true);
+    // }
     #[test]
     fn test_case0_hmac_register() {
         let context = SpdmHmac {
