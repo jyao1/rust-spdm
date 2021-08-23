@@ -135,7 +135,7 @@ fn main() {
             let data_len = data.len();
             match data_len > left {
                 true => buffer[die..].copy_from_slice(&data[..left]),
-                false => buffer[die..data_len].copy_from_slice(data),
+                false => buffer[die..data_len+die].copy_from_slice(data),
             }
             fuzz_send_receive_spdm_challenge(&buffer);
         });

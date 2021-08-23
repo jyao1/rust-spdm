@@ -11,4 +11,5 @@ fuzzlib = { path = "../../fuzzlib" }
 
 [features]
 fuzzlog = []
-analysis = []
+fuzz = []
+
