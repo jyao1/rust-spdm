@@ -42,13 +42,49 @@ impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
     }
 }
 
+pub struct FuzzTmpSpdmDeviceIoReceve<'a> {
+    data: &'a SharedBuffer,
+    fuzzdata: [[u8;528];4],
+    current: usize,
+}
+
+impl<'a> FuzzTmpSpdmDeviceIoReceve<'a> {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: [[u8;528];4], current:usize) -> Self {
+        FuzzTmpSpdmDeviceIoReceve {
+            data: data,
+            fuzzdata,
+            current,
+        }
+    }
+}
+
+impl SpdmDeviceIo for FuzzTmpSpdmDeviceIoReceve<'_> {
+    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+        let len = self.data.get_buffer(read_buffer);
+        log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
+        Ok(len)
+    }
+
+    fn send(&mut self, buffer: &[u8]) -> SpdmResult {
+        self.data.set_buffer(&(self.fuzzdata[self.current]));
+        log::info!("responder send    RAW - {:02x?}\n", buffer);
+        self.current += 1;
+        Ok(())
+    }
+
+    fn flush_all(&mut self) -> SpdmResult {
+        Ok(())
+    }
+}
+
+
 pub struct FuzzSpdmDeviceIoReceve<'a> {
     data: &'a SharedBuffer,
     fuzzdata: &'a [u8],
 }
 
 impl<'a> FuzzSpdmDeviceIoReceve<'a> {
-    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a [u8]) -> Self {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a[u8]) -> Self {
         FuzzSpdmDeviceIoReceve {
             data: data,
             fuzzdata,
