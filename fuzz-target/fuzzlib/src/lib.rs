@@ -6,13 +6,13 @@ pub mod fuzz_crypto;
 
 use std::path::PathBuf;
 
-pub use fake_device_io::{FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve};
+pub use fake_device_io::{FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve, FuzzTmpSpdmDeviceIoReceve};
 pub use requesterlib::{
-    req_create_info, ReqProcess, MESSAGE_A, MESSAGE_B, MESSAGE_C, REQ_CERT_CHAIN_DATA,
+    req_create_info, ReqProcess, MESSAGE_A, MESSAGE_B, MESSAGE_C, REQ_CERT_CHAIN_DATA,certificata_data
 };
 pub use responderlib::rsp_create_info;
 pub use shared_buffer::SharedBuffer;
-pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND, FUZZ_CERT, FUZZ_HASH};
+pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND};
 
 pub use mctp_transport::MctpTransportEncap;
 pub use pcidoe_transport::PciDoeTransportEncap;

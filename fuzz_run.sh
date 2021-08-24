@@ -3,35 +3,35 @@
 pkill screen
 
 cmds=(
-"rspversion"
-"rspcapability"
-"rspalgorithm"
-"rspdigest"
-"rspcertificate"
-"rspchallenge"
-"rspmeasurement"
-"rspkeyexchange"
-"rsppskexchange"
-"finish_rsp"
-"psk_finish_rsp"
-"heartbeat_rsp"
-"key_update_rsp"
-"end_session_rsp"
+# "rspversion"
+# "rspcapability"
+# "rspalgorithm"
+# "rspdigest"
+# "rspcertificate"
+# "rspchallenge"
+# "rspmeasurement"
+# "rspkeyexchange"
+# "rsppskexchange"
+# "finish_rsp"
+# "psk_finish_rsp"
+# "heartbeat_rsp"
+# "key_update_rsp"
+# "end_session_rsp"
 
-"reqversion"
-"reqcapability"
-"reqalgorithm"
-"reqdigest"
+# "reqversion"
+# "reqcapability"
+# "reqalgorithm"
+# "reqdigest"
 "reqcertificate"
-"reqchallenge"
-"reqmeasurement"
-"key_exchange_req"
-"psk_exchange_req"
-"finish_req"
-"psk_finish_req"
-"heartbeat_req"
-"key_update_req"
-"end_session_req"
+# "reqchallenge"
+# "reqmeasurement"
+# "key_exchange_req"
+# "psk_exchange_req"
+# "finish_req"
+# "psk_finish_req"
+# "heartbeat_req"
+# "key_update_req"
+# "end_session_req"
 )
 
 buildpackage=''
@@ -39,7 +39,7 @@ for i in ${cmds[@]};do
     buildpackage="-p $i $buildpackage";
 done
 
-echo "cargo afl build $buildpackage"
+echo "cargo afl build --features fuzz $buildpackage"
 
 unset RUSTFLAGS
 unset LLVM_PROFILE_FILE
@@ -57,7 +57,7 @@ if [[ $1 = "Gcoverage" ]]; then
     export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort"
 fi
 
-cargo afl build $buildpackage
+cargo afl build --features fuzz $buildpackage
 
 for ((i=0;i<${#cmds[*]};i++))
 do
