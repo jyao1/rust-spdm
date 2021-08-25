@@ -84,3 +84,46 @@ impl<'a> ResponderContext<'a> {
             .append_message(&send_buffer[..used]);
     }
 }
+
+#[cfg(test)]
+mod tests_certificate {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
+    #[test]
+    #[should_panic]
+    fn test_case0_handle_spdm_certificate() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+        let capabilities = &mut [0u8; 1024];
+        let mut writer = Writer::init(capabilities);
+        let value = SpdmGetCertificateRequestPayload {
+            slot_id: 100,
+            offset: 100,
+            length: 100,
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&capabilities[0..1022]);
+        context.handle_spdm_certificate(bytes);
+    }
+}

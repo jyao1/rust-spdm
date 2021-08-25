@@ -164,7 +164,6 @@ impl<'a> ResponderContext<'a> {
             }),
         };
         response.spdm_encode(&mut self.common, &mut writer);
-        println!("response={:#?}\n", response);
 
         let used = writer.used();
         let _ = self.send_message(&send_buffer[0..used]);
@@ -208,7 +207,6 @@ mod test_algorithm {
             request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
-        println!("value={:#?}\n", value);
 
         let negotiate_algorithms = &mut [0u8; 1024];
         let mut writer = Writer::init(negotiate_algorithms);
@@ -225,7 +223,6 @@ mod test_algorithm {
             }; config::MAX_SPDM_ALG_STRUCT_COUNT],
         };
         value.spdm_encode(&mut context.common, &mut writer);
-        println!("SpdmNegotiateAlgorithmsRequestPayload={:#?}\n", value);
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
@@ -233,17 +230,10 @@ mod test_algorithm {
 
         context.handle_spdm_algorithm(bytes);
 
-        // for (i, data) in bytes.iter().enumerate() {
-        //     if i < 100
-        //     {
-        //         println!("bytes[{}]={:#?}\n", i, *data);
-        //     }
-        // }
         let data = context.common.runtime_info.message_a.as_ref();
         let u8_slice = &mut [0u8; 2048];
         for (i, data) in data.iter().enumerate() {
             u8_slice[i] = *data;
-            println!("u8_slice[{}]={:#?}\n", i, u8_slice[i]);
         }
 
         let mut reader = Reader::init(u8_slice);
@@ -289,7 +279,6 @@ mod test_algorithm {
         let mut reader = Reader::init(u8_slice);
         let spdm_message: SpdmMessage =
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
-        println!("spdm_message={:#?}\n", spdm_message);
 
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
@@ -327,8 +316,11 @@ mod test_algorithm {
                 SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::empty())
             );
             assert_eq!(payload.alg_struct[1].alg_ext_count, 0);
-            
-            assert_eq!(payload.alg_struct[2].alg_type, SpdmAlgType::SpdmAlgTypeReqAsym);
+
+            assert_eq!(
+                payload.alg_struct[2].alg_type,
+                SpdmAlgType::SpdmAlgTypeReqAsym
+            );
             assert_eq!(payload.alg_struct[2].alg_fixed_count, 2);
             assert_eq!(
                 payload.alg_struct[2].alg_supported,
@@ -336,7 +328,10 @@ mod test_algorithm {
             );
             assert_eq!(payload.alg_struct[2].alg_ext_count, 0);
 
-            assert_eq!(payload.alg_struct[3].alg_type, SpdmAlgType::SpdmAlgTypeKeySchedule);
+            assert_eq!(
+                payload.alg_struct[3].alg_type,
+                SpdmAlgType::SpdmAlgTypeKeySchedule
+            );
             assert_eq!(payload.alg_struct[3].alg_fixed_count, 2);
             assert_eq!(
                 payload.alg_struct[3].alg_supported,
