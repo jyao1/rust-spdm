@@ -86,14 +86,13 @@ impl<'a> ResponderContext<'a> {
 }
 
 #[cfg(test)]
-mod tests_certificate {
+mod tests_responder {
     use super::*;
     use crate::msgs::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
     #[test]
-    #[should_panic]
     fn test_case0_handle_spdm_certificate() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -106,6 +105,11 @@ mod tests_certificate {
             config_info,
             provision_info,
         );
+        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 512u16,
+            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
+
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
@@ -118,12 +122,58 @@ mod tests_certificate {
         let value = SpdmGetCertificateRequestPayload {
             slot_id: 100,
             offset: 100,
-            length: 100,
+            length: 600,
         };
         value.spdm_encode(&mut context.common, &mut writer);
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&capabilities[0..1022]);
         context.handle_spdm_certificate(bytes);
+
+        let data = context.common.runtime_info.message_b.as_ref();
+        let u8_slice = &mut [0u8; 2048];
+        for (i, data) in data.iter().enumerate() {
+            if i < 50 {
+                u8_slice[i] = *data;
+                println!("u8_slice[{}] :{:?}", i, u8_slice[i]);
+            }
+        }
+
+        let mut message_header_slice = Reader::init(u8_slice);
+        let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(
+            spdm_message_header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
+
+        let spdm_struct_slice = &u8_slice[2..];
+        let mut reader = Reader::init(spdm_struct_slice);
+        let spdm_get_certificate_request_payload =
+            SpdmGetCertificateRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(spdm_get_certificate_request_payload.slot_id, 100);
+        assert_eq!(spdm_get_certificate_request_payload.offset, 100);
+        assert_eq!(spdm_get_certificate_request_payload.length, 600);
+
+        let spdm_message_slice = &u8_slice[8..];
+        let mut reader = Reader::init(spdm_message_slice);
+        let spdm_message: SpdmMessage =
+            SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(
+            spdm_message.header.version,
+            SpdmVersion::SpdmVersion11,
+        );
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseCertificate
+        );
+        if let SpdmMessagePayload::SpdmCertificateResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.slot_id, 100);
+            assert_eq!(payload.portion_length, 412);
+            assert_eq!(payload.remainder_length, 0);
+            for i in 0..412 {
+                assert_eq!(payload.cert_chain[i], 0u8);
+            }
+        }
     }
 }
