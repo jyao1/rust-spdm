@@ -176,7 +176,7 @@ impl<'a> ResponderContext<'a> {
 }
 
 #[cfg(test)]
-mod test_algorithm {
+mod tests_responder {
     use super::*;
     use crate::msgs::SpdmMessageHeader;
     use crate::testlib::*;

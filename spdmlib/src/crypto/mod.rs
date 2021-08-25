@@ -421,6 +421,7 @@ mod tests {
         assert_eq!(state, true);
     }
     #[test]
+    #[ignore]
     fn test_case0_rand_register() {
         let context = SpdmCryptoRandom {
             get_random_cb: rand::get_random,

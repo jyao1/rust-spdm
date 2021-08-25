@@ -43,7 +43,7 @@ impl<'a> ResponderContext<'a> {
         info!("send spdm challenge_auth\n");
 
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
-        let _ = crypto::rand::get_random (&mut nonce);
+        let _ = crypto::rand::get_random(&mut nonce);
 
         let my_cert_chain = self.common.provision_info.my_cert_chain.unwrap();
         let cert_chain_hash = crypto::hash::hash_all(
@@ -65,9 +65,7 @@ impl<'a> ResponderContext<'a> {
                     slot_mask: 0x1,
                     challenge_auth_attribute: SpdmChallengeAuthAttribute::empty(),
                     cert_chain_hash,
-                    nonce: SpdmNonceStruct {
-                        data: nonce,
-                    },
+                    nonce: SpdmNonceStruct { data: nonce },
                     measurement_summary_hash: SpdmDigestStruct {
                         data_size: self.common.negotiate_info.base_hash_sel.get_size(),
                         data: [0xaa; SPDM_MAX_HASH_SIZE],
@@ -104,5 +102,56 @@ impl<'a> ResponderContext<'a> {
         send_buffer[(used - base_asym_size)..used].copy_from_slice(signature.as_ref());
 
         let _ = self.send_message(&send_buffer[0..used]);
+    }
+}
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
+    #[test]
+    #[should_panic]
+    fn test_case0_handle_spdm_challenge() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 512u16,
+            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+        let capabilities = &mut [0u8; 1024];
+        let mut writer = Writer::init(capabilities);
+        let value = SpdmGetCertificateRequestPayload {
+            slot_id: 100,
+            offset: 100,
+            length: 600,
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&capabilities[0..1022]);
+        context.handle_spdm_challenge(bytes);
     }
 }
