@@ -9,7 +9,8 @@ edition = "2018"
 [dependencies]
 fuzzlib = { path = "../../fuzzlib" }
 rand = "0.8.4"
+afl = { version = "*", optional = true }
 
 [features]
 fuzzlog = []
-analysis = []
+fuzz = ["afl"]

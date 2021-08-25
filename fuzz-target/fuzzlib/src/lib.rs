@@ -7,6 +7,7 @@ pub mod fuzz_crypto;
 use std::path::PathBuf;
 
 pub use fake_device_io::{FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve, FuzzTmpSpdmDeviceIoReceve};
+use flexi_logger::LevelFilter;
 pub use requesterlib::{
     req_create_info, ReqProcess, MESSAGE_A, MESSAGE_B, MESSAGE_C, REQ_CERT_CHAIN_DATA,certificata_data
 };
@@ -16,6 +17,7 @@ pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND};
 
 pub use mctp_transport::MctpTransportEncap;
 pub use pcidoe_transport::PciDoeTransportEncap;
+use simple_logger::SimpleLogger;
 pub use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 pub use spdm_emu::spdm_emu::*;
 pub use spdmlib;
@@ -34,4 +36,19 @@ pub fn get_test_key_directory() -> PathBuf {
     crate_dir.pop();
     crate_dir.pop();
     crate_dir.to_path_buf()
+}
+
+pub fn new_logger_from_env() -> SimpleLogger {
+    let level = match std::env::var("SPDM_LOG") {
+        Ok(x) => match x.to_lowercase().as_str() {
+            "trace" => LevelFilter::Trace,
+            "debug" => LevelFilter::Debug,
+            "info" => LevelFilter::Info,
+            "warn" => LevelFilter::Warn,
+            _ => LevelFilter::Error,
+        },
+        _ => LevelFilter::Trace,
+    };
+
+    SimpleLogger::new().with_level(level)
 }
