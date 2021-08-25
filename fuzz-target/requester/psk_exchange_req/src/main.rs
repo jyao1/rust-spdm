@@ -165,8 +165,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
     // -- end --
 
     let _ = requester
-        .send_receive_spdm_key_exchange(
-            0,
+        .send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
         );
 }
@@ -186,19 +185,22 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
-    if cfg!(feature = "analysis") {
+
+    #[cfg(not(feature = "fuzz"))]
+    {
         let args: Vec<String> = std::env::args().collect();
-        println!("{:?}", args);
         if args.len() < 2 {
-            println!("Please enter the path of the crash file as the first parameter");
-            return;
+            // Here you can replace the single-step debugging value in the fuzzdata array.
+            let fuzzdata = [17,46,43];
+            fuzz_send_receive_spdm_psk_exchange(&fuzzdata);
+        } else {
+            let path = &args[1];
+            let data = std::fs::read(path).expect("read crash file fail");
+            fuzz_send_receive_spdm_psk_exchange(data.as_slice());
         }
-        let path = &args[1];
-        let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_send_receive_spdm_psk_exchange(data.as_slice());
-    } else {
-        afl::fuzz!(|data: &[u8]| {
-            fuzz_send_receive_spdm_psk_exchange(data);
-        });
     }
+    #[cfg(feature = "fuzz")]
+    afl::fuzz!(|data: &[u8]| {
+        fuzz_send_receive_spdm_psk_exchange(data);
+    });
 }

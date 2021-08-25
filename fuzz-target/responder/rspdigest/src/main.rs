@@ -49,19 +49,21 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
-    if cfg!(feature = "analysis") {
-        let args: Vec<String> = std::env::args().collect();
-        println!("{:?}", args);
-        if args.len() < 2 {
-            println!("Please enter the path of the crash file as the first parameter");
-            return;
+        #[cfg(not(feature = "fuzz"))]
+        {
+            let args: Vec<String> = std::env::args().collect();
+            if args.len() < 2 {
+                // Here you can replace the single-step debugging value in the fuzzdata array.
+                let fuzzdata = [17,46,43];
+                fuzz_handle_spdm_digest(&fuzzdata);
+            } else {
+                let path = &args[1];
+                let data = std::fs::read(path).expect("read crash file fail");
+                fuzz_handle_spdm_digest(data.as_slice());
+            }
         }
-        let path = &args[1];
-        let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_handle_spdm_digest(data.as_slice());
-    } else {
+        #[cfg(feature = "fuzz")]
         afl::fuzz!(|data: &[u8]| {
             fuzz_handle_spdm_digest(data);
         });
-    }
 }

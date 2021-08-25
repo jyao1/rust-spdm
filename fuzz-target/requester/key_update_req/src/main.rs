@@ -4,7 +4,7 @@
 
 use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
 
-fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
+fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
@@ -177,19 +177,22 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
-    if cfg!(feature = "analysis") {
+
+    #[cfg(not(feature = "fuzz"))]
+    {
         let args: Vec<String> = std::env::args().collect();
-        println!("{:?}", args);
         if args.len() < 2 {
-            println!("Please enter the path of the crash file as the first parameter");
-            return;
+            // Here you can replace the single-step debugging value in the fuzzdata array.
+            let fuzzdata = [17,46,43];
+            fuzz_send_receive_spdm_key_update(&fuzzdata);
+        } else {
+            let path = &args[1];
+            let data = std::fs::read(path).expect("read crash file fail");
+            fuzz_send_receive_spdm_key_update(data.as_slice());
         }
-        let path = &args[1];
-        let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_send_receive_spdm_psk_finish(data.as_slice());
-    } else {
-        afl::fuzz!(|data: &[u8]| {
-            fuzz_send_receive_spdm_psk_finish(data);
-        });
     }
+    #[cfg(feature = "fuzz")]
+    afl::fuzz!(|data: &[u8]| {
+        fuzz_send_receive_spdm_key_update(data);
+    });
 }

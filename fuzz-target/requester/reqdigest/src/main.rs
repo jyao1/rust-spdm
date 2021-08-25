@@ -148,19 +148,32 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
-    if cfg!(feature = "analysis") {
+
+    #[cfg(not(feature = "fuzz"))]
+    {
         let args: Vec<String> = std::env::args().collect();
-        println!("{:?}", args);
         if args.len() < 2 {
-            println!("Please enter the path of the crash file as the first parameter");
-            return;
+            // Here you can replace the single-step debugging value in the fuzzdata array.
+            let fuzzdata = [
+                1, 0, 1, 0, 48, 0, 0, 0, 17, 2, 255, 1, 127, 0, 0, 0, 0, 17, 3, 0, 1, 40, 175, 112,
+                39, 188, 132, 74, 57, 59, 221, 138, 200, 158, 146, 216, 163, 112, 23, 18, 131, 155,
+                102, 225, 58, 58, 49, 11, 42, 205, 113, 132, 74, 251, 185, 250, 222, 111, 123, 34,
+                132, 180, 134, 168, 183, 103, 238, 4, 45, 255, 255, 255, 127, 198, 199, 61, 112,
+                123, 231, 0, 206, 47, 251, 131, 40, 175, 112, 39, 188, 132, 74, 190, 105, 0, 64,
+                36, 157, 254, 244, 68, 221, 19, 51, 22, 40, 110, 235, 82, 62, 86, 193, 20, 43, 245,
+                230, 18, 193, 240, 192, 137, 158, 145, 137, 119, 25, 53, 131, 79, 219, 238, 133,
+                74, 194, 76, 145, 125, 17, 153, 210, 123, 49, 221, 151, 25, 130, 110, 134, 159,
+                182, 154, 251, 94,
+            ];
+            fuzz_send_receive_spdm_digest(&fuzzdata);
+        } else {
+            let path = &args[1];
+            let data = std::fs::read(path).expect("read crash file fail");
+            fuzz_send_receive_spdm_digest(data.as_slice());
         }
-        let path = &args[1];
-        let data = std::fs::read(path).expect("read crash file fail");
-        fuzz_send_receive_spdm_digest(data.as_slice());
-    } else {
-        afl::fuzz!(|data: &[u8]| {
-            fuzz_send_receive_spdm_digest(data);
-        });
     }
+    #[cfg(feature = "fuzz")]
+    afl::fuzz!(|data: &[u8]| {
+        fuzz_send_receive_spdm_digest(data);
+    });
 }
