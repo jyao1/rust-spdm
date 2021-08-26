@@ -7,7 +7,7 @@ pub mod fuzz_crypto;
 use std::path::PathBuf;
 
 pub use fake_device_io::{FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve, FuzzTmpSpdmDeviceIoReceve};
-use flexi_logger::LevelFilter;
+
 pub use requesterlib::{
     req_create_info, ReqProcess, MESSAGE_A, MESSAGE_B, MESSAGE_C, REQ_CERT_CHAIN_DATA,certificata_data
 };
@@ -26,9 +26,9 @@ pub use spdmlib::config;
 pub use spdmlib::msgs::*;
 pub use spdmlib::{common, requester, responder};
 
-pub use afl;
 pub use flexi_logger;
 pub use flexi_logger::FileSpec;
+use log::LevelFilter;
 
 
 pub fn get_test_key_directory() -> PathBuf {
