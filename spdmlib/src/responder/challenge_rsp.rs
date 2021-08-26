@@ -112,14 +112,16 @@ mod tests_responder {
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
+
     #[test]
-    #[should_panic]
     fn test_case0_handle_spdm_challenge() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
@@ -133,6 +135,9 @@ mod tests_responder {
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.runtime_info.need_measurement_summary_hash = true;
+        // context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        // context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
@@ -141,17 +146,72 @@ mod tests_responder {
             request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
+
         let capabilities = &mut [0u8; 1024];
         let mut writer = Writer::init(capabilities);
-        let value = SpdmGetCertificateRequestPayload {
+        let value = SpdmChallengeRequestPayload {
             slot_id: 100,
-            offset: 100,
-            length: 600,
+            measurement_summary_hash_type:
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            nonce: SpdmNonceStruct { data: [100u8; 32] },
         };
         value.spdm_encode(&mut context.common, &mut writer);
+
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&capabilities[0..1022]);
         context.handle_spdm_challenge(bytes);
+
+        let data = context.common.runtime_info.message_c.as_ref();
+        let u8_slice = &mut [0u8; 2048];
+        for (i, data) in data.iter().enumerate() {
+            if i < 500 {
+                u8_slice[i] = *data;
+                println!("u8_slice[{}] :{:?}", i, u8_slice[i]);
+            }
+        }
+
+        let mut message_header_slice = Reader::init(u8_slice);
+        let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(
+            spdm_message_header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
+
+        let spdm_struct_slice = &u8_slice[2..];
+        let mut reader = Reader::init(spdm_struct_slice);
+        let spdm_challenge_request_payload =
+            SpdmChallengeRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(spdm_challenge_request_payload.slot_id, 100);
+        assert_eq!(
+            spdm_challenge_request_payload.measurement_summary_hash_type,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
+        );
+        for i in 0..32 {
+            assert_eq!(spdm_challenge_request_payload.nonce.data[i], 100u8);
+        }
+
+        let spdm_message_slice = &u8_slice[36..];
+        let mut reader = Reader::init(spdm_message_slice);
+        let spdm_message: SpdmMessage =
+            SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11,);
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseChallengeAuth
+        );
+
+        if let SpdmMessagePayload::SpdmChallengeAuthResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.slot_id, 0x0);
+            assert_eq!(payload.slot_mask, 0x1);
+            assert_eq!(
+                payload.challenge_auth_attribute,
+                SpdmChallengeAuthAttribute::empty()
+            );
+            assert_eq!(payload.measurement_summary_hash.data_size, 0);
+            assert_eq!(payload.opaque.data_size, 0);
+            assert_eq!(payload.signature.data_size, 96);
+        }
     }
 }
