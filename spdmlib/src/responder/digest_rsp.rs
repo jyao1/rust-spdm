@@ -71,3 +71,45 @@ impl<'a> ResponderContext<'a> {
             .append_message(&send_buffer[..used]);
     }
 }
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
+
+    #[test]
+    fn test_case0_handle_spdm_digest() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 512u16,
+            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let bytes = &mut [0u8; 1024];
+        context.handle_spdm_digest(bytes);
+    }
+}

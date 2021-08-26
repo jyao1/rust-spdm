@@ -301,8 +301,9 @@ fn sign_ecdsa_asym_algo(
     // openssl genpkey -algorithm ec -pkeyopt ec_paramgen_curve:P-256 -pkeyopt ec_param_enc:named_curve -outform DER > private.der
     // or  openssl.exe ecparam -name prime256v1 -genkey -out private.der -outform der
     // openssl.exe pkcs8 -in private.der -inform DER -topk8 -nocrypt -outform DER > private.p8
-
-    let key_file_path = "test_key/EcP384/end_responder.key.p8";
+    
+    let crate_dir = get_test_key_directory();
+    let key_file_path =crate_dir.join("test_key/EcP384/end_responder.key.p8");
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 
@@ -337,7 +338,8 @@ fn sign_rsa_asym_algo(
 ) -> Option<SpdmSignatureStruct> {
     // openssl.exe genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537 -outform DER > private.der
 
-    let key_file_path = "test_key/EcP384/end_responder.key.p8";
+    let crate_dir = get_test_key_directory();
+    let key_file_path =crate_dir.join("test_key/EcP384/end_responder.key.p8");
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 
