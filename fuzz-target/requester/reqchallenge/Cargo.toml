@@ -12,5 +12,5 @@ rand = "0.8.4"
 afl = { version = "*", optional = true }
 
 [features]
-fuzzlog = []
+fuzzlogfile = []
 fuzz = ["afl"]

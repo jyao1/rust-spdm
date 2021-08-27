@@ -11,5 +11,5 @@ fuzzlib = { path = "../../fuzzlib" }
 afl = { version = "*", optional = true }
 
 [features]
-fuzzlog = []
+fuzzlogfile = []
 fuzz = ["afl"]

@@ -38,7 +38,7 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
 }
 
 fn main() {
-    #[cfg(feature = "fuzzlog")]
+    #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")
         .unwrap()
         .log_to_file(
