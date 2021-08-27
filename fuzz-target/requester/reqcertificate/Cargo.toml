@@ -13,7 +13,7 @@ simple_logger = "1.11.0"
 afl = {version = "*", optional = true }
 
 [features]
-fuzzlog = []
+fuzzlogfile = []
 fuzz = ["afl"]
 
 
