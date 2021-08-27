@@ -108,10 +108,20 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::crypto::SpdmCryptoRandom;
+    use crate::error::SpdmResult;
     use crate::msgs::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
+
+    pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
+        get_random_cb: get_random,
+    };
+
+    fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
+        Ok(data.len())
+    }
 
     #[test]
     fn test_case0_handle_spdm_challenge() {
@@ -121,6 +131,7 @@ mod tests_responder {
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::rand::register(DEFAULT_TEST);
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
@@ -136,8 +147,6 @@ mod tests_responder {
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.runtime_info.need_measurement_summary_hash = true;
-        // context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        // context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);

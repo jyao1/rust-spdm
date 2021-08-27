@@ -27,3 +27,28 @@ impl<'a> ResponderContext<'a> {
         let _ = self.send_message(&send_buffer[0..used]);
     }
 }
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    #[test]
+    fn test_case0_send_spdm_error() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+
+        context.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+    }
+}
