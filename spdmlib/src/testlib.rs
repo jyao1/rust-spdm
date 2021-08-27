@@ -339,10 +339,10 @@ fn sign_rsa_asym_algo(
     // openssl.exe genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537 -outform DER > private.der
 
     let crate_dir = get_test_key_directory();
-    let key_file_path =crate_dir.join("test_key/EcP384/end_responder.key.p8");
+    let key_file_path = crate_dir.join("test_key/Rsa3072/end_responder.key.der") ;
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
-
+    
     let key_pair: ring::signature::RsaKeyPair = ring::signature::RsaKeyPair::from_der(key_bytes).unwrap();
 
     if key_len != key_pair.public_modulus_len() {
