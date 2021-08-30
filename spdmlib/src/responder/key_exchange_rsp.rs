@@ -45,17 +45,16 @@ impl<'a> ResponderContext<'a> {
             &key_exchange_req.unwrap().exchange
         );
 
-        let final_key = key_exchange_context
-        .compute_final_key(&key_exchange_req.unwrap().exchange);
-        
-        if final_key.is_none(){
+        let final_key = key_exchange_context.compute_final_key(&key_exchange_req.unwrap().exchange);
+
+        if final_key.is_none() {
             return;
         }
         let final_key = final_key.unwrap();
         debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
-        let _ = crypto::rand::get_random (&mut random);
+        let _ = crypto::rand::get_random(&mut random);
 
         let rsp_session_id = 0xFFFE;
 
@@ -196,5 +195,130 @@ impl<'a> ResponderContext<'a> {
         let session = self.common.get_session_via_id(session_id).unwrap();
         // change state after message is sent.
         session.set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+    }
+}
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::crypto::{SpdmDhe, SpdmDheKeyExchange};
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use bytes::BytesMut;
+    use codec::{Codec, Writer};
+
+    #[test]
+    fn test_case0_handle_spdm_key_exchange() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::dhe::register(DEFAULT_TEST);
+
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_256_R1;
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let key_exchange: &mut [u8; 1024] = &mut [0u8; 1024];
+        let mut writer = Writer::init(key_exchange);
+        let value = SpdmKeyExchangeRequestPayload {
+            measurement_summary_hash_type:
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb,
+            slot_id: 100u8,
+            req_session_id: 0xffu16,
+            random: SpdmRandomStruct {
+                data: [100u8; SPDM_RANDOM_SIZE],
+            },
+            exchange: SpdmDheExchangeStruct {
+                data_size: 96u16,
+                data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
+            },
+            opaque: SpdmOpaqueStruct {
+                data_size: 64u16,
+                data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+            },
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&key_exchange[0..1022]);
+
+        context.handle_spdm_key_exchange(bytes);
+    }
+
+    static DEFAULT_TEST: SpdmDhe = SpdmDhe {
+        generate_key_pair_cb: generate_key_pair,
+    };
+
+    fn generate_key_pair(
+        dhe_algo: SpdmDheAlgo,
+    ) -> Option<(SpdmDheExchangeStruct, Box<dyn crypto::SpdmDheKeyExchange>)> {
+        match dhe_algo {
+            SpdmDheAlgo::SECP_256_R1 => SpdmDheKeyExchangeP256::generate_key_pair(),
+            _ => None,
+        }
+    }
+    struct SpdmDheKeyExchangeP256(ring::agreement::EphemeralPrivateKey);
+    impl SpdmDheKeyExchange for SpdmDheKeyExchangeP256 {
+        fn compute_final_key(
+            self: Box<Self>,
+            peer_pub_key: &SpdmDheExchangeStruct,
+        ) -> Option<SpdmDheFinalKeyStruct> {
+            let mut pubkey = BytesMut::new();
+            bytes::BufMut::put_u8(&mut pubkey, 0x4u8);
+            pubkey.extend_from_slice(peer_pub_key.as_ref());
+
+            let peer_public_key = ring::agreement::UnparsedPublicKey::new(
+                &ring::agreement::ECDH_P256,
+                pubkey.as_ref(),
+            );
+            let mut final_key = BytesMut::new();
+            match ring::agreement::agree_ephemeral(
+                self.0,
+                &peer_public_key,
+                ring::error::Unspecified,
+                |key_material| {
+                    final_key.extend_from_slice(key_material);
+                    Ok(())
+                },
+            ) {
+                Ok(()) => Some(SpdmDheFinalKeyStruct::from(final_key)),
+                Err(_) => None,
+            }
+        }
+    }
+
+    impl SpdmDheKeyExchangeP256 {
+        fn generate_key_pair() -> Option<(SpdmDheExchangeStruct, Box<dyn SpdmDheKeyExchange>)> {
+            let rng = ring::rand::SystemRandom::new();
+            let private_key =
+                ring::agreement::EphemeralPrivateKey::generate(&ring::agreement::ECDH_P256, &rng)
+                    .ok()?;
+            let public_key = BytesMut::new();
+
+            let res: Box<dyn SpdmDheKeyExchange> = Box::new(Self(private_key));
+
+            Some((SpdmDheExchangeStruct::from(public_key), res))
+        }
     }
 }

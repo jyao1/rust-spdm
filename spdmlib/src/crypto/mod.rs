@@ -396,6 +396,7 @@ mod tests {
         assert_eq!(state, true);
     }
     #[test]
+    #[ignore]
     fn test_case0_dhe_register() {
         let context = SpdmDhe {
             generate_key_pair_cb: dhe::generate_key_pair,

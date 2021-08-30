@@ -40,6 +40,7 @@ mod tests_responder {
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
+
     #[test]
     fn test_case0_handle_spdm_heartbeat() {
         let (config_info, provision_info) = create_info();

@@ -115,14 +115,6 @@ mod tests_responder {
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
 
-    pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
-        get_random_cb: get_random,
-    };
-
-    fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
-        Ok(data.len())
-    }
-
     #[test]
     fn test_case0_handle_spdm_challenge() {
         let (config_info, provision_info) = create_info();
@@ -156,28 +148,25 @@ mod tests_responder {
         };
         value.encode(&mut writer);
 
-        let capabilities = &mut [0u8; 1024];
-        let mut writer = Writer::init(capabilities);
+        let challenge = &mut [0u8; 1024];
+        let mut writer = Writer::init(challenge);
         let value = SpdmChallengeRequestPayload {
             slot_id: 100,
             measurement_summary_hash_type:
-                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             nonce: SpdmNonceStruct { data: [100u8; 32] },
         };
         value.spdm_encode(&mut context.common, &mut writer);
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
-        bytes[2..].copy_from_slice(&capabilities[0..1022]);
+        bytes[2..].copy_from_slice(&challenge[0..1022]);
         context.handle_spdm_challenge(bytes);
 
         let data = context.common.runtime_info.message_c.as_ref();
-        let u8_slice = &mut [0u8; 2048];
+        let u8_slice = &mut [0u8; 1024];
         for (i, data) in data.iter().enumerate() {
-            if i < 500 {
                 u8_slice[i] = *data;
-                println!("u8_slice[{}] :{:?}", i, u8_slice[i]);
-            }
         }
 
         let mut message_header_slice = Reader::init(u8_slice);
@@ -195,7 +184,7 @@ mod tests_responder {
         assert_eq!(spdm_challenge_request_payload.slot_id, 100);
         assert_eq!(
             spdm_challenge_request_payload.measurement_summary_hash_type,
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
         );
         for i in 0..32 {
             assert_eq!(spdm_challenge_request_payload.nonce.data[i], 100u8);
@@ -211,6 +200,12 @@ mod tests_responder {
             SpdmResponseResponseCode::SpdmResponseChallengeAuth
         );
 
+        let cert_chain_hash  = crypto::hash::hash_all(
+            context.common.negotiate_info.base_hash_sel,
+            context.common.provision_info.my_cert_chain.unwrap().as_ref(),
+        )
+        .unwrap();
+
         if let SpdmMessagePayload::SpdmChallengeAuthResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 0x0);
             assert_eq!(payload.slot_mask, 0x1);
@@ -218,9 +213,27 @@ mod tests_responder {
                 payload.challenge_auth_attribute,
                 SpdmChallengeAuthAttribute::empty()
             );
-            assert_eq!(payload.measurement_summary_hash.data_size, 0);
+            assert_eq!(payload.measurement_summary_hash.data_size, 48);
             assert_eq!(payload.opaque.data_size, 0);
             assert_eq!(payload.signature.data_size, 96);
+            for i in 0..32 {
+                assert_eq!(payload.measurement_summary_hash.data[i], 0xaau8);
+            }
+            for i in 0..32 {
+                assert_eq!(payload.nonce.data[i], 0);
+            }
+            for (i,data) in cert_chain_hash.data.iter().enumerate(){
+                assert_eq!(payload.cert_chain_hash.data[i], *data);
+            }
+            
         }
+    }
+
+    pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
+        get_random_cb: get_random,
+    };
+
+    fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
+        Ok(data.len())
     }
 }
