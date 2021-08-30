@@ -42,9 +42,7 @@ $echo "abcdef" > in/input2
 
 ### Build the fuzz target
 
-## example Build rspversion
-
-`cargo afl build`
+`cargo afl build --features "fuzz" -p rspversion`
 
 ### Start fuzzing
 
@@ -54,9 +52,15 @@ As soon as you run this command, you should see AFL’s interface start up:
 
 ![image-20210628084437384](../fuzz-target/fuzz1.png)
 
+### View the fuzz log file
+
+`cargo afl build --features "fuzz fuzzlogfile" -p rspversion`
+
+There are fuzz log files in the current folder traces.
+
 ### view coverage 
 
-If you need to check coverage, follow the coverage.md operation, Script fuzz_run.sh runs for 1 hour in each case. 
+If you need to check coverage, follow the [coverage.md](./coverage.md) operation, Script fuzz_run.sh runs for a period fo time in each case. 
 Add the coverage string after the script collects info information and generates html files. The html file location is target/debug/fuzz_coverge.
 If you need to run a specific case, please modify the cmd tuple in the script.
 Can run at the same time but merge will cause problems

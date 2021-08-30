@@ -156,7 +156,7 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
-    requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+    requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
     let _ = requester
         .send_receive_spdm_psk_finish(4294901758);
 }
