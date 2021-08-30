@@ -20,7 +20,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        spdmlib::crypto::rand::register(FUZZ_RAND);
+        // spdmlib::crypto::rand::register(FUZZ_RAND);
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -99,7 +99,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+        responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -181,7 +181,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+        requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
         let _ = requester.send_receive_spdm_finish(4294901758);
     }
@@ -271,7 +271,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+        responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -353,7 +353,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+        requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
         let _ = requester.send_receive_spdm_finish(4294901758);
     }
