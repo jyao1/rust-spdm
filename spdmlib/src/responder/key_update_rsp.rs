@@ -57,3 +57,63 @@ impl<'a> ResponderContext<'a> {
         let _ = self.send_secured_message(session_id, &send_buffer[0..used]);
     }
 }
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
+
+    #[test]
+    #[should_panic]
+    fn test_case0_handle_spdm_key_update() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_256_R1;
+        context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let key_exchange: &mut [u8; 1024] = &mut [0u8; 1024];
+        let mut writer = Writer::init(key_exchange);
+        let value = SpdmKeyUpdateRequestPayload {
+            key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateSingleKey,
+            tag: 100u8,
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&key_exchange[0..1022]);
+
+        let session = context.common.get_next_avaiable_session();
+        let rsp_session_id = 0xFFFEu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        let session = session.unwrap();
+        session.setup(session_id).unwrap();
+
+        context.handle_spdm_key_update(session_id, bytes);
+    }
+}
