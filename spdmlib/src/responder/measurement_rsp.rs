@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::responder::*;
 use crate::crypto;
+use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, bytes: &[u8]) {
@@ -49,7 +49,7 @@ impl<'a> ResponderContext<'a> {
         let mut writer = Writer::init(&mut send_buffer);
 
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
-        let _ = crypto::rand::get_random (&mut nonce);
+        let _ = crypto::rand::get_random(&mut nonce);
 
         let number_of_measurement = if get_measurements.measurement_operation
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll
@@ -171,9 +171,7 @@ impl<'a> ResponderContext<'a> {
                     number_of_measurement,
                     slot_id: 0x1,
                     measurement_record,
-                    nonce: SpdmNonceStruct {
-                        data: nonce,
-                    },
+                    nonce: SpdmNonceStruct { data: nonce },
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,
                         data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
@@ -217,5 +215,80 @@ impl<'a> ResponderContext<'a> {
         }
 
         let _ = self.send_message(&send_buffer[0..used]);
+    }
+}
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::{Codec, Writer};
+
+    #[test]
+    fn test_case0_handle_spdm_measurement() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let measurements_struct = &mut [0u8; 1024];
+        let mut writer = Writer::init(measurements_struct);
+        let value = SpdmGetMeasurementsRequestPayload {
+            measurement_attributes: SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
+            measurement_operation: SpdmMeasurementOperation::SpdmMeasurementRequestAll,
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
+            slot_id: 0xaau8,
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
+        context.handle_spdm_measurement(bytes);
+
+        // let data = context.common.runtime_info.message_m.as_ref();
+        // let u8_slice = &mut [0u8; 2048];
+        // for (i, data) in data.iter().enumerate() {
+        //     u8_slice[i] = *data;
+        //     println!("u8_slice[{}]=={:?}", i, u8_slice[i]);
+        // }
+
+        // let mut message_header_slice = Reader::init(u8_slice);
+        // let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
+        // assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        // assert_eq!(
+        //     spdm_message_header.request_response_code,
+        //     SpdmResponseResponseCode::SpdmRequestChallenge
+        // );
+
+        // let spdm_struct_slice = &u8_slice[2..];
+        // let mut reader = Reader::init(spdm_struct_slice);
+        // let spdm_challenge_request_payload =
+        //     SpdmChallengeRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
     }
 }
