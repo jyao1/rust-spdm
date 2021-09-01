@@ -62,32 +62,43 @@ impl<'a> ResponderContext<'a> {
 mod tests_responder {
     use super::*;
     use crate::msgs::SpdmMessageHeader;
+    use crate::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
 
     #[test]
-    #[should_panic]
     fn test_case0_handle_spdm_key_update() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
             config_info,
             provision_info,
         );
+        
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
 
+        let session = context.common.get_next_avaiable_session();
+        let rsp_session_id = 0xFFFEu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        let session = session.unwrap();
+        session.setup(session_id).unwrap();
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_256_R1;
-        context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
@@ -108,11 +119,59 @@ mod tests_responder {
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&key_exchange[0..1022]);
 
+        context.handle_spdm_key_update(session_id, bytes);
+    }
+
+    #[test]
+    fn test_case1_handle_spdm_key_update() {
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let (config_info, provision_info) = create_info();
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
         let session = context.common.get_next_avaiable_session();
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
         let session = session.unwrap();
         session.setup(session_id).unwrap();
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let key_exchange: &mut [u8; 1024] = &mut [0u8; 1024];
+        let mut writer = Writer::init(key_exchange);
+        let value = SpdmKeyUpdateRequestPayload {
+            key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+            tag: 100u8,
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&key_exchange[0..1022]);
 
         context.handle_spdm_key_update(session_id, bytes);
     }
