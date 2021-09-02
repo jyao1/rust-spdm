@@ -257,7 +257,135 @@ mod tests_responder {
         let measurements_struct = &mut [0u8; 1024];
         let mut writer = Writer::init(measurements_struct);
         let value = SpdmGetMeasurementsRequestPayload {
-            measurement_attributes: SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
+            measurement_attributes: SpdmMeasurementeAttributes::empty(),
+            measurement_operation: SpdmMeasurementOperation::Unknown(5),
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
+            slot_id: 0xaau8,
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+
+        let bytes = &mut [0u8; 1024];
+        bytes.copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
+        context.handle_spdm_measurement(bytes);
+
+        let data = context.common.runtime_info.message_m.as_ref();
+        let u8_slice = &mut [0u8; 2048];
+        for (i, data) in data.iter().enumerate() {
+            u8_slice[i] = *data;
+            println!("u8_slice[{}]=={:?}", i, u8_slice[i]);
+        }
+
+        let mut message_header_slice = Reader::init(u8_slice);
+        let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(
+            spdm_message_header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
+
+        let spdm_struct_slice = &u8_slice[2..];
+        let mut reader = Reader::init(spdm_struct_slice);
+        let get_measurements =
+            SpdmGetMeasurementsRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(
+            get_measurements.measurement_attributes,
+            SpdmMeasurementeAttributes::empty()
+        );
+        assert_eq!(
+            get_measurements.measurement_operation,
+            SpdmMeasurementOperation::Unknown(5)
+        );
+
+        let spdm_message_slice = &u8_slice[4..];
+        let mut reader = Reader::init(spdm_message_slice);
+        let spdm_message: SpdmMessage =
+            SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseMeasurements
+        );
+        if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.number_of_measurement, 1);
+            assert_eq!(payload.slot_id, 1);
+            assert_eq!(payload.measurement_record.number_of_blocks, 1);
+            assert_eq!(payload.measurement_record.record[0].index, 1);
+            assert_eq!(
+                payload.measurement_record.record[0].measurement_specification,
+                SpdmMeasurementSpecification::DMTF
+            );
+            let measurement_size = context
+                .common
+                .negotiate_info
+                .measurement_hash_sel
+                .get_size()
+                + 3;
+            assert_eq!(
+                payload.measurement_record.record[0].measurement_size,
+                measurement_size
+            );
+            assert_eq!(
+                payload.measurement_record.record[0].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+            );
+            assert_eq!(
+                payload.measurement_record.record[0]
+                    .measurement
+                    .representation,
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+            );
+            let value_size = context
+                .common
+                .negotiate_info
+                .measurement_hash_sel
+                .get_size();
+            assert_eq!(
+                payload.measurement_record.record[0].measurement.value_size,
+                value_size
+            );
+            for i in 0..value_size as usize {
+                assert_eq!(
+                    payload.measurement_record.record[0].measurement.value[i],
+                    95
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_case1_handle_spdm_measurement() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+
+        let spdm_message_header = &mut [0u8; 1024];
+        let mut writer = Writer::init(spdm_message_header);
+        let value = SpdmMessageHeader {
+            version: SpdmVersion::SpdmVersion10,
+            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+        };
+        value.encode(&mut writer);
+
+        let measurements_struct = &mut [0u8; 1024];
+        let mut writer = Writer::init(measurements_struct);
+        let value = SpdmGetMeasurementsRequestPayload {
+            measurement_attributes: SpdmMeasurementeAttributes::empty(),
             measurement_operation: SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -271,24 +399,82 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
         context.handle_spdm_measurement(bytes);
 
-        // let data = context.common.runtime_info.message_m.as_ref();
-        // let u8_slice = &mut [0u8; 2048];
-        // for (i, data) in data.iter().enumerate() {
-        //     u8_slice[i] = *data;
-        //     println!("u8_slice[{}]=={:?}", i, u8_slice[i]);
-        // }
+        let data = context.common.runtime_info.message_m.as_ref();
+        let u8_slice = &mut [0u8; 2048];
+        for (i, data) in data.iter().enumerate() {
+            u8_slice[i] = *data;
+            println!("u8_slice[{}]=={:?}", i, u8_slice[i]);
+        }
 
-        // let mut message_header_slice = Reader::init(u8_slice);
-        // let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
-        // assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
-        // assert_eq!(
-        //     spdm_message_header.request_response_code,
-        //     SpdmResponseResponseCode::SpdmRequestChallenge
-        // );
+        let mut message_header_slice = Reader::init(u8_slice);
+        let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(
+            spdm_message_header.request_response_code,
+            SpdmResponseResponseCode::SpdmRequestChallenge
+        );
 
-        // let spdm_struct_slice = &u8_slice[2..];
-        // let mut reader = Reader::init(spdm_struct_slice);
-        // let spdm_challenge_request_payload =
-        //     SpdmChallengeRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
+        let spdm_struct_slice = &u8_slice[2..];
+        let mut reader = Reader::init(spdm_struct_slice);
+        let get_measurements =
+            SpdmGetMeasurementsRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(
+            get_measurements.measurement_attributes,
+            SpdmMeasurementeAttributes::empty()
+        );
+        assert_eq!(
+            get_measurements.measurement_operation,
+            SpdmMeasurementOperation::SpdmMeasurementRequestAll
+        );
+
+        let spdm_message_slice = &u8_slice[4..];
+        let mut reader = Reader::init(spdm_message_slice);
+        let spdm_message: SpdmMessage =
+            SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
+        assert_eq!(
+            spdm_message.header.request_response_code,
+            SpdmResponseResponseCode::SpdmResponseMeasurements
+        );
+
+        if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
+            assert_eq!(payload.number_of_measurement, 5);
+            assert_eq!(payload.slot_id, 1);
+            assert_eq!(payload.measurement_record.number_of_blocks, 5);
+
+            for i in 0..5{
+                 assert_eq!(payload.measurement_record.record[i].index, (i as u8) + 1);
+                 assert_eq!(payload.measurement_record.record[i].measurement_specification,SpdmMeasurementSpecification::DMTF);
+            }
+
+            let measurement_size = context.common.negotiate_info.measurement_hash_sel.get_size()+ 3;
+            for i in 0..4{
+                 assert_eq!(payload.measurement_record.record[i].measurement_size,measurement_size);
+                 assert_eq!(payload.measurement_record.record[i].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest);
+            }
+            assert_eq!(payload.measurement_record.record[4].measurement_size,3 + config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,);
+            assert_eq!(payload.measurement_record.record[4].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit);
+
+            assert_eq!(payload.measurement_record.record[0].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom);
+            assert_eq!(payload.measurement_record.record[1].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware);
+            assert_eq!(payload.measurement_record.record[2].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig);
+            assert_eq!(payload.measurement_record.record[3].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig);
+            assert_eq!(payload.measurement_record.record[4].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest);
+
+            let value_size = context.common.negotiate_info.measurement_hash_sel.get_size();
+            assert_eq!(payload.measurement_record.record[0].measurement.value_size,value_size);
+            assert_eq!(payload.measurement_record.record[1].measurement.value_size,SHA384_DIGEST_SIZE as u16);
+            assert_eq!(payload.measurement_record.record[2].measurement.value_size,value_size);
+            assert_eq!(payload.measurement_record.record[3].measurement.value_size,value_size);
+            assert_eq!(payload.measurement_record.record[4].measurement.value_size,config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,);
+            
+            for j in 0..value_size as usize {
+                 assert_eq!(payload.measurement_record.record[0].measurement.value[j], 0x5au8);
+                 assert_eq!(payload.measurement_record.record[1].measurement.value[j], 0x5bu8);
+                 assert_eq!(payload.measurement_record.record[2].measurement.value[j], 0x5cu8);
+                 assert_eq!(payload.measurement_record.record[3].measurement.value[j], 0x5du8);
+                 assert_eq!(payload.measurement_record.record[4].measurement.value[j], 0x5eu8);
+            }
+
+        }
     }
 }
