@@ -159,10 +159,7 @@ mod tests_responder {
         let mut reader = Reader::init(spdm_message_slice);
         let spdm_message: SpdmMessage =
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
-        assert_eq!(
-            spdm_message.header.version,
-            SpdmVersion::SpdmVersion11,
-        );
+        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message.header.request_response_code,
             SpdmResponseResponseCode::SpdmResponseCertificate
