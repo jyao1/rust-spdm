@@ -171,6 +171,8 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::crypto::SpdmHmac;
+    use crate::error::SpdmResult;
     use crate::msgs::SpdmMessageHeader;
     use crate::session::SpdmSession;
     use crate::testlib::*;
@@ -178,6 +180,7 @@ mod tests_responder {
     use codec::{Codec, Writer};
 
     #[test]
+    #[ignore]
     fn test_case0_handle_spdm_finish() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -191,30 +194,62 @@ mod tests_responder {
         );
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::hmac::register(TEST_HMAC);
 
-        let session = context.common.get_next_avaiable_session();
-        let rsp_session_id = 0xFFFEu16;
-        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        let session = session.unwrap();
+        // context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        // context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        // context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
+        //     | SpdmRequestCapabilityFlags::CHAL_CAP
+        //     | SpdmRequestCapabilityFlags::ENCRYPT_CAP
+        //     | SpdmRequestCapabilityFlags::MAC_CAP
+        //     | SpdmRequestCapabilityFlags::KEY_EX_CAP
+        //     | SpdmRequestCapabilityFlags::PSK_CAP
+        //     | SpdmRequestCapabilityFlags::ENCAP_CAP
+        //     | SpdmRequestCapabilityFlags::HBEAT_CAP
+        //     | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+        // context.common.negotiate_info.rsp_capabilities_sel =
+        //     SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        // context.common.session[0]
+        //     .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
 
-        session.setup(session_id).unwrap();
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        // let session = context.common.get_next_avaiable_session();
+        // let rsp_session_id = 0xFFFEu16;
+        // let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        // let session = session.unwrap();
+        // session.setup(session_id).unwrap();
+        // context.common.session = [SpdmSession::new(); 4];
+        // context.common.session[0].setup(session_id).unwrap();
+        // context.common.session[0].set_crypto_param(
+        //     SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+        //     SpdmDheAlgo::SECP_384_R1,
+        //     SpdmAeadAlgo::AES_256_GCM,
+        //     SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        // );
+
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.session = [SpdmSession::new(); 4];
-        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
             SpdmDheAlgo::SECP_384_R1,
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
+        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
+            | SpdmRequestCapabilityFlags::CHAL_CAP
+            | SpdmRequestCapabilityFlags::ENCRYPT_CAP
+            | SpdmRequestCapabilityFlags::MAC_CAP
+            | SpdmRequestCapabilityFlags::KEY_EX_CAP
+            | SpdmRequestCapabilityFlags::PSK_CAP
+            | SpdmRequestCapabilityFlags::ENCAP_CAP
+            | SpdmRequestCapabilityFlags::HBEAT_CAP
+            | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+
+        context.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
-            data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
-        
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
@@ -252,6 +287,31 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&finish_slic[0..1022]);
-        context.handle_spdm_finish(session_id, bytes);
+        context.handle_spdm_finish(4294901758, bytes);
+    }
+    pub static TEST_HMAC: SpdmHmac = SpdmHmac {
+        hmac_cb: hmac,
+        hmac_verify_cb: hmac_verify,
+    };
+
+    fn hmac(
+        _base_hash_algo: SpdmBaseHashAlgo,
+        _key: &[u8],
+        _data: &[u8],
+    ) -> Option<SpdmDigestStruct> {
+        Some(SpdmDigestStruct::default())
+    }
+
+    fn hmac_verify(
+        _base_hash_algo: SpdmBaseHashAlgo,
+        _key: &[u8],
+        _data: &[u8],
+        hmac: &SpdmDigestStruct,
+    ) -> SpdmResult {
+        let SpdmDigestStruct { data_size, .. } = hmac;
+        match data_size {
+            48 => Ok(()),
+            _ => spdm_result_err!(EFAULT),
+        }
     }
 }
