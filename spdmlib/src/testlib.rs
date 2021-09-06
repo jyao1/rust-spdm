@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 
-use crate::crypto::SpdmAsymSign;
+use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
 use crate::{common};
 use crate::common::*;
 
@@ -561,4 +561,48 @@ pub fn cert_chain_array() -> [u8; 1492] {
         0x3du8, 0xbcu8, 0x25u8, 0xceu8, 0xecu8, 0xb9u8, 0xcau8,
     ];
     cert_chain
+}
+
+pub static HMAC_TEST: SpdmHmac = SpdmHmac {
+    hmac_cb: hmac,
+    hmac_verify_cb: hmac_verify,
+};
+
+fn hmac(
+    base_hash_algo: SpdmBaseHashAlgo,
+    key: &[u8],
+    data: &[u8],
+) -> Option<SpdmDigestStruct> {
+    // Some(SpdmDigestStruct::default())
+    let algorithm = match base_hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
+        _ => {
+            panic!();
+        }
+    };
+    let s_key = ring::hmac::Key::new(algorithm, key);
+    let tag = ring::hmac::sign(&s_key, data);
+    let tag = tag.as_ref();
+    Some(SpdmDigestStruct::from(tag))
+}
+
+fn hmac_verify(
+    _base_hash_algo: SpdmBaseHashAlgo,
+    _key: &[u8],
+    _data: &[u8],
+    hmac: &SpdmDigestStruct,
+) -> SpdmResult {
+    let SpdmDigestStruct { data_size, .. } = hmac;
+    match data_size {
+        48 => Ok(()),
+        _ => spdm_result_err!(EFAULT),
+    }
+}
+
+pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
+    get_random_cb: get_random,
+};
+
+fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
+    Ok(data.len())
 }

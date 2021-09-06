@@ -189,7 +189,7 @@ impl<'a> ResponderContext<'a> {
         // patch the message before send
         send_buffer[(used - base_hash_size - base_asym_size)..(used - base_hash_size)]
             .copy_from_slice(signature.as_ref());
-        send_buffer[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
+        send_buffer[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());// impl AsRef<[u8]> for SpdmDigestStruct
 
         let _ = self.send_message(&send_buffer[0..used]);
         let session = self.common.get_session_via_id(session_id).unwrap();
@@ -201,8 +201,6 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::crypto::SpdmHmac;
-    use crate::error::SpdmResult;
     use crate::msgs::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -215,7 +213,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::hmac::register(TEST_DEFAULT);
+        crypto::hmac::register(HMAC_TEST);
 
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -271,48 +269,5 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&key_exchange[0..1022]);
 
         context.handle_spdm_key_exchange(bytes);
-    }
-
-    static TEST_DEFAULT: SpdmHmac = SpdmHmac {
-        hmac_cb: hmac,
-        hmac_verify_cb: hmac_verify,
-    };
-    
-    fn hmac(base_hash_algo: SpdmBaseHashAlgo, key: &[u8], data: &[u8]) -> Option<SpdmDigestStruct> {
-        let algorithm = match base_hash_algo {
-            SpdmBaseHashAlgo::TPM_ALG_SHA_256 => ring::hmac::HMAC_SHA256,
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
-            SpdmBaseHashAlgo::TPM_ALG_SHA_512 => ring::hmac::HMAC_SHA512,
-            _ => {
-                panic!();
-            }
-        };
-    
-        let s_key = ring::hmac::Key::new(algorithm, key);
-        let tag = ring::hmac::sign(&s_key, data);
-        let tag = tag.as_ref();
-        Some(SpdmDigestStruct::from(tag))
-    }
-    
-    fn hmac_verify(
-        base_hash_algo: SpdmBaseHashAlgo,
-        key: &[u8],
-        data: &[u8],
-        hmac: &SpdmDigestStruct,
-    ) -> SpdmResult {
-        let algorithm = match base_hash_algo {
-            SpdmBaseHashAlgo::TPM_ALG_SHA_256 => ring::hmac::HMAC_SHA256,
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
-            SpdmBaseHashAlgo::TPM_ALG_SHA_512 => ring::hmac::HMAC_SHA512,
-            _ => {
-                panic!();
-            }
-        };
-    
-        let v_key = ring::hmac::Key::new(algorithm, key);
-        match ring::hmac::verify(&v_key, data, &hmac.data[..(hmac.data_size as usize)]) {
-            Ok(()) => Ok(()),
-            Err(_) => spdm_result_err!(EFAULT),
-        }
     }
 }
