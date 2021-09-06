@@ -108,8 +108,6 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::crypto::SpdmCryptoRandom;
-    use crate::error::SpdmResult;
     use crate::msgs::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -227,13 +225,5 @@ mod tests_responder {
             }
             
         }
-    }
-
-    pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
-        get_random_cb: get_random,
-    };
-
-    fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
-        Ok(data.len())
     }
 }
