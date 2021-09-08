@@ -37,6 +37,7 @@ impl<'a> ResponderContext<'a> {
 mod tests_responder {
     use super::*;
     use crate::msgs::SpdmMessageHeader;
+    use crate::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
@@ -55,6 +56,21 @@ mod tests_responder {
             provision_info,
         );
 
+
+        let rsp_session_id = 0xffu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+
         let bytes = &mut [0u8; 1024];
         let mut writer = Writer::init(bytes);
         let value = SpdmMessageHeader {
@@ -63,8 +79,6 @@ mod tests_responder {
         };
         value.encode(&mut writer);
 
-        let session_id = 4294901758u32;
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
         context.handle_spdm_heartbeat(session_id, bytes);
     }

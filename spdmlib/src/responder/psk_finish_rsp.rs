@@ -123,7 +123,7 @@ mod tests_responder {
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        // crypto::hmac::register(HMAC_TEST);
+        crypto::hmac::register(HMAC_TEST);
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
@@ -131,11 +131,6 @@ mod tests_responder {
             config_info,
             provision_info,
         );
-
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
-            data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
@@ -147,12 +142,6 @@ mod tests_responder {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
         context.common.session[0]
             .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
 

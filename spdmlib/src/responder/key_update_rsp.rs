@@ -82,11 +82,8 @@ mod tests_responder {
         
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
 
-        let session = context.common.get_next_avaiable_session();
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        let session = session.unwrap();
-        session.setup(session_id).unwrap();
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(session_id).unwrap();
@@ -136,11 +133,8 @@ mod tests_responder {
             provision_info,
         );
 
-        let session = context.common.get_next_avaiable_session();
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        let session = session.unwrap();
-        session.setup(session_id).unwrap();
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(session_id).unwrap();
