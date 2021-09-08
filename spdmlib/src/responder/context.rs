@@ -31,10 +31,10 @@ impl<'a> ResponderContext<'a> {
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used =
-            self.common
-                .transport_encap
-                .encap(send_buffer, &mut transport_buffer, false)?;
+        let used = self
+            .common
+            .transport_encap
+            .encap(send_buffer, &mut transport_buffer, false)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
 
@@ -260,5 +260,137 @@ impl<'a> ResponderContext<'a> {
             },
             None => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_responder {
+    use super::*;
+    use crate::msgs::SpdmMessageHeader;
+    use crate::session::SpdmSession;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+    use codec::Writer;
+
+    #[test]
+    fn test_case0_send_secured_message() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        let rsp_session_id = 0xffu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        let value = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
+            },
+            payload: SpdmMessagePayload::SpdmKeyUpdateResponse(SpdmKeyUpdateResponsePayload {
+                key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+                tag: 100u8,
+            }),
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+        let used = writer.used();
+        let status = context
+            .send_secured_message(session_id, &send_buffer[0..used])
+            .is_ok();
+        assert!(status);
+    }
+    #[test]
+    fn test_case1_send_secured_message() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let rsp_session_id = 0xffu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        let value = SpdmMessage {
+            header: SpdmMessageHeader::default(),
+            payload: SpdmMessagePayload::SpdmKeyUpdateResponse(
+                SpdmKeyUpdateResponsePayload::default(),
+            ),
+        };
+        value.spdm_encode(&mut context.common, &mut writer);
+        let used = writer.used();
+        let status = context
+            .send_secured_message(session_id, &send_buffer[0..used])
+            .is_err();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_receive_message() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let receive_buffer = &mut [0u8; 8];
+        let mut writer = Writer::init(receive_buffer);
+        let value =  PciDoeMessageHeader
+        {
+            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
+            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm ,
+            payload_length : 100,
+        };
+        value.encode(&mut writer);
+        let status = context.receive_message(receive_buffer).is_err();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_process_message() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+        let status = context.process_message().is_err();
+        assert!(status);
     }
 }
