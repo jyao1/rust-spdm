@@ -122,6 +122,7 @@ impl<'a> ResponderContext<'a> {
             .decap(&receive_buffer[..used], &mut transport_buffer)
             .map_err(|_| used)?;
 
+        // transport_buffer[..used].copy_from_slice(&receive_buffer[..used]);
         receive_buffer[..used].copy_from_slice(&transport_buffer[..used]);
         Ok((used, secured_message))
     }
@@ -353,6 +354,76 @@ mod tests_responder {
     }
     #[test]
     fn test_case0_receive_message() {
+        let receive_buffer = &mut [0u8; 1024];
+        let mut writer = Writer::init(receive_buffer);
+        let value = PciDoeMessageHeader {
+            vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
+            data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm,
+            payload_length: 100,
+        };
+        value.encode(&mut writer);
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        shared_buffer.set_buffer(receive_buffer);
+
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let status = context.receive_message(&mut receive_buffer[..]).is_ok();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_process_message() {
+        let receive_buffer = &mut [0u8; 1024];
+        let mut writer = Writer::init(receive_buffer);
+        let value = PciDoeMessageHeader {
+            vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
+            data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm,
+            payload_length: 100,
+        };
+        value.encode(&mut writer);
+
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        shared_buffer.set_buffer(receive_buffer);
+
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let rsp_session_id = 0xFFFEu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+
+        let status = context.process_message().is_err();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_dispatch_secured_message() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
@@ -365,32 +436,156 @@ mod tests_responder {
             provision_info,
         );
 
-        let receive_buffer = &mut [0u8; 8];
-        let mut writer = Writer::init(receive_buffer);
-        let value =  PciDoeMessageHeader
-        {
-            vendor_id :PciDoeVendorId::PciDoeVendorIdPciSig ,
-            data_object_type :PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm ,
-            payload_length : 100,
-        };
-        value.encode(&mut writer);
-        let status = context.receive_message(receive_buffer).is_err();
-        assert!(status);
-    }
-    #[test]
-    fn test_case0_process_message() {
-        let (config_info, provision_info) = create_info();
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let shared_buffer = SharedBuffer::new();
-        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+
+        let rsp_session_id = 0xFFFEu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        let status = context.process_message().is_err();
-        assert!(status);
+        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 512u16,
+            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+
+        for i in 0..5 {
+            let bytes = &mut [0u8; 4];
+            let mut writer = Writer::init(bytes);
+            let value = SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: dispatch_secured_data(i, true),
+            };
+            value.encode(&mut writer);
+            let status_secured = context.dispatch_secured_message(session_id, bytes);
+            assert!(status_secured);
+        }
+        for i in 0..25 {
+            let bytes = &mut [0u8; 4];
+            let mut writer = Writer::init(bytes);
+            let value = SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: dispatch_secured_data(i, false),
+            };
+            value.encode(&mut writer);
+            let status_secured = context.dispatch_secured_message(session_id, bytes);
+            assert!(!status_secured);
+        }
+        for i in 0..9 {
+            let bytes = &mut [0u8; 4];
+            let mut writer = Writer::init(bytes);
+            let value = SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: dispatc_data(i, true),
+            };
+            value.encode(&mut writer);
+            let status = context.dispatch_message(bytes);
+            assert!(status);
+        }
+        for i in 0..21 {
+            let bytes = &mut [0u8; 4];
+            let mut writer = Writer::init(bytes);
+            let value = SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion10,
+                request_response_code: dispatc_data(i, false),
+            };
+            value.encode(&mut writer);
+            let status = context.dispatch_message(bytes);
+            assert!(!status);
+        }
+    }
+
+    fn dispatch_secured_data(num: usize, status: bool) -> SpdmResponseResponseCode {
+        let response_flase = [
+            SpdmResponseResponseCode::SpdmRequestGetVersion,
+            SpdmResponseResponseCode::SpdmRequestGetCapabilities,
+            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms,
+            SpdmResponseResponseCode::SpdmRequestGetDigests,
+            SpdmResponseResponseCode::SpdmRequestGetCertificate,
+            SpdmResponseResponseCode::SpdmRequestChallenge,
+            SpdmResponseResponseCode::SpdmRequestGetMeasurements,
+            SpdmResponseResponseCode::SpdmRequestKeyExchange,
+            SpdmResponseResponseCode::SpdmResponseDigests,
+            SpdmResponseResponseCode::SpdmResponseCertificate,
+            SpdmResponseResponseCode::SpdmResponseChallengeAuth,
+            SpdmResponseResponseCode::SpdmResponseVersion,
+            SpdmResponseResponseCode::SpdmResponseMeasurements,
+            SpdmResponseResponseCode::SpdmResponseCapabilities,
+            SpdmResponseResponseCode::SpdmResponseAlgorithms,
+            SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp,
+            SpdmResponseResponseCode::SpdmResponseFinishRsp,
+            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp,
+            SpdmResponseResponseCode::SpdmResponsePskFinishRsp,
+            SpdmResponseResponseCode::SpdmResponseHeartbeatAck,
+            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
+            SpdmResponseResponseCode::SpdmResponseEndSessionAck,
+            SpdmResponseResponseCode::SpdmResponseError,
+            SpdmResponseResponseCode::SpdmRequestPskExchange,
+            SpdmResponseResponseCode::Unknown(0),
+        ];
+        let response_true = [
+            SpdmResponseResponseCode::SpdmRequestFinish,
+            SpdmResponseResponseCode::SpdmRequestPskFinish,
+            SpdmResponseResponseCode::SpdmRequestHeartbeat,
+            SpdmResponseResponseCode::SpdmRequestKeyUpdate,
+            SpdmResponseResponseCode::SpdmRequestEndSession,
+        ];
+        if status {
+            response_true[num]
+        } else {
+            response_flase[num]
+        }
+    }
+    fn dispatc_data(num: usize, status: bool) -> SpdmResponseResponseCode {
+        let response_true = [
+            SpdmResponseResponseCode::SpdmRequestGetVersion,
+            SpdmResponseResponseCode::SpdmRequestGetCapabilities,
+            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms,
+            SpdmResponseResponseCode::SpdmRequestGetDigests,
+            SpdmResponseResponseCode::SpdmRequestGetCertificate,
+            SpdmResponseResponseCode::SpdmRequestChallenge,
+            SpdmResponseResponseCode::SpdmRequestGetMeasurements,
+            SpdmResponseResponseCode::SpdmRequestKeyExchange,
+            SpdmResponseResponseCode::SpdmRequestPskExchange,
+        ];
+        let response_flase = [
+            SpdmResponseResponseCode::SpdmRequestFinish,
+            SpdmResponseResponseCode::SpdmRequestPskFinish,
+            SpdmResponseResponseCode::SpdmRequestHeartbeat,
+            SpdmResponseResponseCode::SpdmRequestKeyUpdate,
+            SpdmResponseResponseCode::SpdmRequestEndSession,
+            SpdmResponseResponseCode::SpdmResponseDigests,
+            SpdmResponseResponseCode::SpdmResponseCertificate,
+            SpdmResponseResponseCode::SpdmResponseChallengeAuth,
+            SpdmResponseResponseCode::SpdmResponseVersion,
+            SpdmResponseResponseCode::SpdmResponseMeasurements,
+            SpdmResponseResponseCode::SpdmResponseCapabilities,
+            SpdmResponseResponseCode::SpdmResponseAlgorithms,
+            SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp,
+            SpdmResponseResponseCode::SpdmResponseFinishRsp,
+            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp,
+            SpdmResponseResponseCode::SpdmResponsePskFinishRsp,
+            SpdmResponseResponseCode::SpdmResponseHeartbeatAck,
+            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
+            SpdmResponseResponseCode::SpdmResponseEndSessionAck,
+            SpdmResponseResponseCode::SpdmResponseError,
+            SpdmResponseResponseCode::Unknown(0),
+        ];
+        if status {
+            response_true[num]
+        } else {
+            response_flase[num]
+        }
     }
 }
