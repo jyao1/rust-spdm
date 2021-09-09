@@ -8,39 +8,72 @@ The use of docker will have a depend problem.
 
 https://github.com/sslab-gatech/Rudra/blob/master/DEV.md
 
-`cp -r rust-spdm rust-spdm-rudra`
+### clone rudra project and install rudra
 
-Modify the content of the  rust-toolchain file as 2020-08-26
-
-install crates
+use nightly-2021-08-20
 
 ```
+git clone https://github.com/bjorn3/Rudra.git
+cd rudra
+
+# Toolchain setup
+rustup install nightly-2021-08-20
+rustup override set nightly-2021-08-20
 rustup component add rustc-dev
 rustup component add miri
-```
 
-set up environment variable
-
-```
-export RUDRA_RUST_CHANNEL=nightly-2020-08-26
-export RUDRA_RUNNER_HOME=$HOME/rudra-home
+# Environment variable setup, put these in your `.bashrc`
+export RUDRA_RUST_CHANNEL=nightly-2021-08-20
+export RUDRA_RUNNER_HOME="<your runner home path - use setup_rudra_runner_home.py>"
 
 export RUSTFLAGS="-L $HOME/.rustup/toolchains/${RUDRA_RUST_CHANNEL}-x86_64-unknown-linux-gnu/lib"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$HOME/.rustup/toolchains/${RUDRA_RUST_CHANNEL}-x86_64-unknown-linux-gnu/lib"
-```
 
-clone rudra project and install rudra
-
+# Test your installation
+python test.py
 ```
-git clone https://github.com/sslab-gatech/Rudra.git
-cd rudra
-./install-release.sh
+### How to use Rudra
 ```
+# this executes: cargo install --path "$(dirname "$0")" --force
+./install-release
 
-Rudra corresponds to the folder or file
-
-```
 rudra --crate-type lib tests/unsafe_destructor/normal1.rs  # for single file testing (you need to set library include path, or use `cargo run` instead)
-cd spdmlib
 cargo rudra  # for crate compilation
+Rudra Configurations
 ```
+
+Now rudra works on nightly-2021-08-20, the items that need to be checked,
+
+need to change the toolchain data to nightly-2021-08-20.
+
+Otherwise rudra won't work.
+
+If there are deprecated warnings, please use`RUSTFLAGS="$RUSTFLAGS -A deprecated" cargo rudra` ignore the warning. 
+
+If there is component A and security bug component B.
+```
+mkdir workspace
+cd workspace
+echo "[workspace]" > Cargo.toml
+echo 'members = ["member","member1"]' >> Cargo.toml
+cargo new member
+
+cargo new --lib member1
+echo "struct Atom<P>(P);" > member1/src/lib.rs
+echo "unsafe impl<P: Ord> Send for Atom<P> {}" >> member1/src/lib.rs
+
+echo 'member1 = {path="../member1"}' >> member/Cargo.toml
+# pass
+cargo build -p member 
+# pass
+cargo build -p member1
+cd member
+cargo rudra 
+
+2021-09-09 23:19:12.603401 |INFO | [rudra-progress] Rudra finished
+Error (SendSyncVariance:/PhantomSendForSend/NaiveSendForSend/RelaxSend): Suspicious impl of `Send` found
+-> member1/src/lib.rs:2:1: 2:40
+unsafe impl<P: Ord> Send for Atom<P> {}
+2021-09-09 23:19:12.760596 |INFO | [rudra-progress] Rudra started
+```
+Scan Component A can find the issue.
