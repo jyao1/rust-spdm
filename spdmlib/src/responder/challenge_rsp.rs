@@ -217,9 +217,6 @@ mod tests_responder {
             for i in 0..32 {
                 assert_eq!(payload.measurement_summary_hash.data[i], 0xaau8);
             }
-            for i in 0..32 {
-                assert_eq!(payload.nonce.data[i], 0);
-            }
             for (i,data) in cert_chain_hash.data.iter().enumerate(){
                 assert_eq!(payload.cert_chain_hash.data[i], *data);
             }
