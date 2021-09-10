@@ -4,7 +4,7 @@
 
 
 use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
-use crate::{common};
+use crate::{common, responder};
 use crate::common::*;
 
 use crate::msgs::*;
@@ -358,6 +358,75 @@ fn sign_rsa_asym_algo(
         data_size: key_len as u16,
         data: full_sign,
     })
+}
+
+pub struct FakeSpdmDeviceIo<'a> {
+    pub data: &'a SharedBuffer,
+    pub responder: &'a mut responder::ResponderContext<'a>,
+}
+
+impl<'a> FakeSpdmDeviceIo<'a> {
+    pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
+        FakeSpdmDeviceIo {
+            data: data,
+            responder,
+        }
+    }
+}
+
+impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
+    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+        let len = self.data.get_buffer(read_buffer);
+        log::info!("requester receive RAW - {:02x?}\n", &read_buffer[0..len]);
+        Ok(len)
+    }
+
+    fn send(&mut self, buffer: &[u8]) -> SpdmResult {
+        self.data.set_buffer(buffer);
+        log::info!("requester send    RAW - {:02x?}\n", buffer);
+
+        if self.responder
+            .process_message().is_err() {
+                return spdm_result_err!(ENOMEM);
+            }
+        Ok(())
+    }
+
+    fn flush_all(&mut self) -> SpdmResult {
+        Ok(())
+    }
+}
+
+pub struct SpdmDeviceIoReceve<'a> {
+    data: &'a SharedBuffer,
+    fuzzdata: &'a [u8],
+}
+
+impl<'a> SpdmDeviceIoReceve<'a> {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a[u8]) -> Self {
+        SpdmDeviceIoReceve {
+            data: data,
+            fuzzdata,
+        }
+    }
+}
+
+impl SpdmDeviceIo for SpdmDeviceIoReceve<'_> {
+    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+        let len = self.data.get_buffer(read_buffer);
+        log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
+        Ok(len)
+    }
+
+    fn send(&mut self, buffer: &[u8]) -> SpdmResult {
+        self.data.set_buffer(self.fuzzdata);
+        log::info!("responder send    RAW - {:02x?}\n", buffer);
+        Ok(())
+    }
+
+    fn flush_all(&mut self) -> SpdmResult {
+        Ok(())
+    }
 }
 
 pub struct FakeSpdmDeviceIoReceve<'a> {
