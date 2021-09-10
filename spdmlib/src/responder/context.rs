@@ -122,7 +122,6 @@ impl<'a> ResponderContext<'a> {
             .decap(&receive_buffer[..used], &mut transport_buffer)
             .map_err(|_| used)?;
 
-        // transport_buffer[..used].copy_from_slice(&receive_buffer[..used]);
         receive_buffer[..used].copy_from_slice(&transport_buffer[..used]);
         Ok((used, secured_message))
     }
