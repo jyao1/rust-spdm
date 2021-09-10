@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
+use fuzzlib::{
+    spdmlib::session::{SpdmSession, SpdmSessionState},
+    *,
+};
 
 fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -79,6 +82,15 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         .runtime_info
         .message_c
         .append_message(MESSAGE_C);
+
+    responder.common.session[0].setup(4294901758).unwrap();
+    responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+    responder.common.session[0].set_crypto_param(
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+        SpdmDheAlgo::SECP_384_R1,
+        SpdmAeadAlgo::AES_256_GCM,
+        SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+    );
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
@@ -157,8 +169,7 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
     requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
-    let _ = requester
-        .send_receive_spdm_psk_finish(4294901758);
+    let _ = requester.send_receive_spdm_psk_finish(4294901758);
 }
 
 fn main() {
@@ -182,7 +193,14 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = [17,46,43];
+            let fuzzdata = [
+                0x1, 0x0, 0x2, 0x0, 0x15, 0x0, 0x0, 0x0, 0xfe, 0xff, 0xfe, 0xff, 0x46, 0x0, 0xfa,
+                0xa7, 0x51, 0xda, 0x4d, 0x60, 0x12, 0xe7, 0x75, 0x36, 0x6b, 0xe7, 0xca, 0x8f, 0xd3,
+                0x9a, 0x4f, 0x47, 0x94, 0x15, 0xa0, 0x12, 0xa8, 0x62, 0xcc, 0xf8, 0x7e, 0x3, 0x3f,
+                0xa8, 0xb9, 0xa7, 0xa7, 0x6, 0x94, 0x17, 0x8d, 0xf1, 0x4f, 0x62, 0x69, 0x6e, 0xc5,
+                0xbd, 0x4, 0xe6, 0x67, 0x18, 0x36, 0xd, 0x9c, 0xc6, 0xc1, 0xfd, 0xc6, 0xeb, 0x66,
+                0xb8, 0x8f, 0x4a, 0x7, 0x29, 0x89, 0x20, 0xee, 0x13, 0x49, 0xc5, 0x19, 0x84,
+            ];
             fuzz_send_receive_spdm_psk_finish(&fuzzdata);
         } else {
             let path = &args[1];
