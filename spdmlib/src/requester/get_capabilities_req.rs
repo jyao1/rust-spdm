@@ -78,3 +78,59 @@ impl<'a> RequesterContext<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests_requester {
+    use super::*;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+
+    #[test]
+    fn test_case0_handle_spdm_algorithm() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+        let (req_config_info, req_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let data = &mut [100u8; 100];
+        let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        let message_a = [
+            0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11,
+        ];
+        // version_rsp
+        responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .message_a
+            .append_message(&message_a);
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+
+        requester.common.reset_runtime_info();
+        requester
+            .common
+            .runtime_info
+            .message_a
+            .append_message(&message_a);
+
+        let _ = requester.send_receive_spdm_capability();
+    }
+}
