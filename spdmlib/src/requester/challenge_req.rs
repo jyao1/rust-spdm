@@ -107,13 +107,12 @@ impl<'a> RequesterContext<'a> {
     }
 }
 #[cfg(test)]
-mod tests_responder {
+mod tests_requester {
     use super::*;
     use crate::testlib::*;
     use crate::{crypto, responder};
 
     #[test]
-    #[should_panic]
     fn test_case0_handle_spdm_algorithm() {
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
@@ -121,11 +120,10 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let data = &mut [100u8; 100];
         let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
-
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        // crypto::rand::register(FUZZ_RAND);
+        crypto::rand::register(DEFAULT_TEST);
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -149,10 +147,10 @@ mod tests_responder {
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-        // responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
-        //     data_size: 100u16,
-        //     data: [100u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        // )};
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 100u16,
+            data: [100u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -179,9 +177,10 @@ mod tests_responder {
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-        // pub const values= SpdmCertChainData {
-        // responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
-
+        requester.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 100u16,
+            data: [100u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
         let status = requester
             .send_receive_spdm_challenge(
                 0,
