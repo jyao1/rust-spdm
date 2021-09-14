@@ -91,11 +91,12 @@ mod tests_requester {
         let (req_config_info, req_provision_info) = create_info();
 
         let shared_buffer = SharedBuffer::new();
-        let data = &mut [100u8; 100];
+        let data = &mut [17,46,43];
         let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
@@ -106,7 +107,7 @@ mod tests_requester {
         let message_a = [
             0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11,
         ];
-        // version_rsp
+        
         responder.common.reset_runtime_info();
         responder
             .common
