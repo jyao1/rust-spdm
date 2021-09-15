@@ -2,6 +2,19 @@
 
 pkill screen
 
+if [ ! -d "fuzz-target/out" ];then
+    mkdir fuzz-target/out
+fi
+
+for i in fuzz-target/out/*;do
+    if [[ "`ls -A $i/default/crashes`" != "" ]];then
+        echo -e "\033[31m There are some crashes \033[0m"
+        echo -e "\033[31m Path in fuzz-target/out/$i/default/crashes \033[0m"
+        exit
+    fi
+done
+
+rm -rf fuzz-target/out/*
 cmds=(
 "rspversion"
 "rspcapability"

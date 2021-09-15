@@ -133,9 +133,6 @@ impl<'a> ResponderContext<'a> {
             }
             session.runtime_info.message_f = message_f;
 
-            if base_hash_size != hmac.data_size as usize {
-                return;
-            }
             // patch the message before send
             send_buffer[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
         } else {
