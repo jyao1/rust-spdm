@@ -13,7 +13,9 @@ pub static FUZZ_HMAC: SpdmHmac = SpdmHmac {
 };
 
 fn hmac(_base_hash_algo: SpdmBaseHashAlgo, _key: &[u8], _data: &[u8]) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
+    let mut hmac_data = SpdmDigestStruct::default();
+    hmac_data.data_size = 48;
+    Some(hmac_data)
 }
 
 fn hmac_verify(
