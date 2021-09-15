@@ -496,21 +496,15 @@ pub static HMAC_TEST: SpdmHmac = SpdmHmac {
 };
 
 fn hmac(
-    base_hash_algo: SpdmBaseHashAlgo,
-    key: &[u8],
-    data: &[u8],
+    _base_hash_algo: SpdmBaseHashAlgo,
+    _key: &[u8],
+    _data: &[u8],
 ) -> Option<SpdmDigestStruct> {
-    // Some(SpdmDigestStruct::default())
-    let algorithm = match base_hash_algo {
-        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
-        _ => {
-            panic!();
-        }
+    let tag =         SpdmDigestStruct {
+        data_size: 48,
+        data: [10u8; SPDM_MAX_HASH_SIZE],
     };
-    let s_key = ring::hmac::Key::new(algorithm, key);
-    let tag = ring::hmac::sign(&s_key, data);
-    let tag = tag.as_ref();
-    Some(SpdmDigestStruct::from(tag))
+    Some(tag)
 }
 
 fn hmac_verify(
@@ -531,6 +525,10 @@ pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
 };
 
 fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
+    for i in 0..data.len(){
+        data[i]=0xff;
+    }
+    
     Ok(data.len())
 }
 

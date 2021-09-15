@@ -91,8 +91,7 @@ mod tests_requester {
         let (req_config_info, req_provision_info) = create_info();
 
         let shared_buffer = SharedBuffer::new();
-        let data = &mut [100u8;100];
-        let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
@@ -103,17 +102,6 @@ mod tests_requester {
             rsp_config_info,
             rsp_provision_info,
         );
-
-        let message_a = [
-            0x10, 0x84, 0x00, 0x00, 0x11, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x10, 0x00, 0x11,
-        ];
-        
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&message_a);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -126,12 +114,13 @@ mod tests_requester {
         );
 
         requester.common.reset_runtime_info();
-        requester
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&message_a);
+        requester.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.base_asym_sel =
+            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        let _ = requester.send_receive_spdm_capability();
+        let status = requester.send_receive_spdm_capability().is_ok();
+        assert!(status);
     }
 }
