@@ -109,12 +109,10 @@ impl<'a> RequesterContext<'a> {
 #[cfg(test)]
 mod tests_requester {
     use super::*;
-    use crate::crypto::SpdmCryptoRandom;
     use crate::testlib::*;
     use crate::{crypto, responder};
 
     #[test]
-    #[ignore]
     fn test_case0_handle_spdm_algorithm() {
         let data = &mut [
             0x1, 0x0, 0x1, 0x0, 0x30, 0x0, 0x0, 0x0, 0x11, 0x3, 0x0, 0x1, 0x28, 0xaf, 0x70, 0x27,
@@ -132,15 +130,16 @@ mod tests_requester {
             0x11, 0xd7, 0xf8, 0x23, 0x76, 0x49, 0x3d, 0x96, 0x7e, 0xb3, 0x22, 0x4c, 0x5d, 0x50,
             0x79, 0x71, 0x98, 0x0, 0x0,
         ];
-
+        
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::rand::register(RAND_TEST);
+        crypto::rand::register(DEFAULT_TEST);
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -150,21 +149,15 @@ mod tests_requester {
         );
 
         responder.common.reset_runtime_info();
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 512u16,
+            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
 
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.runtime_info.need_measurement_summary_hash = true;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -187,10 +180,7 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
+        requester.common.runtime_info.need_measurement_summary_hash = true;
 
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
@@ -201,16 +191,5 @@ mod tests_requester {
             )
             .is_ok();
         assert!(status);
-    }
-
-    pub static RAND_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
-        get_random_cb: get_random,
-    };
-
-    fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
-        let rand_data = [0xff; SPDM_NONCE_SIZE];
-        data.copy_from_slice(&rand_data);
-
-        Ok(data.len())
     }
 }
