@@ -1,9 +1,5 @@
 #!/bin/bash
-cargo clean
 
-git clean -f
-
-rm -rf ./target *.prof*
 
 export RUSTFLAGS="-Zinstrument-coverage"
 export LLVM_PROFILE_FILE="your_name-%p-%m.profraw"
