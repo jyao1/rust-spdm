@@ -47,16 +47,6 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-    | SpdmRequestCapabilityFlags::CHAL_CAP
-    | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-    | SpdmRequestCapabilityFlags::MAC_CAP
-    //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-    | SpdmRequestCapabilityFlags::KEY_EX_CAP
-    | SpdmRequestCapabilityFlags::PSK_CAP
-    | SpdmRequestCapabilityFlags::ENCAP_CAP
-    | SpdmRequestCapabilityFlags::HBEAT_CAP
-    | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
 
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
@@ -67,58 +57,9 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         let mut req_buf = [0u8; 1024];
         socket_io_transport.receive(&mut req_buf).unwrap();
     }
+
     {
-        // runtime info message_a add, err 45 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info1,
-            provision_info1,
-        );
-
-        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.session = [SpdmSession::new(); 4];
-        context.common.session[0].setup(4294901758).unwrap();
-        context.common.session[0].set_crypto_param(
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            SpdmDheAlgo::SECP_384_R1,
-            SpdmAeadAlgo::AES_256_GCM,
-            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        );
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-    | SpdmRequestCapabilityFlags::CHAL_CAP
-    | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-    | SpdmRequestCapabilityFlags::MAC_CAP
-    //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-    | SpdmRequestCapabilityFlags::KEY_EX_CAP
-    | SpdmRequestCapabilityFlags::PSK_CAP
-    | SpdmRequestCapabilityFlags::ENCAP_CAP
-    | SpdmRequestCapabilityFlags::HBEAT_CAP
-    | SpdmRequestCapabilityFlags::KEY_UPD_CAP
-    | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-
-        context.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
-
-        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
-
-        context.handle_spdm_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
-    }
-    {
-        // 
+        // runtime info message_a add, err 39 lines
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -140,26 +81,46 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-    | SpdmRequestCapabilityFlags::CHAL_CAP
-    | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-    | SpdmRequestCapabilityFlags::MAC_CAP
-    //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-    | SpdmRequestCapabilityFlags::KEY_EX_CAP
-    | SpdmRequestCapabilityFlags::PSK_CAP
-    | SpdmRequestCapabilityFlags::ENCAP_CAP
-    | SpdmRequestCapabilityFlags::HBEAT_CAP
-    | SpdmRequestCapabilityFlags::KEY_UPD_CAP
-    | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        context.common.provision_info.my_cert_chain_data = None;
+        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+
+        context.handle_spdm_finish(4294901758, data);
+    }
+
+    {
+        // runtime info message_a add, err 39 lines
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info1,
+            provision_info1,
+        );
+
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(4294901758).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
 
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
-
+        context
+            .common
+            .runtime_info
+            .message_a
+            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
+        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
         context.handle_spdm_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
     }
     {
         // error 98 lines
@@ -184,25 +145,13 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-    | SpdmRequestCapabilityFlags::CHAL_CAP
-    | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-    | SpdmRequestCapabilityFlags::MAC_CAP
-    //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-    | SpdmRequestCapabilityFlags::KEY_EX_CAP
-    | SpdmRequestCapabilityFlags::PSK_CAP
-    | SpdmRequestCapabilityFlags::ENCAP_CAP
-    | SpdmRequestCapabilityFlags::HBEAT_CAP
-    | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
 
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
         context.handle_spdm_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
     }
 }
 fn main() {
@@ -226,7 +175,12 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = [17,46,43];
+            let fuzzdata = [
+                0x11, 0xe5, 0x0, 0x0, 0xd4, 0xab, 0xc, 0x98, 0x44, 0x6, 0xc1, 0x77, 0xe4, 0x37,
+                0x79, 0x78, 0x26, 0xd4, 0x4c, 0x9b, 0x38, 0x30, 0xb2, 0xa3, 0xa, 0x5c, 0xa4, 0xd9,
+                0x7b, 0x12, 0xe1, 0xd6, 0x38, 0xcb, 0xe0, 0xfb, 0xaa, 0x1c, 0xeb, 0xc5, 0xcb, 0x35,
+                0x9b, 0xf8, 0x21, 0x9c, 0x7c, 0xd4, 0x33, 0x49, 0xdc, 0x61,
+            ];
             fuzz_handle_spdm_finish(&fuzzdata);
         } else {
             let path = &args[1];

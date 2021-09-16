@@ -5,45 +5,110 @@
 use fuzzlib::*;
 
 fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
-
     let (config_info, provision_info) = rsp_create_info();
+    let (config_info1, provision_info1) = rsp_create_info();
+    let (config_info2, provision_info2) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
 
-    let shared_buffer = SharedBuffer::new();
-    let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+    {
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-    let mut context = responder::ResponderContext::new(
-        &mut socket_io_transport,
-        if USE_PCIDOE {
-            pcidoe_transport_encap
-        } else {
-            mctp_transport_encap
-        },
-        config_info,
-        provision_info,
-    );
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info,
+            provision_info,
+        );
+        // algorithm_rsp
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
+        context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
+        context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-    context.handle_spdm_algorithm(&[
-        17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
-    ]);
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
-    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
-    context.handle_spdm_challenge(&[
-        17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
-        178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
-    ]);
-    context.handle_spdm_measurement(&[17, 224, 0, 0]);
-    context.handle_spdm_key_exchange(data);
-    let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
-    println!("Received: {:?}", req_buf);
+        context.common.reset_runtime_info();
+
+        context.handle_spdm_key_exchange(data);
+    }
+
+    {
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info1,
+            provision_info1,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
+        context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
+        context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
+
+        context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+
+        context.common.reset_runtime_info();
+
+        context.common.session[0].setup(4294901758).unwrap();
+        context.common.session[1].setup(4294901758).unwrap();
+        context.common.session[2].setup(4294901758).unwrap();
+        context.common.session[3].setup(4294901758).unwrap();
+
+        context.handle_spdm_key_exchange(data);
+    }
+
+
+    {
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info2,
+            provision_info2,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
+        context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
+        context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
+
+
+        context.common.provision_info.my_cert_chain_data = None;
+        context.common.reset_runtime_info();
+
+        context.handle_spdm_key_exchange(data);
+    }
+
+    // let mut req_buf = [0u8; 1024];
+    // socket_io_transport.receive(&mut req_buf).unwrap();
+    // println!("Received: {:?}", req_buf);
 }
 fn main() {
-
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")
         .unwrap()
@@ -64,7 +129,17 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = [17,46,43];
+            let fuzzdata = [
+                17, 228, 0, 0, 254, 255, 0, 0, 164, 168, 149, 35, 47, 201, 46, 27, 159, 172, 140,
+                250, 56, 72, 129, 27, 241, 183, 219, 225, 241, 166, 116, 200, 20, 253, 145, 57,
+                222, 45, 78, 168, 5, 106, 25, 148, 247, 253, 178, 151, 59, 213, 123, 199, 11, 108,
+                92, 59, 33, 210, 5, 89, 52, 18, 79, 67, 12, 199, 200, 127, 207, 2, 92, 244, 184,
+                140, 1, 63, 239, 90, 154, 1, 33, 57, 212, 7, 189, 192, 196, 254, 66, 150, 138, 127,
+                89, 215, 107, 166, 163, 99, 184, 59, 232, 234, 137, 81, 162, 177, 220, 235, 235,
+                171, 95, 178, 148, 83, 120, 80, 222, 234, 96, 254, 120, 223, 93, 247, 191, 95, 75,
+                190, 151, 183, 121, 147, 55, 40, 61, 132, 20, 0, 70, 84, 77, 68, 1, 1, 0, 0, 0, 0,
+                5, 0, 1, 1, 1, 0, 17, 0, 0, 0, 0, 0,
+            ];
             fuzz_handle_spdm_key_exchange(&fuzzdata);
         } else {
             let path = &args[1];

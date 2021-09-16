@@ -40,10 +40,7 @@ impl<'a> ResponderContext<'a> {
 
         debug!("!!! exchange data : {:02x?}\n", exchange);
 
-        debug!(
-            "!!! exchange data (peer) : {:02x?}\n",
-            &key_exchange_req.unwrap().exchange
-        );
+        debug!("!!! exchange data (peer) : {:02x?}\n",&key_exchange_req.unwrap().exchange);
 
         let final_key = key_exchange_context.compute_final_key(&key_exchange_req.unwrap().exchange);
 
