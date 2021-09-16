@@ -7,6 +7,11 @@ if [ ! -d "fuzz-target/out" ];then
 fi
 
 for i in fuzz-target/out/*;do
+
+    if [[ ! -f $i/default/crashes ]];then
+        break
+    fi
+
     if [[ "`ls -A $i/default/crashes`" != "" ]];then
         echo -e "\033[31m There are some crashes \033[0m"
         echo -e "\033[31m Path in fuzz-target/out/$i/default/crashes \033[0m"
@@ -82,7 +87,7 @@ do
     fi
     screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-    sleep 1800
+    sleep 1200
     screen -S ${cmds[$i]} -X quit
     sleep 5
 done

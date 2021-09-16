@@ -12,11 +12,6 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
 
-
-    // let mut req_buf = [0u8; 1024];
-    // socket_io_transport.receive(&mut req_buf).unwrap();
-    // println!("Received: {:?}", req_buf);
-
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -32,37 +27,6 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
             provision_info,
         );
     
-        context.common.negotiate_info.req_ct_exponent_sel = 0;
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::CHAL_CAP
-        | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-        | SpdmRequestCapabilityFlags::MAC_CAP
-        //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-        | SpdmRequestCapabilityFlags::KEY_EX_CAP
-        | SpdmRequestCapabilityFlags::PSK_CAP
-        | SpdmRequestCapabilityFlags::ENCAP_CAP
-        | SpdmRequestCapabilityFlags::HBEAT_CAP
-        | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
-        context.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        context.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::CHAL_CAP
-        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-        | SpdmResponseCapabilityFlags::MAC_CAP
-        //| SpdmResponseCapabilityFlags::MUT_AUTH_CAP
-        | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
-        | SpdmResponseCapabilityFlags::HBEAT_CAP
-            | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
-    
-        // algorithm_rsp
-        context
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        context.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
@@ -72,26 +36,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
     
         context.common.reset_runtime_info();
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(MESSAGE_A);
-        context
-            .common
-            .runtime_info
-            .message_b
-            .append_message(MESSAGE_B);
-        context
-            .common
-            .runtime_info
-            .message_c
-            .append_message(MESSAGE_C);
-        // context
-        //     .common
-        //     .runtime_info
-        //     .message_m
-        //     .append_message(message_m);
+
     
         context.handle_spdm_psk_exchange(data);
     }
@@ -110,38 +55,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
             config_info1,
             provision_info1,
         );
-    
-        context.common.negotiate_info.req_ct_exponent_sel = 0;
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::CHAL_CAP
-        | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-        | SpdmRequestCapabilityFlags::MAC_CAP
-        //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-        | SpdmRequestCapabilityFlags::KEY_EX_CAP
-        | SpdmRequestCapabilityFlags::PSK_CAP
-        | SpdmRequestCapabilityFlags::ENCAP_CAP
-        | SpdmRequestCapabilityFlags::HBEAT_CAP
-        | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
-        context.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        context.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::CHAL_CAP
-        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-        | SpdmResponseCapabilityFlags::MAC_CAP
-        //| SpdmResponseCapabilityFlags::MUT_AUTH_CAP
-        | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
-        | SpdmResponseCapabilityFlags::HBEAT_CAP
-            | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
-    
-        // algorithm_rsp
-        context
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        context.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
@@ -150,38 +64,11 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
     
         context.common.reset_runtime_info();
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(MESSAGE_A);
-        context
-            .common
-            .runtime_info
-            .message_b
-            .append_message(MESSAGE_B);
-        context
-            .common
-            .runtime_info
-            .message_c
-            .append_message(MESSAGE_C);
-        // context
-        //     .common
-        //     .runtime_info
-        //     .message_m
-        //     .append_message(message_m);
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[1].setup(4294901758).unwrap();
         context.common.session[2].setup(4294901758).unwrap();
         context.common.session[3].setup(4294901758).unwrap();
-        context.common.session[0].set_crypto_param(
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            SpdmDheAlgo::SECP_384_R1,
-            SpdmAeadAlgo::AES_256_GCM,
-            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        );
-    
         context.handle_spdm_psk_exchange(data);
     }
 }
