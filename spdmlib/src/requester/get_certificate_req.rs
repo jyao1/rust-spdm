@@ -246,7 +246,7 @@ mod tests_requester {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        // crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -258,10 +258,7 @@ mod tests_requester {
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
-            data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -276,10 +273,7 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.provision_info.peer_cert_chain_data = Some(SpdmCertChainData {
-            data_size: 100u16,
-            data: [10u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
-        let _ = requester.send_receive_spdm_certificate(0).is_ok();
+        let status = requester.send_receive_spdm_certificate(0).is_ok();
+        assert!(status);
     }
 }

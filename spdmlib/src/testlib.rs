@@ -532,6 +532,38 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
     Ok(data.len())
 }
 
+pub struct FuzzSpdmDeviceIoReceve<'a> {
+    data: &'a SharedBuffer,
+    fuzzdata: &'a [u8],
+}
+
+impl<'a> FuzzSpdmDeviceIoReceve<'a> {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a[u8]) -> Self {
+        FuzzSpdmDeviceIoReceve {
+            data: data,
+            fuzzdata,
+        }
+    }
+}
+
+impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
+    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+        let len = self.data.get_buffer(read_buffer);
+        log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
+        Ok(len)
+    }
+
+    fn send(&mut self, buffer: &[u8]) -> SpdmResult {
+        self.data.set_buffer(self.fuzzdata);
+        log::info!("responder send    RAW - {:02x?}\n", buffer);
+        Ok(())
+    }
+
+    fn flush_all(&mut self) -> SpdmResult {
+        Ok(())
+    }
+}
+
 pub fn cert_chain_array() -> [u8; 1492] {
     let cert_chain = [
         0x30u8, 0x82u8, 0x01u8, 0xcfu8, 0x30u8, 0x82u8, 0x01u8, 0x56u8, 0xa0u8, 0x03u8, 0x02u8,

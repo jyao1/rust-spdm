@@ -4,9 +4,9 @@
 
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
+use crate::crypto;
 use crate::error::SpdmResult;
 use crate::requester::*;
-use crate::crypto;
 
 use crate::common::ManagedBuffer;
 
@@ -23,7 +23,7 @@ impl<'a> RequesterContext<'a> {
         let req_session_id = 0xFFFD;
 
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
-        crypto::rand::get_random (&mut psk_context)?;
+        crypto::rand::get_random(&mut psk_context)?;
 
         let mut opaque = SpdmOpaqueStruct {
             data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION.len() as u16,
@@ -166,5 +166,59 @@ impl<'a> RequesterContext<'a> {
             },
             None => spdm_result_err!(EIO),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_requester {
+    use super::*;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+
+    #[test]
+    fn test_case0_send_receive_spdm_psk_exchange() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+        let (req_config_info, req_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+            data_size: 512u16,
+            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        });
+
+        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
+        let measurement_summary_hash_type =
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
+            
+        let status = requester
+            .send_receive_spdm_psk_exchange(measurement_summary_hash_type)
+            .is_ok();
+        assert!(status);
     }
 }
