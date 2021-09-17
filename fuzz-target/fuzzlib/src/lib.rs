@@ -3,6 +3,7 @@ pub mod requesterlib;
 pub mod responderlib;
 pub mod shared_buffer;
 pub mod fuzz_crypto;
+pub mod fuzz_aead_impl;
 
 use std::path::PathBuf;
 
@@ -14,6 +15,7 @@ pub use requesterlib::{
 pub use responderlib::rsp_create_info;
 pub use shared_buffer::SharedBuffer;
 pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND};
+pub use fuzz_aead_impl::{FUZZ_AEAD};
 
 pub use mctp_transport::MctpTransportEncap;
 pub use pcidoe_transport::PciDoeTransportEncap;
@@ -21,6 +23,7 @@ use simple_logger::SimpleLogger;
 pub use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 pub use spdm_emu::spdm_emu::*;
 pub use spdmlib;
+pub use codec;
 pub use spdmlib::common::{SpdmDeviceIo, SpdmTransportEncap};
 pub use spdmlib::config;
 pub use spdmlib::msgs::*;
