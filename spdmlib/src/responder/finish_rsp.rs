@@ -203,15 +203,7 @@ mod tests_responder {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-            | SpdmRequestCapabilityFlags::CHAL_CAP
-            | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-            | SpdmRequestCapabilityFlags::MAC_CAP
-            | SpdmRequestCapabilityFlags::KEY_EX_CAP
-            | SpdmRequestCapabilityFlags::PSK_CAP
-            | SpdmRequestCapabilityFlags::ENCAP_CAP
-            | SpdmRequestCapabilityFlags::HBEAT_CAP
-            | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
 
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
@@ -274,7 +266,10 @@ mod tests_responder {
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        
+        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
+        context.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
@@ -283,22 +278,9 @@ mod tests_responder {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-            | SpdmRequestCapabilityFlags::CHAL_CAP
-            | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-            | SpdmRequestCapabilityFlags::MAC_CAP
-            | SpdmRequestCapabilityFlags::KEY_EX_CAP
-            | SpdmRequestCapabilityFlags::PSK_CAP
-            | SpdmRequestCapabilityFlags::ENCAP_CAP
-            | SpdmRequestCapabilityFlags::HBEAT_CAP
-            | SpdmRequestCapabilityFlags::KEY_UPD_CAP
-            | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-
-        context.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-
         context.common.session[0]
             .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+            
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {

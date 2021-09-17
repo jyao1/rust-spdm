@@ -117,7 +117,7 @@ mod tests_requester {
         ];
 
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, data);
+        let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
 
         // let shared_buffer = SharedBuffer::new();
         // let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
