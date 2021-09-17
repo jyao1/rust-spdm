@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::crypto;
 use crate::error::SpdmResult;
 use crate::requester::*;
-use crate::crypto;
 
 impl<'a> RequesterContext<'a> {
     fn send_receive_spdm_measurement_record(
@@ -18,7 +18,7 @@ impl<'a> RequesterContext<'a> {
         let mut writer = Writer::init(&mut send_buffer);
 
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
-        crypto::rand::get_random (&mut nonce)?;
+        crypto::rand::get_random(&mut nonce)?;
 
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -146,7 +146,6 @@ impl<'a> RequesterContext<'a> {
                     SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                     slot_id,
                 ) {
-
                     for block_i in 1..total_number.checked_add(1).ok_or(spdm_err!(ENOMEM))? {
                         if self
                             .send_receive_spdm_measurement_record(
@@ -176,5 +175,114 @@ impl<'a> RequesterContext<'a> {
                 )
                 .and(Ok(())),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_requester {
+    use super::*;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+
+    #[test]
+    fn test_case0_send_receive_spdm_measurement() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+        let (req_config_info, req_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        responder.common.negotiate_info.req_ct_exponent_sel = 0;
+        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
+
+        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
+        responder.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::CERT_CAP;
+
+        responder
+            .common
+            .negotiate_info
+            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
+
+        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        responder.common.negotiate_info.base_asym_sel =
+            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        responder.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        let message_m = &[0];
+        responder
+            .common
+            .runtime_info
+            .message_m
+            .append_message(message_m);
+        responder.common.reset_runtime_info();
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+
+        requester.common.negotiate_info.req_ct_exponent_sel = 0;
+        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
+
+        requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::CERT_CAP;
+        requester
+            .common
+            .negotiate_info
+            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.base_asym_sel =
+            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        requester.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.reset_runtime_info();
+
+        let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
+        let status = requester
+            .send_receive_spdm_measurement(measurement_operation, 0)
+            .is_ok();
+        assert!(status);
+
+        let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementRequestAll;
+        let status = requester
+            .send_receive_spdm_measurement(measurement_operation, 0)
+            .is_ok();
+        assert!(status);
+
+        let measurement_operation = SpdmMeasurementOperation::Unknown(5);
+        let status = requester
+            .send_receive_spdm_measurement(measurement_operation, 0)
+            .is_ok();
+        assert!(status);
+
+        let message_m = &[0];
+        requester
+            .common
+            .runtime_info
+            .message_m
+            .append_message(message_m);
+        let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
+        let status = requester
+            .send_receive_spdm_measurement(measurement_operation, 0)
+            .is_ok();
+        assert!(status);
     }
 }
