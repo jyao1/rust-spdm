@@ -19,6 +19,17 @@ for i in fuzz-target/out/*;do
     fi
 done
 
+if [ "core" != `cat /proc/sys/kernel/core_pattern` ];then
+    if [ `id -u` -ne 0 ];then
+        expect switch_root_run_cmd.sh
+    else
+        echo core >/proc/sys/kernel/core_pattern
+        pushd /sys/devices/system/cpu
+        echo performance | tee cpu*/cpufreq/scaling_governor
+        popd
+    fi
+fi
+
 rm -rf fuzz-target/out/*
 cmds=(
 "rspversion"
@@ -87,7 +98,7 @@ do
     fi
     screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-    sleep 1200
+    sleep 36
     screen -S ${cmds[$i]} -X quit
     sleep 5
 done

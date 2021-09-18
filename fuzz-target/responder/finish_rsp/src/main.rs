@@ -4,7 +4,6 @@
 
 use fuzzlib::{
     spdmlib::{
-        config,
         session::{SpdmSession, SpdmSessionState},
     },
     *,
@@ -15,6 +14,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
     let (config_info1, provision_info1) = rsp_create_info();
     let (config_info2, provision_info2) = rsp_create_info();
     let (config_info3, provision_info3) = rsp_create_info();
+    let (config_info4, provision_info4) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
@@ -88,7 +88,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
     }
 
     {
-        // runtime info message_a add, err 39 lines
+        // 53 lines
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -101,7 +101,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         );
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
@@ -114,11 +114,6 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        context
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
         context.handle_spdm_finish(4294901758, data);
     }
@@ -137,6 +132,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        context.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
@@ -153,6 +150,42 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.handle_spdm_finish(4294901758, data);
     }
+        {
+        // error 109 lines
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info4,
+            provision_info4,
+        );
+
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        context.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(4294901758).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+
+        context.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
+        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+
+        context.common.runtime_info.message_a.append_message(&[1u8;config::MAX_SPDM_MESSAGE_BUFFER_SIZE-103]);
+
+        context.handle_spdm_finish(4294901758, data);
+    }
+
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
