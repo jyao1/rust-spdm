@@ -117,7 +117,7 @@ mod tests_requester {
         requester.common.session[0]
             .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
 
-        let status = requester.send_receive_spdm_end_session(session_id).is_ok();
+        let status = requester.end_session(session_id).is_ok();
         assert!(status);
     }
 }

@@ -160,7 +160,7 @@ mod tests_requester {
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
@@ -172,42 +172,21 @@ mod tests_requester {
             rsp_provision_info,
         );
 
-        // capability_rsp
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
+        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
+        responder.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        // algorithm_rsp
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
-        // responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        // responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        // responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-        // responder.common.negotiate_info.rsp_capabilities_sel =
-        //     SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         responder.common.reset_runtime_info();
 
-        let rsp_session_id = 0xffu16;
-        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
         responder.common.session = [SpdmSession::new(); 4];
-        responder.common.session[0].setup(session_id).unwrap();
+        responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
             SpdmDheAlgo::SECP_384_R1,
@@ -215,7 +194,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         responder.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -228,39 +207,21 @@ mod tests_requester {
         );
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
-        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-        requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        requester.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
+        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        //algorithm_req
-        requester
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        requester.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
+        requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
+        requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
-        // requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        // requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        // requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-        // requester.common.negotiate_info.rsp_capabilities_sel =
-        //     SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         requester.common.reset_runtime_info();
 
-        let rsp_session_id = 0xffu16;
-        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+
         requester.common.session = [SpdmSession::new(); 4];
-        requester.common.session[0].setup(session_id).unwrap();
+        requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
             SpdmDheAlgo::SECP_384_R1,
@@ -268,9 +229,10 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         requester.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(session_id).is_ok();
-        // assert!(status);
+        // let _ = requester.send_receive_spdm_finish(4294901758);
+        let status = requester.send_receive_spdm_finish(4294901758).is_ok();
+        assert!(status);
     }
 }

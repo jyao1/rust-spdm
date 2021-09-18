@@ -93,11 +93,11 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     my_cert_chain_data.data[ca_len..(ca_len + inter_len)].copy_from_slice(inter_cert.as_ref());
     my_cert_chain_data.data[(ca_len + inter_len)..(ca_len + inter_len + leaf_len)]
         .copy_from_slice(leaf_cert.as_ref());
-
+        
     let provision_info = common::SpdmProvisionInfo {
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
-        peer_cert_chain_data: None,
+        peer_cert_chain_data:Some(my_cert_chain_data),
         peer_cert_chain_root_hash: None,
     };
 

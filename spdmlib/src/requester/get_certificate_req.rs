@@ -198,6 +198,7 @@ mod tests_requester {
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
@@ -208,6 +209,7 @@ mod tests_requester {
             rsp_config_info,
             rsp_provision_info,
         );
+
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -228,51 +230,6 @@ mod tests_requester {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        let status = requester.send_receive_spdm_certificate(0).is_ok();
-        assert!(status);
-    }
-
-    #[test]
-    fn test_case1_send_receive_spdm_certificate() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
-
-        let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
-        // let fuzzdata: [[u8; 528]; 4] = certificata_data();
-        // let shared_buffer = SharedBuffer::new();
-        // let mut device_io_responder = FuzzTmpSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata, 0);
-
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
-        responder.common.reset_runtime_info();
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
-        );
-
-        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         let status = requester.send_receive_spdm_certificate(0).is_ok();
         assert!(status);
     }
