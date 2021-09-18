@@ -81,10 +81,10 @@ impl<'a> RequesterContext<'a> {
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used =
-            self.common
-                .transport_encap
-                .encap(send_buffer, &mut transport_buffer, false)?;
+        let used = self
+            .common
+            .transport_encap
+            .encap(send_buffer, &mut transport_buffer, false)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
 
@@ -179,5 +179,153 @@ impl<'a> RequesterContext<'a> {
             .decap_app(&app_buffer[0..decode_size], receive_buffer)?;
 
         Ok(used)
+    }
+}
+
+#[cfg(test)]
+mod tests_requester {
+    use codec::Writer;
+
+    use super::*;
+    use crate::session::SpdmSession;
+    use crate::testlib::*;
+    use crate::{crypto, responder};
+
+    #[test]
+    fn test_case0_start_session() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+        let (req_config_info, req_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+
+        let status = requester.init_connection().is_ok();
+        assert!(status);
+
+        let status = requester.send_receive_spdm_digest().is_ok();
+        assert!(status);
+
+        let status = requester.send_receive_spdm_certificate(0).is_ok();
+        assert!(status);
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert!(result.is_ok());
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert!(result.is_ok());
+
+        let result = requester.start_session(
+            true,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_case0_receive_secured_message() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+        let (req_config_info, req_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        let rsp_session_id = 0xffu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        responder.common.session = [SpdmSession::new(); 4];
+        responder.common.session[0].setup(session_id).unwrap();
+        responder.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        responder.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        let rsp_session_id = 0xffu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0].setup(session_id).unwrap();
+        requester.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        requester.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+
+        let request = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion11,
+                request_response_code: SpdmResponseResponseCode::SpdmRequestEndSession,
+            },
+            payload: SpdmMessagePayload::SpdmEndSessionRequest(SpdmEndSessionRequestPayload {
+                end_session_request_attributes: SpdmEndSessionRequestAttributes::empty(),
+            }),
+        };
+        request.spdm_encode(&mut requester.common, &mut writer);
+        let used = writer.used();
+
+        let status = requester.send_secured_message(session_id, &send_buffer[..used]).is_ok();
+        assert!(status);
+
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+
+        let status = requester.receive_secured_message(session_id, &mut receive_buffer).is_ok();
+        assert!(status);
     }
 }
