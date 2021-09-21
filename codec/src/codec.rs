@@ -159,10 +159,19 @@ impl Codec for u16 {
 // Make a distinct type for u24, even though it's a u32 underneath
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, Default)]
-pub struct u24(pub u32);
+pub struct u24(u32);
 
 impl u24 {
-    pub fn decode(bytes: &[u8]) -> Option<u24> {
+    pub fn new(v: u32) -> u24 {
+        assert_eq!(v >> 24, 0);
+        u24(v)
+    }
+
+    pub fn get(&self) -> u32 {
+        self.0
+    }
+
+    fn decode(bytes: &[u8]) -> Option<u24> {
         Some(u24(u32::from(bytes[0])
             | (u32::from(bytes[1]) << 8)
             | (u32::from(bytes[2]) << 16)))
@@ -285,11 +294,16 @@ mod tests {
     fn test_u24() {
         let u8_slice = &mut [0u8; 3];
         let mut witer = Writer::init(u8_slice);
-        let value = u24(100);
+        let value = u24::new(100);
         value.encode(&mut witer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(3, reader.left());
-        assert_eq!(u24::read(&mut reader).unwrap().0, u24(100).0);
+        assert_eq!(u24::read(&mut reader).unwrap().0, u24::new(100).0);
+    }
+    #[test]
+    #[should_panic]
+    fn test_u24_max_size() {
+        let _ = u24::new(1 << 24);
     }
     #[test]
     fn test_u8() {
