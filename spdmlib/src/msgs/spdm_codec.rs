@@ -115,7 +115,7 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
             }
             calc_length += d.measurement_size as u32 + 4;
         }
-        let record_length = u24(calc_length);
+        let record_length = u24::new(calc_length);
         record_length.encode(bytes);
 
         for d in self.record.iter().take(self.number_of_blocks as usize) {
@@ -142,7 +142,7 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
             }
             calc_length += d.measurement_size as u32 + 4;
         }
-        if calc_length != record_length.0 {
+        if calc_length != record_length.get() {
             return None;
         }
 
