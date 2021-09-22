@@ -798,7 +798,7 @@ impl SpdmSession {
         if (length as usize) < tag_size {
             return spdm_result_err!(EINVAL);
         }
-        
+
         let cipher_text_size = length as usize - tag_size;
 
         let mut plain_text_buf = [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
@@ -833,5 +833,123 @@ impl SpdmSession {
 
         app_buffer[..app_length].copy_from_slice(&plain_text_buf[2..(app_length + 2)]);
         Ok(app_length)
+    }
+}
+
+#[cfg(test)]
+mod tests_session {
+    use super::*;
+    use crate::responder;
+    use crate::testlib::*;
+
+    #[test]
+    fn test_case0_activate_data_secret_update() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        let rsp_session_id = 0xFFFEu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+        let session = context.common.get_session_via_id(session_id).unwrap();
+
+        let status = session
+            .activate_data_secret_update(true, true, false)
+            .is_ok();
+        assert!(status);
+
+        let status = session
+            .activate_data_secret_update(true, false, false)
+            .is_ok();
+        assert!(status);
+
+        let status = session
+            .activate_data_secret_update(false, false, false)
+            .is_ok();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_decode_msg() {
+        let (config_info, provision_info) = create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            pcidoe_transport_encap,
+            config_info,
+            provision_info,
+        );
+
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        let rsp_session_id = 0xffu16;
+        let session_id = (0xffu32 << 16) + rsp_session_id as u32;
+        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0].setup(session_id).unwrap();
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context.common.session[0]
+            .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+
+        let mut send_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut witer = Writer::init(&mut send_buffer);
+        session_id.encode(&mut witer);
+
+        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+
+        let session = context.common.get_session_via_id(session_id).unwrap();
+        session.handshake_secret.request_direction = SpdmSessionSecretParam {
+            encryption_key: SpdmAeadKeyStruct {
+                data_size: 50,
+                data: [10u8; SPDM_MAX_AEAD_KEY_SIZE],
+            },
+            salt: SpdmAeadIvStruct {
+                data_size: 50,
+                data: [10u8; SPDM_MAX_AEAD_IV_SIZE],
+            },
+            sequence_number: 100u64,
+        };
+        session.transport_param.sequence_number_count = 1;
+        let status = session
+            .decode_msg(
+                &send_buffer,
+                &mut encoded_send_buffer,
+                &session.handshake_secret.request_direction,
+            )
+            .is_ok();
+        assert!(!status);
+
+        let mut witer = Writer::init(&mut send_buffer);
+        session_id.encode(&mut witer);
+        let status = session
+            .decode_msg(
+                &send_buffer[0..100],
+                &mut encoded_send_buffer,
+                &session.handshake_secret.request_direction,
+            )
+            .is_ok();
+        assert!(!status);
     }
 }

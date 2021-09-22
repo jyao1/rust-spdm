@@ -356,3 +356,54 @@ pub mod rand {
             .get_random_cb)(data)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testlib::*;
+
+    #[test]
+    fn test_case0_cert_operation_register() {
+        let context = SpdmCertOperation {
+            get_cert_from_cert_chain_cb: cert_operation::get_cert_from_cert_chain,
+            verify_cert_chain_cb: cert_operation::verify_cert_chain,
+        };
+        let state = cert_operation::register(context);
+        assert_eq!(state, false);
+    }
+    #[test]
+    fn test_case0_hmac_register() {
+        let state = hmac::register(HMAC_TEST);
+        assert_eq!(state, true);
+    }
+    #[test]
+    fn test_case0_hash_register() {
+        let state = hash::register(spdm_ring::hash_impl::DEFAULT);
+        assert_eq!(state, true);
+    }
+    #[test]
+    fn test_case0_asym_verify_register() {
+        let state = asym_verify::register(spdm_ring::asym_verify_impl::DEFAULT);
+        assert_eq!(state, true);
+    }
+    #[test]
+    fn test_case0_dhe_register() {
+        let state = dhe::register(spdm_ring::dhe_impl::DEFAULT);
+        assert_eq!(state, true);
+    }
+    #[test]
+    fn test_case0_hkdf_register() {
+        let state = hkdf::register(spdm_ring::hkdf_impl::DEFAULT);
+        assert_eq!(state, true);
+    }
+    #[test]
+    fn test_case0_aead_register() {
+        let state = aead::register(spdm_ring::aead_impl::DEFAULT);
+        assert_eq!(state, true);
+    }
+    #[test]
+    fn test_case0_rand_register() {
+        let state = rand::register(DEFAULT_TEST);
+        assert_eq!(state, true);
+    }
+}

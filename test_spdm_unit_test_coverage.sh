@@ -10,7 +10,7 @@ export LLVM_PROFILE_FILE="your_name-%p-%m.profraw"
 
 cargo build
 
-cargo test tests_requester
+cargo test 
 
 grcov . --binary-path ./target/debug/ -s . -t html --branch --ignore-not-existing -o ./target/debug/coverage/
 

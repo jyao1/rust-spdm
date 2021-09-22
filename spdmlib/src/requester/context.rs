@@ -185,7 +185,6 @@ impl<'a> RequesterContext<'a> {
 #[cfg(test)]
 mod tests_requester {
     use codec::Writer;
-
     use super::*;
     use crate::session::SpdmSession;
     use crate::testlib::*;
