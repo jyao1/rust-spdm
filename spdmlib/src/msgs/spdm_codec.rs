@@ -259,7 +259,6 @@ mod tests {
             data_size: 64,
             data: [100u8; SPDM_MAX_HASH_SIZE],
         };
-        println!("SpdmDigestStruct={:#?}\n", value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -283,7 +282,6 @@ mod tests {
             data_size: 512,
             data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
         };
-        println!("SpdmSignatureStruct={:#?}\n", value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -352,7 +350,6 @@ mod tests {
                 },
             };config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
         };
-        println!("SpdmMeasurementRecordStructure:{:#?}",value);
        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -401,7 +398,6 @@ mod tests {
             data_size: 512,
             data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
         };
-        println!("SpdmDheExchangeStruct:{:#?}",value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;

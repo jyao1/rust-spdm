@@ -226,7 +226,6 @@ mod tests {
                 alg_ext_count: 0,
             }; config::MAX_SPDM_ALG_STRUCT_COUNT],
         };
-        println!("SpdmNegotiateAlgorithmsRequestPayload={:#?}\n", value);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -334,7 +333,6 @@ mod tests {
                 alg_ext_count: 0,
             }; config::MAX_SPDM_ALG_STRUCT_COUNT],
         };
-        println!("SpdmAlgorithmsResponsePayload={:#?}\n", value);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;

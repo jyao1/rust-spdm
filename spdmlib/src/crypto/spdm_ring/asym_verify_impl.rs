@@ -143,9 +143,6 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     let der_r_size = if r[0] < 0x80 { r_size } else { r_size + 1 };
     let der_s_size = if s[0] < 0x80 { s_size } else { s_size + 1 };
     let der_sign_size = der_r_size + der_s_size + 6;
-    println!("der_r_size{}", der_r_size);
-    println!("der_s_size{}", der_s_size);
-    println!("der_sign_size{}", der_sign_size);
 
     if der_signature.len() < der_sign_size {
         panic!("der_signature too small");
