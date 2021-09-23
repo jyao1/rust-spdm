@@ -38,9 +38,6 @@ fn fuzz_handle_spdm_end_session(data: &[u8]) {
     context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     context.handle_spdm_end_session(4294901758, data);
-    let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
-    println!("Received: {:?}", req_buf);
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]

@@ -101,10 +101,7 @@ impl<'a> ResponderContext<'a> {
                 .append_message(&send_buffer[..temp_used])
                 .is_none()
             {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-                let session = self.common.get_session_via_id(session_id).unwrap();
-                let _ = session.teardown(session_id);
-                return;
+                panic!("message_f add the message error");
             }
 
             let transcript_data =
