@@ -29,19 +29,7 @@ fn fuzz_send_receive_spdm_end_session(fuzzdata: &[u8]) {
             rsp_provision_info,
         );
 
-        // capability_rsp
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-
-
-        responder.common.reset_runtime_info();
 
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
@@ -63,19 +51,7 @@ fn fuzz_send_receive_spdm_end_session(fuzzdata: &[u8]) {
             req_provision_info,
         );
 
-        requester.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-
-
-        requester.common.reset_runtime_info();
-
 
         requester.common.session = [SpdmSession::new(); 4];
         requester.common.session[0].setup(4294901758).unwrap();
@@ -105,18 +81,7 @@ fn fuzz_send_receive_spdm_end_session(fuzzdata: &[u8]) {
             rsp_provision_info1,
         );
 
-        // algorithm_rsp
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-
-        responder.common.reset_runtime_info();
 
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
@@ -140,20 +105,7 @@ fn fuzz_send_receive_spdm_end_session(fuzzdata: &[u8]) {
 
 
 
-        //algorithm_req
-        requester.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-        requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
-
-        requester.common.reset_runtime_info();
 
         requester.common.session = [SpdmSession::new(); 4];
         requester.common.session[0].setup(4294901758).unwrap();

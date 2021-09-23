@@ -48,8 +48,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
         context.handle_spdm_psk_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
     }
 
     {
@@ -76,8 +74,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         context.common.runtime_info.message_a.append_message(&[1u8;config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
         context.handle_spdm_psk_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
     }
     {
         // negotiate info modify 512, err 46 lines
@@ -102,8 +98,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         );
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
         context.handle_spdm_psk_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
     }
     {
         // negotiate info modify TPM_ALG_SHA3_384, err 46 lines
@@ -130,8 +124,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
         context.handle_spdm_psk_finish(4294901758, data);
-        let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
     }
 
 }

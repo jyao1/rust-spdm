@@ -32,28 +32,28 @@ fi
 
 rm -rf fuzz-target/out/*
 cmds=(
-"rspversion"
-"rspcapability"
-"rspalgorithm"
-"rspdigest"
-"rspcertificate"
-"rspchallenge"
-"rspmeasurement"
-"rspkeyexchange"
-"rsppskexchange"
+"version_rsp"
+"capability_rsp"
+"algorithm_rsp"
+"digest_rsp"
+"certificate_rsp"
+"challenge_rsp"
+"measurement_rsp"
+"keyexchange_rsp"
+"pskexchange_rsp"
 "finish_rsp"
 "psk_finish_rsp"
 "heartbeat_rsp"
 "key_update_rsp"
 "end_session_rsp"
 
-"reqversion"
-"reqcapability"
-"reqalgorithm"
-"reqdigest"
-"reqcertificate"
-"reqchallenge"
-"reqmeasurement"
+"version_req"
+"capability_req"
+"algorithm_req"
+"digest_req"
+"certificate_req"
+"challenge_req"
+"measurement_req"
 "key_exchange_req"
 "psk_exchange_req"
 "finish_req"
@@ -70,8 +70,6 @@ done
 
 echo "cargo afl build --features fuzz $buildpackage"
 
-unset RUSTFLAGS
-unset LLVM_PROFILE_FILE
 
 if [[ $1 = "Scoverage" ]]; then
     echo "$1"
@@ -98,11 +96,16 @@ do
     fi
     screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
     screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-    sleep 36
+    sleep 3600
     screen -S ${cmds[$i]} -X quit
     sleep 5
 done
 
 if [[ $1 = "Scoverage" || $1 = "Gcoverage" ]]; then
 grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/fuzz_coverage/
+    unset RUSTFLAGS
+    unset LLVM_PROFILE_FILE
+    unset CARGO_INCREMENTAL
+    unset RUSTDOCFLAGS
+    unset RUSTFLAGS
 fi
