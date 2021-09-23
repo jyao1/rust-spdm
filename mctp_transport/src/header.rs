@@ -140,23 +140,137 @@ impl SpdmTransportEncap for MctpTransportEncap {
 }
 
 #[cfg(test)]
-mod tests 
-{
+mod tests {
+    use spdmlib::config;
+
     use super::*;
 
     #[test]
     fn test_case0_mctpmessageheader() {
         let u8_slice = &mut [0u8; 1];
         let mut writer = Writer::init(u8_slice);
-        let value =  MctpMessageHeader
-        {
-            r#type : MctpMessageType :: MctpMessageTypeMctpControl,
+        let value = MctpMessageHeader {
+            r#type: MctpMessageType::MctpMessageTypeMctpControl,
         };
         value.encode(&mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(1, reader.left());
-        let mctp_message_header =MctpMessageHeader::read(&mut reader).unwrap();
+        let mctp_message_header = MctpMessageHeader::read(&mut reader).unwrap();
         assert_eq!(0, reader.left());
-        assert_eq!(mctp_message_header.r#type,MctpMessageType :: MctpMessageTypeMctpControl); 
+        assert_eq!(
+            mctp_message_header.r#type,
+            MctpMessageType::MctpMessageTypeMctpControl
+        );
+    }
+    #[test]
+    fn test_case0_encap() {
+        let mut mctp_transport_encap = MctpTransportEncap {};
+        let mut transport_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let spdm_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+
+        let status = mctp_transport_encap
+            .encap(&spdm_buffer, &mut transport_buffer, false)
+            .is_ok();
+        assert!(status);
+
+        let status = mctp_transport_encap
+            .encap(&spdm_buffer, &mut transport_buffer, true)
+            .is_ok();
+        assert!(status);
+
+        let mut transport_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let spdm_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let status = mctp_transport_encap
+            .encap(&spdm_buffer, &mut transport_buffer, true)
+            .is_err();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_decap() {
+        let mut mctp_transport_encap = MctpTransportEncap {};
+
+        let mut spdm_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+
+        let transport_buffer = &mut [0u8; 10];
+
+        let status = mctp_transport_encap
+            .decap(transport_buffer, &mut spdm_buffer)
+            .is_err();
+        assert!(status);
+
+        let mut writer = Writer::init(transport_buffer);
+        let value = MctpMessageHeader {
+            r#type: MctpMessageType::MctpMessageTypeSpdm,
+        };
+        value.encode(&mut writer);
+
+        let status = mctp_transport_encap
+            .decap(transport_buffer, &mut spdm_buffer)
+            .is_ok();
+        assert!(status);
+
+        let transport_buffer = &mut [0u8; 2];
+        let mut writer = Writer::init(transport_buffer);
+        let value = MctpMessageHeader {
+            r#type: MctpMessageType::MctpMessageTypeSecuredMctp,
+        };
+        value.encode(&mut writer);
+
+        let status = mctp_transport_encap
+            .decap(transport_buffer, &mut spdm_buffer)
+            .is_ok();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_encap_app() {
+        let mut mctp_transport_encap = MctpTransportEncap {};
+        let mut app_buffer = [0u8; 100];
+        let spdm_buffer = [0u8; 10];
+
+        let status = mctp_transport_encap
+            .encap_app(&spdm_buffer, &mut app_buffer)
+            .is_ok();
+        assert!(status);
+
+        let spdm_buffer = [100u8; 1024];
+
+        let status = mctp_transport_encap
+            .encap_app(&spdm_buffer, &mut app_buffer)
+            .is_err();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_decap_app() {
+        let mut mctp_transport_encap = MctpTransportEncap {};
+
+        let mut spdm_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+
+        let transport_buffer = &mut [0u8; 10];
+
+        let status = mctp_transport_encap
+            .decap_app(transport_buffer, &mut spdm_buffer)
+            .is_err();
+        assert!(status);
+
+        let mut writer = Writer::init(transport_buffer);
+        let value = MctpMessageHeader {
+            r#type: MctpMessageType::MctpMessageTypeSpdm,
+        };
+        value.encode(&mut writer);
+
+        let status = mctp_transport_encap
+            .decap_app(transport_buffer, &mut spdm_buffer)
+            .is_ok();
+        assert!(status);
+    }
+    #[test]
+    fn test_case0_get_sequence_number_count() {
+        let mut mctp_transport_encap = MctpTransportEncap {};
+        assert_eq!(mctp_transport_encap.get_sequence_number_count(),2);
+    }
+    #[test]
+    fn test_case0_get_max_random_count() {
+        let mut mctp_transport_encap = MctpTransportEncap {};
+        assert_eq!(mctp_transport_encap.get_max_random_count(),32);
     }
 }
