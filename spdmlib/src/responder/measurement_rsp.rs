@@ -275,7 +275,6 @@ mod tests_responder {
         let u8_slice = &mut [0u8; 2048];
         for (i, data) in data.iter().enumerate() {
             u8_slice[i] = *data;
-            println!("u8_slice[{}]=={:?}", i, u8_slice[i]);
         }
 
         let mut message_header_slice = Reader::init(u8_slice);
@@ -403,7 +402,6 @@ mod tests_responder {
         let u8_slice = &mut [0u8; 2048];
         for (i, data) in data.iter().enumerate() {
             u8_slice[i] = *data;
-            println!("u8_slice[{}]=={:?}", i, u8_slice[i]);
         }
 
         let mut message_header_slice = Reader::init(u8_slice);

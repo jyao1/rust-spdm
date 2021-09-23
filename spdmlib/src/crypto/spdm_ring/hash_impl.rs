@@ -31,9 +31,6 @@ mod tests {
 
         let hash_all = hash_all(base_hash_algo, data).unwrap();
         assert_eq!(hash_all.data_size,64);
-        for i in 0..64{
-            println!("hash_all.data[{}]:{}",i,hash_all.data[i]);
-        }
     }
     #[test]
     fn test_case1_hash_all() {
@@ -42,9 +39,6 @@ mod tests {
 
         let hash_all = hash_all(base_hash_algo, data).unwrap();
         assert_eq!(hash_all.data_size,32);
-        for i in 0..64{
-            println!("hash_all.data[{}]:{}",i,hash_all.data[i]);
-        }
     }
     #[test]
     fn test_case2_hash_all(){

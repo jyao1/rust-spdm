@@ -100,104 +100,49 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
 }
 #[cfg(test)]
 mod tests {
-    use crate::testlib::*;
     use super::*;
+    use crate::testlib::*;
 
     #[test]
     fn test_case0_cert_from_cert_chain() {
         let cert_chain = &mut cert_chain_array();
-        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, -1);
-
-        match get_cert_from_cert_chain {
-            Ok((942, 0x5d4)) => {
-                println!("Cert verification");
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        let status = get_cert_from_cert_chain(cert_chain, -1).is_ok();
+        assert!(status);
     }
 
     #[test]
     fn test_case1_cert_from_cert_chain() {
         let cert_chain = &mut cert_chain_array();
-        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 0);
-
-        match get_cert_from_cert_chain {
-            Ok((0, 0x1d3)) => {
-                println!("Cert verification");
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        let status = get_cert_from_cert_chain(cert_chain, 0).is_ok();
+        assert!(status);
     }
     #[test]
     fn test_case2_cert_from_cert_chain() {
         let cert_chain = &mut cert_chain_array();
-        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 1);
-
-        match get_cert_from_cert_chain {
-            Ok((467, 0x3ae)) => {
-                println!("Cert verification");
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        let status = get_cert_from_cert_chain(cert_chain, 1).is_ok();
+        assert!(status);
     }
     #[test]
     fn test_case3_cert_from_cert_chain() {
         let cert_chain = &mut [0x1u8; 4096];
-
         cert_chain[0] = 0x00;
         cert_chain[1] = 0x00;
-        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 0);
-
-        match get_cert_from_cert_chain {
-            Ok((0, 0)) => {
-                assert!(false);
-            }
-            _ => {
-                assert!(true);
-            }
-        }
+        let status = get_cert_from_cert_chain(cert_chain, 0).is_err();
+        assert!(status);
     }
     #[test]
     fn test_case4_cert_from_cert_chain() {
         let cert_chain = &mut [0x11u8; 3];
-        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, 0);
-
-        match get_cert_from_cert_chain {
-            Ok((0, 0)) => {
-                assert!(false);
-            }
-            _ => {
-                assert!(true);
-            }
-        }
+        let status = get_cert_from_cert_chain(cert_chain, 0).is_err();
+        assert!(status);
     }
     #[test]
     fn test_case5_cert_from_cert_chain() {
         let cert_chain = &mut cert_chain_array();
-        let get_cert_from_cert_chain = get_cert_from_cert_chain(cert_chain, -1);
+        let status = get_cert_from_cert_chain(cert_chain, -1).is_ok();
+        assert!(status);
 
-        match get_cert_from_cert_chain {
-            Ok((942, 0x5d4)) => {
-                println!("Cert verification");
-            }
-            _ => {
-                assert!(false);
-            }
-        }
-        let get_cert_from_cert_chain = verify_cert_chain(cert_chain);
-        match get_cert_from_cert_chain {
-            Ok(()) => {
-                println!("Cert verification");
-            }
-            _ => {
-                assert!(false);
-            }
-        }
+        let status = verify_cert_chain(cert_chain).is_ok();
+        assert!(status);
     }
 }

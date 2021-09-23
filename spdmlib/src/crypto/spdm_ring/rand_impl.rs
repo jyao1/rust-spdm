@@ -49,7 +49,6 @@ mod tests {
     fn test_case1_get_random() {
         let data = &mut [100u8; 80];
         let data_len = get_random(data);
-        println!("data_len:{:?}", data_len);  
         match data_len {
             Ok(80) => {assert!(true)}
             _ => {
