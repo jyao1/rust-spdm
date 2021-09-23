@@ -16,8 +16,6 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 
-// pub use pcidoe_transport::PciDoeTransportEncap;
-
 pub fn get_test_key_directory() -> PathBuf {
     let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let crate_dir = crate_dir.parent().expect("can't find parent dir");
@@ -182,7 +180,6 @@ impl Codec for PciDoeMessageHeader {
         })
     }
 }
-
 pub struct PciDoeTransportEncap {}
 
 impl SpdmTransportEncap for PciDoeTransportEncap {
