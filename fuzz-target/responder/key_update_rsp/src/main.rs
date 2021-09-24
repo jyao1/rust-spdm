@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{*, spdmlib::session::{SpdmSession, SpdmSessionState}};
+use fuzzlib::{
+    spdmlib::session::{SpdmSession, SpdmSessionState},
+    *,
+};
 
 fn fuzz_handle_spdm_key_update(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -59,7 +62,7 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = [17,46,43];
+            let fuzzdata = [17, 46, 43];
             fuzz_handle_spdm_key_update(&fuzzdata);
         } else {
             let path = &args[1];

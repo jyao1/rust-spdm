@@ -42,32 +42,30 @@ impl SpdmCodec for SpdmOpaqueStruct {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testlib::*;
     use crate::config::MAX_SPDM_OPAQUE_SIZE;
-    
+    use crate::testlib::*;
+
     #[test]
-    fn test_case0_spdm_opaque_struct(){
+    fn test_case0_spdm_opaque_struct() {
         let u8_slice = &mut [0u8; 68];
         let mut writer = Writer::init(u8_slice);
-        let value= SpdmOpaqueStruct {
+        let value = SpdmOpaqueStruct {
             data_size: 64,
             data: [100u8; MAX_SPDM_OPAQUE_SIZE],
         };
 
-        
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap{};
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
-        value.spdm_encode(&mut context,&mut writer);
+        value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(68, reader.left());
-        let spdm_opaque_struct = SpdmOpaqueStruct::spdm_read(&mut context,&mut reader).unwrap();
-        assert_eq!(spdm_opaque_struct.data_size,64);
-        for i in 0..64
-        {
-            assert_eq!(spdm_opaque_struct.data[i],100);
+        let spdm_opaque_struct = SpdmOpaqueStruct::spdm_read(&mut context, &mut reader).unwrap();
+        assert_eq!(spdm_opaque_struct.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(spdm_opaque_struct.data[i], 100);
         }
         assert_eq!(2, reader.left());
-    } 
+    }
 }

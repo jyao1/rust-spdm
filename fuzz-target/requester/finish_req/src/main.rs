@@ -33,10 +33,10 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         // capability_rsp
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
         responder.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -73,10 +73,10 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
         requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
@@ -122,10 +122,10 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
         responder.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         // algorithm_rsp
         responder
@@ -169,7 +169,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+            | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
         requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
             | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
@@ -214,11 +214,11 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         );
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+        responder.common.negotiate_info.req_capabilities_sel =
+            SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
         responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
+        responder.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -254,11 +254,11 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         );
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
-        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+        requester.common.negotiate_info.req_capabilities_sel =
+            SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::KEY_UPD_CAP;
         requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =

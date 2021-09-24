@@ -184,11 +184,11 @@ impl<'a> RequesterContext<'a> {
 
 #[cfg(test)]
 mod tests_requester {
-    use codec::Writer;
     use super::*;
     use crate::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
+    use codec::Writer;
 
     #[test]
     fn test_case0_start_session() {
@@ -319,12 +319,16 @@ mod tests_requester {
         request.spdm_encode(&mut requester.common, &mut writer);
         let used = writer.used();
 
-        let status = requester.send_secured_message(session_id, &send_buffer[..used]).is_ok();
+        let status = requester
+            .send_secured_message(session_id, &send_buffer[..used])
+            .is_ok();
         assert!(status);
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
 
-        let status = requester.receive_secured_message(session_id, &mut receive_buffer).is_ok();
+        let status = requester
+            .receive_secured_message(session_id, &mut receive_buffer)
+            .is_ok();
         assert!(status);
     }
 }

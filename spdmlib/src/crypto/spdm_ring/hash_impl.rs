@@ -30,7 +30,7 @@ mod tests {
         let data = &mut [0u8; 64];
 
         let hash_all = hash_all(base_hash_algo, data).unwrap();
-        assert_eq!(hash_all.data_size,64);
+        assert_eq!(hash_all.data_size, 64);
     }
     #[test]
     fn test_case1_hash_all() {
@@ -38,14 +38,14 @@ mod tests {
         let data = &mut [0u8; 32];
 
         let hash_all = hash_all(base_hash_algo, data).unwrap();
-        assert_eq!(hash_all.data_size,32);
+        assert_eq!(hash_all.data_size, 32);
     }
     #[test]
-    fn test_case2_hash_all(){
+    fn test_case2_hash_all() {
         let base_hash_algo = SpdmBaseHashAlgo::empty();
         let data = &mut [0u8; 64];
 
         let hash_all = hash_all(base_hash_algo, data);
-        assert_eq!(hash_all.is_none(),true);
+        assert_eq!(hash_all.is_none(), true);
     }
 }

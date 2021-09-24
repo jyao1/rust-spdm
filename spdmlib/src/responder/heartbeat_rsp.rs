@@ -56,7 +56,6 @@ mod tests_responder {
             provision_info,
         );
 
-
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -78,7 +77,6 @@ mod tests_responder {
             request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
-
 
         context.handle_spdm_heartbeat(session_id, bytes);
     }

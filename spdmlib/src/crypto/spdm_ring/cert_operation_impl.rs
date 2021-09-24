@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::vec;
 use core::convert::TryFrom;
 
 use crate::crypto::SpdmCertOperation;
@@ -42,7 +42,7 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
 
 fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     // TBD
-    static EKU_SPDM_RESPONDER_AUTH: &'static [u8] = &[40 + 3, 6, 1, 5, 5, 7, 3, 1];
+    static EKU_SPDM_RESPONDER_AUTH: &[u8] = &[40 + 3, 6, 1, 5, 5, 7, 3, 1];
 
     static ALL_SIGALGS: &[&webpki::SignatureAlgorithm] = &[
         &webpki::RSA_PKCS1_2048_8192_SHA256,
@@ -62,8 +62,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let (ee_begin, ee_end) = get_cert_from_cert_chain(cert_chain, -1)?;
     let ee = &cert_chain[ee_begin..ee_end];
 
-    let mut anchors = Vec::new();
-    anchors.push(webpki::TrustAnchor::try_from_cert_der(ca).unwrap());
+    let anchors = vec![webpki::TrustAnchor::try_from_cert_der(ca).unwrap()];
 
     #[cfg(any(target_os = "uefi", target_os = "none"))]
     let time = webpki::Time::from_seconds_since_unix_epoch(uefi_time::get_rtc_time() as u64);
@@ -74,9 +73,16 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let cert = webpki::EndEntityCert::try_from(ee).unwrap();
 
     // we cannot call verify_is_valid_tls_server_cert because it will check verify_cert::EKU_SERVER_AUTH.
-    if cert.verify_cert_chain_with_eku(
-        EKU_SPDM_RESPONDER_AUTH, ALL_SIGALGS, &anchors, &[inter], time, 0
-    ).is_ok()
+    if cert
+        .verify_cert_chain_with_eku(
+            EKU_SPDM_RESPONDER_AUTH,
+            ALL_SIGALGS,
+            &anchors,
+            &[inter],
+            time,
+            0,
+        )
+        .is_ok()
     {
         info!("Cert verification Pass\n");
         Ok(())

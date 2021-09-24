@@ -357,10 +357,10 @@ mod tests {
     #[test]
     fn test_case0_sub() {
         let u8_slice = &mut [100u8; 4];
-        let mut reader = Reader{
+        let mut reader = Reader {
             buf: u8_slice,
             offs: 4,
         };
-        assert_eq!(reader.sub(4).is_none(),true);
+        assert_eq!(reader.sub(4).is_none(), true);
     }
 }

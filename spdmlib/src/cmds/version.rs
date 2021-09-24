@@ -142,7 +142,6 @@ mod tests {
             }; config::MAX_SPDM_VERSION_COUNT],
         };
 
-        
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -156,20 +155,23 @@ mod tests {
         assert_eq!(version_response.version_number_entry_count, 2u8);
         for i in 0..2 {
             assert_eq!(version_response.versions[i].update, 100u8);
-            assert_eq!(version_response.versions[i].version, SpdmVersion::SpdmVersion10);
+            assert_eq!(
+                version_response.versions[i].version,
+                SpdmVersion::SpdmVersion10
+            );
         }
         assert_eq!(0, reader.left());
     }
     #[test]
-    fn test_case0_spdm_get_version_request_payload (){
+    fn test_case0_spdm_get_version_request_payload() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmGetVersionRequestPayload  {};
+        let value = SpdmGetVersionRequestPayload {};
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
-        SpdmGetVersionRequestPayload ::spdm_read(&mut context, &mut reader);
+        SpdmGetVersionRequestPayload::spdm_read(&mut context, &mut reader);
     }
 }

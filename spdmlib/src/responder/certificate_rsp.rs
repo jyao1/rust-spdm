@@ -133,7 +133,7 @@ mod tests_responder {
         let data = context.common.runtime_info.message_b.as_ref();
         let u8_slice = &mut [0u8; 2048];
         for (i, data) in data.iter().enumerate() {
-                u8_slice[i] = *data;
+            u8_slice[i] = *data;
         }
 
         let mut message_header_slice = Reader::init(u8_slice);

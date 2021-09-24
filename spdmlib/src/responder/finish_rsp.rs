@@ -277,7 +277,7 @@ mod tests_responder {
         );
         context.common.session[0]
             .set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
-            
+
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {

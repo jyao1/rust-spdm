@@ -182,7 +182,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let _ = requester.send_receive_spdm_certificate(0).is_err();
     }
     {
-        
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 

@@ -29,7 +29,6 @@ fn fuzz_send_receive_spdm_heartbeat(fuzzdata: &[u8]) {
             rsp_provision_info,
         );
 
-
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.session = [SpdmSession::new(); 4];

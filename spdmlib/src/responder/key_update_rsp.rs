@@ -79,7 +79,7 @@ mod tests_responder {
             config_info,
             provision_info,
         );
-        
+
         crypto::asym_sign::register(ASYM_SIGN_IMPL);
 
         let rsp_session_id = 0xFFFEu16;

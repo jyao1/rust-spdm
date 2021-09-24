@@ -319,10 +319,9 @@ mod tests {
             error_data: 100,
             extended_data: SpdmErrorResponseExtData::default(),
         };
-        value.extended_data = SpdmErrorResponseExtData::SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData {},);
+        value.extended_data =
+            SpdmErrorResponseExtData::SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData {});
         new_spdm_response(value, &mut context);
-
-
     }
 
     fn new_spdm_response(

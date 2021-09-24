@@ -24,21 +24,9 @@ afl.rs works on x86-64 Linux and x86-64 macOS.
 Use RAMdisks for input since, we don't want to destroy harddrives
 
 ```
-$mkdir in
 $sudo mount -t tmpfs -o size=1024M tmpfs in
 ```
 
-If you want to delete the in floder in the future
-
-```
-$sudo umount in
-$rm -rf in
-```
-
-```
-$echo "1234567890" > in/input1
-$echo "abcdef" > in/input2
-```
 
 ### Build the fuzz target
 
@@ -68,6 +56,8 @@ Can run at the same time but merge will cause problems
     ```
     # Install screen 
     sudo apt install screen
+    # Install expect
+    sudoapt install expect
     # Run each fuzz for one hour
     bash fuzz_run.sh
     # Run each fuzz for one hour and Genarate source-based coverage report 

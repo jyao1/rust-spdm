@@ -27,7 +27,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             rsp_provision_info,
         );
 
- 
         responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -74,7 +73,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             .append_message(message_m);
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
-
         let _ = requester.send_receive_spdm_key_exchange(
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
@@ -98,7 +96,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             rsp_provision_info1,
         );
 
- 
         responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -144,7 +141,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             .message_m
             .append_message(message_m);
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
-
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,

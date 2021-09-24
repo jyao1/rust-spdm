@@ -39,7 +39,9 @@ mod tests {
         let data_len = get_random(data);
 
         match data_len {
-            Ok(16) => {assert!(true)}
+            Ok(16) => {
+                assert!(true)
+            }
             _ => {
                 panic!()
             }
@@ -50,7 +52,9 @@ mod tests {
         let data = &mut [100u8; 80];
         let data_len = get_random(data);
         match data_len {
-            Ok(80) => {assert!(true)}
+            Ok(80) => {
+                assert!(true)
+            }
             _ => {
                 panic!()
             }

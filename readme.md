@@ -10,7 +10,7 @@ It is derived from https://github.com/jyao1/openspdm.
 
 1. Install [RUST](https://www.rust-lang.org/)
 
-please use nightly-2020-11-09.
+please use nightly-2021-08-20.
 
 2. Install [NASM](https://www.nasm.us/)
 

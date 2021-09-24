@@ -218,10 +218,10 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         );
 
         context
-        .common
-        .runtime_info
-        .message_a
-        .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE - 103]);
+            .common
+            .runtime_info
+            .message_a
+            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE - 103]);
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 

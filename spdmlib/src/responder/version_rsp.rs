@@ -96,7 +96,7 @@ mod tests_responder {
             request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
-        
+
         context.handle_spdm_version(bytes);
 
         let data = context.common.runtime_info.message_a.as_ref();

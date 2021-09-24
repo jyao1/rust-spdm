@@ -215,7 +215,7 @@ mod tests_requester {
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
-            
+
         let status = requester
             .send_receive_spdm_psk_exchange(measurement_summary_hash_type)
             .is_ok();

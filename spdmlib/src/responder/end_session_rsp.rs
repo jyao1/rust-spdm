@@ -72,7 +72,7 @@ mod tests_responder {
                 SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
         };
         value.spdm_encode(&mut context.common, &mut writer);
-        
+
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;

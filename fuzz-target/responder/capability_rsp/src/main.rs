@@ -5,7 +5,6 @@
 use fuzzlib::*;
 
 fn fuzz_handle_spdm_capability(data: &[u8]) {
-
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
@@ -30,7 +29,6 @@ fn fuzz_handle_spdm_capability(data: &[u8]) {
 }
 
 fn main() {
-
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")
         .unwrap()
@@ -51,7 +49,9 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = [0x10, 0x84, 00,00, 0x11, 0xE1, 00, 00, 00, 00, 00, 00, 00,00,00,0x0C];
+            let fuzzdata = [
+                0x10, 0x84, 00, 00, 0x11, 0xE1, 00, 00, 00, 00, 00, 00, 00, 00, 00, 0x0C,
+            ];
             fuzz_handle_spdm_capability(&fuzzdata);
         } else {
             let path = &args[1];

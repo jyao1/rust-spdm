@@ -69,10 +69,10 @@ mod tests {
         match hkdf_expand {
             Some(_) => {
                 assert!(true)
-            },
+            }
             None => {
                 assert!(false)
-            },
+            }
         }
     }
     #[test]
@@ -87,10 +87,10 @@ mod tests {
         match hkdf_expand {
             Some(_) => {
                 assert!(true)
-            },
+            }
             None => {
                 assert!(false)
-            },
+            }
         }
     }
 }
