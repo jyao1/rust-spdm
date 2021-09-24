@@ -106,9 +106,9 @@ impl SpdmCodec for SpdmChallengeAuthResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testlib::*;
-    use crate::msgs::*;
     use crate::config::*;
+    use crate::msgs::*;
+    use crate::testlib::*;
 
     #[test]
     fn test_case0_spdm_challenge_request_payload() {
@@ -148,12 +148,14 @@ mod tests {
             slot_id: 0x0f,
             slot_mask: 100,
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
-            cert_chain_hash: SpdmDigestStruct{
+            cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
                 data: [0xAAu8; SPDM_MAX_HASH_SIZE],
             },
-            nonce: SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] },
-            measurement_summary_hash:  SpdmDigestStruct {
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
+            measurement_summary_hash: SpdmDigestStruct {
                 data_size: 64,
                 data: [0x55u8; SPDM_MAX_HASH_SIZE],
             },
@@ -161,7 +163,7 @@ mod tests {
                 data_size: 64,
                 data: [0xAAu8; MAX_SPDM_OPAQUE_SIZE],
             },
-            signature:  SpdmSignatureStruct {
+            signature: SpdmSignatureStruct {
                 data_size: 512,
                 data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
@@ -171,8 +173,8 @@ mod tests {
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.runtime_info.need_measurement_summary_hash = true;
-        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -192,7 +194,7 @@ mod tests {
         assert_eq!(spdm_read_data.measurement_summary_hash.data_size, 64);
         assert_eq!(spdm_read_data.opaque.data_size, 64);
         assert_eq!(spdm_read_data.signature.data_size, 512);
-        
+
         for i in 0..64 {
             assert_eq!(spdm_read_data.cert_chain_hash.data[i], 0xAAu8);
             assert_eq!(spdm_read_data.opaque.data[i], 0xAAu8);
@@ -203,7 +205,7 @@ mod tests {
         }
         for i in 0..512 {
             assert_eq!(spdm_read_data.signature.data[i], 0x55u8);
-        }   
+        }
     }
     #[test]
     fn test_case1_spdm_challenge_auth_response_payload() {
@@ -213,17 +215,19 @@ mod tests {
             slot_id: 0x0f,
             slot_mask: 100,
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
-            cert_chain_hash: SpdmDigestStruct{
+            cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
                 data: [0xAAu8; SPDM_MAX_HASH_SIZE],
             },
-            nonce: SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] },
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
                 data: [0xAAu8; MAX_SPDM_OPAQUE_SIZE],
             },
-            signature:  SpdmSignatureStruct {
+            signature: SpdmSignatureStruct {
                 data_size: 512,
                 data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
@@ -233,8 +237,8 @@ mod tests {
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.runtime_info.need_measurement_summary_hash = false;
-        context.negotiate_info.base_asym_sel=SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel=SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         assert_eq!(800, writer.left());
         value.spdm_encode(&mut context, &mut writer);
@@ -250,6 +254,5 @@ mod tests {
         for i in 0..64 {
             assert_eq!(spdm_read_data.measurement_summary_hash.data[i], 0);
         }
-        
     }
 }

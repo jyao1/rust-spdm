@@ -40,7 +40,10 @@ impl<'a> ResponderContext<'a> {
 
         debug!("!!! exchange data : {:02x?}\n", exchange);
 
-        debug!("!!! exchange data (peer) : {:02x?}\n",&key_exchange_req.unwrap().exchange);
+        debug!(
+            "!!! exchange data (peer) : {:02x?}\n",
+            &key_exchange_req.unwrap().exchange
+        );
 
         let final_key = key_exchange_context.compute_final_key(&key_exchange_req.unwrap().exchange);
 
@@ -186,7 +189,7 @@ impl<'a> ResponderContext<'a> {
         // patch the message before send
         send_buffer[(used - base_hash_size - base_asym_size)..(used - base_hash_size)]
             .copy_from_slice(signature.as_ref());
-        send_buffer[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());// impl AsRef<[u8]> for SpdmDigestStruct
+        send_buffer[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref()); // impl AsRef<[u8]> for SpdmDigestStruct
 
         let _ = self.send_message(&send_buffer[0..used]);
         let session = self.common.get_session_via_id(session_id).unwrap();
@@ -203,7 +206,7 @@ mod tests_responder {
     use crate::{crypto, responder};
     use bytes::BytesMut;
     use codec::{Codec, Writer};
-    
+
     #[test]
     fn test_case0_handle_spdm_key_exchange() {
         let (config_info, provision_info) = create_info();

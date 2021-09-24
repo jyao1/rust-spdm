@@ -57,7 +57,6 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
     requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
     requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
 
-
     requester.common.session = [SpdmSession::new(); 4];
     requester.common.session[0].setup(4294901758).unwrap();
     requester.common.session[0].set_crypto_param(

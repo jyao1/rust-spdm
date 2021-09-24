@@ -103,8 +103,6 @@ fn fuzz_send_receive_spdm_end_session(fuzzdata: &[u8]) {
             req_provision_info1,
         );
 
-
-
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
         requester.common.session = [SpdmSession::new(); 4];

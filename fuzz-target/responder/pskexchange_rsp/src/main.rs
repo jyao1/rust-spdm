@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{*, spdmlib::session::SpdmSession};
+use fuzzlib::{spdmlib::session::SpdmSession, *};
 
 fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -15,7 +15,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-    
+
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -26,7 +26,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
             config_info,
             provision_info,
         );
-    
+
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
@@ -34,17 +34,16 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
         context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
-    
+
         context.common.reset_runtime_info();
 
-    
         context.handle_spdm_psk_exchange(data);
     }
 
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-    
+
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             if USE_PCIDOE {
@@ -62,7 +61,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-    
+
         context.common.reset_runtime_info();
         context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(4294901758).unwrap();

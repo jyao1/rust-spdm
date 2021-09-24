@@ -439,40 +439,112 @@ mod tests_responder {
             assert_eq!(payload.slot_id, 1);
             assert_eq!(payload.measurement_record.number_of_blocks, 5);
 
-            for i in 0..5{
-                 assert_eq!(payload.measurement_record.record[i].index, (i as u8) + 1);
-                 assert_eq!(payload.measurement_record.record[i].measurement_specification,SpdmMeasurementSpecification::DMTF);
+            for i in 0..5 {
+                assert_eq!(payload.measurement_record.record[i].index, (i as u8) + 1);
+                assert_eq!(
+                    payload.measurement_record.record[i].measurement_specification,
+                    SpdmMeasurementSpecification::DMTF
+                );
             }
 
-            let measurement_size = context.common.negotiate_info.measurement_hash_sel.get_size()+ 3;
-            for i in 0..4{
-                 assert_eq!(payload.measurement_record.record[i].measurement_size,measurement_size);
-                 assert_eq!(payload.measurement_record.record[i].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest);
+            let measurement_size = context
+                .common
+                .negotiate_info
+                .measurement_hash_sel
+                .get_size()
+                + 3;
+            for i in 0..4 {
+                assert_eq!(
+                    payload.measurement_record.record[i].measurement_size,
+                    measurement_size
+                );
+                assert_eq!(
+                    payload.measurement_record.record[i]
+                        .measurement
+                        .representation,
+                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+                );
             }
-            assert_eq!(payload.measurement_record.record[4].measurement_size,3 + config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,);
-            assert_eq!(payload.measurement_record.record[4].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit);
+            assert_eq!(
+                payload.measurement_record.record[4].measurement_size,
+                3 + config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,
+            );
+            assert_eq!(
+                payload.measurement_record.record[4]
+                    .measurement
+                    .representation,
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit
+            );
 
-            assert_eq!(payload.measurement_record.record[0].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom);
-            assert_eq!(payload.measurement_record.record[1].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware);
-            assert_eq!(payload.measurement_record.record[2].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig);
-            assert_eq!(payload.measurement_record.record[3].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig);
-            assert_eq!(payload.measurement_record.record[4].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest);
+            assert_eq!(
+                payload.measurement_record.record[0].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+            );
+            assert_eq!(
+                payload.measurement_record.record[1].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware
+            );
+            assert_eq!(
+                payload.measurement_record.record[2].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig
+            );
+            assert_eq!(
+                payload.measurement_record.record[3].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig
+            );
+            assert_eq!(
+                payload.measurement_record.record[4].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest
+            );
 
-            let value_size = context.common.negotiate_info.measurement_hash_sel.get_size();
-            assert_eq!(payload.measurement_record.record[0].measurement.value_size,value_size);
-            assert_eq!(payload.measurement_record.record[1].measurement.value_size,SHA384_DIGEST_SIZE as u16);
-            assert_eq!(payload.measurement_record.record[2].measurement.value_size,value_size);
-            assert_eq!(payload.measurement_record.record[3].measurement.value_size,value_size);
-            assert_eq!(payload.measurement_record.record[4].measurement.value_size,config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,);
-            
+            let value_size = context
+                .common
+                .negotiate_info
+                .measurement_hash_sel
+                .get_size();
+            assert_eq!(
+                payload.measurement_record.record[0].measurement.value_size,
+                value_size
+            );
+            assert_eq!(
+                payload.measurement_record.record[1].measurement.value_size,
+                SHA384_DIGEST_SIZE as u16
+            );
+            assert_eq!(
+                payload.measurement_record.record[2].measurement.value_size,
+                value_size
+            );
+            assert_eq!(
+                payload.measurement_record.record[3].measurement.value_size,
+                value_size
+            );
+            assert_eq!(
+                payload.measurement_record.record[4].measurement.value_size,
+                config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,
+            );
+
             for j in 0..value_size as usize {
-                 assert_eq!(payload.measurement_record.record[0].measurement.value[j], 0x5au8);
-                 assert_eq!(payload.measurement_record.record[1].measurement.value[j], 0x5bu8);
-                 assert_eq!(payload.measurement_record.record[2].measurement.value[j], 0x5cu8);
-                 assert_eq!(payload.measurement_record.record[3].measurement.value[j], 0x5du8);
-                 assert_eq!(payload.measurement_record.record[4].measurement.value[j], 0x5eu8);
+                assert_eq!(
+                    payload.measurement_record.record[0].measurement.value[j],
+                    0x5au8
+                );
+                assert_eq!(
+                    payload.measurement_record.record[1].measurement.value[j],
+                    0x5bu8
+                );
+                assert_eq!(
+                    payload.measurement_record.record[2].measurement.value[j],
+                    0x5cu8
+                );
+                assert_eq!(
+                    payload.measurement_record.record[3].measurement.value[j],
+                    0x5du8
+                );
+                assert_eq!(
+                    payload.measurement_record.record[4].measurement.value[j],
+                    0x5eu8
+                );
             }
-
         }
     }
 }

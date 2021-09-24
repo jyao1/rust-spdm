@@ -173,12 +173,15 @@ mod tests_requester {
         );
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        responder.common.negotiate_info.req_capabilities_sel =
+            SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        responder.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        responder.common.negotiate_info.base_asym_sel =
+            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
@@ -207,18 +210,20 @@ mod tests_requester {
         );
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
-        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        requester.common.negotiate_info.req_capabilities_sel =
+            SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        requester.common.negotiate_info.base_asym_sel =
+            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         requester.common.reset_runtime_info();
-
 
         requester.common.session = [SpdmSession::new(); 4];
         requester.common.session[0].setup(4294901758).unwrap();

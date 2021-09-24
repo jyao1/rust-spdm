@@ -237,7 +237,6 @@ pub fn certificata_data() -> [[u8; 528]; 4] {
     ]
 }
 
-
 pub const REQ_CERT_CHAIN_DATA: SpdmCertChainData = SpdmCertChainData {
     data_size: 1544,
     data: [

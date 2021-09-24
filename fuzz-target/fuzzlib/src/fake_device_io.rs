@@ -4,13 +4,11 @@
 
 #![forbid(unsafe_code)]
 
-
 use spdmlib::spdm_result_err;
 
 use spdmlib::spdm_err;
 
 use crate::spdmlib::error::SpdmResult;
-
 
 use super::*;
 
@@ -44,12 +42,12 @@ impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
 
 pub struct FuzzTmpSpdmDeviceIoReceve<'a> {
     data: &'a SharedBuffer,
-    fuzzdata: [[u8;528];4],
+    fuzzdata: [[u8; 528]; 4],
     current: usize,
 }
 
 impl<'a> FuzzTmpSpdmDeviceIoReceve<'a> {
-    pub fn new(data: &'a SharedBuffer, fuzzdata: [[u8;528];4], current:usize) -> Self {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: [[u8; 528]; 4], current: usize) -> Self {
         FuzzTmpSpdmDeviceIoReceve {
             data: data,
             fuzzdata,
@@ -77,14 +75,13 @@ impl SpdmDeviceIo for FuzzTmpSpdmDeviceIoReceve<'_> {
     }
 }
 
-
 pub struct FuzzSpdmDeviceIoReceve<'a> {
     data: &'a SharedBuffer,
     fuzzdata: &'a [u8],
 }
 
 impl<'a> FuzzSpdmDeviceIoReceve<'a> {
-    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a[u8]) -> Self {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a [u8]) -> Self {
         FuzzSpdmDeviceIoReceve {
             data: data,
             fuzzdata,
@@ -135,10 +132,9 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        if self.responder
-            .process_message().is_err() {
-                return spdm_result_err!(ENOMEM);
-            }
+        if self.responder.process_message().is_err() {
+            return spdm_result_err!(ENOMEM);
+        }
         Ok(())
     }
 

@@ -5,7 +5,7 @@
 use crate::spdm_emu::*;
 use std::net::TcpStream;
 
-use spdmlib::common::{SpdmDeviceIo};
+use spdmlib::common::SpdmDeviceIo;
 use spdmlib::config;
 use spdmlib::error::SpdmResult;
 
@@ -25,7 +25,6 @@ impl<'a> SocketIoTransport<'a> {
         }
     }
 }
-
 
 impl SpdmDeviceIo for SocketIoTransport<'_> {
     fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
@@ -51,7 +50,12 @@ impl SpdmDeviceIo for SocketIoTransport<'_> {
     }
 
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {
-        send_message(self.data, self.transport_type, SOCKET_SPDM_COMMAND_NORMAL, buffer);
+        send_message(
+            self.data,
+            self.transport_type,
+            SOCKET_SPDM_COMMAND_NORMAL,
+            buffer,
+        );
         Ok(())
     }
 

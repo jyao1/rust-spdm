@@ -130,7 +130,7 @@ mod tests_requester {
         );
         responder.common.session[0]
             .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
-            
+
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
 

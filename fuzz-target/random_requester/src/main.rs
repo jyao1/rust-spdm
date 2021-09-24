@@ -75,35 +75,40 @@ fn run_spdm(spdm: Vec<i32>) {
                     return;
                 }
             }
-            7 => if requester
-                .send_receive_spdm_measurement(
-                    SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
-                    0,
-                )
-                .is_err() {
+            7 => {
+                if requester
+                    .send_receive_spdm_measurement(
+                        SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+                        0,
+                    )
+                    .is_err()
+                {
                     println!("{:?} 7, error in send_receive_spdm_measurement", &spdm);
                     return;
-                },
+                }
+            }
             8 => {
                 if requester
                     .send_receive_spdm_key_exchange(
                         0,
                         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
                     )
-                    .is_err() {
-                        println!("{:?} 8, error in send_receive_spdm_key_exchange", &spdm);
-                        return;
-                    };
+                    .is_err()
+                {
+                    println!("{:?} 8, error in send_receive_spdm_key_exchange", &spdm);
+                    return;
+                };
             }
             9 => {
                 if requester
                     .send_receive_spdm_psk_exchange(
                         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
                     )
-                    .is_err() {
-                        println!("{:?} 9, error in send_receive_spdm_psk_exchange", &spdm);
-                        return;
-                    };
+                    .is_err()
+                {
+                    println!("{:?} 9, error in send_receive_spdm_psk_exchange", &spdm);
+                    return;
+                };
             }
             _ => {}
         }

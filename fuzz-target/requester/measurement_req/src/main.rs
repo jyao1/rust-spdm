@@ -152,8 +152,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.reset_runtime_info();
-        let _ = requester
-            .send_receive_spdm_measurement(SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber, 0);
+        let _ = requester.send_receive_spdm_measurement(
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            0,
+        );
     }
 
     {

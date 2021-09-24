@@ -76,7 +76,6 @@ fn main() {
                 74, 194, 76, 145, 125, 17, 153, 210, 123, 49, 221, 151, 25, 130, 110, 134, 159,
                 182, 154, 251, 94,
             ];
-            std::fs::write("digests_req.raw", fuzzdata);
             fuzz_send_receive_spdm_digest(&fuzzdata);
         } else {
             let path = &args[1];

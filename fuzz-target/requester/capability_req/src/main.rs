@@ -22,7 +22,6 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
 
-
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
         fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -34,10 +33,8 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         req_provision_info,
     );
 
-    let _ = requester
-        .send_receive_spdm_capability();
+    let _ = requester.send_receive_spdm_capability();
 }
-
 
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]

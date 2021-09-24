@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-
+use crate::common::*;
 use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
 use crate::{common, responder};
-use crate::common::*;
 
-use crate::msgs::*;
 use crate::error::SpdmResult;
+use crate::msgs::*;
 use crate::{spdm_err, spdm_result_err};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
@@ -21,7 +20,6 @@ pub fn get_test_key_directory() -> PathBuf {
     let crate_dir = crate_dir.parent().expect("can't find parent dir");
     crate_dir.to_path_buf()
 }
-
 
 pub fn new_context<'a>(
     my_spdm_device_io: &'a mut MySpdmDeviceIo,
@@ -50,16 +48,16 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
         spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11],
         rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::CHAL_CAP
-        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-        | SpdmResponseCapabilityFlags::MAC_CAP
-        | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
-        | SpdmResponseCapabilityFlags::HBEAT_CAP
-        | SpdmResponseCapabilityFlags::KEY_UPD_CAP, 
+            | SpdmResponseCapabilityFlags::CHAL_CAP
+            | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
+            | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
+            | SpdmResponseCapabilityFlags::ENCRYPT_CAP
+            | SpdmResponseCapabilityFlags::MAC_CAP
+            | SpdmResponseCapabilityFlags::KEY_EX_CAP
+            | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
+            | SpdmResponseCapabilityFlags::ENCAP_CAP
+            | SpdmResponseCapabilityFlags::HBEAT_CAP
+            | SpdmResponseCapabilityFlags::KEY_UPD_CAP,
         rsp_ct_exponent: 0,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
         measurement_hash_algo: SpdmMeasurementHashAlgo::TPM_ALG_SHA_384,
@@ -80,7 +78,7 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let crate_dir = get_test_key_directory();
     let ca_file_path = crate_dir.join("test_key/EcP384/ca.cert.der");
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
-    let inter_file_path =crate_dir.join("test_key/EcP384/inter.cert.der");
+    let inter_file_path = crate_dir.join("test_key/EcP384/inter.cert.der");
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
     let leaf_file_path = crate_dir.join("test_key/EcP384/end_responder.cert.der");
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
@@ -94,11 +92,11 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     my_cert_chain_data.data[ca_len..(ca_len + inter_len)].copy_from_slice(inter_cert.as_ref());
     my_cert_chain_data.data[(ca_len + inter_len)..(ca_len + inter_len + leaf_len)]
         .copy_from_slice(leaf_cert.as_ref());
-        
+
     let provision_info = common::SpdmProvisionInfo {
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
-        peer_cert_chain_data:Some(my_cert_chain_data),
+        peer_cert_chain_data: Some(my_cert_chain_data),
         peer_cert_chain_root_hash: None,
     };
 
@@ -260,9 +258,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     }
 }
 
-pub static ASYM_SIGN_IMPL: SpdmAsymSign = SpdmAsymSign {
-    sign_cb: asym_sign,
-};
+pub static ASYM_SIGN_IMPL: SpdmAsymSign = SpdmAsymSign { sign_cb: asym_sign };
 
 fn asym_sign(
     base_hash_algo: SpdmBaseHashAlgo,
@@ -270,9 +266,15 @@ fn asym_sign(
     data: &[u8],
 ) -> Option<SpdmSignatureStruct> {
     match (base_hash_algo, base_asym_algo) {
-        (SpdmBaseHashAlgo::TPM_ALG_SHA_256, SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256) => sign_ecdsa_asym_algo(&ring::signature::ECDSA_P256_SHA256_FIXED_SIGNING, data),
-        (SpdmBaseHashAlgo::TPM_ALG_SHA_384, SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384) => sign_ecdsa_asym_algo(&ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING, data),
-        _ => {panic!();}
+        (SpdmBaseHashAlgo::TPM_ALG_SHA_256, SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256) => {
+            sign_ecdsa_asym_algo(&ring::signature::ECDSA_P256_SHA256_FIXED_SIGNING, data)
+        }
+        (SpdmBaseHashAlgo::TPM_ALG_SHA_384, SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384) => {
+            sign_ecdsa_asym_algo(&ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING, data)
+        }
+        _ => {
+            panic!();
+        }
     }
 }
 
@@ -281,15 +283,12 @@ fn sign_ecdsa_asym_algo(
     data: &[u8],
 ) -> Option<SpdmSignatureStruct> {
     let crate_dir = get_test_key_directory();
-    let key_file_path =crate_dir.join("test_key/EcP384/end_responder.key.p8");
+    let key_file_path = crate_dir.join("test_key/EcP384/end_responder.key.p8");
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 
-    let key_pair: ring::signature::EcdsaKeyPair = ring::signature::EcdsaKeyPair::from_pkcs8(
-        algorithm,
-        key_bytes,
-    )
-    .unwrap();
+    let key_pair: ring::signature::EcdsaKeyPair =
+        ring::signature::EcdsaKeyPair::from_pkcs8(algorithm, key_bytes).unwrap();
 
     let rng = ring::rand::SystemRandom::new();
 
@@ -306,7 +305,6 @@ fn sign_ecdsa_asym_algo(
         data_size: signature.len() as u16,
         data: full_signature,
     })
-
 }
 
 pub struct FakeSpdmDeviceIo<'a> {
@@ -334,10 +332,9 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        if self.responder
-            .process_message().is_err() {
-                return spdm_result_err!(ENOMEM);
-            }
+        if self.responder.process_message().is_err() {
+            return spdm_result_err!(ENOMEM);
+        }
         Ok(())
     }
 
@@ -352,7 +349,7 @@ pub struct SpdmDeviceIoReceve<'a> {
 }
 
 impl<'a> SpdmDeviceIoReceve<'a> {
-    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a[u8]) -> Self {
+    pub fn new(data: &'a SharedBuffer, fuzzdata: &'a [u8]) -> Self {
         SpdmDeviceIoReceve {
             data: data,
             fuzzdata,
@@ -444,12 +441,8 @@ pub static HMAC_TEST: SpdmHmac = SpdmHmac {
     hmac_verify_cb: hmac_verify,
 };
 
-fn hmac(
-    _base_hash_algo: SpdmBaseHashAlgo,
-    _key: &[u8],
-    _data: &[u8],
-) -> Option<SpdmDigestStruct> {
-    let tag =         SpdmDigestStruct {
+fn hmac(_base_hash_algo: SpdmBaseHashAlgo, _key: &[u8], _data: &[u8]) -> Option<SpdmDigestStruct> {
+    let tag = SpdmDigestStruct {
         data_size: 48,
         data: [10u8; SPDM_MAX_HASH_SIZE],
     };
@@ -474,10 +467,10 @@ pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
 };
 
 fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
-    for i in 0..data.len(){
-        data[i]=0xff;
+    for i in 0..data.len() {
+        data[i] = 0xff;
     }
-    
+
     Ok(data.len())
 }
 
@@ -902,4 +895,3 @@ pub const REQ_CERT_CHAIN_DATA: SpdmCertChainData = SpdmCertChainData {
         0x00,
     ],
 };
-

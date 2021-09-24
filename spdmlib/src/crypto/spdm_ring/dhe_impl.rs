@@ -121,12 +121,7 @@ mod tests {
 
     #[test]
     fn test_case0_dhe() {
-        for dhe_algo in [
-            SpdmDheAlgo::SECP_256_R1,
-            SpdmDheAlgo::SECP_384_R1,
-        ]
-        .iter()
-        {
+        for dhe_algo in [SpdmDheAlgo::SECP_256_R1, SpdmDheAlgo::SECP_384_R1].iter() {
             let (exchange1, private1) = generate_key_pair(*dhe_algo).unwrap();
             let (exchange2, private2) = generate_key_pair(*dhe_algo).unwrap();
 

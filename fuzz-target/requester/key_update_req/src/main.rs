@@ -79,7 +79,6 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
             rsp_provision_info1,
         );
 
-
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
         responder.common.session[0].set_crypto_param(

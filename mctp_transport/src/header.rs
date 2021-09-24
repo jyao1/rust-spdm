@@ -266,11 +266,11 @@ mod tests {
     #[test]
     fn test_case0_get_sequence_number_count() {
         let mut mctp_transport_encap = MctpTransportEncap {};
-        assert_eq!(mctp_transport_encap.get_sequence_number_count(),2);
+        assert_eq!(mctp_transport_encap.get_sequence_number_count(), 2);
     }
     #[test]
     fn test_case0_get_max_random_count() {
         let mut mctp_transport_encap = MctpTransportEncap {};
-        assert_eq!(mctp_transport_encap.get_max_random_count(),32);
+        assert_eq!(mctp_transport_encap.get_max_random_count(), 32);
     }
 }

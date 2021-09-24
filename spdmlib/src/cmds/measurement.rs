@@ -137,9 +137,9 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::*;
     use crate::msgs::*;
     use crate::testlib::*;
-    use crate::config::*;
 
     #[test]
     fn test_case0_spdm_spdm_measuremente_attributes() {
@@ -204,7 +204,7 @@ mod tests {
             },
             slot_id: 0xaau8,
         };
-        
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -237,17 +237,18 @@ mod tests {
             slot_id: 100u8,
             measurement_record: SpdmMeasurementRecordStructure {
                 number_of_blocks: 5,
-                record: [SpdmMeasurementBlockStructure{
+                record: [SpdmMeasurementBlockStructure {
                     index: 100u8,
                     measurement_specification: SpdmMeasurementSpecification::DMTF,
                     measurement_size: 67u16,
                     measurement: SpdmDmtfMeasurementStructure {
                         r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                        representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                        representation:
+                            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
                         value_size: 64u16,
                         value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
                     },
-                };MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+                }; MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
             },
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -261,8 +262,7 @@ mod tests {
                 data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
-       
-        
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -271,33 +271,61 @@ mod tests {
         context.runtime_info.need_measurement_signature = true;
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
-        
+
         assert_eq!(1000, reader.left());
         let mut measurements_response =
             SpdmMeasurementsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(measurements_response.number_of_measurement, 100);
         assert_eq!(measurements_response.slot_id, 100);
-    
+
         assert_eq!(measurements_response.measurement_record.number_of_blocks, 5);
-        for i in 0..5{
-            assert_eq!(measurements_response.measurement_record.record[i].index, 100);
-            assert_eq!(measurements_response.measurement_record.record[i].measurement_specification, SpdmMeasurementSpecification::DMTF);
-            assert_eq!(measurements_response.measurement_record.record[i].measurement_size, 67);
-            assert_eq!(measurements_response.measurement_record.record[i].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom);
-            assert_eq!(measurements_response.measurement_record.record[i].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest);
-            assert_eq!(measurements_response.measurement_record.record[i].measurement.value_size, 64);
+        for i in 0..5 {
+            assert_eq!(
+                measurements_response.measurement_record.record[i].index,
+                100
+            );
+            assert_eq!(
+                measurements_response.measurement_record.record[i].measurement_specification,
+                SpdmMeasurementSpecification::DMTF
+            );
+            assert_eq!(
+                measurements_response.measurement_record.record[i].measurement_size,
+                67
+            );
+            assert_eq!(
+                measurements_response.measurement_record.record[i]
+                    .measurement
+                    .r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+            );
+            assert_eq!(
+                measurements_response.measurement_record.record[i]
+                    .measurement
+                    .representation,
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+            );
+            assert_eq!(
+                measurements_response.measurement_record.record[i]
+                    .measurement
+                    .value_size,
+                64
+            );
             for j in 0..64 {
-                assert_eq!(measurements_response.measurement_record.record[i].measurement.value[j], 100);
+                assert_eq!(
+                    measurements_response.measurement_record.record[i]
+                        .measurement
+                        .value[j],
+                    100
+                );
             }
         }
-        for i in 0..32{
-            assert_eq!(measurements_response.nonce.data[i], 100);   
+        for i in 0..32 {
+            assert_eq!(measurements_response.nonce.data[i], 100);
         }
 
-        assert_eq!(measurements_response.opaque.data_size,64);
-        for i in 0..64
-        {
-            assert_eq!(measurements_response.opaque.data[i],100);
+        assert_eq!(measurements_response.opaque.data_size, 64);
+        for i in 0..64 {
+            assert_eq!(measurements_response.opaque.data[i], 100);
         }
 
         assert_eq!(measurements_response.signature.data_size, 512);
@@ -305,7 +333,7 @@ mod tests {
             assert_eq!(measurements_response.signature.data[i], 100);
         }
         assert_eq!(29, reader.left());
-        
+
         let u8_slice = &mut [0u8; 1000];
         let mut writer = Writer::init(u8_slice);
 
@@ -313,17 +341,17 @@ mod tests {
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(1000, reader.left());
-        measurements_response = SpdmMeasurementsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
-        
+        measurements_response =
+            SpdmMeasurementsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
+
         assert_eq!(measurements_response.signature.data_size, 0);
-       
-        for i in 0..32{
-            assert_eq!(measurements_response.nonce.data[i], 100);   
+
+        for i in 0..32 {
+            assert_eq!(measurements_response.nonce.data[i], 100);
         }
         for i in 0..512 {
             assert_eq!(measurements_response.signature.data[i], 0);
         }
         assert_eq!(541, reader.left());
     }
-    
 }

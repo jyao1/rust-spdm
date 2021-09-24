@@ -46,13 +46,13 @@ impl SpdmCodec for SpdmHeartbeatResponsePayload {
     }
 }
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
     use crate::msgs::*;
     use crate::testlib::*;
 
     #[test]
-    fn test_case0_spdm_error_response_not_ready_ext_data(){
+    fn test_case0_spdm_error_response_not_ready_ext_data() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmHeartbeatResponsePayload {};
@@ -64,7 +64,7 @@ mod tests{
         SpdmHeartbeatResponsePayload::spdm_read(&mut context, &mut reader);
     }
     #[test]
-    fn test_case0_spdm_heartbeat_request_payload(){
+    fn test_case0_spdm_heartbeat_request_payload() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmHeartbeatRequestPayload {};

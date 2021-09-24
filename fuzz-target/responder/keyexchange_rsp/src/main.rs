@@ -74,7 +74,6 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.handle_spdm_key_exchange(data);
     }
 
-
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -96,7 +95,6 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-
 
         context.common.provision_info.my_cert_chain_data = None;
         context.common.reset_runtime_info();

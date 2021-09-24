@@ -71,7 +71,11 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.runtime_info.message_a.append_message(&[1u8;config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
+        context
+            .common
+            .runtime_info
+            .message_a
+            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
         context.handle_spdm_psk_finish(4294901758, data);
     }
@@ -125,7 +129,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
 
         context.handle_spdm_psk_finish(4294901758, data);
     }
-
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
@@ -148,7 +151,7 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = [17,46,43];
+            let fuzzdata = [17, 46, 43];
             fuzz_handle_spdm_psk_finish(&fuzzdata);
         } else {
             let path = &args[1];

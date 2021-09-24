@@ -164,7 +164,7 @@ mod tests_responder {
         let data = context.common.runtime_info.message_c.as_ref();
         let u8_slice = &mut [0u8; 1024];
         for (i, data) in data.iter().enumerate() {
-                u8_slice[i] = *data;
+            u8_slice[i] = *data;
         }
 
         let mut message_header_slice = Reader::init(u8_slice);
@@ -198,9 +198,14 @@ mod tests_responder {
             SpdmResponseResponseCode::SpdmResponseChallengeAuth
         );
 
-        let cert_chain_hash  = crypto::hash::hash_all(
+        let cert_chain_hash = crypto::hash::hash_all(
             context.common.negotiate_info.base_hash_sel,
-            context.common.provision_info.my_cert_chain.unwrap().as_ref(),
+            context
+                .common
+                .provision_info
+                .my_cert_chain
+                .unwrap()
+                .as_ref(),
         )
         .unwrap();
 
@@ -217,10 +222,9 @@ mod tests_responder {
             for i in 0..32 {
                 assert_eq!(payload.measurement_summary_hash.data[i], 0xaau8);
             }
-            for (i,data) in cert_chain_hash.data.iter().enumerate(){
+            for (i, data) in cert_chain_hash.data.iter().enumerate() {
                 assert_eq!(payload.cert_chain_hash.data[i], *data);
             }
-            
         }
     }
 }

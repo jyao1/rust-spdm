@@ -3,27 +3,25 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 // use codec::{Reader, Codec, Writer};
+use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::io::{Write, Read};
 
 use spdmlib::common::SpdmDeviceIo;
 use spdmlib::error::SpdmResult;
 use spdmlib::{spdm_err, spdm_result_err};
 
 pub struct TcpTransport<'a> {
-    pub data: &'a mut TcpStream
+    pub data: &'a mut TcpStream,
 }
 
 impl SpdmDeviceIo for TcpTransport<'_> {
     fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, usize> {
         let res = self.data.read(buffer).ok();
-        if let Some(size)  = res {
+        if let Some(size) = res {
             Ok(size)
-        }  else {
+        } else {
             Err(0)
         }
-
-
     }
 
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {

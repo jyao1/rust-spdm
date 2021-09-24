@@ -336,9 +336,9 @@ mod tests {
         let u8_slice = &mut [0u8; 512];
         let mut writer = Writer::init(u8_slice);
         SpdmMeasurementRecordStructure::default();
-        let value = SpdmMeasurementRecordStructure{
+        let value = SpdmMeasurementRecordStructure {
             number_of_blocks: 5,
-            record: [SpdmMeasurementBlockStructure{
+            record: [SpdmMeasurementBlockStructure {
                 index: 100u8,
                 measurement_specification: SpdmMeasurementSpecification::DMTF,
                 measurement_size: 67u16,
@@ -348,9 +348,9 @@ mod tests {
                     value_size: 64u16,
                     value: [100u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
                 },
-            };config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+            }; config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
         };
-       
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -361,19 +361,28 @@ mod tests {
         let measurement_record =
             SpdmMeasurementRecordStructure::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(measurement_record.number_of_blocks, 5);
-        for i in 0..5{
+        for i in 0..5 {
             assert_eq!(measurement_record.record[i].index, 100);
-            assert_eq!(measurement_record.record[i].measurement_specification, SpdmMeasurementSpecification::DMTF);
+            assert_eq!(
+                measurement_record.record[i].measurement_specification,
+                SpdmMeasurementSpecification::DMTF
+            );
             assert_eq!(measurement_record.record[i].measurement_size, 67);
-            assert_eq!(measurement_record.record[i].measurement.r#type,SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom);
-            assert_eq!(measurement_record.record[i].measurement.representation,SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest);
+            assert_eq!(
+                measurement_record.record[i].measurement.r#type,
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+            );
+            assert_eq!(
+                measurement_record.record[i].measurement.representation,
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+            );
             assert_eq!(measurement_record.record[i].measurement.value_size, 64);
             for j in 0..64 {
                 assert_eq!(measurement_record.record[i].measurement.value[j], 100);
             }
         }
     }
-    
+
     #[test]
     #[should_panic]
     fn test_case1_spdm_measurement_record_structure() {
@@ -381,9 +390,10 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementRecordStructure {
             number_of_blocks: 5,
-            record: [SpdmMeasurementBlockStructure::default();config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+            record: [SpdmMeasurementBlockStructure::default();
+                config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
         };
-        
+
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -394,7 +404,7 @@ mod tests {
         let u8_slice = &mut [0u8; 512];
         let mut writer = Writer::init(u8_slice);
         SpdmDheExchangeStruct::default();
-        let value= SpdmDheExchangeStruct {
+        let value = SpdmDheExchangeStruct {
             data_size: 512,
             data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
         };
@@ -425,7 +435,7 @@ mod tests {
             SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig,
             SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest,
         ];
-        let   representation = [
+        let representation = [
             SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
             SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
         ];
