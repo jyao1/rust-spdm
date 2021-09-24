@@ -4,6 +4,7 @@
 
 extern crate alloc;
 use alloc::vec::Vec;
+use core::convert::TryFrom;
 
 use crate::crypto::SpdmCertOperation;
 use crate::error::SpdmResult;
@@ -40,10 +41,8 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
 }
 
 fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
-    static EKU_SPDM_RESPONDER_AUTH: webpki::verify_cert::KeyPurposeId =
-        webpki::verify_cert::KeyPurposeId {
-            oid_value: untrusted::Input::from(&[40 + 3, 6, 1, 5, 5, 7, 3, 1]), // TBD
-        };
+    // TBD
+    static EKU_SPDM_RESPONDER_AUTH: &'static [u8] = &[40 + 3, 6, 1, 5, 5, 7, 3, 1];
 
     static ALL_SIGALGS: &[&webpki::SignatureAlgorithm] = &[
         &webpki::RSA_PKCS1_2048_8192_SHA256,
@@ -64,32 +63,20 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let ee = &cert_chain[ee_begin..ee_end];
 
     let mut anchors = Vec::new();
-    anchors.push(webpki::TrustAnchor::from_cert_der(ca).unwrap());
+    anchors.push(webpki::TrustAnchor::try_from_cert_der(ca).unwrap());
 
-    #[cfg(target_os = "uefi")]
+    #[cfg(any(target_os = "uefi", target_os = "none"))]
     let time = webpki::Time::from_seconds_since_unix_epoch(uefi_time::get_rtc_time() as u64);
-    #[cfg(feature = "std")]
-    use std::convert::TryFrom;
+
     #[cfg(feature = "std")]
     let time = webpki::Time::try_from(std::time::SystemTime::now()).unwrap();
 
-    let cert = webpki::cert::parse_cert(
-        untrusted::Input::from(ee),
-        webpki::cert::EndEntityOrCA::EndEntity,
-    )
-    .unwrap();
+    let cert = webpki::EndEntityCert::try_from(ee).unwrap();
 
     // we cannot call verify_is_valid_tls_server_cert because it will check verify_cert::EKU_SERVER_AUTH.
-    if webpki::verify_cert::build_chain(
-        EKU_SPDM_RESPONDER_AUTH,
-        ALL_SIGALGS,
-        &anchors,
-        &[inter],
-        &cert,
-        time,
-        0,
-    )
-    .is_ok()
+    if cert.verify_cert_chain_with_eku(
+        EKU_SPDM_RESPONDER_AUTH, ALL_SIGALGS, &anchors, &[inter], time, 0
+    ).is_ok()
     {
         info!("Cert verification Pass\n");
         Ok(())
