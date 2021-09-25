@@ -8,7 +8,16 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_version(&mut self) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let send_used = self.encode_spdm_version(&mut send_buffer);
+        self.send_message(&send_buffer[..send_used])?;
+
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_version_response(&send_buffer[..send_used], &receive_buffer[..used])
+    }
+
+    pub fn encode_spdm_version(&mut self, buf: &mut [u8]) -> usize {
+        let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -17,29 +26,15 @@ impl<'a> RequesterContext<'a> {
             payload: SpdmMessagePayload::SpdmGetVersionRequest(SpdmGetVersionRequestPayload {}),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        writer.used()
+    }
 
-        self.send_message(&send_buffer[..used])?;
-
-        // clear cache data
-        self.common.reset_runtime_info();
-
-        // append message_a
-        if self
-            .common
-            .runtime_info
-            .message_a
-            .append_message(&send_buffer[..used])
-            .is_none()
-        {
-            return spdm_result_err!(ENOMEM);
-        }
-
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+    pub fn handle_spdm_version_response(
+        &mut self,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+    ) -> SpdmResult {
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseVersion => {
@@ -49,17 +44,16 @@ impl<'a> RequesterContext<'a> {
                     if let Some(version) = version {
                         debug!("!!! version : {:02x?}\n", version);
 
-                        if self
-                            .common
-                            .runtime_info
-                            .message_a
-                            .append_message(&receive_buffer[..used])
-                            .is_none()
-                        {
-                            return spdm_result_err!(ENOMEM);
-                        }
+                        // clear cache data
+                        self.common.reset_runtime_info();
 
-                        Ok(())
+                        let message_a = &mut self.common.runtime_info.message_a;
+                        message_a
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_a
+                            .append_message(&receive_buffer[..used])
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
                     } else {
                         error!("!!! version : fail !!!\n");
                         spdm_result_err!(EFAULT)
