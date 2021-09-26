@@ -9,6 +9,8 @@ use crate::common::ManagedBuffer;
 
 use crate::crypto;
 
+const INITIAL_SESSION_ID: u16 = 0xFFFE;
+
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_key_exchange(
         &mut self,
@@ -18,9 +20,33 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm key exchange\n");
 
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let (key_exchange_context, send_used) = self.encode_spdm_key_exchange(
+            &mut send_buffer,
+            slot_id,
+            measurement_summary_hash_type,
+        )?;
+        self.send_message(&send_buffer[..send_used])?;
 
-        let req_session_id = 0xFFFE;
+        // Receive
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let receive_used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_key_exhcange_response(
+            &send_buffer[..send_used],
+            &receive_buffer[..receive_used],
+            measurement_summary_hash_type,
+            key_exchange_context,
+        )
+    }
+
+    pub fn encode_spdm_key_exchange(
+        &mut self,
+        buf: &mut [u8],
+        slot_id: u8,
+        measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+    ) -> SpdmResult<(Box<dyn crypto::SpdmDheKeyExchange>, usize)> {
+        let mut writer = Writer::init(buf);
+
+        let req_session_id = INITIAL_SESSION_ID;
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
         crypto::rand::get_random(&mut random)?;
@@ -51,10 +77,16 @@ impl<'a> RequesterContext<'a> {
             }),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let send_used = writer.used();
+        Ok((key_exchange_context, writer.used()))
+    }
 
-        self.send_message(&send_buffer[..send_used])?;
-
+    pub fn handle_spdm_key_exhcange_response(
+        &mut self,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+        measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        key_exchange_context: Box<dyn crypto::SpdmDheKeyExchange>,
+    ) -> SpdmResult<u32> {
         if (measurement_summary_hash_type
             == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb)
             || (measurement_summary_hash_type
@@ -65,11 +97,7 @@ impl<'a> RequesterContext<'a> {
             self.common.runtime_info.need_measurement_summary_hash = false;
         }
 
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let receive_used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..receive_used]);
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp => {
@@ -97,7 +125,7 @@ impl<'a> RequesterContext<'a> {
 
                         let mut message_k = ManagedBuffer::default();
                         message_k
-                            .append_message(&send_buffer[..send_used])
+                            .append_message(send_buffer)
                             .ok_or(spdm_err!(ENOMEM))?;
                         let temp_receive_used = receive_used - base_asym_size - base_hash_size;
                         message_k
@@ -134,7 +162,7 @@ impl<'a> RequesterContext<'a> {
                             self.common.transport_encap.get_sequence_number_count();
                         let max_random_count = self.common.transport_encap.get_max_random_count();
 
-                        let session_id = ((req_session_id as u32) << 16)
+                        let session_id = ((INITIAL_SESSION_ID as u32) << 16)
                             + key_exchange_rsp.rsp_session_id as u32;
                         let session = self
                             .common
