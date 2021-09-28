@@ -10,6 +10,8 @@ use crate::requester::*;
 
 use crate::common::ManagedBuffer;
 
+const INITIAL_SESSION_ID: u16 = 0xFFFD;
+
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_exchange(
         &mut self,
@@ -18,9 +20,29 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm psk exchange\n");
 
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let send_used =
+            self.encode_spdm_psk_exchange(measurement_summary_hash_type, &mut send_buffer)?;
 
-        let req_session_id = 0xFFFD;
+        self.send_message(&send_buffer[..send_used])?;
+
+        // Receive
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let receive_used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_psk_exchange_response(
+            measurement_summary_hash_type,
+            &send_buffer[..send_used],
+            &receive_buffer[..receive_used],
+        )
+    }
+
+    pub fn encode_spdm_psk_exchange(
+        &mut self,
+        measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        buf: &mut [u8],
+    ) -> SpdmResult<usize> {
+        let mut writer = Writer::init(buf);
+
+        let req_session_id = INITIAL_SESSION_ID;
 
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
         crypto::rand::get_random(&mut psk_context)?;
@@ -48,10 +70,15 @@ impl<'a> RequesterContext<'a> {
             }),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let send_used = writer.used();
+        Ok(writer.used())
+    }
 
-        self.send_message(&send_buffer[..send_used])?;
-
+    pub fn handle_spdm_psk_exchange_response(
+        &mut self,
+        measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+    ) -> SpdmResult<u32> {
         if (measurement_summary_hash_type
             == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb)
             || (measurement_summary_hash_type
@@ -62,11 +89,7 @@ impl<'a> RequesterContext<'a> {
             self.common.runtime_info.need_measurement_summary_hash = false;
         }
 
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let receive_used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..receive_used]);
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponsePskExchangeRsp => {
@@ -81,7 +104,7 @@ impl<'a> RequesterContext<'a> {
 
                         let mut message_k = ManagedBuffer::default();
                         message_k
-                            .append_message(&send_buffer[..send_used])
+                            .append_message(send_buffer)
                             .ok_or(spdm_err!(ENOMEM))?;
                         let temp_receive_used = receive_used - base_hash_size;
                         message_k
@@ -101,7 +124,7 @@ impl<'a> RequesterContext<'a> {
                             self.common.transport_encap.get_sequence_number_count();
                         let max_random_count = self.common.transport_encap.get_max_random_count();
 
-                        let session_id = ((req_session_id as u32) << 16)
+                        let session_id = ((INITIAL_SESSION_ID as u32) << 16)
                             + psk_exchange_rsp.rsp_session_id as u32;
                         let session = self
                             .common
