@@ -9,7 +9,16 @@ impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_digest(&mut self) -> SpdmResult {
         info!("send spdm digest\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let send_used = self.encode_spdm_digest(&mut send_buffer);
+        self.send_message(&send_buffer[..send_used])?;
+
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_digest_response(&send_buffer[..send_used], &receive_buffer[..used])
+    }
+
+    pub fn encode_spdm_digest(&mut self, buf: &mut [u8]) -> usize {
+        let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
@@ -18,26 +27,15 @@ impl<'a> RequesterContext<'a> {
             payload: SpdmMessagePayload::SpdmGetDigestsRequest(SpdmGetDigestsRequestPayload {}),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        writer.used()
+    }
 
-        self.send_message(&send_buffer[..used])?;
-
-        // append message_b
-        if self
-            .common
-            .runtime_info
-            .message_b
-            .append_message(&send_buffer[..used])
-            .is_none()
-        {
-            return spdm_result_err!(ENOMEM);
-        }
-
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+    pub fn handle_spdm_digest_response(
+        &mut self,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+    ) -> SpdmResult {
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseDigests => {
@@ -47,17 +45,13 @@ impl<'a> RequesterContext<'a> {
                     if let Some(digests) = digests {
                         debug!("!!! digests : {:02x?}\n", digests);
 
-                        if self
-                            .common
-                            .runtime_info
-                            .message_b
+                        let message_b = &mut self.common.runtime_info.message_b;
+                        message_b
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_b
                             .append_message(&receive_buffer[..used])
-                            .is_none()
-                        {
-                            return spdm_result_err!(ENOMEM);
-                        }
-
-                        Ok(())
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
                     } else {
                         error!("!!! digests : fail !!!\n");
                         spdm_result_err!(EFAULT)
