@@ -14,8 +14,25 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         info!("send spdm key_update\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer);
+        self.send_secured_message(session_id, &send_buffer[..used])?;
 
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+        self.handle_spdm_key_update_op_response(
+            session_id,
+            key_update_operation,
+            &receive_buffer[..used],
+        )
+    }
+
+    pub fn encode_spdm_key_update_op(
+        &mut self,
+        key_update_operation: SpdmKeyUpdateOperation,
+        tag: u8,
+        buf: &mut [u8],
+    ) -> usize {
+        let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
@@ -27,10 +44,15 @@ impl<'a> RequesterContext<'a> {
             }),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        writer.used()
+    }
 
-        self.send_secured_message(session_id, &send_buffer[..used])?;
-
+    pub fn handle_spdm_key_update_op_response(
+        &mut self,
+        session_id: u32,
+        key_update_operation: SpdmKeyUpdateOperation,
+        receive_buffer: &[u8],
+    ) -> SpdmResult {
         // update key
         let session = self.common.get_session_via_id(session_id).unwrap();
         let update_requester = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateSingleKey
@@ -38,11 +60,7 @@ impl<'a> RequesterContext<'a> {
         let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         session.create_data_secret_update(update_requester, update_responder)?;
 
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseKeyUpdateAck => {
