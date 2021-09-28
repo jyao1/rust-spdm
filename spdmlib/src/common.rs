@@ -108,6 +108,15 @@ impl<'a> SpdmContext<'a> {
         self.runtime_info = SpdmRuntimeInfo::default();
     }
 
+    pub fn get_immutable_session_via_id(&self, session_id: u32) -> Option<&SpdmSession> {
+        for session in self.session.iter() {
+            if session.get_session_id() == session_id {
+                return Some(session);
+            }
+        }
+        None
+    }
+
     pub fn get_session_via_id(&mut self, session_id: u32) -> Option<&mut SpdmSession> {
         for session in self.session.iter_mut() {
             if session.get_session_id() == session_id {
@@ -122,7 +131,7 @@ impl<'a> SpdmContext<'a> {
     }
 
     pub fn calc_req_transcript_data(
-        &mut self,
+        &self,
         use_psk: bool,
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
@@ -199,7 +208,7 @@ impl<'a> SpdmContext<'a> {
     }
 
     pub fn calc_req_transcript_hash(
-        &mut self,
+        &self,
         use_psk: bool,
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
