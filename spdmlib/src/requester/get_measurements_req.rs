@@ -15,8 +15,33 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u8> {
         info!("send spdm measurement\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let send_used = self.encode_spdm_measurement_record(
+            measurement_attributes,
+            measurement_operation,
+            slot_id,
+            &mut send_buffer,
+        )?;
+        self.send_message(&send_buffer[..send_used])?;
 
+        // Receive
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_measurement_record_response(
+            measurement_attributes,
+            measurement_operation,
+            &send_buffer[..send_used],
+            &receive_buffer[..used],
+        )
+    }
+
+    pub fn encode_spdm_measurement_record(
+        &mut self,
+        measurement_attributes: SpdmMeasurementeAttributes,
+        measurement_operation: SpdmMeasurementOperation,
+        slot_id: u8,
+        buf: &mut [u8],
+    ) -> SpdmResult<usize> {
+        let mut writer = Writer::init(buf);
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         crypto::rand::get_random(&mut nonce)?;
 
@@ -35,32 +60,23 @@ impl<'a> RequesterContext<'a> {
             ),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        Ok(writer.used())
+    }
 
-        self.send_message(&send_buffer[..used])?;
-
-        // append message_m
-        if self
-            .common
-            .runtime_info
-            .message_m
-            .append_message(&send_buffer[..used])
-            .is_none()
-        {
-            return spdm_result_err!(ENOMEM);
-        }
-
+    pub fn handle_spdm_measurement_record_response(
+        &mut self,
+        measurement_attributes: SpdmMeasurementeAttributes,
+        measurement_operation: SpdmMeasurementOperation,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+    ) -> SpdmResult<u8> {
         if measurement_attributes.contains(SpdmMeasurementeAttributes::INCLUDE_SIGNATURE) {
             self.common.runtime_info.need_measurement_signature = true;
         } else {
             self.common.runtime_info.need_measurement_signature = false;
         }
 
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseMeasurements => {
@@ -77,15 +93,15 @@ impl<'a> RequesterContext<'a> {
                             let base_asym_size =
                                 self.common.negotiate_info.base_asym_sel.get_size() as usize;
                             let temp_used = used - base_asym_size;
-                            if self
-                                .common
-                                .runtime_info
-                                .message_m
+
+                            let message_m = &mut self.common.runtime_info.message_m;
+                            message_m
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_m
                                 .append_message(&receive_buffer[..temp_used])
-                                .is_none()
-                            {
-                                return spdm_result_err!(ENOMEM);
-                            }
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+
                             if self
                                 .common
                                 .verify_measurement_signature(&measurements.signature)
@@ -97,14 +113,14 @@ impl<'a> RequesterContext<'a> {
                                 info!("verify_measurement_signature pass");
                             }
                             self.common.runtime_info.message_m.reset_message();
-                        } else if self
-                            .common
-                            .runtime_info
-                            .message_m
-                            .append_message(&receive_buffer[..used])
-                            .is_none()
-                        {
-                            return spdm_result_err!(ENOMEM);
+                        } else {
+                            let message_m = &mut self.common.runtime_info.message_m;
+                            message_m
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_m
+                                .append_message(&receive_buffer[..used])
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         }
 
                         match measurement_operation {
