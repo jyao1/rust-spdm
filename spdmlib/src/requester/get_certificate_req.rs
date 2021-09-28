@@ -15,7 +15,27 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<(u16, u16)> {
         info!("send spdm certificate\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let send_used =
+            self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
+        self.send_message(&send_buffer[..send_used])?;
+
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_certificate_partial_response(
+            offset,
+            &send_buffer[..send_used],
+            &receive_buffer[..used],
+        )
+    }
+
+    pub fn encode_spdm_certificate_partial(
+        &mut self,
+        slot_id: u8,
+        offset: u16,
+        length: u16,
+        buf: &mut [u8],
+    ) -> usize {
+        let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
@@ -30,26 +50,16 @@ impl<'a> RequesterContext<'a> {
             ),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        writer.used()
+    }
 
-        self.send_message(&send_buffer[..used])?;
-
-        // append message_b
-        if self
-            .common
-            .runtime_info
-            .message_b
-            .append_message(&send_buffer[..used])
-            .is_none()
-        {
-            return spdm_result_err!(ENOMEM);
-        }
-
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+    pub fn handle_spdm_certificate_partial_response(
+        &mut self,
+        offset: u16,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+    ) -> SpdmResult<(u16, u16)> {
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseCertificate => {
@@ -73,15 +83,13 @@ impl<'a> RequesterContext<'a> {
                         self.common.peer_info.peer_cert_chain.cert_chain.data_size =
                             offset + certificate.portion_length;
 
-                        if self
-                            .common
-                            .runtime_info
-                            .message_b
+                        let message_b = &mut self.common.runtime_info.message_b;
+                        message_b
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_b
                             .append_message(&receive_buffer[..used])
-                            .is_none()
-                        {
-                            return spdm_result_err!(ENOMEM);
-                        }
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
 
                         Ok((certificate.portion_length, certificate.remainder_length))
                     } else {
@@ -111,7 +119,10 @@ impl<'a> RequesterContext<'a> {
                 Err(_) => return spdm_result_err!(EIO),
             }
         }
+        self.verify_spdm_certificate_chain()
+    }
 
+    pub fn verify_spdm_certificate_chain(&mut self) -> SpdmResult {
         // verify
         if let Some(peer_cert_chain_data) = self.common.provision_info.peer_cert_chain_data {
             //
@@ -180,7 +191,6 @@ impl<'a> RequesterContext<'a> {
             }
             info!("cert_chain verification - pass!\n");
         }
-
         Ok(())
     }
 }
