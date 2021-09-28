@@ -11,7 +11,20 @@ impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_finish(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm psk_finish\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let (send_used, message_f) = self.encode_spdm_psk_finish(session_id, &mut send_buffer)?;
+        self.send_secured_message(session_id, &send_buffer[..send_used])?;
+
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+        self.handle_spdm_psk_finish_response(session_id, message_f, &receive_buffer[..receive_used])
+    }
+
+    pub fn encode_spdm_psk_finish(
+        &mut self,
+        session_id: u32,
+        buf: &mut [u8],
+    ) -> SpdmResult<(usize, ManagedBuffer)> {
+        let mut writer = Writer::init(buf);
 
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -34,15 +47,18 @@ impl<'a> RequesterContext<'a> {
 
         let mut message_f = ManagedBuffer::default();
         message_f
-            .append_message(&send_buffer[..temp_used])
+            .append_message(&buf[..temp_used])
             .ok_or(spdm_err!(ENOMEM))?;
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
-        let message_k = session.runtime_info.message_k;
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
+        let message_k = &session.runtime_info.message_k;
 
         let transcript_data =
             self.common
-                .calc_req_transcript_data(true, &message_k, Some(&message_f))?;
+                .calc_req_transcript_data(true, message_k, Some(&message_f))?;
         let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
         message_f
@@ -50,15 +66,18 @@ impl<'a> RequesterContext<'a> {
             .ok_or(spdm_err!(ENOMEM))?;
 
         // patch the message before send
-        send_buffer[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
+        buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
 
-        self.send_secured_message(session_id, &send_buffer[..send_used])?;
+        Ok((send_used, message_f))
+    }
 
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..receive_used]);
+    pub fn handle_spdm_psk_finish_response(
+        &mut self,
+        session_id: u32,
+        mut message_f: ManagedBuffer,
+        receive_buffer: &[u8],
+    ) -> SpdmResult {
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponsePskFinishRsp => {
@@ -73,7 +92,11 @@ impl<'a> RequesterContext<'a> {
                             .ok_or(spdm_err!(ENOMEM))?;
                         session.runtime_info.message_f = message_f;
 
-                        // generate the data secret
+                        let session = self
+                            .common
+                            .get_immutable_session_via_id(session_id)
+                            .unwrap();
+                        let message_k = &session.runtime_info.message_k; // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
                             true,
                             &message_k,
