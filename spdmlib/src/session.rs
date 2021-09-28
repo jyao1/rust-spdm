@@ -129,7 +129,7 @@ impl SpdmSession {
         self.application_secret = SpdmSessionAppliationSecret::default();
     }
 
-    pub fn get_session_id(&mut self) -> u32 {
+    pub fn get_session_id(&self) -> u32 {
         self.session_id
     }
 
@@ -547,7 +547,7 @@ impl SpdmSession {
     }
 
     pub fn verify_hmac_with_response_finished_key(
-        &mut self,
+        &self,
         message: &[u8],
         hmac: &SpdmDigestStruct,
     ) -> SpdmResult {
