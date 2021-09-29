@@ -59,7 +59,10 @@ impl<'a> RequesterContext<'a> {
             .append_message(&buf[..temp_used])
             .ok_or(spdm_err!(ENOMEM))?;
 
-        let session = self.common.get_immutable_session_via_id(session_id).unwrap();
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
         let message_k = &session.runtime_info.message_k;
 
         let transcript_data =
@@ -105,8 +108,10 @@ impl<'a> RequesterContext<'a> {
                         debug!("!!! finish rsp : {:02x?}\n", finish_rsp);
 
                         if in_clear_text {
-
-                            let session = self.common.get_immutable_session_via_id(session_id).unwrap();
+                            let session = self
+                                .common
+                                .get_immutable_session_via_id(session_id)
+                                .unwrap();
                             let message_k = &session.runtime_info.message_k;
 
                             // verify HMAC with finished_key
@@ -147,7 +152,10 @@ impl<'a> RequesterContext<'a> {
                             session.runtime_info.message_f = message_f;
                         }
 
-                        let session = self.common.get_immutable_session_via_id(session_id).unwrap();
+                        let session = self
+                            .common
+                            .get_immutable_session_via_id(session_id)
+                            .unwrap();
                         let message_k = &session.runtime_info.message_k;
                         // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
