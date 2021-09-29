@@ -14,7 +14,27 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         info!("send spdm challenge\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
+        let send_used =
+            self.encode_spdm_challenge(slot_id, measurement_summary_hash_type, &mut send_buffer)?;
+        self.send_message(&send_buffer[..send_used])?;
+
+        // Receive
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_message(&mut receive_buffer)?;
+        self.handle_spdm_challenge_response(
+            measurement_summary_hash_type,
+            &send_buffer[..send_used],
+            &receive_buffer[..used],
+        )
+    }
+
+    pub fn encode_spdm_challenge(
+        &mut self,
+        slot_id: u8,
+        measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        buf: &mut [u8],
+    ) -> SpdmResult<usize> {
+        let mut writer = Writer::init(buf);
 
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         crypto::rand::get_random(&mut nonce)?;
@@ -31,21 +51,15 @@ impl<'a> RequesterContext<'a> {
             }),
         };
         request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        Ok(writer.used())
+    }
 
-        self.send_message(&send_buffer[..used])?;
-
-        // append message_c
-        if self
-            .common
-            .runtime_info
-            .message_c
-            .append_message(&send_buffer[..used])
-            .is_none()
-        {
-            return spdm_result_err!(ENOMEM);
-        }
-
+    pub fn handle_spdm_challenge_response(
+        &mut self,
+        measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+    ) -> SpdmResult {
         if (measurement_summary_hash_type
             == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb)
             || (measurement_summary_hash_type
@@ -56,11 +70,7 @@ impl<'a> RequesterContext<'a> {
             self.common.runtime_info.need_measurement_summary_hash = false;
         }
 
-        // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseChallengeAuth => {
@@ -74,15 +84,15 @@ impl<'a> RequesterContext<'a> {
                         let base_asym_size =
                             self.common.negotiate_info.base_asym_sel.get_size() as usize;
                         let temp_used = used - base_asym_size;
-                        if self
-                            .common
-                            .runtime_info
-                            .message_c
+
+                        let message_c = &mut self.common.runtime_info.message_c;
+                        message_c
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_c
                             .append_message(&receive_buffer[..temp_used])
-                            .is_none()
-                        {
-                            return spdm_result_err!(ENOMEM);
-                        }
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+
                         if self
                             .common
                             .verify_challenge_auth_signature(&challenge_auth.signature)
