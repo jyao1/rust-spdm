@@ -385,6 +385,86 @@ impl<'a> SpdmContext<'a> {
         )
         .ok_or_else(|| spdm_err!(EFAULT))
     }
+
+    pub fn encap(&mut self, send_buffer: &[u8], transport_buffer: &mut [u8]) -> SpdmResult<usize> {
+        self.transport_encap
+            .encap(send_buffer, transport_buffer, false)
+    }
+
+    pub fn encode_secured_message(
+        &mut self,
+        session_id: u32,
+        send_buffer: &[u8],
+        transport_buffer: &mut [u8],
+    ) -> SpdmResult<usize> {
+        let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let used = self
+            .transport_encap
+            .encap_app(send_buffer, &mut app_buffer)?;
+
+        let spdm_session = self
+            .get_session_via_id(session_id)
+            .ok_or(spdm_err!(EINVAL))?;
+
+        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let encode_size = spdm_session.encode_spdm_secured_message(
+            &app_buffer[0..used],
+            &mut encoded_send_buffer,
+            true,
+        )?;
+
+        self.transport_encap
+            .encap(&encoded_send_buffer[..encode_size], transport_buffer, true)
+    }
+
+    pub fn decap(
+        &mut self,
+        transport_buffer: &[u8],
+        receive_buffer: &mut [u8],
+    ) -> SpdmResult<usize> {
+        let (used, secured_message) = self
+            .transport_encap
+            .decap(transport_buffer, receive_buffer)?;
+
+        if secured_message {
+            return spdm_result_err!(EFAULT);
+        }
+
+        Ok(used)
+    }
+
+    pub fn decode_secured_message(
+        &mut self,
+        session_id: u32,
+        transport_buffer: &[u8],
+        receive_buffer: &mut [u8],
+    ) -> SpdmResult<usize> {
+        let mut encoded_receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let (used, secured_message) = self
+            .transport_encap
+            .decap(transport_buffer, &mut encoded_receive_buffer)?;
+
+        if !secured_message {
+            return spdm_result_err!(EFAULT);
+        }
+
+        let spdm_session = self
+            .get_session_via_id(session_id)
+            .ok_or(spdm_err!(EINVAL))?;
+
+        let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let decode_size = spdm_session.decode_spdm_secured_message(
+            &encoded_receive_buffer[..used],
+            &mut app_buffer,
+            false,
+        )?;
+
+        let used = self
+            .transport_encap
+            .decap_app(&app_buffer[0..decode_size], receive_buffer)?;
+
+        Ok(used)
+    }
 }
 
 #[derive(Debug, Default)]
