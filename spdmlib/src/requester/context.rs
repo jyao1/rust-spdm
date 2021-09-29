@@ -176,7 +176,6 @@ impl<'a> RequesterContext<'a> {
         self.decode_secured_message(session_id, &transport_buffer[..used], receive_buffer)
     }
 
-
     pub fn decode_secured_message(
         &mut self,
         session_id: u32,

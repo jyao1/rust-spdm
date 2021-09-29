@@ -99,7 +99,7 @@ impl<'a> RequesterContext<'a> {
                         let message_k = &session.runtime_info.message_k; // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
                             true,
-                            &message_k,
+                            message_k,
                             Some(&message_f),
                         )?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
