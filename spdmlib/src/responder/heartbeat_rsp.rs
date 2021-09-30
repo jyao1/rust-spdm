@@ -35,7 +35,7 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
         };
         response.spdm_encode(&mut self.common, writer);
-        return true;
+        true
     }
 }
 #[cfg(test)]
