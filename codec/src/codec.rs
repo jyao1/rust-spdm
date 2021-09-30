@@ -93,6 +93,14 @@ impl<'a> Writer<'a> {
     pub fn used(&self) -> usize {
         self.offs
     }
+
+    pub fn used_slice(&self) -> &[u8] {
+        &self.buf[..self.offs]
+    }
+
+    pub fn mut_used_slice(&mut self) -> &mut [u8] {
+        &mut self.buf[..self.offs]
+    }
 }
 
 /// Things we can encode and read from a Reader.

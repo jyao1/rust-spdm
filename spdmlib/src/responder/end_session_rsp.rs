@@ -6,6 +6,16 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_end_session(&mut self, session_id: u32, bytes: &[u8]) {
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        if self.write_spdm_end_session_response(bytes, &mut writer) {
+            let _ = self.send_secured_message(session_id, writer.used_slice());
+        } else {
+            let _ = self.send_message(writer.used_slice());
+        }
+    }
+
+    pub fn write_spdm_end_session_response(&mut self, bytes: &[u8], writer: &mut Writer) -> bool {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -15,13 +25,11 @@ impl<'a> ResponderContext<'a> {
             debug!("!!! end_session req : {:02x?}\n", end_session_req);
         } else {
             error!("!!! end_session req : fail !!!\n");
-            return;
+            return false;
         }
 
         info!("send spdm end_session rsp\n");
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
@@ -29,9 +37,8 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
-        response.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
-        let _ = self.send_secured_message(session_id, &send_buffer[0..used]);
+        response.spdm_encode(&mut self.common, writer);
+        return true;
     }
 }
 

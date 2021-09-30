@@ -5,11 +5,13 @@
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn send_spdm_error(&mut self, error_code: SpdmErrorCode, error_data: u8) {
-        info!("send spdm version\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
-        let response = SpdmMessage {
+    pub fn write_spdm_error(
+        &mut self,
+        error_code: SpdmErrorCode,
+        error_data: u8,
+        writer: &mut Writer,
+    ) {
+        let error = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
                 request_response_code: SpdmResponseResponseCode::SpdmResponseError,
@@ -22,9 +24,15 @@ impl<'a> ResponderContext<'a> {
                 ),
             }),
         };
-        response.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
-        let _ = self.send_message(&send_buffer[0..used]);
+        error.spdm_encode(&mut self.common, writer);
+    }
+
+    pub fn send_spdm_error(&mut self, error_code: SpdmErrorCode, error_data: u8) {
+        info!("send spdm version\n");
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        self.write_spdm_error(error_code, error_data, &mut writer);
+        let _ = self.send_message(writer.used_slice());
     }
 }
 

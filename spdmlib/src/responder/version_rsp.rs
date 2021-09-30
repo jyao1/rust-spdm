@@ -6,6 +6,13 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_version(&mut self, bytes: &[u8]) {
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        self.write_spdm_version_response(bytes, &mut writer);
+        let _ = self.send_message(writer.used_slice());
+    }
+
+    pub fn write_spdm_version_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -14,7 +21,7 @@ impl<'a> ResponderContext<'a> {
             debug!("!!! get_version : {:02x?}\n", get_version);
         } else {
             error!("!!! get_version : fail !!!\n");
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
 
@@ -28,13 +35,11 @@ impl<'a> ResponderContext<'a> {
             .append_message(&bytes[..reader.used()])
             .is_none()
         {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
 
         info!("send spdm version\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
@@ -54,16 +59,15 @@ impl<'a> ResponderContext<'a> {
                 ],
             }),
         };
-        response.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
-        let _ = self.send_message(&send_buffer[0..used]);
+        response.spdm_encode(&mut self.common, writer);
 
         self.common
             .runtime_info
             .message_a
-            .append_message(&send_buffer[..used]);
+            .append_message(writer.used_slice());
     }
 }
+
 #[cfg(test)]
 mod tests_responder {
     use super::*;

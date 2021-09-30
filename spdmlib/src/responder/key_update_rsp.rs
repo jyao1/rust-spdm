@@ -6,6 +6,21 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_key_update(&mut self, session_id: u32, bytes: &[u8]) {
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        if self.write_spdm_key_update_response(session_id, bytes, &mut writer) {
+            let _ = self.send_secured_message(session_id, writer.used_slice());
+        } else {
+            let _ = self.send_message(writer.used_slice());
+        }
+    }
+
+    pub fn write_spdm_key_update_response(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        writer: &mut Writer,
+    ) -> bool {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -14,8 +29,8 @@ impl<'a> ResponderContext<'a> {
             debug!("!!! key_update req : {:02x?}\n", key_update_req);
         } else {
             error!("!!! key_update req : fail !!!\n");
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return false;
         }
         let key_update_req = key_update_req.unwrap();
 
@@ -33,15 +48,13 @@ impl<'a> ResponderContext<'a> {
             }
             _ => {
                 error!("!!! key_update req : fail !!!\n");
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-                return;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return false;
             }
         }
 
         info!("send spdm key_update rsp\n");
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
@@ -52,9 +65,8 @@ impl<'a> ResponderContext<'a> {
                 tag: key_update_req.tag,
             }),
         };
-        response.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
-        let _ = self.send_secured_message(session_id, &send_buffer[0..used]);
+        response.spdm_encode(&mut self.common, writer);
+        return true;
     }
 }
 
