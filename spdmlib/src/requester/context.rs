@@ -87,9 +87,12 @@ impl<'a> RequesterContext<'a> {
 
     pub fn send_secured_message(&mut self, session_id: u32, send_buffer: &[u8]) -> SpdmResult {
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used =
-            self.common
-                .encode_secured_message(session_id, send_buffer, &mut transport_buffer)?;
+        let used = self.common.encode_secured_message(
+            session_id,
+            send_buffer,
+            &mut transport_buffer,
+            true,
+        )?;
         self.common.device_io.send(&transport_buffer[..used])
     }
 
@@ -121,7 +124,8 @@ impl<'a> RequesterContext<'a> {
             .receive(&mut transport_buffer)
             .map_err(|_| spdm_err!(EIO))?;
 
-        self.common.decode_secured_message(session_id, &transport_buffer[..used], receive_buffer)
+        self.common
+            .decode_secured_message(session_id, &transport_buffer[..used], receive_buffer)
     }
 }
 

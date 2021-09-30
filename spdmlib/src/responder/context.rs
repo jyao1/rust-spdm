@@ -31,37 +31,17 @@ impl<'a> ResponderContext<'a> {
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self
-            .common
-            .transport_encap
-            .encap(send_buffer, &mut transport_buffer, false)?;
+        let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
 
     pub fn send_secured_message(&mut self, session_id: u32, send_buffer: &[u8]) -> SpdmResult {
-        let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self
-            .common
-            .transport_encap
-            .encap_app(send_buffer, &mut app_buffer)?;
-
-        let spdm_session = self
-            .common
-            .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
-
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let encode_size = spdm_session.encode_spdm_secured_message(
-            &app_buffer[0..used],
-            &mut encoded_send_buffer,
-            false,
-        )?;
-
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.common.transport_encap.encap(
-            &encoded_send_buffer[..encode_size],
+        let used = self.common.encode_secured_message(
+            session_id,
+            send_buffer,
             &mut transport_buffer,
-            true,
+            false,
         )?;
         self.common.device_io.send(&transport_buffer[..used])
     }

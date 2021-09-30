@@ -7,6 +7,13 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, bytes: &[u8]) {
+        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+        self.write_spdm_measurement_response(bytes, &mut writer);
+        let _ = self.send_message(writer.used_slice());
+    }
+
+    pub fn write_spdm_measurement_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -16,7 +23,7 @@ impl<'a> ResponderContext<'a> {
             debug!("!!! get_measurements : {:02x?}\n", get_measurements);
         } else {
             error!("!!! get_measurements : fail !!!\n");
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
         let get_measurements = get_measurements.unwrap();
@@ -40,13 +47,11 @@ impl<'a> ResponderContext<'a> {
             .append_message(&bytes[..reader.used()])
             .is_none()
         {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
 
         info!("send spdm measurement\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut writer = Writer::init(&mut send_buffer);
 
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         let _ = crypto::rand::get_random(&mut nonce);
@@ -183,7 +188,7 @@ impl<'a> ResponderContext<'a> {
                 },
             ),
         };
-        response.spdm_encode(&mut self.common, &mut writer);
+        response.spdm_encode(&mut self.common, writer);
         let used = writer.used();
 
         // generat signature
@@ -196,7 +201,7 @@ impl<'a> ResponderContext<'a> {
             self.common
                 .runtime_info
                 .message_m
-                .append_message(&send_buffer[..temp_used]);
+                .append_message(&writer.used_slice()[..temp_used]);
 
             let signature = self.common.generate_measurement_signature();
             if signature.is_err() {
@@ -205,16 +210,15 @@ impl<'a> ResponderContext<'a> {
             }
             let signature = signature.unwrap();
             // patch the message before send
-            send_buffer[(used - base_asym_size)..used].copy_from_slice(signature.as_ref());
+            writer.mut_used_slice()[(used - base_asym_size)..used]
+                .copy_from_slice(signature.as_ref());
             self.common.runtime_info.message_m.reset_message();
         } else {
             self.common
                 .runtime_info
                 .message_m
-                .append_message(&send_buffer[..used]);
+                .append_message(writer.used_slice());
         }
-
-        let _ = self.send_message(&send_buffer[0..used]);
     }
 }
 

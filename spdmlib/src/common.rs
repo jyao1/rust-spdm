@@ -396,6 +396,7 @@ impl<'a> SpdmContext<'a> {
         session_id: u32,
         send_buffer: &[u8],
         transport_buffer: &mut [u8],
+        is_requester: bool,
     ) -> SpdmResult<usize> {
         let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self
@@ -410,7 +411,7 @@ impl<'a> SpdmContext<'a> {
         let encode_size = spdm_session.encode_spdm_secured_message(
             &app_buffer[0..used],
             &mut encoded_send_buffer,
-            true,
+            is_requester,
         )?;
 
         self.transport_encap
