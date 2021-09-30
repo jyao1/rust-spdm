@@ -66,7 +66,7 @@ impl<'a> ResponderContext<'a> {
             }),
         };
         response.spdm_encode(&mut self.common, writer);
-        return true;
+        true
     }
 }
 

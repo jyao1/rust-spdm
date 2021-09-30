@@ -175,7 +175,7 @@ impl<'a> ResponderContext<'a> {
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.generate_data_secret(&th2).unwrap();
 
-        return true;
+        true
     }
 }
 
