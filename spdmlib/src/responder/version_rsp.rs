@@ -42,7 +42,7 @@ impl<'a> ResponderContext<'a> {
         info!("send spdm version\n");
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: SpdmVersion::SpdmVersion10,
                 request_response_code: SpdmResponseResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
