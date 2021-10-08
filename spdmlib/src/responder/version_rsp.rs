@@ -37,7 +37,7 @@ impl<'a> ResponderContext<'a> {
         let mut writer = Writer::init(&mut send_buffer);
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: SpdmVersion::SpdmVersion10,
                 request_response_code: SpdmResponseResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
