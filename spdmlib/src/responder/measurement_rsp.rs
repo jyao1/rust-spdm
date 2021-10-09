@@ -63,7 +63,7 @@ impl<'a> ResponderContext<'a> {
         } else if get_measurements.measurement_operation
             == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
         {
-            0
+            5
         } else {
             1
         };
@@ -145,7 +145,7 @@ impl<'a> ResponderContext<'a> {
                 number_of_blocks: 1,
                 record: [
                     SpdmMeasurementBlockStructure {
-                        index: 1,
+                        index: index,
                         measurement_specification: SpdmMeasurementSpecification::DMTF,
                         measurement_size: 3 + measurement_digest_size as u16,
                         measurement: SpdmDmtfMeasurementStructure {
@@ -174,7 +174,7 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmMeasurementsResponse(
                 SpdmMeasurementsResponsePayload {
                     number_of_measurement,
-                    slot_id: 0x1,
+                    slot_id: get_measurements.slot_id,
                     measurement_record,
                     nonce: SpdmNonceStruct { data: nonce },
                     opaque: SpdmOpaqueStruct {
