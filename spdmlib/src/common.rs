@@ -142,9 +142,8 @@ impl<'a> SpdmContext<'a> {
             .ok_or(spdm_err!(ENOMEM))?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
         if !use_psk {
-            let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data[(4usize
-                + self.negotiate_info.base_hash_sel.get_size() as usize)
-                ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+            let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data
+                [..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
                     .ok_or_else(|| spdm_err!(EFAULT))?;
@@ -173,7 +172,7 @@ impl<'a> SpdmContext<'a> {
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
     ) -> SpdmResult<ManagedBuffer> {
-        if !use_psk && self.provision_info.my_cert_chain_data.is_none() {
+        if !use_psk && self.provision_info.my_cert_chain.is_none() {
             return spdm_result_err!(EINVAL);
         }
         let mut message = ManagedBuffer::default();
@@ -182,7 +181,7 @@ impl<'a> SpdmContext<'a> {
             .ok_or(spdm_err!(ENOMEM))?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
         if !use_psk {
-            let my_cert_chain_data = self.provision_info.my_cert_chain_data.unwrap();
+            let my_cert_chain_data = self.provision_info.my_cert_chain.unwrap();
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
