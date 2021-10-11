@@ -272,17 +272,5 @@ mod tests_requester {
             .send_receive_spdm_measurement(measurement_operation, 0)
             .is_ok();
         assert!(status);
-
-        let message_m = &[0];
-        requester
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
-        let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
-        let status = requester
-            .send_receive_spdm_measurement(measurement_operation, 0)
-            .is_ok();
-        assert!(status);
     }
 }
