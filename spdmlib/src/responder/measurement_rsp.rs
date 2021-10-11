@@ -264,6 +264,10 @@ mod tests_responder {
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
+            //not useful,
+            //actually if MeasurementeAttributes is zero(not signature),
+            //slot_id will be set to zero when calling SpdmGetMeasurementsRequestPayload.spdm_encode().
+            //such like value.spdm_encode().
             slot_id: 0xaau8,
         };
         value.spdm_encode(&mut context.common, &mut writer);
@@ -310,9 +314,10 @@ mod tests_responder {
         );
         if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.number_of_measurement, 1);
-            assert_eq!(payload.slot_id, 1);
+            assert_eq!(payload.slot_id, 0);
             assert_eq!(payload.measurement_record.number_of_blocks, 1);
-            assert_eq!(payload.measurement_record.record[0].index, 1);
+            //index in measurement_record should equal to measurement_operation
+            assert_eq!(payload.measurement_record.record[0].index, 5);
             assert_eq!(
                 payload.measurement_record.record[0].measurement_specification,
                 SpdmMeasurementSpecification::DMTF
@@ -391,6 +396,10 @@ mod tests_responder {
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
+            //not useful,
+            //actually if MeasurementeAttributes is zero(not signature),
+            //slot_id will be set to zero when calling SpdmGetMeasurementsRequestPayload.spdm_encode().
+            //such like value.spdm_encode().
             slot_id: 0xaau8,
         };
         value.spdm_encode(&mut context.common, &mut writer);
@@ -437,8 +446,10 @@ mod tests_responder {
         );
 
         if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.number_of_measurement, 5);
-            assert_eq!(payload.slot_id, 1);
+            assert_eq!(payload.number_of_measurement, 1);
+            //if measurement_attributes == 0, it means responder donot need append signature,
+            //and slot_id should be 0.
+            assert_eq!(payload.slot_id, 0);
             assert_eq!(payload.measurement_record.number_of_blocks, 5);
 
             for i in 0..5 {

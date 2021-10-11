@@ -256,10 +256,7 @@ mod tests_requester {
             rsp_provision_info,
         );
 
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
-            data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
