@@ -51,12 +51,10 @@ impl<'a> ResponderContext<'a> {
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         let _ = crypto::rand::get_random(&mut nonce);
 
-        let number_of_measurement = if get_measurements.measurement_operation
-            == SpdmMeasurementOperation::SpdmMeasurementRequestAll
-        {
-            5
-        } else if get_measurements.measurement_operation
-            == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+        let number_of_measurement = if (get_measurements.measurement_operation
+            == SpdmMeasurementOperation::SpdmMeasurementRequestAll)
+            && (get_measurements.measurement_operation
+                == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber)
         {
             5
         } else {
@@ -140,7 +138,7 @@ impl<'a> ResponderContext<'a> {
                 number_of_blocks: 1,
                 record: [
                     SpdmMeasurementBlockStructure {
-                        index: index,
+                        index,
                         measurement_specification: SpdmMeasurementSpecification::DMTF,
                         measurement_size: 3 + measurement_digest_size as u16,
                         measurement: SpdmDmtfMeasurementStructure {
