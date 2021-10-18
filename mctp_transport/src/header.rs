@@ -97,11 +97,22 @@ impl SpdmTransportEncap for MctpTransportEncap {
         Ok((payload_size, secured_message))
     }
 
-    fn encap_app(&mut self, spdm_buffer: &[u8], app_buffer: &mut [u8]) -> SpdmResult<usize> {
+    fn encap_app(
+        &mut self,
+        spdm_buffer: &[u8],
+        app_buffer: &mut [u8],
+        is_app_message: bool,
+    ) -> SpdmResult<usize> {
         let payload_len = spdm_buffer.len();
         let mut writer = Writer::init(&mut *app_buffer);
-        let mctp_header = MctpMessageHeader {
-            r#type: MctpMessageType::MctpMessageTypeSpdm,
+        let mctp_header = if is_app_message {
+            MctpMessageHeader {
+                r#type: MctpMessageType::MctpMessageTypePldm,
+            }
+        } else {
+            MctpMessageHeader {
+                r#type: MctpMessageType::MctpMessageTypeSpdm,
+            }
         };
         mctp_header.encode(&mut writer);
         let header_size = writer.used();
@@ -112,11 +123,19 @@ impl SpdmTransportEncap for MctpTransportEncap {
         Ok(header_size + payload_len)
     }
 
-    fn decap_app(&mut self, app_buffer: &[u8], spdm_buffer: &mut [u8]) -> SpdmResult<usize> {
+    fn decap_app(
+        &mut self,
+        app_buffer: &[u8],
+        spdm_buffer: &mut [u8],
+    ) -> SpdmResult<(usize, bool)> {
         let mut reader = Reader::init(app_buffer);
+        let mut is_app_mesaage = false;
         match MctpMessageHeader::read(&mut reader) {
             Some(mctp_header) => match mctp_header.r#type {
                 MctpMessageType::MctpMessageTypeSpdm => {}
+                MctpMessageType::MctpMessageTypePldm => {
+                    is_app_mesaage = true;
+                }
                 _ => return spdm_result_err!(EINVAL),
             },
             None => return spdm_result_err!(EIO),
@@ -128,7 +147,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
         }
         let payload = &app_buffer[header_size..];
         spdm_buffer[..payload_size].copy_from_slice(payload);
-        Ok(payload_size)
+        Ok((payload_size, is_app_mesaage))
     }
 
     fn get_sequence_number_count(&mut self) -> u8 {
@@ -228,14 +247,14 @@ mod tests {
         let spdm_buffer = [0u8; 10];
 
         let status = mctp_transport_encap
-            .encap_app(&spdm_buffer, &mut app_buffer)
+            .encap_app(&spdm_buffer, &mut app_buffer, false)
             .is_ok();
         assert!(status);
 
         let spdm_buffer = [100u8; 1024];
 
         let status = mctp_transport_encap
-            .encap_app(&spdm_buffer, &mut app_buffer)
+            .encap_app(&spdm_buffer, &mut app_buffer, false)
             .is_err();
         assert!(status);
     }

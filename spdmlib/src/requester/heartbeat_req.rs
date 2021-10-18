@@ -10,7 +10,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm heartbeat\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.encode_spdm_heartbeat(&mut send_buffer);
-        self.send_secured_message(session_id, &send_buffer[..used])?;
+        self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];

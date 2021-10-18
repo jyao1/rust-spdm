@@ -239,14 +239,23 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         Ok((payload_size, secured_message))
     }
 
-    fn encap_app(&mut self, spdm_buffer: &[u8], app_buffer: &mut [u8]) -> SpdmResult<usize> {
+    fn encap_app(
+        &mut self,
+        spdm_buffer: &[u8],
+        app_buffer: &mut [u8],
+        _is_app_message: bool,
+    ) -> SpdmResult<usize> {
         app_buffer[0..spdm_buffer.len()].copy_from_slice(spdm_buffer);
         Ok(spdm_buffer.len())
     }
 
-    fn decap_app(&mut self, app_buffer: &[u8], spdm_buffer: &mut [u8]) -> SpdmResult<usize> {
+    fn decap_app(
+        &mut self,
+        app_buffer: &[u8],
+        spdm_buffer: &mut [u8],
+    ) -> SpdmResult<(usize, bool)> {
         spdm_buffer[0..app_buffer.len()].copy_from_slice(app_buffer);
-        Ok(app_buffer.len())
+        Ok((app_buffer.len(), false))
     }
 
     fn get_sequence_number_count(&mut self) -> u8 {
