@@ -85,13 +85,19 @@ impl<'a> RequesterContext<'a> {
         self.common.device_io.send(&transport_buffer[..used])
     }
 
-    pub fn send_secured_message(&mut self, session_id: u32, send_buffer: &[u8]) -> SpdmResult {
+    pub fn send_secured_message(
+        &mut self,
+        session_id: u32,
+        send_buffer: &[u8],
+        is_app_message: bool,
+    ) -> SpdmResult {
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
             send_buffer,
             &mut transport_buffer,
             true,
+            is_app_message,
         )?;
         self.common.device_io.send(&transport_buffer[..used])
     }
@@ -267,7 +273,7 @@ mod tests_requester {
         let used = writer.used();
 
         let status = requester
-            .send_secured_message(session_id, &send_buffer[..used])
+            .send_secured_message(session_id, &send_buffer[..used], false)
             .is_ok();
         assert!(status);
 
