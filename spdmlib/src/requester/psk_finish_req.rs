@@ -12,7 +12,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm psk_finish\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let (send_used, message_f) = self.encode_spdm_psk_finish(session_id, &mut send_buffer)?;
-        self.send_secured_message(session_id, &send_buffer[..send_used])?;
+        self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;

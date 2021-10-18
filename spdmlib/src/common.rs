@@ -46,9 +46,15 @@ pub trait SpdmTransportEncap {
         spdm_buffer: &mut [u8],
     ) -> SpdmResult<(usize, bool)>;
 
-    fn encap_app(&mut self, spdm_buffer: &[u8], app_buffer: &mut [u8]) -> SpdmResult<usize>;
+    fn encap_app(
+        &mut self,
+        spdm_buffer: &[u8],
+        app_buffer: &mut [u8],
+        is_app_message: bool,
+    ) -> SpdmResult<usize>;
 
-    fn decap_app(&mut self, app_buffer: &[u8], spdm_buffer: &mut [u8]) -> SpdmResult<usize>;
+    fn decap_app(&mut self, app_buffer: &[u8], spdm_buffer: &mut [u8])
+        -> SpdmResult<(usize, bool)>;
 
     // for session
     fn get_sequence_number_count(&mut self) -> u8;
@@ -396,11 +402,12 @@ impl<'a> SpdmContext<'a> {
         send_buffer: &[u8],
         transport_buffer: &mut [u8],
         is_requester: bool,
+        is_app_message: bool,
     ) -> SpdmResult<usize> {
         let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self
             .transport_encap
-            .encap_app(send_buffer, &mut app_buffer)?;
+            .encap_app(send_buffer, &mut app_buffer, is_app_message)?;
 
         let spdm_session = self
             .get_session_via_id(session_id)
@@ -463,7 +470,7 @@ impl<'a> SpdmContext<'a> {
             .transport_encap
             .decap_app(&app_buffer[0..decode_size], receive_buffer)?;
 
-        Ok(used)
+        Ok(used.0)
     }
 }
 

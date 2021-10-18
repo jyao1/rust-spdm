@@ -12,6 +12,13 @@ pub struct ResponderContext<'a> {
     pub common: common::SpdmContext<'a>,
 }
 
+pub const M_SECURE_SESSION_RESPONSE: &[u8; 5] = &[
+    0x00u8, 0x00u8, //PLDM_MESSAGE_TYPE_CONTROL_DISCOVERY
+    0x02u8, //PLDM_CONTROL_DISCOVERY_COMMAND_GET_TID
+    0x00u8, //PLDM_BASE_CODE_SUCCESS
+    0x01u8, //TID
+];
+
 impl<'a> ResponderContext<'a> {
     pub fn new(
         device_io: &'a mut dyn SpdmDeviceIo,
@@ -35,13 +42,19 @@ impl<'a> ResponderContext<'a> {
         self.common.device_io.send(&transport_buffer[..used])
     }
 
-    pub fn send_secured_message(&mut self, session_id: u32, send_buffer: &[u8]) -> SpdmResult {
+    pub fn send_secured_message(
+        &mut self,
+        session_id: u32,
+        send_buffer: &[u8],
+        is_app_message: bool,
+    ) -> SpdmResult {
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
             send_buffer,
             &mut transport_buffer,
             false,
+            is_app_message,
         )?;
         self.common.device_io.send(&transport_buffer[..used])
     }
@@ -72,16 +85,23 @@ impl<'a> ResponderContext<'a> {
                     let decode_size = decode_size.unwrap();
 
                     let mut spdm_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-                    let decode_size = self
+                    let decap_result = self
                         .common
                         .transport_encap
                         .decap_app(&app_buffer[0..decode_size], &mut spdm_buffer);
-                    if decode_size.is_err() {
-                        return Err((used, receive_buffer));
+                    match decap_result {
+                        Err(_) => Err((used, receive_buffer)),
+                        Ok((decode_size, is_app_message)) => {
+                            if !is_app_message {
+                                Ok(self.dispatch_secured_message(
+                                    session_id,
+                                    &spdm_buffer[0..decode_size],
+                                ))
+                            } else {
+                                Ok(self.dispatch_secured_app_message(session_id))
+                            }
+                        }
                     }
-                    let decode_size = decode_size.unwrap();
-
-                    Ok(self.dispatch_secured_message(session_id, &spdm_buffer[0..decode_size]))
                 } else {
                     Ok(self.dispatch_message(&receive_buffer[0..used]))
                 }
@@ -168,6 +188,11 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
+    fn dispatch_secured_app_message(&mut self, session_id: u32) -> bool {
+        debug!("Send app secured message!(PLDM)\n");
+        let _ = self.send_secured_message(session_id, M_SECURE_SESSION_RESPONSE, true);
+        true
+    }
     pub fn dispatch_message(&mut self, bytes: &[u8]) -> bool {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
@@ -296,7 +321,7 @@ mod tests_responder {
         value.spdm_encode(&mut context.common, &mut writer);
         let used = writer.used();
         let status = context
-            .send_secured_message(session_id, &send_buffer[0..used])
+            .send_secured_message(session_id, &send_buffer[0..used], false)
             .is_ok();
         assert!(status);
     }
@@ -328,7 +353,7 @@ mod tests_responder {
         value.spdm_encode(&mut context.common, &mut writer);
         let used = writer.used();
         let status = context
-            .send_secured_message(session_id, &send_buffer[0..used])
+            .send_secured_message(session_id, &send_buffer[0..used], false)
             .is_err();
         assert!(status);
     }

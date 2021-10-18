@@ -206,73 +206,73 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
             .set_session_state(spdmlib::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0xE1, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0xE1, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0xE3, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0xE3, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x81, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x81, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x82, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x82, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x83, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x83, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0xE0, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0xE0, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0xE4, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0xE4, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0xE6, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0xE6, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x01, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x01, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x02, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x02, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x03, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x03, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x04, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x04, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x60, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x60, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x61, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x61, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x63, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x63, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x64, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x64, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x65, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x65, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x66, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x66, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x67, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x67, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x68, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x68, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x69, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x69, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x6C, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x6C, 0x2, 0x0], false)
             .is_err();
         let _ = requester
-            .send_secured_message(4294901758, &[0x1, 0x7F, 0x2, 0x0])
+            .send_secured_message(4294901758, &[0x1, 0x7F, 0x2, 0x0], false)
             .is_err();
     }
 }

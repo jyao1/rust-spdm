@@ -15,7 +15,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm key_update\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer);
-        self.send_secured_message(session_id, &send_buffer[..used])?;
+        self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
