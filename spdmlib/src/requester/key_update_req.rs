@@ -17,7 +17,21 @@ impl<'a> RequesterContext<'a> {
         let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer);
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
-        self.handle_spdm_key_update_op_response(session_id, key_update_operation)
+        // update key
+        let session = self.common.get_session_via_id(session_id).unwrap();
+        let update_requester = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateSingleKey
+            || key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
+        let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
+        session.create_data_secret_update(update_requester, update_responder)?;
+        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+
+        self.handle_spdm_key_update_op_response(
+            session_id,
+            update_requester,
+            update_responder,
+            &receive_buffer[..used],
+        )
     }
 
     pub fn encode_spdm_key_update_op(
@@ -44,19 +58,11 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_key_update_op_response(
         &mut self,
         session_id: u32,
-        key_update_operation: SpdmKeyUpdateOperation,
+        update_requester: bool,
+        update_responder: bool,
+        receive_buffer: &[u8],
     ) -> SpdmResult {
-        // update key
-        let session = self.common.get_session_via_id(session_id).unwrap();
-        let update_requester = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateSingleKey
-            || key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
-        let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
-        session.create_data_secret_update(update_requester, update_responder)?;
-
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
-
-        let mut reader = Reader::init(&receive_buffer[..used]);
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmResponseResponseCode::SpdmResponseKeyUpdateAck => {
