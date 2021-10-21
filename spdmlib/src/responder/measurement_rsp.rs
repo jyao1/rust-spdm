@@ -6,11 +6,18 @@ use crate::crypto;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_measurement(&mut self, bytes: &[u8]) {
+    pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_measurement_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        match session_id {
+            None => {
+                let _ = self.send_message(writer.used_slice());
+            }
+            Some(session_id) => {
+                let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+            }
+        }
     }
 
     pub fn write_spdm_measurement_response(&mut self, bytes: &[u8], writer: &mut Writer) {
@@ -275,7 +282,7 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
-        context.handle_spdm_measurement(bytes);
+        context.handle_spdm_measurement(None, bytes);
 
         let data = context.common.runtime_info.message_m.as_ref();
         let u8_slice = &mut [0u8; 2048];
@@ -407,7 +414,7 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
-        context.handle_spdm_measurement(bytes);
+        context.handle_spdm_measurement(None, bytes);
 
         let data = context.common.runtime_info.message_m.as_ref();
         let u8_slice = &mut [0u8; 2048];

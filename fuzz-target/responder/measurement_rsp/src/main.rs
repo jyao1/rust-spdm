@@ -29,7 +29,7 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
     context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     context.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-    context.handle_spdm_measurement(data);
+    context.handle_spdm_measurement(None, data);
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
