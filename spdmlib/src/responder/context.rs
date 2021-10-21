@@ -136,7 +136,10 @@ impl<'a> ResponderContext<'a> {
                 SpdmResponseResponseCode::SpdmRequestGetDigests => false,
                 SpdmResponseResponseCode::SpdmRequestGetCertificate => false,
                 SpdmResponseResponseCode::SpdmRequestChallenge => false,
-                SpdmResponseResponseCode::SpdmRequestGetMeasurements => false,
+                SpdmResponseResponseCode::SpdmRequestGetMeasurements => {
+                    self.handle_spdm_measurement(Some(session_id), bytes);
+                    true
+                }
 
                 SpdmResponseResponseCode::SpdmRequestKeyExchange => false,
 
@@ -222,7 +225,7 @@ impl<'a> ResponderContext<'a> {
                     true
                 }
                 SpdmResponseResponseCode::SpdmRequestGetMeasurements => {
-                    self.handle_spdm_measurement(bytes);
+                    self.handle_spdm_measurement(None, bytes);
                     true
                 }
 
@@ -476,7 +479,7 @@ mod tests_responder {
             let status_secured = context.dispatch_secured_message(session_id, bytes);
             assert!(status_secured);
         }
-        for i in 0..25 {
+        for i in 0..24 {
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -519,7 +522,6 @@ mod tests_responder {
             SpdmResponseResponseCode::SpdmRequestGetDigests,
             SpdmResponseResponseCode::SpdmRequestGetCertificate,
             SpdmResponseResponseCode::SpdmRequestChallenge,
-            SpdmResponseResponseCode::SpdmRequestGetMeasurements,
             SpdmResponseResponseCode::SpdmRequestKeyExchange,
             SpdmResponseResponseCode::SpdmResponseDigests,
             SpdmResponseResponseCode::SpdmResponseCertificate,
@@ -540,6 +542,7 @@ mod tests_responder {
             SpdmResponseResponseCode::Unknown(0),
         ];
         let response_true = [
+            SpdmResponseResponseCode::SpdmRequestGetMeasurements,
             SpdmResponseResponseCode::SpdmRequestFinish,
             SpdmResponseResponseCode::SpdmRequestPskFinish,
             SpdmResponseResponseCode::SpdmRequestHeartbeat,

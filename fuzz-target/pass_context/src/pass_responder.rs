@@ -218,7 +218,7 @@ pub fn pass_rsp_handle_spdm_measurement() {
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
     ]);
-    context.handle_spdm_measurement(&[17, 224, 0, 0]);
+    context.handle_spdm_measurement(None, &[17, 224, 0, 0]);
     let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf).unwrap();
     println!("Received: {:?}", req_buf);
@@ -255,7 +255,7 @@ pub fn pass_rsp_handle_spdm_key_exchange() {
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
     ]);
-    context.handle_spdm_measurement(&[17, 224, 0, 0]);
+    context.handle_spdm_measurement(None, &[17, 224, 0, 0]);
     context.handle_spdm_key_exchange(&[
         17, 228, 0, 0, 254, 255, 0, 0, 227, 11, 91, 150, 99, 148, 85, 82, 35, 135, 88, 241, 249,
         244, 105, 233, 225, 89, 237, 166, 13, 142, 13, 115, 102, 29, 108, 90, 113, 211, 174, 92,
@@ -301,7 +301,7 @@ pub fn pass_rsp_handle_spdm_psk_exchange() {
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
     ]);
-    context.handle_spdm_measurement(&[17, 224, 0, 0]);
+    context.handle_spdm_measurement(None, &[17, 224, 0, 0]);
     context.handle_spdm_key_exchange(&[
         17, 228, 0, 0, 254, 255, 0, 0, 227, 11, 91, 150, 99, 148, 85, 82, 35, 135, 88, 241, 249,
         244, 105, 233, 225, 89, 237, 166, 13, 142, 13, 115, 102, 29, 108, 90, 113, 211, 174, 92,
