@@ -7,6 +7,10 @@ if [[ $? != 0 ]]; then
     exit
 fi
 
+if [[ ! $PWD =~ rust-spdm$ ]];then
+    pushd ..
+fi
+
 orgin=`cat rust-toolchain`
 echo "nightly-2021-08-20" > rust-toolchain
 echo $orgin
