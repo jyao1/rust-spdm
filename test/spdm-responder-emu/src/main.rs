@@ -8,11 +8,14 @@ use log::LevelFilter;
 use simple_logger::SimpleLogger;
 
 use std::net::{TcpListener, TcpStream};
+use std::u32;
 
-use codec::{Codec, Reader};
+use codec::{Codec, Reader, Writer};
 use common::SpdmTransportEncap;
 use mctp_transport::MctpTransportEncap;
-use pcidoe_transport::PciDoeTransportEncap;
+use pcidoe_transport::{
+    PciDoeDataObjectType, PciDoeMessageHeader, PciDoeTransportEncap, PciDoeVendorId,
+};
 use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
@@ -47,8 +50,12 @@ fn process_socket_message(
         }
         SOCKET_SPDM_COMMAND_NORMAL => true,
         _ => {
-            send_unknown(stream, transport_encap, res.0);
-            false
+            if USE_PCIDOE {
+                send_pci_discovery(stream, transport_encap, res.0, buffer)
+            } else {
+                send_unknown(stream, transport_encap, res.0);
+                false
+            }
         }
     }
 }
@@ -290,4 +297,72 @@ pub fn send_stop(
         spdm_emu::spdm_emu::SOCKET_SPDM_COMMAND_STOP,
         &payload[..used],
     );
+}
+
+pub fn send_pci_discovery(
+    stream: &mut TcpStream,
+    transport_encap: &mut dyn SpdmTransportEncap,
+    transport_type: u32,
+    buffer: &[u8],
+) -> bool {
+    let mut reader = Reader::init(buffer);
+    let mut unknown_message = false;
+    match PciDoeMessageHeader::read(&mut reader) {
+        Some(pcidoe_header) => {
+            match pcidoe_header.vendor_id {
+                PciDoeVendorId::PciDoeVendorIdPciSig => {}
+                _ => unknown_message = true,
+            }
+            match pcidoe_header.data_object_type {
+                PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery => {}
+                _ => unknown_message = true,
+            }
+        }
+        None => unknown_message = true,
+    }
+
+    let payload = &mut [1u8, 0u8, 0u8, 0u8];
+
+    match u8::read(&mut reader) {
+        None => unknown_message = true,
+        Some(discovery_index) => match discovery_index {
+            0 => {
+                payload[2] = 0;
+                payload[3] = 1;
+            }
+            1 => {
+                payload[2] = 1;
+                payload[3] = 2;
+            }
+            2 => {
+                payload[2] = 2;
+                payload[3] = 0;
+            }
+            _ => unknown_message = true,
+        },
+    }
+    if unknown_message {
+        send_unknown(stream, transport_encap, transport_type);
+        return false;
+    }
+
+    let payload_len = 4;
+    let mut transport_buffer = [0u8; 1024];
+    let mut writer = Writer::init(&mut transport_buffer);
+    let pcidoe_header = PciDoeMessageHeader {
+        vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
+        data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
+        payload_length: 4,
+    };
+    pcidoe_header.encode(&mut writer);
+    let header_size = writer.used();
+    transport_buffer[header_size..(header_size + payload_len)].copy_from_slice(payload);
+    let _buffer_size = spdm_emu::spdm_emu::send_message(
+        stream,
+        SOCKET_TRANSPORT_TYPE_PCI_DOE,
+        spdm_emu::spdm_emu::SOCKET_SPDM_COMMAND_NORMAL,
+        &transport_buffer[..(header_size + payload_len)],
+    );
+    //need continue
+    true
 }
