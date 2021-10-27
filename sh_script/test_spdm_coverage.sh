@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ ! $PWD =~ rust-spdm$ ]];then
+    pushd ..
+fi
+
 rm -rf ./target
 
 export RUSTFLAGS="-Zinstrument-coverage"

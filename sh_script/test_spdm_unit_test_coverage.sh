@@ -1,6 +1,10 @@
 #!/bin/bash
 cargo clean
 
+if [[ ! $PWD =~ rust-spdm$ ]];then
+    pushd ..
+fi
+
 git clean -f
 
 rm -rf ./target *.prof*

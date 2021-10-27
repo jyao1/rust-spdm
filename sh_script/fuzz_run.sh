@@ -2,6 +2,10 @@
 
 pkill screen
 
+if [[ ! $PWD =~ rust-spdm$ ]];then
+    pushd ..
+fi
+
 if [ ! -d "fuzz-target/out" ];then
     mkdir fuzz-target/out
 fi
@@ -21,7 +25,13 @@ done
 
 if [ "core" != `cat /proc/sys/kernel/core_pattern` ];then
     if [ `id -u` -ne 0 ];then
-        expect switch_root_run_cmd.sh
+        if [[ $PWD =~ rust-spdm$ ]];then
+            pushd sh_script
+            expect switch_root_run_cmd.sh
+            popd
+        else
+            expect switch_root_run_cmd.sh
+        fi
     else
         echo core >/proc/sys/kernel/core_pattern
         pushd /sys/devices/system/cpu
