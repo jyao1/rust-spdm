@@ -20,6 +20,7 @@ mod psk_finish_rsp;
 mod version_rsp;
 
 mod error_rsp;
+mod vendor_rsp;
 
 pub use context::ResponderContext;
 
