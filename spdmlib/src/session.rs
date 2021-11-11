@@ -79,6 +79,7 @@ pub struct SpdmSessionTransportParam {
 pub struct SpdmSessionRuntimeInfo {
     pub message_k: ManagedBuffer,
     pub message_f: ManagedBuffer,
+    pub message_m: ManagedBuffer,
 }
 
 #[derive(Debug, Copy, Clone)]
