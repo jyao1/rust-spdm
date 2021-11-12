@@ -9,7 +9,7 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_measurement_response(bytes, &mut writer);
+        self.write_spdm_measurement_response(session_id, bytes, &mut writer);
         match session_id {
             None => {
                 let _ = self.send_message(writer.used_slice());
@@ -20,7 +20,12 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
-    pub fn write_spdm_measurement_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    pub fn write_spdm_measurement_response(
+        &mut self,
+        session_id: Option<u32>,
+        bytes: &[u8],
+        writer: &mut Writer,
+    ) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -48,10 +53,7 @@ impl<'a> ResponderContext<'a> {
         }
 
         if self
-            .common
-            .runtime_info
-            .message_m
-            .append_message(&bytes[..reader.used()])
+            .append_message_m_response(session_id, &bytes[..reader.used()])
             .is_none()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
@@ -203,12 +205,9 @@ impl<'a> ResponderContext<'a> {
         {
             let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
             let temp_used = used - base_asym_size;
-            self.common
-                .runtime_info
-                .message_m
-                .append_message(&writer.used_slice()[..temp_used]);
+            self.append_message_m_response(session_id, &writer.used_slice()[..temp_used]);
 
-            let signature = self.common.generate_measurement_signature();
+            let signature = self.common.generate_measurement_signature(session_id);
             if signature.is_err() {
                 self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
                 return;
@@ -219,10 +218,20 @@ impl<'a> ResponderContext<'a> {
                 .copy_from_slice(signature.as_ref());
             self.common.runtime_info.message_m.reset_message();
         } else {
-            self.common
-                .runtime_info
-                .message_m
-                .append_message(writer.used_slice());
+            self.append_message_m_response(session_id, writer.used_slice());
+        }
+    }
+    pub fn append_message_m_response(
+        &mut self,
+        session_id: Option<u32>,
+        bytes: &[u8],
+    ) -> Option<usize> {
+        match session_id {
+            None => self.common.runtime_info.message_m.append_message(bytes),
+            Some(session_id) => {
+                let session = self.common.get_session_via_id(session_id).unwrap();
+                session.runtime_info.message_m.append_message(bytes)
+            }
         }
     }
 }
