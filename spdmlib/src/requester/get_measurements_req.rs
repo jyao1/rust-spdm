@@ -9,6 +9,7 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     fn send_receive_spdm_measurement_record(
         &mut self,
+        session_id: Option<u32>,
         measurement_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
         slot_id: u8,
@@ -21,12 +22,24 @@ impl<'a> RequesterContext<'a> {
             slot_id,
             &mut send_buffer,
         )?;
-        self.send_message(&send_buffer[..send_used])?;
+        match session_id {
+            Some(session_id) => {
+                self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
+            }
+            None => {
+                self.send_message(&send_buffer[..send_used])?;
+            }
+        }
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
+        let used = match session_id {
+            Some(session_id) => self.receive_secured_message(session_id, &mut receive_buffer)?,
+            None => self.receive_message(&mut receive_buffer)?,
+        };
+
         self.handle_spdm_measurement_record_response(
+            session_id,
             measurement_attributes,
             measurement_operation,
             &send_buffer[..send_used],
@@ -65,6 +78,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_measurement_record_response(
         &mut self,
+        session_id: Option<u32>,
         measurement_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
         send_buffer: &[u8],
@@ -94,7 +108,14 @@ impl<'a> RequesterContext<'a> {
                                 self.common.negotiate_info.base_asym_sel.get_size() as usize;
                             let temp_used = used - base_asym_size;
 
-                            let message_m = &mut self.common.runtime_info.message_m;
+                            let message_m = match session_id {
+                                Some(session_id) => {
+                                    let session =
+                                        self.common.get_session_via_id(session_id).unwrap();
+                                    &mut session.runtime_info.message_m
+                                }
+                                None => &mut self.common.runtime_info.message_m,
+                            };
                             message_m
                                 .append_message(send_buffer)
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
@@ -104,7 +125,7 @@ impl<'a> RequesterContext<'a> {
 
                             if self
                                 .common
-                                .verify_measurement_signature(&measurements.signature)
+                                .verify_measurement_signature(session_id, &measurements.signature)
                                 .is_err()
                             {
                                 error!("verify_measurement_signature fail");
@@ -112,9 +133,23 @@ impl<'a> RequesterContext<'a> {
                             } else {
                                 info!("verify_measurement_signature pass");
                             }
-                            self.common.runtime_info.message_m.reset_message();
+                            match session_id {
+                                Some(session_id) => {
+                                    let session =
+                                        self.common.get_session_via_id(session_id).unwrap();
+                                    session.runtime_info.message_m.reset_message();
+                                }
+                                None => self.common.runtime_info.message_m.reset_message(),
+                            };
                         } else {
-                            let message_m = &mut self.common.runtime_info.message_m;
+                            let message_m = match session_id {
+                                Some(session_id) => {
+                                    let session =
+                                        self.common.get_session_via_id(session_id).unwrap();
+                                    &mut session.runtime_info.message_m
+                                }
+                                None => &mut self.common.runtime_info.message_m,
+                            };
                             message_m
                                 .append_message(send_buffer)
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
@@ -145,12 +180,14 @@ impl<'a> RequesterContext<'a> {
 
     pub fn send_receive_spdm_measurement(
         &mut self,
+        session_id: Option<u32>,
         measurement_operation: SpdmMeasurementOperation,
         slot_id: u8,
     ) -> SpdmResult {
         match measurement_operation {
             SpdmMeasurementOperation::SpdmMeasurementRequestAll => self
                 .send_receive_spdm_measurement_record(
+                    session_id,
                     SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
                     SpdmMeasurementOperation::SpdmMeasurementRequestAll,
                     slot_id,
@@ -158,6 +195,7 @@ impl<'a> RequesterContext<'a> {
                 .and(Ok(())),
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber => {
                 if let Ok(total_number) = self.send_receive_spdm_measurement_record(
+                    session_id,
                     SpdmMeasurementeAttributes::empty(),
                     SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                     slot_id,
@@ -165,6 +203,7 @@ impl<'a> RequesterContext<'a> {
                     for block_i in 1..total_number.checked_add(1).ok_or(spdm_err!(ENOMEM))? {
                         if self
                             .send_receive_spdm_measurement_record(
+                                session_id,
                                 if block_i == total_number {
                                     SpdmMeasurementeAttributes::INCLUDE_SIGNATURE
                                 } else {
@@ -185,6 +224,7 @@ impl<'a> RequesterContext<'a> {
             }
             SpdmMeasurementOperation::Unknown(index) => self
                 .send_receive_spdm_measurement_record(
+                    session_id,
                     SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
                     SpdmMeasurementOperation::Unknown(index as u8),
                     slot_id,
@@ -273,19 +313,19 @@ mod tests_requester {
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
         let status = requester
-            .send_receive_spdm_measurement(measurement_operation, 0)
+            .send_receive_spdm_measurement(None, measurement_operation, 0)
             .is_ok();
         assert!(status);
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementRequestAll;
         let status = requester
-            .send_receive_spdm_measurement(measurement_operation, 0)
+            .send_receive_spdm_measurement(None, measurement_operation, 0)
             .is_ok();
         assert!(status);
 
         let measurement_operation = SpdmMeasurementOperation::Unknown(5);
         let status = requester
-            .send_receive_spdm_measurement(measurement_operation, 0)
+            .send_receive_spdm_measurement(None, measurement_operation, 0)
             .is_ok();
         assert!(status);
     }

@@ -78,6 +78,7 @@ fn run_spdm(spdm: Vec<i32>) {
             7 => {
                 if requester
                     .send_receive_spdm_measurement(
+                        None,
                         SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                         0,
                     )

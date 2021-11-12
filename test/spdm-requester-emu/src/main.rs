@@ -178,7 +178,11 @@ fn test_spdm(
     }
 
     if context
-        .send_receive_spdm_measurement(SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber, 0)
+        .send_receive_spdm_measurement(
+            None,
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            0,
+        )
         .is_err()
     {
         return;
