@@ -300,7 +300,11 @@ impl<'a> SpdmContext<'a> {
         .ok_or_else(|| spdm_err!(EFAULT))
     }
 
-    pub fn verify_measurement_signature(&mut self, session_id: Option<u32>, signature: &SpdmSignatureStruct) -> SpdmResult {
+    pub fn verify_measurement_signature(
+        &mut self,
+        session_id: Option<u32>,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
         let mut message = ManagedBuffer::default();
         match session_id {
             None => {
