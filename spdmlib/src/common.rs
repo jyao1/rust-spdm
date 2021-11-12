@@ -300,13 +300,24 @@ impl<'a> SpdmContext<'a> {
         .ok_or_else(|| spdm_err!(EFAULT))
     }
 
-    pub fn verify_measurement_signature(&mut self, signature: &SpdmSignatureStruct) -> SpdmResult {
+    pub fn verify_measurement_signature(&mut self, session_id: Option<u32>, signature: &SpdmSignatureStruct) -> SpdmResult {
         let mut message = ManagedBuffer::default();
-        message
-            .append_message(self.runtime_info.message_m.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        match session_id {
+            None => {
+                message
+                    .append_message(self.runtime_info.message_m.as_ref())
+                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+            }
+            Some(session_id) => {
+                let session = self.get_session_via_id(session_id).unwrap();
+                message
+                    .append_message(session.runtime_info.message_m.as_ref())
+                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+            }
+        }
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
+        debug!("message_m - {:02x?}", message.1[..message.0].as_ref());
         let message_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
@@ -325,7 +336,10 @@ impl<'a> SpdmContext<'a> {
         )
     }
 
-    pub fn generate_measurement_signature(&mut self, session_id: Option<u32>) -> SpdmResult<SpdmSignatureStruct> {
+    pub fn generate_measurement_signature(
+        &mut self,
+        session_id: Option<u32>,
+    ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = ManagedBuffer::default();
         match session_id {
             None => {
