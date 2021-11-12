@@ -227,6 +227,17 @@ fn test_spdm(
             return;
         }
 
+        if context
+            .send_receive_spdm_measurement(
+                Some(session_id),
+                SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+                0,
+            )
+            .is_err()
+        {
+            return;
+        }
+
         if context.end_session(session_id).is_err() {
             return;
         }
