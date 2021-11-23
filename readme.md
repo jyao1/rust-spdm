@@ -2,7 +2,7 @@
 
 A rust version SPDM implementation.
 
-It is derived from https://github.com/jyao1/openspdm.
+It is derived from https://github.com/DMTF/libspdm.
 
 ## Build Rust SPDM
 
