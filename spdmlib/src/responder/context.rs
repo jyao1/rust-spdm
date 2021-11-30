@@ -169,10 +169,7 @@ impl<'a> ResponderContext<'a> {
                     self.handle_spdm_end_session(session_id, bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestVendorDefinedRequest => {
-                    self.handle_spdm_vendor_defined_request(session_id, bytes);
-                    true
-                }
+                SpdmResponseResponseCode::SpdmRequestVendorDefinedRequest => false,
                 SpdmResponseResponseCode::SpdmResponseDigests => false,
                 SpdmResponseResponseCode::SpdmResponseCertificate => false,
                 SpdmResponseResponseCode::SpdmResponseChallengeAuth => false,
