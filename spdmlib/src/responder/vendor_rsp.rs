@@ -2,15 +2,53 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::error::{SpdmError, SpdmErrorNum, SpdmResult};
+use crate::msgs::*;
 use crate::responder::*;
 
-///Temporary hardcode response
-pub const TEST_VENDOR_RESPONSE_DATA: &[u8; 19] = &[
-    0x10u8, 0x7eu8, 0x00u8, 0x00u8, 0x03u8, 0x00u8, 0x02u8, 0x01u8, 0x00u8, 0x08u8, 0x00u8, 0x00u8,
-    0x01u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x00u8, 0x07u8,
-];
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_vendor_defined_request(&mut self, session_id: u32, _bytes: &[u8]) {
-        let _ = self.send_secured_message(session_id, TEST_VENDOR_RESPONSE_DATA, false);
+    pub fn handle_spdm_vendor_defined_request(&mut self, session_id: u32, bytes: &[u8]) {
+        let mut reader = Reader::init(bytes);
+        SpdmMessageHeader::read(&mut reader);
+        let vendor_defined_request_payload =
+            SpdmVendorDefinedRequestPayload::spdm_read(&mut self.common, &mut reader).unwrap();
+        let StandardID = vendor_defined_request_payload.StandardID;
+        let VendorID = vendor_defined_request_payload.VendorID;
+        let ReqPayload = vendor_defined_request_payload.ReqPayload;
+        let ResPayload = self.respond_to_vendor_defined_request(&ReqPayload).unwrap();
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut writer = Writer::init(&mut send_buffer);
+
+        let response = SpdmMessage {
+            header: SpdmMessageHeader {
+                version: SpdmVersion::SpdmVersion11,
+                request_response_code: SpdmResponseResponseCode::SpdmResponseVendorDefinedResponse,
+            },
+            payload: SpdmMessagePayload::SpdmVendorDefinedResponse(
+                SpdmVendorDefinedResponsePayload {
+                    StandardID,
+                    VendorID,
+                    ResPayload,
+                },
+            ),
+        };
+        response.spdm_encode(&mut self.common, &mut writer);
+        let used = writer.used();
+        let _ = self.send_secured_message(session_id, &send_buffer[..used], true);
+    }
+
+    #[allow(dead_code)]
+    pub fn respond_to_vendor_defined_request(
+        &mut self,
+        _req: &ReqPayloadStruct,
+    ) -> SpdmResult<ResPayloadStruct> {
+        //Vendor to define reponse to request by vendor defined protocol, which is unkown to us.
+        Err(SpdmError::new(
+            SpdmErrorNum::EUNDEF,
+            "spdmlib/src/responder/vendor_rsp.rs",
+            51,
+            0,
+            "Not Implemented yet!",
+        ))
     }
 }
