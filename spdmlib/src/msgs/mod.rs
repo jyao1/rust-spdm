@@ -33,7 +33,7 @@ pub use psk_exchange::*;
 pub use psk_finish::*;
 pub use version::*;
 // Add new SPDM command here.
-
+pub use vendor::*;
 #[derive(Debug)]
 pub struct SpdmMessage {
     pub header: SpdmMessageHeader,
@@ -91,6 +91,8 @@ pub enum SpdmMessagePayload {
 
     // Add new SPDM command here.
     SpdmErrorResponse(SpdmErrorResponsePayload),
+    SpdmVendorDefinedRequest(SpdmVendorDefinedRequestPayload),
+    SpdmVendorDefinedResponse(SpdmVendorDefinedResponsePayload),
 }
 
 impl SpdmMessage {
@@ -373,6 +375,12 @@ impl SpdmCodec for SpdmMessage {
 
             // Add new SPDM command here.
             SpdmMessagePayload::SpdmErrorResponse(payload) => {
+                payload.spdm_encode(context, bytes);
+            }
+            SpdmMessagePayload::SpdmVendorDefinedRequest(payload) => {
+                payload.spdm_encode(context, bytes);
+            }
+            SpdmMessagePayload::SpdmVendorDefinedResponse(payload) => {
                 payload.spdm_encode(context, bytes);
             }
         }

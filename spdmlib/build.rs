@@ -17,6 +17,7 @@ struct SpdmConfig {
     max_opaque_size: usize,
     measurement_config: SpdmMeasurementConfig,
     psk_config: SpdmPskConfig,
+    vendor_defined_config: SpdmVendorDefinedConfig,
     max_session_count: usize,
     max_msg_buffer_size: usize,
     max_transport_size: usize,
@@ -59,6 +60,12 @@ struct SpdmMeasurementConfig {
 struct SpdmPskConfig {
     max_psk_context_size: usize,
     max_psk_hint_size: usize,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+struct SpdmVendorDefinedConfig {
+    max_vendor_defined_vendor_id_len: usize,
+    max_vendor_defined_payload_size: usize,
 }
 
 macro_rules! TEMPLATE {
@@ -115,6 +122,10 @@ pub const MAX_SPDM_MESSAGE_BUFFER_SIZE: usize = {msg_buf_sz}; // 0x1200
 
 /// This is used in Transport
 pub const MAX_SPDM_TRANSPORT_SIZE: usize = {trans_sz};
+
+/// This is used in vendor defined message transport
+pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
+pub const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = {vendor_payload_sz};
 "
 };
 }
@@ -155,7 +166,13 @@ fn main() {
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,
         msg_buf_sz = spdm_config.max_msg_buffer_size,
-        trans_sz = spdm_config.max_transport_size
+        trans_sz = spdm_config.max_transport_size,
+        vendor_id_len = spdm_config
+            .vendor_defined_config
+            .max_vendor_defined_vendor_id_len,
+        vendor_payload_sz = spdm_config
+            .vendor_defined_config
+            .max_vendor_defined_payload_size
     )
     .expect("Failed to generate configuration code from the template and JSON config");
 

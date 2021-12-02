@@ -26,7 +26,7 @@ enum_builder! {
         SpdmResponseMeasurements => 0x60,
         SpdmResponseCapabilities => 0x61,
         SpdmResponseAlgorithms => 0x63,
-        //SpdmResponseVendorDefinedResponse => 0x7E,
+        SpdmResponseVendorDefinedResponse => 0x7E,
         SpdmResponseError => 0x7F,
         // 1.1 response
         SpdmResponseKeyExchangeRsp => 0x64,
