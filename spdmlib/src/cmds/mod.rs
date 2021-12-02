@@ -8,10 +8,10 @@ pub mod capability;
 pub mod certificate;
 pub mod challenge;
 pub mod digest;
-pub mod measurement;
-pub mod version;
-
 pub mod error;
+pub mod measurement;
+pub mod vendor;
+pub mod version;
 
 // SPDM 1.1
 pub mod end_session;
