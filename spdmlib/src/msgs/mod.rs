@@ -103,162 +103,162 @@ impl SpdmMessage {
         let header = SpdmMessageHeader::read(r)?;
 
         let payload = match header.request_response_code {
-            SpdmResponseResponseCode::SpdmResponseVersion => {
+            SpdmRequestResponseCode::SpdmResponseVersion => {
                 Some(SpdmMessagePayload::SpdmVersionResponse(
                     SpdmVersionResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestGetVersion => {
+            SpdmRequestResponseCode::SpdmRequestGetVersion => {
                 Some(SpdmMessagePayload::SpdmGetVersionRequest(
                     SpdmGetVersionRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseCapabilities => {
+            SpdmRequestResponseCode::SpdmResponseCapabilities => {
                 Some(SpdmMessagePayload::SpdmCapabilitiesResponse(
                     SpdmCapabilitiesResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestGetCapabilities => {
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities => {
                 Some(SpdmMessagePayload::SpdmGetCapabilitiesRequest(
                     SpdmGetCapabilitiesRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseAlgorithms => {
+            SpdmRequestResponseCode::SpdmResponseAlgorithms => {
                 Some(SpdmMessagePayload::SpdmAlgorithmsResponse(
                     SpdmAlgorithmsResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms => {
+            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => {
                 Some(SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(
                     SpdmNegotiateAlgorithmsRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseDigests => {
+            SpdmRequestResponseCode::SpdmResponseDigests => {
                 Some(SpdmMessagePayload::SpdmDigestsResponse(
                     SpdmDigestsResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestGetDigests => {
+            SpdmRequestResponseCode::SpdmRequestGetDigests => {
                 Some(SpdmMessagePayload::SpdmGetDigestsRequest(
                     SpdmGetDigestsRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseCertificate => {
+            SpdmRequestResponseCode::SpdmResponseCertificate => {
                 Some(SpdmMessagePayload::SpdmCertificateResponse(
                     SpdmCertificateResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestGetCertificate => {
+            SpdmRequestResponseCode::SpdmRequestGetCertificate => {
                 Some(SpdmMessagePayload::SpdmGetCertificateRequest(
                     SpdmGetCertificateRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseChallengeAuth => {
+            SpdmRequestResponseCode::SpdmResponseChallengeAuth => {
                 Some(SpdmMessagePayload::SpdmChallengeAuthResponse(
                     SpdmChallengeAuthResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestChallenge => {
+            SpdmRequestResponseCode::SpdmRequestChallenge => {
                 Some(SpdmMessagePayload::SpdmChallengeRequest(
                     SpdmChallengeRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseMeasurements => {
+            SpdmRequestResponseCode::SpdmResponseMeasurements => {
                 Some(SpdmMessagePayload::SpdmMeasurementsResponse(
                     SpdmMeasurementsResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestGetMeasurements => {
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
                 Some(SpdmMessagePayload::SpdmGetMeasurementsRequest(
                     SpdmGetMeasurementsRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp => {
+            SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => {
                 Some(SpdmMessagePayload::SpdmKeyExchangeResponse(
                     SpdmKeyExchangeResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestKeyExchange => {
+            SpdmRequestResponseCode::SpdmRequestKeyExchange => {
                 Some(SpdmMessagePayload::SpdmKeyExchangeRequest(
                     SpdmKeyExchangeRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseFinishRsp => {
+            SpdmRequestResponseCode::SpdmResponseFinishRsp => {
                 Some(SpdmMessagePayload::SpdmFinishResponse(
                     SpdmFinishResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestFinish => {
+            SpdmRequestResponseCode::SpdmRequestFinish => {
                 Some(SpdmMessagePayload::SpdmFinishRequest(
                     SpdmFinishRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp => {
+            SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => {
                 Some(SpdmMessagePayload::SpdmPskExchangeResponse(
                     SpdmPskExchangeResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestPskExchange => {
+            SpdmRequestResponseCode::SpdmRequestPskExchange => {
                 Some(SpdmMessagePayload::SpdmPskExchangeRequest(
                     SpdmPskExchangeRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponsePskFinishRsp => {
+            SpdmRequestResponseCode::SpdmResponsePskFinishRsp => {
                 Some(SpdmMessagePayload::SpdmPskFinishResponse(
                     SpdmPskFinishResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestPskFinish => {
+            SpdmRequestResponseCode::SpdmRequestPskFinish => {
                 Some(SpdmMessagePayload::SpdmPskFinishRequest(
                     SpdmPskFinishRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseHeartbeatAck => {
+            SpdmRequestResponseCode::SpdmResponseHeartbeatAck => {
                 Some(SpdmMessagePayload::SpdmHeartbeatResponse(
                     SpdmHeartbeatResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestHeartbeat => {
+            SpdmRequestResponseCode::SpdmRequestHeartbeat => {
                 Some(SpdmMessagePayload::SpdmHeartbeatRequest(
                     SpdmHeartbeatRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck => {
+            SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => {
                 Some(SpdmMessagePayload::SpdmKeyUpdateResponse(
                     SpdmKeyUpdateResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestKeyUpdate => {
+            SpdmRequestResponseCode::SpdmRequestKeyUpdate => {
                 Some(SpdmMessagePayload::SpdmKeyUpdateRequest(
                     SpdmKeyUpdateRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
-            SpdmResponseResponseCode::SpdmResponseEndSessionAck => {
+            SpdmRequestResponseCode::SpdmResponseEndSessionAck => {
                 Some(SpdmMessagePayload::SpdmEndSessionResponse(
                     SpdmEndSessionResponsePayload::spdm_read(context, r)?,
                 ))
             }
-            SpdmResponseResponseCode::SpdmRequestEndSession => {
+            SpdmRequestResponseCode::SpdmRequestEndSession => {
                 Some(SpdmMessagePayload::SpdmEndSessionRequest(
                     SpdmEndSessionRequestPayload::spdm_read(context, r)?,
                 ))
             }
 
             // Add new SPDM command here.
-            SpdmResponseResponseCode::SpdmResponseError => {
+            SpdmRequestResponseCode::SpdmResponseError => {
                 Some(SpdmMessagePayload::SpdmErrorResponse(
                     SpdmErrorResponsePayload::spdm_read(context, r)?,
                 ))
@@ -405,7 +405,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseVersion,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
                 version_number_entry_count: 0x02,
@@ -421,7 +421,7 @@ mod tests {
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseVersion
+            SpdmRequestResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.version_number_entry_count, 0x02);
@@ -439,7 +439,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetCapabilities,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetCapabilities,
             },
             payload: SpdmMessagePayload::SpdmGetCapabilitiesRequest(
                 SpdmGetCapabilitiesRequestPayload {
@@ -452,7 +452,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestGetCapabilities
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities
         );
         if let SpdmMessagePayload::SpdmGetCapabilitiesRequest(payload) = &spdm_message.payload {
             assert_eq!(payload.ct_exponent, 0x02);
@@ -467,7 +467,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseCapabilities,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseCapabilities,
             },
             payload: SpdmMessagePayload::SpdmCapabilitiesResponse(
                 SpdmCapabilitiesResponsePayload {
@@ -480,7 +480,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseCapabilities
+            SpdmRequestResponseCode::SpdmResponseCapabilities
         );
         if let SpdmMessagePayload::SpdmCapabilitiesResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.ct_exponent, 0x03);
@@ -495,7 +495,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
             },
             payload: SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(
                 SpdmNegotiateAlgorithmsRequestPayload {
@@ -516,7 +516,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms
+            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms
         );
         if let SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(payload) = &spdm_message.payload {
             assert_eq!(
@@ -548,7 +548,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseAlgorithms,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseAlgorithms,
             },
             payload: SpdmMessagePayload::SpdmAlgorithmsResponse(SpdmAlgorithmsResponsePayload {
                 measurement_specification_sel: SpdmMeasurementSpecification::DMTF,
@@ -568,7 +568,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseAlgorithms
+            SpdmRequestResponseCode::SpdmResponseAlgorithms
         );
         if let SpdmMessagePayload::SpdmAlgorithmsResponse(payload) = &spdm_message.payload {
             assert_eq!(
@@ -601,7 +601,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseCertificate,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseCertificate,
             },
             payload: SpdmMessagePayload::SpdmCertificateResponse(SpdmCertificateResponsePayload {
                 slot_id: 100,
@@ -614,7 +614,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseCertificate
+            SpdmRequestResponseCode::SpdmResponseCertificate
         );
         if let SpdmMessagePayload::SpdmCertificateResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 100);
@@ -633,7 +633,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
             },
             payload: SpdmMessagePayload::SpdmChallengeRequest(SpdmChallengeRequestPayload {
                 slot_id: 100,
@@ -646,7 +646,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
         if let SpdmMessagePayload::SpdmChallengeRequest(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 100);
@@ -667,7 +667,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseChallengeAuth,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseChallengeAuth,
             },
             payload: SpdmMessagePayload::SpdmChallengeAuthResponse(
                 SpdmChallengeAuthResponsePayload {
@@ -703,7 +703,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseChallengeAuth
+            SpdmRequestResponseCode::SpdmResponseChallengeAuth
         );
         if let SpdmMessagePayload::SpdmChallengeAuthResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 0x0f);
@@ -738,7 +738,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetMeasurements,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetMeasurements,
             },
             payload: SpdmMessagePayload::SpdmGetMeasurementsRequest(
                 SpdmGetMeasurementsRequestPayload {
@@ -756,7 +756,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestGetMeasurements
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements
         );
         if let SpdmMessagePayload::SpdmGetMeasurementsRequest(payload) = &spdm_message.payload {
             assert_eq!(
@@ -781,7 +781,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseMeasurements,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseMeasurements,
             },
             payload: SpdmMessagePayload::SpdmMeasurementsResponse(
                 SpdmMeasurementsResponsePayload {
@@ -823,7 +823,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseMeasurements
+            SpdmRequestResponseCode::SpdmResponseMeasurements
         );
         if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.number_of_measurement, 100);
@@ -878,7 +878,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyExchange,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestKeyExchange,
             },
             payload: SpdmMessagePayload::SpdmKeyExchangeRequest(SpdmKeyExchangeRequestPayload {
                 measurement_summary_hash_type:
@@ -904,7 +904,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestKeyExchange
+            SpdmRequestResponseCode::SpdmRequestKeyExchange
         );
         if let SpdmMessagePayload::SpdmKeyExchangeRequest(payload) = &spdm_message.payload {
             assert_eq!(
@@ -933,7 +933,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestFinish,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestFinish,
             },
             payload: SpdmMessagePayload::SpdmFinishRequest(SpdmFinishRequestPayload {
                 finish_request_attributes: SpdmFinishRequestAttributes::SIGNATURE_INCLUDED,
@@ -954,7 +954,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestFinish
+            SpdmRequestResponseCode::SpdmRequestFinish
         );
         if let SpdmMessagePayload::SpdmFinishRequest(payload) = &spdm_message.payload {
             assert_eq!(
@@ -980,7 +980,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseFinishRsp,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseFinishRsp,
             },
             payload: SpdmMessagePayload::SpdmFinishResponse(SpdmFinishResponsePayload {
                 verify_data: SpdmDigestStruct {
@@ -998,7 +998,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseFinishRsp
+            SpdmRequestResponseCode::SpdmResponseFinishRsp
         );
         if let SpdmMessagePayload::SpdmFinishResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.verify_data.data_size, 64);
@@ -1015,7 +1015,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestPskExchange,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestPskExchange,
             },
             payload: SpdmMessagePayload::SpdmPskExchangeRequest(SpdmPskExchangeRequestPayload {
                 measurement_summary_hash_type:
@@ -1039,7 +1039,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestPskExchange
+            SpdmRequestResponseCode::SpdmRequestPskExchange
         );
         if let SpdmMessagePayload::SpdmPskExchangeRequest(payload) = &spdm_message.payload {
             assert_eq!(
@@ -1061,7 +1061,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponsePskExchangeRsp,
+                request_response_code: SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
             },
             payload: SpdmMessagePayload::SpdmPskExchangeResponse(SpdmPskExchangeResponsePayload {
                 heartbeat_period: 0xaau8,
@@ -1090,7 +1090,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp
+            SpdmRequestResponseCode::SpdmResponsePskExchangeRsp
         );
         if let SpdmMessagePayload::SpdmPskExchangeResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.heartbeat_period, 0xaau8);
@@ -1117,7 +1117,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestPskFinish,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestPskFinish,
             },
             payload: SpdmMessagePayload::SpdmPskFinishRequest(SpdmPskFinishRequestPayload {
                 verify_data: SpdmDigestStruct {
@@ -1131,7 +1131,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestPskFinish
+            SpdmRequestResponseCode::SpdmRequestPskFinish
         );
         if let SpdmMessagePayload::SpdmPskFinishRequest(payload) = &spdm_message.payload {
             assert_eq!(payload.verify_data.data_size, 64);
@@ -1148,7 +1148,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyUpdate,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestKeyUpdate,
             },
             payload: SpdmMessagePayload::SpdmKeyUpdateRequest(SpdmKeyUpdateRequestPayload {
                 key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
@@ -1169,7 +1169,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
             },
             payload: SpdmMessagePayload::SpdmKeyUpdateResponse(SpdmKeyUpdateResponsePayload {
                 key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
@@ -1181,7 +1181,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck
+            SpdmRequestResponseCode::SpdmResponseKeyUpdateAck
         );
         if let SpdmMessagePayload::SpdmKeyUpdateResponse(payload) = &spdm_message.payload {
             assert_eq!(
@@ -1199,7 +1199,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestEndSession,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestEndSession,
             },
             payload: SpdmMessagePayload::SpdmEndSessionRequest(SpdmEndSessionRequestPayload {
                 end_session_request_attributes:
@@ -1210,7 +1210,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestEndSession
+            SpdmRequestResponseCode::SpdmRequestEndSession
         );
         if let SpdmMessagePayload::SpdmEndSessionRequest(payload) = &spdm_message.payload {
             assert_eq!(
@@ -1227,7 +1227,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseError,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseError,
             },
             payload: SpdmMessagePayload::SpdmErrorResponse(SpdmErrorResponsePayload {
                 error_code: SpdmErrorCode::SpdmErrorResponseNotReady,
@@ -1247,7 +1247,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseError
+            SpdmRequestResponseCode::SpdmResponseError
         );
         if let SpdmMessagePayload::SpdmErrorResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.error_code, SpdmErrorCode::SpdmErrorResponseNotReady);
@@ -1270,7 +1270,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetVersion,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetVersion,
             },
             payload: SpdmMessagePayload::SpdmGetVersionRequest(SpdmGetVersionRequestPayload {}),
         };
@@ -1286,7 +1286,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetDigests,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetDigests,
             },
             payload: SpdmMessagePayload::SpdmGetDigestsRequest(SpdmGetDigestsRequestPayload {}),
         };
@@ -1302,7 +1302,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetCertificate,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetCertificate,
             },
             payload: SpdmMessagePayload::SpdmGetCertificateRequest(
                 SpdmGetCertificateRequestPayload {
@@ -1317,7 +1317,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestGetCertificate
+            SpdmRequestResponseCode::SpdmRequestGetCertificate
         );
         if let SpdmMessagePayload::SpdmGetCertificateRequest(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 100);
@@ -1333,7 +1333,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponsePskFinishRsp,
+                request_response_code: SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
             },
             payload: SpdmMessagePayload::SpdmPskFinishResponse(SpdmPskFinishResponsePayload {}),
         };
@@ -1348,7 +1348,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestHeartbeat,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestHeartbeat,
             },
             payload: SpdmMessagePayload::SpdmHeartbeatRequest(SpdmHeartbeatRequestPayload {}),
         };
@@ -1363,7 +1363,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseEndSessionAck,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseEndSessionAck,
             },
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
@@ -1378,7 +1378,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::Unknown(0),
+                request_response_code: SpdmRequestResponseCode::Unknown(0),
             },
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
@@ -1399,7 +1399,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseDigests,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseDigests,
             },
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
                 slot_mask: 0b11111111,
@@ -1415,7 +1415,7 @@ mod tests {
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseDigests
+            SpdmRequestResponseCode::SpdmResponseDigests
         );
         if let SpdmMessagePayload::SpdmDigestsResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_mask, 0b11111111);
@@ -1432,7 +1432,7 @@ mod tests {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseHeartbeatAck,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseHeartbeatAck,
             },
             payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
         };

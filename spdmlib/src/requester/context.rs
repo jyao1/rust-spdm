@@ -263,7 +263,7 @@ mod tests_requester {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestEndSession,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestEndSession,
             },
             payload: SpdmMessagePayload::SpdmEndSessionRequest(SpdmEndSessionRequestPayload {
                 end_session_request_attributes: SpdmEndSessionRequestAttributes::empty(),

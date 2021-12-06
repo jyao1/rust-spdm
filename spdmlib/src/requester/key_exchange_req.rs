@@ -68,7 +68,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyExchange,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestKeyExchange,
             },
             payload: SpdmMessagePayload::SpdmKeyExchangeRequest(SpdmKeyExchangeRequestPayload {
                 slot_id,
@@ -103,7 +103,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp => {
+                SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => {
                     let key_exchange_rsp =
                         SpdmKeyExchangeResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let receive_used = reader.used();

@@ -48,7 +48,7 @@ impl<'a> ResponderContext<'a> {
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseCapabilities,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseCapabilities,
             },
             payload: SpdmMessagePayload::SpdmCapabilitiesResponse(
                 SpdmCapabilitiesResponsePayload {
@@ -90,7 +90,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
         let capabilities = &mut [0u8; 1024];
@@ -126,7 +126,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
         let capabilities_slice = &u8_slice[2..];
         let mut reader = Reader::init(capabilities_slice);
@@ -144,7 +144,7 @@ mod tests_responder {
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseCapabilities
+            SpdmRequestResponseCode::SpdmResponseCapabilities
         );
         if let SpdmMessagePayload::SpdmCapabilitiesResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.ct_exponent, 0);

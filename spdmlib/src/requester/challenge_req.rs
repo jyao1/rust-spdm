@@ -42,7 +42,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
             },
             payload: SpdmMessagePayload::SpdmChallengeRequest(SpdmChallengeRequestPayload {
                 slot_id,
@@ -73,7 +73,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseChallengeAuth => {
+                SpdmRequestResponseCode::SpdmResponseChallengeAuth => {
                     let challenge_auth =
                         SpdmChallengeAuthResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let used = reader.used();

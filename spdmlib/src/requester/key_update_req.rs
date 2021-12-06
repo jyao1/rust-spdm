@@ -44,7 +44,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestKeyUpdate,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestKeyUpdate,
             },
             payload: SpdmMessagePayload::SpdmKeyUpdateRequest(SpdmKeyUpdateRequestPayload {
                 key_update_operation,
@@ -65,7 +65,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseKeyUpdateAck => {
+                SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => {
                     let key_update_rsp =
                         SpdmKeyUpdateResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let session = self.common.get_session_via_id(session_id).unwrap();

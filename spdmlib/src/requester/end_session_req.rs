@@ -23,7 +23,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestEndSession,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestEndSession,
             },
             payload: SpdmMessagePayload::SpdmEndSessionRequest(SpdmEndSessionRequestPayload {
                 end_session_request_attributes: SpdmEndSessionRequestAttributes::empty(),
@@ -41,7 +41,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseEndSessionAck => {
+                SpdmRequestResponseCode::SpdmResponseEndSessionAck => {
                     let end_session_rsp =
                         SpdmEndSessionResponsePayload::spdm_read(&mut self.common, &mut reader);
                     if let Some(end_session_rsp) = end_session_rsp {

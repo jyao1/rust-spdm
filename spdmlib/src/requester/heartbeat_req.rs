@@ -23,7 +23,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestHeartbeat,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestHeartbeat,
             },
             payload: SpdmMessagePayload::SpdmHeartbeatRequest(SpdmHeartbeatRequestPayload {}),
         };
@@ -35,7 +35,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseHeartbeatAck => {
+                SpdmRequestResponseCode::SpdmResponseHeartbeatAck => {
                     let heartbeat_rsp =
                         SpdmHeartbeatResponsePayload::spdm_read(&mut self.common, &mut reader);
                     if let Some(heartbeat_rsp) = heartbeat_rsp {

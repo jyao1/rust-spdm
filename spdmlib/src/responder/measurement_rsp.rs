@@ -176,7 +176,7 @@ impl<'a> ResponderContext<'a> {
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseMeasurements,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseMeasurements,
             },
             payload: SpdmMessagePayload::SpdmMeasurementsResponse(
                 SpdmMeasurementsResponsePayload {
@@ -268,7 +268,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
 
@@ -304,7 +304,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
 
         let spdm_struct_slice = &u8_slice[2..];
@@ -326,7 +326,7 @@ mod tests_responder {
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseMeasurements
+            SpdmRequestResponseCode::SpdmResponseMeasurements
         );
         if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.number_of_measurement, 1);
@@ -400,7 +400,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
 
@@ -436,7 +436,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
 
         let spdm_struct_slice = &u8_slice[2..];
@@ -458,7 +458,7 @@ mod tests_responder {
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseMeasurements
+            SpdmRequestResponseCode::SpdmResponseMeasurements
         );
 
         if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {

@@ -19,7 +19,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestVendorDefinedRequest,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
             },
             payload: SpdmMessagePayload::SpdmVendorDefinedRequest(
                 SpdmVendorDefinedRequestPayload {
@@ -39,7 +39,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmRequestVendorDefinedResponse => {
+                SpdmRequestResponseCode::SpdmRequestVendorDefinedResponse => {
                     let (standardID, VendorIDStruct, ResPayloadStruct) =
                         SpdmVendorDefinedResponsePayload::spdm_read(&mut self.common, &mut reader);
                     return Ok(ResPayloadStruct);

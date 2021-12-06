@@ -130,66 +130,66 @@ impl<'a> ResponderContext<'a> {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmRequestGetVersion => false,
-                SpdmResponseResponseCode::SpdmRequestGetCapabilities => false,
-                SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms => false,
-                SpdmResponseResponseCode::SpdmRequestGetDigests => false,
-                SpdmResponseResponseCode::SpdmRequestGetCertificate => false,
-                SpdmResponseResponseCode::SpdmRequestChallenge => false,
-                SpdmResponseResponseCode::SpdmRequestGetMeasurements => {
+                SpdmRequestResponseCode::SpdmRequestGetVersion => false,
+                SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
+                SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
+                SpdmRequestResponseCode::SpdmRequestGetDigests => false,
+                SpdmRequestResponseCode::SpdmRequestGetCertificate => false,
+                SpdmRequestResponseCode::SpdmRequestChallenge => false,
+                SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
                     self.handle_spdm_measurement(Some(session_id), bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestKeyExchange => false,
+                SpdmRequestResponseCode::SpdmRequestKeyExchange => false,
 
-                SpdmResponseResponseCode::SpdmRequestFinish => {
+                SpdmRequestResponseCode::SpdmRequestFinish => {
                     self.handle_spdm_finish(session_id, bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestPskExchange => false,
+                SpdmRequestResponseCode::SpdmRequestPskExchange => false,
 
-                SpdmResponseResponseCode::SpdmRequestPskFinish => {
+                SpdmRequestResponseCode::SpdmRequestPskFinish => {
                     self.handle_spdm_psk_finish(session_id, bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestHeartbeat => {
+                SpdmRequestResponseCode::SpdmRequestHeartbeat => {
                     self.handle_spdm_heartbeat(session_id, bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestKeyUpdate => {
+                SpdmRequestResponseCode::SpdmRequestKeyUpdate => {
                     self.handle_spdm_key_update(session_id, bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestEndSession => {
+                SpdmRequestResponseCode::SpdmRequestEndSession => {
                     self.handle_spdm_end_session(session_id, bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestVendorDefinedRequest => {
+                SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
                     self.handle_spdm_vendor_defined_request(session_id, bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmResponseDigests => false,
-                SpdmResponseResponseCode::SpdmResponseCertificate => false,
-                SpdmResponseResponseCode::SpdmResponseChallengeAuth => false,
-                SpdmResponseResponseCode::SpdmResponseVersion => false,
-                SpdmResponseResponseCode::SpdmResponseMeasurements => false,
-                SpdmResponseResponseCode::SpdmResponseCapabilities => false,
-                SpdmResponseResponseCode::SpdmResponseAlgorithms => false,
-                SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp => false,
-                SpdmResponseResponseCode::SpdmResponseFinishRsp => false,
-                SpdmResponseResponseCode::SpdmResponsePskExchangeRsp => false,
-                SpdmResponseResponseCode::SpdmResponsePskFinishRsp => false,
-                SpdmResponseResponseCode::SpdmResponseHeartbeatAck => false,
-                SpdmResponseResponseCode::SpdmResponseKeyUpdateAck => false,
-                SpdmResponseResponseCode::SpdmResponseEndSessionAck => false,
-                SpdmResponseResponseCode::SpdmResponseError => false,
-                SpdmResponseResponseCode::SpdmResponseVendorDefinedResponse => false,
-                SpdmResponseResponseCode::Unknown(_) => false,
+                SpdmRequestResponseCode::SpdmResponseDigests => false,
+                SpdmRequestResponseCode::SpdmResponseCertificate => false,
+                SpdmRequestResponseCode::SpdmResponseChallengeAuth => false,
+                SpdmRequestResponseCode::SpdmResponseVersion => false,
+                SpdmRequestResponseCode::SpdmResponseMeasurements => false,
+                SpdmRequestResponseCode::SpdmResponseCapabilities => false,
+                SpdmRequestResponseCode::SpdmResponseAlgorithms => false,
+                SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => false,
+                SpdmRequestResponseCode::SpdmResponseFinishRsp => false,
+                SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => false,
+                SpdmRequestResponseCode::SpdmResponsePskFinishRsp => false,
+                SpdmRequestResponseCode::SpdmResponseHeartbeatAck => false,
+                SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => false,
+                SpdmRequestResponseCode::SpdmResponseEndSessionAck => false,
+                SpdmRequestResponseCode::SpdmResponseError => false,
+                SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => false,
+                SpdmRequestResponseCode::Unknown(_) => false,
             },
             None => false,
         }
@@ -204,72 +204,72 @@ impl<'a> ResponderContext<'a> {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmRequestGetVersion => {
+                SpdmRequestResponseCode::SpdmRequestGetVersion => {
                     self.handle_spdm_version(bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestGetCapabilities => {
+                SpdmRequestResponseCode::SpdmRequestGetCapabilities => {
                     self.handle_spdm_capability(bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms => {
+                SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => {
                     self.handle_spdm_algorithm(bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestGetDigests => {
+                SpdmRequestResponseCode::SpdmRequestGetDigests => {
                     self.handle_spdm_digest(bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestGetCertificate => {
+                SpdmRequestResponseCode::SpdmRequestGetCertificate => {
                     self.handle_spdm_certificate(bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestChallenge => {
+                SpdmRequestResponseCode::SpdmRequestChallenge => {
                     self.handle_spdm_challenge(bytes);
                     true
                 }
-                SpdmResponseResponseCode::SpdmRequestGetMeasurements => {
+                SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
                     self.handle_spdm_measurement(None, bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestKeyExchange => {
+                SpdmRequestResponseCode::SpdmRequestKeyExchange => {
                     self.handle_spdm_key_exchange(bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestFinish => false,
+                SpdmRequestResponseCode::SpdmRequestFinish => false,
 
-                SpdmResponseResponseCode::SpdmRequestPskExchange => {
+                SpdmRequestResponseCode::SpdmRequestPskExchange => {
                     self.handle_spdm_psk_exchange(bytes);
                     true
                 }
 
-                SpdmResponseResponseCode::SpdmRequestPskFinish => false,
+                SpdmRequestResponseCode::SpdmRequestPskFinish => false,
 
-                SpdmResponseResponseCode::SpdmRequestHeartbeat => false,
+                SpdmRequestResponseCode::SpdmRequestHeartbeat => false,
 
-                SpdmResponseResponseCode::SpdmRequestKeyUpdate => false,
+                SpdmRequestResponseCode::SpdmRequestKeyUpdate => false,
 
-                SpdmResponseResponseCode::SpdmRequestEndSession => false,
-                SpdmResponseResponseCode::SpdmRequestVendorDefinedRequest => false,
-                SpdmResponseResponseCode::SpdmResponseDigests => false,
-                SpdmResponseResponseCode::SpdmResponseCertificate => false,
-                SpdmResponseResponseCode::SpdmResponseChallengeAuth => false,
-                SpdmResponseResponseCode::SpdmResponseVersion => false,
-                SpdmResponseResponseCode::SpdmResponseMeasurements => false,
-                SpdmResponseResponseCode::SpdmResponseCapabilities => false,
-                SpdmResponseResponseCode::SpdmResponseAlgorithms => false,
-                SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp => false,
-                SpdmResponseResponseCode::SpdmResponseFinishRsp => false,
-                SpdmResponseResponseCode::SpdmResponsePskExchangeRsp => false,
-                SpdmResponseResponseCode::SpdmResponsePskFinishRsp => false,
-                SpdmResponseResponseCode::SpdmResponseHeartbeatAck => false,
-                SpdmResponseResponseCode::SpdmResponseKeyUpdateAck => false,
-                SpdmResponseResponseCode::SpdmResponseEndSessionAck => false,
-                SpdmResponseResponseCode::SpdmResponseError => false,
-                SpdmResponseResponseCode::SpdmResponseVendorDefinedResponse => false,
-                SpdmResponseResponseCode::Unknown(_) => false,
+                SpdmRequestResponseCode::SpdmRequestEndSession => false,
+                SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => false,
+                SpdmRequestResponseCode::SpdmResponseDigests => false,
+                SpdmRequestResponseCode::SpdmResponseCertificate => false,
+                SpdmRequestResponseCode::SpdmResponseChallengeAuth => false,
+                SpdmRequestResponseCode::SpdmResponseVersion => false,
+                SpdmRequestResponseCode::SpdmResponseMeasurements => false,
+                SpdmRequestResponseCode::SpdmResponseCapabilities => false,
+                SpdmRequestResponseCode::SpdmResponseAlgorithms => false,
+                SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => false,
+                SpdmRequestResponseCode::SpdmResponseFinishRsp => false,
+                SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => false,
+                SpdmRequestResponseCode::SpdmResponsePskFinishRsp => false,
+                SpdmRequestResponseCode::SpdmResponseHeartbeatAck => false,
+                SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => false,
+                SpdmRequestResponseCode::SpdmResponseEndSessionAck => false,
+                SpdmRequestResponseCode::SpdmResponseError => false,
+                SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => false,
+                SpdmRequestResponseCode::Unknown(_) => false,
             },
             None => false,
         }
@@ -319,7 +319,7 @@ mod tests_responder {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
             },
             payload: SpdmMessagePayload::SpdmKeyUpdateResponse(SpdmKeyUpdateResponsePayload {
                 key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
@@ -519,40 +519,40 @@ mod tests_responder {
         }
     }
 
-    fn dispatch_secured_data(num: usize, status: bool) -> SpdmResponseResponseCode {
+    fn dispatch_secured_data(num: usize, status: bool) -> SpdmRequestResponseCode {
         let response_flase = [
-            SpdmResponseResponseCode::SpdmRequestGetVersion,
-            SpdmResponseResponseCode::SpdmRequestGetCapabilities,
-            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms,
-            SpdmResponseResponseCode::SpdmRequestGetDigests,
-            SpdmResponseResponseCode::SpdmRequestGetCertificate,
-            SpdmResponseResponseCode::SpdmRequestChallenge,
-            SpdmResponseResponseCode::SpdmRequestKeyExchange,
-            SpdmResponseResponseCode::SpdmResponseDigests,
-            SpdmResponseResponseCode::SpdmResponseCertificate,
-            SpdmResponseResponseCode::SpdmResponseChallengeAuth,
-            SpdmResponseResponseCode::SpdmResponseVersion,
-            SpdmResponseResponseCode::SpdmResponseMeasurements,
-            SpdmResponseResponseCode::SpdmResponseCapabilities,
-            SpdmResponseResponseCode::SpdmResponseAlgorithms,
-            SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp,
-            SpdmResponseResponseCode::SpdmResponseFinishRsp,
-            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp,
-            SpdmResponseResponseCode::SpdmResponsePskFinishRsp,
-            SpdmResponseResponseCode::SpdmResponseHeartbeatAck,
-            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
-            SpdmResponseResponseCode::SpdmResponseEndSessionAck,
-            SpdmResponseResponseCode::SpdmResponseError,
-            SpdmResponseResponseCode::SpdmRequestPskExchange,
-            SpdmResponseResponseCode::Unknown(0),
+            SpdmRequestResponseCode::SpdmRequestGetVersion,
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+            SpdmRequestResponseCode::SpdmRequestGetDigests,
+            SpdmRequestResponseCode::SpdmRequestGetCertificate,
+            SpdmRequestResponseCode::SpdmRequestChallenge,
+            SpdmRequestResponseCode::SpdmRequestKeyExchange,
+            SpdmRequestResponseCode::SpdmResponseDigests,
+            SpdmRequestResponseCode::SpdmResponseCertificate,
+            SpdmRequestResponseCode::SpdmResponseChallengeAuth,
+            SpdmRequestResponseCode::SpdmResponseVersion,
+            SpdmRequestResponseCode::SpdmResponseMeasurements,
+            SpdmRequestResponseCode::SpdmResponseCapabilities,
+            SpdmRequestResponseCode::SpdmResponseAlgorithms,
+            SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
+            SpdmRequestResponseCode::SpdmResponseFinishRsp,
+            SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
+            SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
+            SpdmRequestResponseCode::SpdmResponseHeartbeatAck,
+            SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
+            SpdmRequestResponseCode::SpdmResponseEndSessionAck,
+            SpdmRequestResponseCode::SpdmResponseError,
+            SpdmRequestResponseCode::SpdmRequestPskExchange,
+            SpdmRequestResponseCode::Unknown(0),
         ];
         let response_true = [
-            SpdmResponseResponseCode::SpdmRequestGetMeasurements,
-            SpdmResponseResponseCode::SpdmRequestFinish,
-            SpdmResponseResponseCode::SpdmRequestPskFinish,
-            SpdmResponseResponseCode::SpdmRequestHeartbeat,
-            SpdmResponseResponseCode::SpdmRequestKeyUpdate,
-            SpdmResponseResponseCode::SpdmRequestEndSession,
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+            SpdmRequestResponseCode::SpdmRequestFinish,
+            SpdmRequestResponseCode::SpdmRequestPskFinish,
+            SpdmRequestResponseCode::SpdmRequestHeartbeat,
+            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+            SpdmRequestResponseCode::SpdmRequestEndSession,
         ];
         if status {
             response_true[num]
@@ -560,40 +560,40 @@ mod tests_responder {
             response_flase[num]
         }
     }
-    fn dispatc_data(num: usize, status: bool) -> SpdmResponseResponseCode {
+    fn dispatc_data(num: usize, status: bool) -> SpdmRequestResponseCode {
         let response_true = [
-            SpdmResponseResponseCode::SpdmRequestGetVersion,
-            SpdmResponseResponseCode::SpdmRequestGetCapabilities,
-            SpdmResponseResponseCode::SpdmRequestNegotiateAlgorithms,
-            SpdmResponseResponseCode::SpdmRequestGetDigests,
-            SpdmResponseResponseCode::SpdmRequestGetCertificate,
-            SpdmResponseResponseCode::SpdmRequestChallenge,
-            SpdmResponseResponseCode::SpdmRequestGetMeasurements,
-            SpdmResponseResponseCode::SpdmRequestKeyExchange,
-            SpdmResponseResponseCode::SpdmRequestPskExchange,
+            SpdmRequestResponseCode::SpdmRequestGetVersion,
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+            SpdmRequestResponseCode::SpdmRequestGetDigests,
+            SpdmRequestResponseCode::SpdmRequestGetCertificate,
+            SpdmRequestResponseCode::SpdmRequestChallenge,
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+            SpdmRequestResponseCode::SpdmRequestKeyExchange,
+            SpdmRequestResponseCode::SpdmRequestPskExchange,
         ];
         let response_flase = [
-            SpdmResponseResponseCode::SpdmRequestFinish,
-            SpdmResponseResponseCode::SpdmRequestPskFinish,
-            SpdmResponseResponseCode::SpdmRequestHeartbeat,
-            SpdmResponseResponseCode::SpdmRequestKeyUpdate,
-            SpdmResponseResponseCode::SpdmRequestEndSession,
-            SpdmResponseResponseCode::SpdmResponseDigests,
-            SpdmResponseResponseCode::SpdmResponseCertificate,
-            SpdmResponseResponseCode::SpdmResponseChallengeAuth,
-            SpdmResponseResponseCode::SpdmResponseVersion,
-            SpdmResponseResponseCode::SpdmResponseMeasurements,
-            SpdmResponseResponseCode::SpdmResponseCapabilities,
-            SpdmResponseResponseCode::SpdmResponseAlgorithms,
-            SpdmResponseResponseCode::SpdmResponseKeyExchangeRsp,
-            SpdmResponseResponseCode::SpdmResponseFinishRsp,
-            SpdmResponseResponseCode::SpdmResponsePskExchangeRsp,
-            SpdmResponseResponseCode::SpdmResponsePskFinishRsp,
-            SpdmResponseResponseCode::SpdmResponseHeartbeatAck,
-            SpdmResponseResponseCode::SpdmResponseKeyUpdateAck,
-            SpdmResponseResponseCode::SpdmResponseEndSessionAck,
-            SpdmResponseResponseCode::SpdmResponseError,
-            SpdmResponseResponseCode::Unknown(0),
+            SpdmRequestResponseCode::SpdmRequestFinish,
+            SpdmRequestResponseCode::SpdmRequestPskFinish,
+            SpdmRequestResponseCode::SpdmRequestHeartbeat,
+            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+            SpdmRequestResponseCode::SpdmRequestEndSession,
+            SpdmRequestResponseCode::SpdmResponseDigests,
+            SpdmRequestResponseCode::SpdmResponseCertificate,
+            SpdmRequestResponseCode::SpdmResponseChallengeAuth,
+            SpdmRequestResponseCode::SpdmResponseVersion,
+            SpdmRequestResponseCode::SpdmResponseMeasurements,
+            SpdmRequestResponseCode::SpdmResponseCapabilities,
+            SpdmRequestResponseCode::SpdmResponseAlgorithms,
+            SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
+            SpdmRequestResponseCode::SpdmResponseFinishRsp,
+            SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
+            SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
+            SpdmRequestResponseCode::SpdmResponseHeartbeatAck,
+            SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
+            SpdmRequestResponseCode::SpdmResponseEndSessionAck,
+            SpdmRequestResponseCode::SpdmResponseError,
+            SpdmRequestResponseCode::Unknown(0),
         ];
         if status {
             response_true[num]

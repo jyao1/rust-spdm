@@ -62,7 +62,7 @@ impl<'a> ResponderContext<'a> {
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseChallengeAuth,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseChallengeAuth,
             },
             payload: SpdmMessagePayload::SpdmChallengeAuthResponse(
                 SpdmChallengeAuthResponsePayload {
@@ -145,7 +145,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
 
@@ -175,7 +175,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
 
         let spdm_struct_slice = &u8_slice[2..];
@@ -198,7 +198,7 @@ mod tests_responder {
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseChallengeAuth
+            SpdmRequestResponseCode::SpdmResponseChallengeAuth
         );
 
         let cert_chain_hash = crypto::hash::hash_all(

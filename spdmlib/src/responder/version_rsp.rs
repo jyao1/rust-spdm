@@ -43,7 +43,7 @@ impl<'a> ResponderContext<'a> {
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseVersion,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
                 version_number_entry_count: 2,
@@ -97,7 +97,7 @@ mod tests_responder {
         let mut writer = Writer::init(bytes);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
 
@@ -114,7 +114,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
 
         let u8_slice = &u8_slice[4..];
@@ -125,7 +125,7 @@ mod tests_responder {
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseVersion
+            SpdmRequestResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.version_number_entry_count, 0x02);

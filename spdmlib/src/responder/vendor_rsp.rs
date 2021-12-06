@@ -22,7 +22,7 @@ impl<'a> ResponderContext<'a> {
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseVendorDefinedResponse,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
             },
             payload: SpdmMessagePayload::SpdmVendorDefinedResponse(
                 SpdmVendorDefinedResponsePayload {

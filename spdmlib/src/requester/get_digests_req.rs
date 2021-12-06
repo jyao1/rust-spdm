@@ -22,7 +22,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetDigests,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetDigests,
             },
             payload: SpdmMessagePayload::SpdmGetDigestsRequest(SpdmGetDigestsRequestPayload {}),
         };
@@ -38,7 +38,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseDigests => {
+                SpdmRequestResponseCode::SpdmResponseDigests => {
                     let digests =
                         SpdmDigestsResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let used = reader.used();
