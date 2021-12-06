@@ -35,7 +35,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestFinish,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestFinish,
             },
             payload: SpdmMessagePayload::SpdmFinishRequest(SpdmFinishRequestPayload {
                 finish_request_attributes: SpdmFinishRequestAttributes::empty(),
@@ -100,7 +100,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseFinishRsp => {
+                SpdmRequestResponseCode::SpdmResponseFinishRsp => {
                     let finish_rsp =
                         SpdmFinishResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let receive_used = reader.used();

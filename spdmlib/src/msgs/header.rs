@@ -16,7 +16,7 @@ enum_builder! {
 
 enum_builder! {
     @U8
-    EnumName: SpdmResponseResponseCode;
+    EnumName: SpdmRequestResponseCode;
     EnumVal{
         // 1.0 response
         SpdmResponseDigests => 0x01,
@@ -65,7 +65,7 @@ enum_builder! {
 #[derive(Debug, Copy, Clone, Default)]
 pub struct SpdmMessageHeader {
     pub version: SpdmVersion,
-    pub request_response_code: SpdmResponseResponseCode,
+    pub request_response_code: SpdmRequestResponseCode,
 }
 
 impl Codec for SpdmMessageHeader {
@@ -76,7 +76,7 @@ impl Codec for SpdmMessageHeader {
 
     fn read(r: &mut Reader) -> Option<SpdmMessageHeader> {
         let version = SpdmVersion::read(r)?;
-        let request_response_code = SpdmResponseResponseCode::read(r)?;
+        let request_response_code = SpdmRequestResponseCode::read(r)?;
         Some(SpdmMessageHeader {
             version,
             request_response_code,
@@ -94,7 +94,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
 
@@ -104,7 +104,7 @@ mod tests {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
     }
 }

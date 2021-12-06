@@ -56,7 +56,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestPskExchange,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestPskExchange,
             },
             payload: SpdmMessagePayload::SpdmPskExchangeRequest(SpdmPskExchangeRequestPayload {
                 measurement_summary_hash_type,
@@ -92,7 +92,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponsePskExchangeRsp => {
+                SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => {
                     let psk_exchange_rsp =
                         SpdmPskExchangeResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let receive_used = reader.used();

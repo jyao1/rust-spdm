@@ -69,7 +69,7 @@ impl<'a> ResponderContext<'a> {
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmResponseCertificate,
+                request_response_code: SpdmRequestResponseCode::SpdmResponseCertificate,
             },
             payload: SpdmMessagePayload::SpdmCertificateResponse(SpdmCertificateResponsePayload {
                 slot_id,
@@ -116,7 +116,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmResponseResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
         value.encode(&mut writer);
         let capabilities = &mut [0u8; 1024];
@@ -143,7 +143,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmResponseResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestChallenge
         );
 
         let spdm_struct_slice = &u8_slice[2..];
@@ -161,7 +161,7 @@ mod tests_responder {
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message.header.request_response_code,
-            SpdmResponseResponseCode::SpdmResponseCertificate
+            SpdmRequestResponseCode::SpdmResponseCertificate
         );
         if let SpdmMessagePayload::SpdmCertificateResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_id, 100);

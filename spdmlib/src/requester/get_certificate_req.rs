@@ -39,7 +39,7 @@ impl<'a> RequesterContext<'a> {
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion11,
-                request_response_code: SpdmResponseResponseCode::SpdmRequestGetCertificate,
+                request_response_code: SpdmRequestResponseCode::SpdmRequestGetCertificate,
             },
             payload: SpdmMessagePayload::SpdmGetCertificateRequest(
                 SpdmGetCertificateRequestPayload {
@@ -62,7 +62,7 @@ impl<'a> RequesterContext<'a> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmResponseResponseCode::SpdmResponseCertificate => {
+                SpdmRequestResponseCode::SpdmResponseCertificate => {
                     let certificate =
                         SpdmCertificateResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let used = reader.used();
