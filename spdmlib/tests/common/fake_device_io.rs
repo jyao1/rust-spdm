@@ -5,8 +5,8 @@
 #![forbid(unsafe_code)]
 
 use super::shared_buffer::SharedBuffer;
+use spdmlib::common::error::SpdmResult;
 use spdmlib::common::SpdmDeviceIo;
-use spdmlib::error::SpdmResult;
 use spdmlib::responder;
 
 pub struct FakeSpdmDeviceIoReceve<'a> {

@@ -4,7 +4,7 @@
 
 use super::{USE_ECDH, USE_ECDSA};
 use spdmlib::common;
-use spdmlib::msgs::*;
+use spdmlib::message::*;
 use std::path::PathBuf;
 
 /// Get test_key Dir

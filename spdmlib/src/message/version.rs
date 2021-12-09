@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use super::SpdmVersion;
 use crate::common;
+use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
-use crate::msgs::SpdmCodec;
-use crate::msgs::SpdmVersion;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -99,7 +99,6 @@ impl SpdmCodec for SpdmVersionResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
     use crate::testlib::*;
 
     #[test]

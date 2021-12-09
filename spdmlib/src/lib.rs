@@ -11,23 +11,16 @@ extern crate log;
 #[macro_use]
 extern crate bitflags;
 
-#[macro_use]
-pub mod error;
-
 extern crate codec;
 
-pub mod config;
-
-pub mod cmds;
+#[macro_use]
 pub mod common;
-pub mod msgs;
+pub mod crypto;
+pub mod message;
 pub mod requester;
 pub mod responder;
 
-pub mod session;
-
-pub mod crypto;
-pub mod key_schedule;
+pub mod config;
 
 #[cfg(test)]
 mod testlib;

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 #![allow(non_snake_case)]
-use crate::error::{SpdmError, SpdmErrorNum, SpdmResult};
-use crate::msgs::*;
+use crate::common::error::{SpdmError, SpdmErrorNum, SpdmResult};
+use crate::message::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {

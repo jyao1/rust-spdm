@@ -5,12 +5,15 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
 use crate::requester::*;
 
 use crate::common::ManagedBuffer;
 
 use crate::crypto;
+
+use crate::common::algo::SpdmMeasurementSummaryHashType;
+use crate::message::*;
 
 const INITIAL_SESSION_ID: u16 = 0xFFFE;
 
@@ -212,7 +215,7 @@ impl<'a> RequesterContext<'a> {
                         session.runtime_info.message_k = message_k;
 
                         session.set_session_state(
-                            crate::session::SpdmSessionState::SpdmSessionHandshaking,
+                            crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                         );
 
                         Ok(session_id)

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::error::SpdmResult;
 use crate::crypto::SpdmCryptoRandom;
-use crate::error::SpdmResult;
 
 pub static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
     get_random_cb: get_random,

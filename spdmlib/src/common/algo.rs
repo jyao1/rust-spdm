@@ -992,7 +992,7 @@ impl From<BytesMut> for SpdmAeadIvStruct {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
+    use crate::message::*;
     use crate::testlib::*;
     use codec::{Codec, Reader, Writer};
 

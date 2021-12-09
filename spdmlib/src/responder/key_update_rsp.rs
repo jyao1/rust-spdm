@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::message::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
@@ -73,8 +74,8 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::msgs::SpdmMessageHeader;
-    use crate::session::SpdmSession;
+    use crate::common::session::SpdmSession;
+    use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
@@ -106,7 +107,7 @@ mod tests_responder {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
@@ -157,7 +158,7 @@ mod tests_responder {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);

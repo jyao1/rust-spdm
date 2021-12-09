@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
+pub use crate::common;
+pub use crate::common::algo::*;
+pub use crate::common::spdm_codec::*;
 use crate::config;
-use crate::msgs::SpdmCodec;
-pub use crate::msgs::*;
 
 use codec::{Codec, Reader, Writer};
 

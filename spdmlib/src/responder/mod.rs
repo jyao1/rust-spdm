@@ -25,5 +25,4 @@ mod vendor_rsp;
 pub use context::ResponderContext;
 
 use crate::config;
-use crate::msgs::*;
 use codec::{Codec, Reader, Writer};

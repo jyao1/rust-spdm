@@ -95,14 +95,15 @@ impl Debug for SpdmError {
 #[macro_export]
 macro_rules! spdm_err {
     ($num: ident) => {{
-        use $crate::error::{SpdmError, SpdmErrorNum::*};
+        use $crate::common::error::{SpdmError, SpdmErrorNum::*};
         SpdmError::new($num, file!(), line!(), column!(), "")
     }};
     ($num: ident, $msg: expr) => {{
-        use $crate::error::{SpdmError, SpdmErrorNum::*};
+        use $crate::common::error::{SpdmError, SpdmErrorNum::*};
         SpdmError::new($num, file!(), line!(), column!(), $msg)
     }};
 }
+pub(crate) use spdm_err;
 
 #[macro_export]
 macro_rules! spdm_result_err {
@@ -113,3 +114,4 @@ macro_rules! spdm_result_err {
         Err(spdm_err!($num, $msg))
     };
 }
+pub(crate) use spdm_result_err;

@@ -19,7 +19,7 @@ use pcidoe_transport::{
 use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
-use spdmlib::msgs::*;
+use spdmlib::message::*;
 use spdmlib::{common, responder};
 
 fn process_socket_message(

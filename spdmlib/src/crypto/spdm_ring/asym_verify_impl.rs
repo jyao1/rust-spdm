@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::algo::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
+use crate::common::error::SpdmResult;
 use crate::crypto::{self, SpdmAsymVerify};
-use crate::error::SpdmResult;
-use crate::msgs::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use core::convert::TryFrom;
 
 pub static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {
@@ -221,7 +221,7 @@ mod tests {
         let base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256;
         let mut signature = SpdmSignatureStruct {
             data_size: 512,
-            data: [0x00u8; crate::msgs::SPDM_MAX_ASYM_KEY_SIZE],
+            data: [0x00u8; crate::common::algo::SPDM_MAX_ASYM_KEY_SIZE],
         };
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
@@ -244,7 +244,7 @@ mod tests {
         let base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         let mut signature = SpdmSignatureStruct {
             data_size: 512,
-            data: [0x00u8; crate::msgs::SPDM_MAX_ASYM_KEY_SIZE],
+            data: [0x00u8; crate::common::algo::SPDM_MAX_ASYM_KEY_SIZE],
         };
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
@@ -278,7 +278,7 @@ mod tests {
         ];
         let mut signature = SpdmSignatureStruct {
             data_size: 512,
-            data: [0x00u8; crate::msgs::SPDM_MAX_ASYM_KEY_SIZE],
+            data: [0x00u8; crate::common::algo::SPDM_MAX_ASYM_KEY_SIZE],
         };
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
@@ -306,7 +306,7 @@ mod tests {
         let base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         let mut signature = SpdmSignatureStruct {
             data_size: 512,
-            data: [0x00u8; crate::msgs::SPDM_MAX_ASYM_KEY_SIZE],
+            data: [0x00u8; crate::common::algo::SPDM_MAX_ASYM_KEY_SIZE],
         };
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
