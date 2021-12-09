@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
 use crate::requester::*;
+use crate::message::*;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_heartbeat(&mut self, session_id: u32) -> SpdmResult {
@@ -56,7 +57,7 @@ impl<'a> RequesterContext<'a> {
 #[cfg(test)]
 mod tests_requester {
     use super::*;
-    use crate::session::SpdmSession;
+    use crate::common::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
 

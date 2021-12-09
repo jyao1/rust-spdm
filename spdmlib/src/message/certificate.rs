@@ -4,7 +4,7 @@
 
 use crate::common;
 use crate::config;
-use crate::msgs::SpdmCodec;
+use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]

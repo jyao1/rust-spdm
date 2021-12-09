@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::{self, SpdmAsymVerify};
-use crate::error::SpdmResult;
-use crate::msgs::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
+use crate::common::error::SpdmResult;
+use crate::common::algo::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use core::convert::TryFrom;
 
 pub static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {

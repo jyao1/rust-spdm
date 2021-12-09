@@ -6,8 +6,8 @@ use crate::common::*;
 use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
 use crate::{common, responder};
 
-use crate::error::SpdmResult;
-use crate::msgs::*;
+use crate::common::error::SpdmResult;
+use crate::message::*;
 use crate::{spdm_err, spdm_result_err};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};

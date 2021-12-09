@@ -3,10 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
-use crate::msgs::{
-    SpdmDigestStruct, SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmSignatureStruct,
+use crate::common::spdm_codec::SpdmCodec;
+use crate::common::algo::{
+    SpdmDigestStruct, SpdmSignatureStruct,
 };
+use super::capability::{SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags};
 use codec::{Codec, Reader, Writer};
 
 bitflags! {
@@ -120,7 +121,7 @@ impl SpdmCodec for SpdmFinishResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
+    use crate::common::*;
     use crate::testlib::*;
 
     #[test]

@@ -7,7 +7,7 @@ use std::net::TcpStream;
 
 use spdmlib::common::SpdmDeviceIo;
 use spdmlib::config;
-use spdmlib::error::SpdmResult;
+use spdmlib::common::error::SpdmResult;
 
 pub struct SocketIoTransport<'a> {
     pub data: &'a mut TcpStream,

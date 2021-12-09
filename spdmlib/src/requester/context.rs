@@ -4,8 +4,8 @@
 
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
-use crate::error::SpdmResult;
-use crate::msgs::*;
+use crate::common::error::SpdmResult;
+use crate::common::algo::SpdmMeasurementSummaryHashType;
 
 pub struct RequesterContext<'a> {
     pub common: common::SpdmContext<'a>,
@@ -138,7 +138,7 @@ impl<'a> RequesterContext<'a> {
 #[cfg(test)]
 mod tests_requester {
     use super::*;
-    use crate::session::SpdmSession;
+    use crate::common::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::Writer;

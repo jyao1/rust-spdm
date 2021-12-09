@@ -5,8 +5,10 @@
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
 use crate::requester::*;
+use crate::common::algo::SpdmMeasurementSummaryHashType;
+use crate::message::*;
 
 use crate::common::ManagedBuffer;
 
@@ -176,7 +178,7 @@ impl<'a> RequesterContext<'a> {
                         session.runtime_info.message_k = message_k;
 
                         session.set_session_state(
-                            crate::session::SpdmSessionState::SpdmSessionHandshaking,
+                            crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                         );
 
                         Ok(session_id)

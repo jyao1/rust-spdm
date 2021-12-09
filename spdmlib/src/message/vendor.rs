@@ -6,7 +6,7 @@
 
 use crate::common;
 use crate::config;
-use crate::msgs::SpdmCodec;
+use crate::common::spdm_codec::SpdmCodec;
 use codec::{enum_builder, Codec, Reader, Writer};
 
 enum_builder! {

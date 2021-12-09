@@ -4,7 +4,7 @@
 
 use spdmlib::crypto::SpdmAsymSign;
 
-use spdmlib::msgs::{
+use spdmlib::common::algo::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE,
 };
 

@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 
 use spdmlib::common::SpdmDeviceIo;
-use spdmlib::error::SpdmResult;
+use spdmlib::common::error::SpdmResult;
 use spdmlib::{spdm_err, spdm_result_err};
 
 pub struct TcpTransport<'a> {

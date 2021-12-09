@@ -4,8 +4,8 @@
 
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
-use crate::error::SpdmResult;
-use crate::msgs::*;
+use crate::common::error::SpdmResult;
+use crate::message::*;
 use codec::{Codec, Reader};
 
 pub struct ResponderContext<'a> {
@@ -279,8 +279,8 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::msgs::SpdmMessageHeader;
-    use crate::session::SpdmSession;
+    use crate::message::SpdmMessageHeader;
+    use crate::common::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::Writer;

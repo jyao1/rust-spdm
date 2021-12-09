@@ -5,6 +5,7 @@
 use crate::responder::*;
 
 use crate::common::ManagedBuffer;
+use crate::message::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
@@ -14,7 +15,7 @@ impl<'a> ResponderContext<'a> {
             let _ = self.send_secured_message(session_id, writer.used_slice(), false);
             // change state after message is sent.
             let session = self.common.get_session_via_id(session_id).unwrap();
-            session.set_session_state(crate::session::SpdmSessionState::SpdmSessionEstablished);
+            session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
         } else {
             let _ = self.send_message(writer.used_slice());
         }
@@ -182,8 +183,8 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::msgs::SpdmMessageHeader;
-    use crate::session::SpdmSession;
+    use crate::message::SpdmMessageHeader;
+    use crate::common::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};

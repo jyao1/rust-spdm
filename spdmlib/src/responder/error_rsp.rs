@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::responder::*;
+use crate::message::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn write_spdm_error(

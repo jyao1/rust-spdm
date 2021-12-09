@@ -6,6 +6,8 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
 use crate::responder::*;
+use crate::message::*;
+use crate::common::opaque::SpdmOpaqueStruct;
 
 use crate::common::ManagedBuffer;
 
@@ -167,7 +169,7 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
 
         let session = self.common.get_session_via_id(session_id).unwrap();
-        session.set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
     }
 }
 
@@ -175,7 +177,7 @@ impl<'a> ResponderContext<'a> {
 mod tests_responder {
     use super::*;
     use crate::config::{MAX_SPDM_OPAQUE_SIZE, MAX_SPDM_PSK_HINT_SIZE};
-    use crate::msgs::SpdmMessageHeader;
+    use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};

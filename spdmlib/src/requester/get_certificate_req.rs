@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
 use crate::requester::*;
+use crate::message::*;
 
 impl<'a> RequesterContext<'a> {
     fn send_receive_spdm_certificate_partial(

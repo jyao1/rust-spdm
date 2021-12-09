@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::responder::*;
+use crate::message::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_capability(&mut self, bytes: &[u8]) {
@@ -69,7 +70,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::msgs::SpdmMessageHeader;
+    use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};

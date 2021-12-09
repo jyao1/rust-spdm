@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmHash;
-use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
+use crate::common::algo::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHash = SpdmHash {
     hash_all_cb: hash_all,

@@ -27,7 +27,7 @@ static CRYPTO_RAND: OnceCell<SpdmCryptoRandom> = OnceCell::uninit();
 pub mod hash {
     use super::CRYPTO_HASH;
     use crate::crypto::SpdmHash;
-    use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
+    use crate::common::algo::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHash = SpdmHash {
@@ -51,8 +51,8 @@ pub mod hash {
 pub mod hmac {
     use super::CRYPTO_HMAC;
     use crate::crypto::SpdmHmac;
-    use crate::error::SpdmResult;
-    use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
+    use crate::common::error::SpdmResult;
+    use crate::common::algo::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHmac = SpdmHmac {
@@ -98,7 +98,7 @@ pub mod hmac {
 pub mod asym_sign {
     use super::CRYPTO_ASYM_SIGN;
     use crate::crypto::SpdmAsymSign;
-    use crate::msgs::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
+    use crate::common::algo::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 
     pub fn register(context: SpdmAsymSign) -> bool {
         CRYPTO_ASYM_SIGN.try_init_once(|| context).is_ok()
@@ -127,8 +127,8 @@ pub mod asym_sign {
 pub mod asym_verify {
     use super::CRYPTO_ASYM_VERIFY;
     use crate::crypto::SpdmAsymVerify;
-    use crate::error::SpdmResult;
-    use crate::msgs::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
+    use crate::common::error::SpdmResult;
+    use crate::common::algo::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {
@@ -173,7 +173,7 @@ pub mod dhe {
 
     use super::CRYPTO_DHE;
     use crate::crypto::{SpdmDhe, SpdmDheKeyExchange};
-    use crate::msgs::{SpdmDheAlgo, SpdmDheExchangeStruct};
+    use crate::common::algo::{SpdmDheAlgo, SpdmDheExchangeStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmDhe =
@@ -203,7 +203,7 @@ pub mod dhe {
 pub mod cert_operation {
     use super::CRYPTO_CERT_OPERATION;
     use crate::crypto::SpdmCertOperation;
-    use crate::error::SpdmResult;
+    use crate::common::error::SpdmResult;
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmCertOperation = SpdmCertOperation {
@@ -238,7 +238,7 @@ pub mod cert_operation {
 pub mod hkdf {
     use super::CRYPTO_HKDF;
     use crate::crypto::SpdmHkdf;
-    use crate::msgs::{SpdmBaseHashAlgo, SpdmDigestStruct};
+    use crate::common::algo::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHkdf = SpdmHkdf {
@@ -271,8 +271,8 @@ pub mod hkdf {
 pub mod aead {
     use super::CRYPTO_AEAD;
     use crate::crypto::SpdmAead;
-    use crate::error::SpdmResult;
-    use crate::msgs::SpdmAeadAlgo;
+    use crate::common::error::SpdmResult;
+    use crate::common::algo::SpdmAeadAlgo;
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmAead = SpdmAead {
@@ -335,7 +335,7 @@ pub mod aead {
 pub mod rand {
     use super::CRYPTO_RAND;
     use crate::crypto::SpdmCryptoRandom;
-    use crate::error::SpdmResult;
+    use crate::common::error::SpdmResult;
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {

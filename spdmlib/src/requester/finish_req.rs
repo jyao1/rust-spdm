@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
 use crate::requester::*;
+use crate::message::*;
+
 
 use crate::common::ManagedBuffer;
 
@@ -167,7 +169,7 @@ impl<'a> RequesterContext<'a> {
                         let session = self.common.get_session_via_id(session_id).unwrap();
                         session.generate_data_secret(&th2).unwrap();
                         session.set_session_state(
-                            crate::session::SpdmSessionState::SpdmSessionEstablished,
+                            crate::common::session::SpdmSessionState::SpdmSessionEstablished,
                         );
 
                         Ok(())
@@ -186,7 +188,7 @@ impl<'a> RequesterContext<'a> {
 #[cfg(test)]
 mod tests_requester {
     use super::*;
-    use crate::session::SpdmSession;
+    use crate::common::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
 

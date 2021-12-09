@@ -22,5 +22,5 @@ mod psk_finish_req;
 pub use context::RequesterContext;
 
 use crate::config;
-use crate::msgs::*;
+use crate::common::*;
 use codec::{Codec, Reader, Writer};

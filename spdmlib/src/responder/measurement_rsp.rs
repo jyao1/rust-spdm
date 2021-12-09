@@ -4,6 +4,8 @@
 
 use crate::crypto;
 use crate::responder::*;
+use crate::message::*;
+use crate::common::opaque::SpdmOpaqueStruct;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
@@ -239,7 +241,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::msgs::SpdmMessageHeader;
+    use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};

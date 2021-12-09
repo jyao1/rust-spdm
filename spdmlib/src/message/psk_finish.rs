@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
-use crate::msgs::SpdmDigestStruct;
+use crate::common::spdm_codec::SpdmCodec;
+use crate::common::algo::SpdmDigestStruct;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -54,7 +54,7 @@ impl SpdmCodec for SpdmPskFinishResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
+    use crate::common::*;
     use crate::testlib::*;
 
     #[test]

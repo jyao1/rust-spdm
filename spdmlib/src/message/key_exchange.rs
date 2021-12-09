@@ -3,11 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
-use crate::msgs::{
-    SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmOpaqueStruct,
+use crate::common::spdm_codec::SpdmCodec;
+use crate::common::algo::{
+    SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType,
     SpdmRandomStruct, SpdmSignatureStruct,
 };
+use crate::common::opaque::SpdmOpaqueStruct;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -148,7 +149,7 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
+    use crate::common::*;
     use crate::testlib::*;
 
     #[test]

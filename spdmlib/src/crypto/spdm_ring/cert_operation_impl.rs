@@ -7,7 +7,7 @@ use alloc::vec;
 use core::convert::TryFrom;
 
 use crate::crypto::SpdmCertOperation;
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
 
 pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {
     get_cert_from_cert_chain_cb: get_cert_from_cert_chain,

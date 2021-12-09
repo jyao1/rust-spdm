@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
+use crate::common::spdm_codec::SpdmCodec;
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
@@ -186,7 +186,7 @@ impl SpdmCodec for SpdmErrorResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
+    use crate::common::*;
     use crate::testlib::*;
 
     #[test]
