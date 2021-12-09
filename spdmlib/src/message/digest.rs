@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
-use crate::msgs::{SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
+use crate::common::algo::{SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
+use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -84,7 +84,6 @@ impl SpdmCodec for SpdmDigestsResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
     use crate::testlib::*;
 
     #[test]
@@ -97,7 +96,7 @@ mod tests {
             slot_count: 8,
             digests: [SpdmDigestStruct {
                 data_size: 64,
-                data: [0u8; SPDM_MAX_HASH_SIZE],
+                data: [0u8; common::algo::SPDM_MAX_HASH_SIZE],
             }; SPDM_MAX_SLOT_NUMBER],
         };
         for i in 0..8 {
@@ -108,7 +107,7 @@ mod tests {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -140,7 +139,7 @@ mod tests {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
@@ -154,7 +153,7 @@ mod tests {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         value.spdm_encode(&mut context, &mut writer);
     }
     #[test]

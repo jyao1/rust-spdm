@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use super::algo::*;
 use crate::config::MAX_SPDM_MESSAGE_BUFFER_SIZE;
 use crate::crypto;
-use crate::msgs::*;
 use codec::{Codec, Writer};
 
 const SALT_0: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];

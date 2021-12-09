@@ -8,6 +8,9 @@ use crate::common::ManagedBuffer;
 
 use crate::crypto;
 
+use crate::common::opaque::SpdmOpaqueStruct;
+use crate::message::*;
+
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
@@ -197,14 +200,14 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref()); // impl AsRef<[u8]> for SpdmDigestStruct
 
         let session = self.common.get_session_via_id(session_id).unwrap();
-        session.set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
     }
 }
 
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::msgs::SpdmMessageHeader;
+    use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use bytes::BytesMut;

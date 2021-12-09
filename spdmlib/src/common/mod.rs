@@ -2,12 +2,26 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+pub mod algo;
+pub mod key_schedule;
+pub mod opaque;
+pub mod session;
+pub mod spdm_codec;
+
+#[macro_use]
+pub mod error;
+
+use algo::*;
+
+pub use opaque::*;
+pub use spdm_codec::SpdmCodec;
+
 use crate::config;
 use crate::crypto;
-use crate::error::SpdmResult;
-use crate::msgs::*;
-use crate::session::*;
+use crate::message::*;
 use codec::Writer;
+use error::SpdmResult;
+use session::*;
 
 pub const OPAQUE_DATA_SUPPORT_VERSION: [u8; 20] = [
     0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0x01, 0x01, 0x00,

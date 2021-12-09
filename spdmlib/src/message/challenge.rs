@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
-use crate::msgs::{
-    SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmOpaqueStruct,
-    SpdmSignatureStruct,
+use crate::common::algo::{
+    SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmSignatureStruct,
 };
+use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]
@@ -106,8 +106,8 @@ impl SpdmCodec for SpdmChallengeAuthResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::*;
     use crate::config::*;
-    use crate::msgs::*;
     use crate::testlib::*;
 
     #[test]
@@ -150,14 +150,14 @@ mod tests {
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
             cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [0xAAu8; SPDM_MAX_HASH_SIZE],
+                data: [0xAAu8; common::algo::SPDM_MAX_HASH_SIZE],
             },
             nonce: SpdmNonceStruct {
-                data: [100u8; SPDM_NONCE_SIZE],
+                data: [100u8; common::algo::SPDM_NONCE_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [0x55u8; SPDM_MAX_HASH_SIZE],
+                data: [0x55u8; common::algo::SPDM_MAX_HASH_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
@@ -165,7 +165,7 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0x55u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
 
@@ -173,8 +173,8 @@ mod tests {
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.runtime_info.need_measurement_summary_hash = true;
-        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -217,10 +217,10 @@ mod tests {
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
             cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [0xAAu8; SPDM_MAX_HASH_SIZE],
+                data: [0xAAu8; common::algo::SPDM_MAX_HASH_SIZE],
             },
             nonce: SpdmNonceStruct {
-                data: [100u8; SPDM_NONCE_SIZE],
+                data: [100u8; common::algo::SPDM_NONCE_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
@@ -229,7 +229,7 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0x55u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
 
@@ -237,8 +237,8 @@ mod tests {
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
         context.runtime_info.need_measurement_summary_hash = false;
-        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         assert_eq!(800, writer.left());
         value.spdm_encode(&mut context, &mut writer);

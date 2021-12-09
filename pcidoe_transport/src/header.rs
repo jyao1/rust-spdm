@@ -4,8 +4,8 @@
 
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
+use spdmlib::common::error::SpdmResult;
 use spdmlib::common::SpdmTransportEncap;
-use spdmlib::error::SpdmResult;
 use spdmlib::{spdm_err, spdm_result_err};
 
 enum_builder! {

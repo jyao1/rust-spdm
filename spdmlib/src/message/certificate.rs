@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
+use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
-use crate::msgs::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Copy, Clone, Default)]

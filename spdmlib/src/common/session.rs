@@ -2,17 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::crypto;
-use crate::msgs::*;
-
+use super::error::{spdm_err, spdm_result_err, SpdmResult};
+use super::key_schedule::SpdmKeySchedule;
 use crate::config;
-use crate::error::SpdmResult;
-use crate::key_schedule::SpdmKeySchedule;
+use crate::crypto;
 
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
-use crate::common::ManagedBuffer;
+use super::*;
 
 enum_builder! {
     @U8
@@ -873,7 +871,7 @@ mod tests_session {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        session.set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         session.handshake_secret.request_direction = SpdmSessionSecretParam {
             encryption_key: SpdmAeadKeyStruct {
@@ -922,7 +920,7 @@ mod tests_session {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        session.set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
         session.transport_param.sequence_number_count = 1;
         println!("session::{:?}", session);
         let status = session

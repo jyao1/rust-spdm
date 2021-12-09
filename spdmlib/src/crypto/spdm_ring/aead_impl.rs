@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::error::SpdmResult;
 use crate::crypto::SpdmAead;
-use crate::error::SpdmResult;
 use bytes::BytesMut;
 
-use crate::msgs::SpdmAeadAlgo;
+use crate::common::algo::SpdmAeadAlgo;
 
 pub static DEFAULT: SpdmAead = SpdmAead {
     encrypt_cb: encrypt,
@@ -162,7 +162,7 @@ fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msgs::*;
+    use crate::common::algo::*;
 
     #[test]
     fn test_case0_encrypt() {

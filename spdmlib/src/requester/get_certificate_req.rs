@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::error::SpdmResult;
 use crate::crypto;
-use crate::error::SpdmResult;
+use crate::message::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {

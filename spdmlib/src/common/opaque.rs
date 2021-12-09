@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
+use super::spdm_codec::SpdmCodec;
+use super::*;
 use crate::config;
-use crate::msgs::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 //pub const SPDM_MAX_OPAQUE_SIZE : usize = 1024;
@@ -24,13 +24,13 @@ impl Default for SpdmOpaqueStruct {
 }
 
 impl SpdmCodec for SpdmOpaqueStruct {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
         self.data_size.encode(bytes);
         for d in self.data.iter().take(self.data_size as usize) {
             d.encode(bytes);
         }
     }
-    fn spdm_read(_context: &mut common::SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
+    fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
         let data_size = u16::read(r)?;
         let mut data = [0u8; config::MAX_SPDM_OPAQUE_SIZE];
         for d in data.iter_mut().take(data_size as usize) {

@@ -2,7 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::SpdmResult;
+use crate::common::error::SpdmResult;
+use crate::message::*;
 use crate::requester::*;
 
 use crate::common::ManagedBuffer;
@@ -167,7 +168,7 @@ impl<'a> RequesterContext<'a> {
                         let session = self.common.get_session_via_id(session_id).unwrap();
                         session.generate_data_secret(&th2).unwrap();
                         session.set_session_state(
-                            crate::session::SpdmSessionState::SpdmSessionEstablished,
+                            crate::common::session::SpdmSessionState::SpdmSessionEstablished,
                         );
 
                         Ok(())
@@ -186,7 +187,7 @@ impl<'a> RequesterContext<'a> {
 #[cfg(test)]
 mod tests_requester {
     use super::*;
-    use crate::session::SpdmSession;
+    use crate::common::session::SpdmSession;
     use crate::testlib::*;
     use crate::{crypto, responder};
 
@@ -234,7 +235,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         responder.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -271,7 +272,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         requester.common.session[0]
-            .set_session_state(crate::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         // let _ = requester.send_receive_spdm_finish(4294901758);
         let status = requester.send_receive_spdm_finish(4294901758).is_ok();

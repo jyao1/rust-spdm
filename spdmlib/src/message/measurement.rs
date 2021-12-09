@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::msgs::SpdmCodec;
-use crate::msgs::{
-    SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmOpaqueStruct, SpdmSignatureStruct,
-};
+use crate::common::algo::{SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmSignatureStruct};
+use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::spdm_codec::SpdmCodec;
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
@@ -137,8 +136,8 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::*;
     use crate::config::*;
-    use crate::msgs::*;
     use crate::testlib::*;
 
     #[test]
@@ -164,7 +163,7 @@ mod tests {
             measurement_attributes: SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
             measurement_operation: SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             nonce: SpdmNonceStruct {
-                data: [100u8; SPDM_NONCE_SIZE],
+                data: [100u8; common::algo::SPDM_NONCE_SIZE],
             },
             slot_id: 0xaau8,
         };
@@ -200,7 +199,7 @@ mod tests {
             measurement_attributes: SpdmMeasurementeAttributes::empty(),
             measurement_operation: SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             nonce: SpdmNonceStruct {
-                data: [100u8; SPDM_NONCE_SIZE],
+                data: [100u8; common::algo::SPDM_NONCE_SIZE],
             },
             slot_id: 0xaau8,
         };
@@ -237,21 +236,21 @@ mod tests {
             slot_id: 100u8,
             measurement_record: SpdmMeasurementRecordStructure {
                 number_of_blocks: 5,
-                record: [SpdmMeasurementBlockStructure {
+                record: [common::algo::SpdmMeasurementBlockStructure {
                     index: 100u8,
-                    measurement_specification: SpdmMeasurementSpecification::DMTF,
+                    measurement_specification: common::algo::SpdmMeasurementSpecification::DMTF,
                     measurement_size: 67u16,
-                    measurement: SpdmDmtfMeasurementStructure {
-                        r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                    measurement: common::algo::SpdmDmtfMeasurementStructure {
+                        r#type: common::algo::SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
                         representation:
-                            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                        common::algo::SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
                         value_size: 64u16,
                         value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
                     },
                 }; MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
             },
             nonce: SpdmNonceStruct {
-                data: [100u8; SPDM_NONCE_SIZE],
+                data: [100u8; common::algo::SPDM_NONCE_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
@@ -259,15 +258,15 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
+                data: [100u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_signature = true;
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -286,7 +285,7 @@ mod tests {
             );
             assert_eq!(
                 measurements_response.measurement_record.record[i].measurement_specification,
-                SpdmMeasurementSpecification::DMTF
+                common::algo::SpdmMeasurementSpecification::DMTF
             );
             assert_eq!(
                 measurements_response.measurement_record.record[i].measurement_size,
@@ -296,13 +295,13 @@ mod tests {
                 measurements_response.measurement_record.record[i]
                     .measurement
                     .r#type,
-                SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
+                common::algo::SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
             );
             assert_eq!(
                 measurements_response.measurement_record.record[i]
                     .measurement
                     .representation,
-                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+                common::algo::SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
             );
             assert_eq!(
                 measurements_response.measurement_record.record[i]

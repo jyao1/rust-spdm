@@ -6,8 +6,8 @@ use crate::common::*;
 use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
 use crate::{common, responder};
 
-use crate::error::SpdmResult;
-use crate::msgs::*;
+use crate::common::error::SpdmResult;
+use crate::message::*;
 use crate::{spdm_err, spdm_result_err};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
@@ -26,13 +26,12 @@ pub fn new_context<'a>(
     pcidoe_transport_encap: &'a mut PciDoeTransportEncap,
 ) -> SpdmContext<'a> {
     let (config_info, provision_info) = create_info();
-    let context = SpdmContext::new(
+    SpdmContext::new(
         my_spdm_device_io,
         pcidoe_transport_encap,
         config_info,
         provision_info,
-    );
-    context
+    )
 }
 
 pub fn new_spdm_message(value: SpdmMessage, mut context: SpdmContext) -> SpdmMessage {
@@ -189,7 +188,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     ) -> SpdmResult<usize> {
         let payload_len = spdm_buffer.len();
         let aligned_payload_len = (payload_len + 3) / 4 * 4;
-        let mut writer = Writer::init(&mut transport_buffer[..]);
+        let mut writer = Writer::init(&mut *transport_buffer);
         let pcidoe_header = PciDoeMessageHeader {
             vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
             data_object_type: if secured_message {
@@ -213,7 +212,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         transport_buffer: &[u8],
         spdm_buffer: &mut [u8],
     ) -> SpdmResult<(usize, bool)> {
-        let mut reader = Reader::init(&transport_buffer[..]);
+        let mut reader = Reader::init(transport_buffer);
         let secured_message;
         match PciDoeMessageHeader::read(&mut reader) {
             Some(pcidoe_header) => {
@@ -323,10 +322,7 @@ pub struct FakeSpdmDeviceIo<'a> {
 
 impl<'a> FakeSpdmDeviceIo<'a> {
     pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
-        FakeSpdmDeviceIo {
-            data: data,
-            responder,
-        }
+        FakeSpdmDeviceIo { data, responder }
     }
 }
 
@@ -359,10 +355,7 @@ pub struct SpdmDeviceIoReceve<'a> {
 
 impl<'a> SpdmDeviceIoReceve<'a> {
     pub fn new(data: &'a SharedBuffer, fuzzdata: &'a [u8]) -> Self {
-        SpdmDeviceIoReceve {
-            data: data,
-            fuzzdata,
-        }
+        SpdmDeviceIoReceve { data, fuzzdata }
     }
 }
 
@@ -390,7 +383,7 @@ pub struct FakeSpdmDeviceIoReceve<'a> {
 
 impl<'a> FakeSpdmDeviceIoReceve<'a> {
     pub fn new(data: &'a SharedBuffer) -> Self {
-        FakeSpdmDeviceIoReceve { data: data }
+        FakeSpdmDeviceIoReceve { data }
     }
 }
 
@@ -417,6 +410,7 @@ pub struct SharedBuffer {
 }
 
 impl SharedBuffer {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         SharedBuffer {
             queue: RefCell::new(VecDeque::<u8>::new()),
@@ -476,6 +470,7 @@ pub static DEFAULT_TEST: SpdmCryptoRandom = SpdmCryptoRandom {
 };
 
 fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
+    #[allow(clippy::needless_range_loop)]
     for i in 0..data.len() {
         data[i] = 0xff;
     }
@@ -484,7 +479,7 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
 }
 
 pub fn cert_chain_array() -> [u8; 1491] {
-    let cert_chain = [
+    [
         0x30u8, 0x82u8, 0x01u8, 0xcfu8, 0x30u8, 0x82u8, 0x01u8, 0x56u8, 0xa0u8, 0x03u8, 0x02u8,
         0x01u8, 0x02u8, 0x02u8, 0x14u8, 0x15u8, 0xd9u8, 0xc2u8, 0x55u8, 0xb7u8, 0x5eu8, 0xb7u8,
         0xc7u8, 0x3cu8, 0xe9u8, 0x7fu8, 0x71u8, 0xceu8, 0x21u8, 0x79u8, 0xddu8, 0x5eu8, 0x31u8,
@@ -621,8 +616,7 @@ pub fn cert_chain_array() -> [u8; 1491] {
         0xbbu8, 0xdau8, 0x49u8, 0x56u8, 0xe9u8, 0xd8u8, 0x51u8, 0x06u8, 0x32u8, 0xd8u8, 0xd5u8,
         0x9cu8, 0x43u8, 0x08u8, 0xefu8, 0x83u8, 0xabu8, 0xf9u8, 0x2du8, 0x14u8, 0xccu8, 0x9fu8,
         0x05u8, 0xd5u8, 0x60u8, 0xdbu8, 0x56u8, 0x2bu8,
-    ];
-    cert_chain
+    ]
 }
 
 pub const REQ_CERT_CHAIN_DATA: SpdmCertChainData = SpdmCertChainData {

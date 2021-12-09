@@ -12,7 +12,7 @@ use simple_logger::SimpleLogger;
 
 use spdmlib::common;
 use spdmlib::config;
-use spdmlib::msgs::*;
+use spdmlib::message::*;
 use spdmlib::requester;
 
 use mctp_transport::MctpTransportEncap;

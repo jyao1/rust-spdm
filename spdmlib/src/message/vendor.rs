@@ -5,8 +5,8 @@
 #![allow(non_snake_case)]
 
 use crate::common;
+use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
-use crate::msgs::SpdmCodec;
 use codec::{enum_builder, Codec, Reader, Writer};
 
 enum_builder! {

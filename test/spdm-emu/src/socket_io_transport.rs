@@ -5,9 +5,9 @@
 use crate::spdm_emu::*;
 use std::net::TcpStream;
 
+use spdmlib::common::error::SpdmResult;
 use spdmlib::common::SpdmDeviceIo;
 use spdmlib::config;
-use spdmlib::error::SpdmResult;
 
 pub struct SocketIoTransport<'a> {
     pub data: &'a mut TcpStream,
