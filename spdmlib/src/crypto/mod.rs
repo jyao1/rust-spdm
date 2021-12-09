@@ -399,7 +399,16 @@ mod tests {
     #[test]
     fn test_case0_aead_register() {
         let state = aead::register(spdm_ring::aead_impl::DEFAULT);
-        assert_eq!(state, true);
+        match state {
+            false => {
+                use super::CRYPTO_AEAD;
+                match CRYPTO_AEAD.try_get() {
+                    Ok(_) => assert!(true, true),
+                    Err(_) => assert!(false, true),
+                }
+            }
+            true => assert!(true, true),
+        }
     }
     #[test]
     fn test_case0_rand_register() {
