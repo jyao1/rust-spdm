@@ -9,9 +9,9 @@ use core::fmt::Debug;
 
 pub trait SpdmCodec: Debug + Sized {
     /// Encode yourself by appending onto `bytes`.
-    /// TBD: Encode may fail if the caller encodes too many data that exceeds the max size of preallocated slice.
-    /// Should we assert() here? or return to caller to let the caller handle it?
-    fn spdm_encode(&self, _context: &mut SpdmContext, _bytes: &mut Writer);
+    /// For error handling, spdm_encode() uses panic!(), because it is from trusted source.
+    #[allow(clippy::unused_unit)]
+    fn spdm_encode(&self, _context: &mut SpdmContext, _bytes: &mut Writer) -> ();
 
     /// Decode yourself by fiddling with the `Reader`.
     /// Return Some if it worked, None if not.
