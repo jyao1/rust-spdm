@@ -106,9 +106,9 @@ impl<'a> Writer<'a> {
 /// Things we can encode and read from a Reader.
 pub trait Codec: Debug + Sized {
     /// Encode yourself by appending onto `bytes`.
-    /// TBD: Encode may fail if the caller encodes too many data that exceeds the max size of preallocated slice.
-    /// Should we assert() here? or return to caller to let the caller handle it?
-    fn encode(&self, bytes: &mut Writer);
+    /// For error handling, encode() uses panic!(), because it is from trusted source.
+    #[allow(clippy::unused_unit)]
+    fn encode(&self, bytes: &mut Writer) -> ();
 
     /// Decode yourself by fiddling with the `Reader`.
     /// Return Some if it worked, None if not.
