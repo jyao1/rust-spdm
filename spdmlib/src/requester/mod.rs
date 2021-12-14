@@ -18,6 +18,7 @@ mod key_update_req;
 mod negotiate_algorithms_req;
 mod psk_exchange_req;
 mod psk_finish_req;
+mod vendor_req;
 
 pub use context::RequesterContext;
 
