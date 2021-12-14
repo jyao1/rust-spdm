@@ -1,7 +1,7 @@
 // Copyright (c) 2020 Intel Corporation
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
-#![allow(non_snake_case)]
+
 use crate::common::error::{SpdmError, SpdmErrorNum, SpdmResult};
 use crate::message::*;
 use crate::responder::*;
@@ -12,10 +12,12 @@ impl<'a> ResponderContext<'a> {
         SpdmMessageHeader::read(&mut reader);
         let vendor_defined_request_payload =
             SpdmVendorDefinedRequestPayload::spdm_read(&mut self.common, &mut reader).unwrap();
-        let StandardID = vendor_defined_request_payload.StandardID;
-        let VendorID = vendor_defined_request_payload.VendorID;
-        let ReqPayload = vendor_defined_request_payload.ReqPayload;
-        let ResPayload = self.respond_to_vendor_defined_request(&ReqPayload).unwrap();
+        let standard_id = vendor_defined_request_payload.standard_id;
+        let vendor_id = vendor_defined_request_payload.vendor_id;
+        let req_payload = vendor_defined_request_payload.req_payload;
+        let res_payload = self
+            .respond_to_vendor_defined_request(&req_payload)
+            .unwrap();
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
 
@@ -26,9 +28,9 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmVendorDefinedResponse(
                 SpdmVendorDefinedResponsePayload {
-                    StandardID,
-                    VendorID,
-                    ResPayload,
+                    standard_id,
+                    vendor_id,
+                    res_payload,
                 },
             ),
         };
@@ -46,9 +48,41 @@ impl<'a> ResponderContext<'a> {
         Err(SpdmError::new(
             SpdmErrorNum::EUNDEF,
             "spdmlib/src/responder/vendor_rsp.rs",
-            51,
-            0,
+            line!(),
+            column!(),
             "Not Implemented yet!",
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests_requester {
+    use super::*;
+    use crate::crypto;
+    use crate::testlib::*;
+
+    #[test]
+    #[should_panic(expected = "Not Implemented yet!")]
+    fn test_case0_handle_spdm_vendor_defined_request() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+
+        let mut responder = ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        let session_id: u32 = 0xff;
+        let bytes: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE] =
+            [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
+
+        responder.handle_spdm_vendor_defined_request(session_id, &bytes); //since vendor defined response payload is not implemented, so panic is expected here.
     }
 }

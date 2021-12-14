@@ -403,11 +403,11 @@ mod tests {
             false => {
                 use super::CRYPTO_AEAD;
                 match CRYPTO_AEAD.try_get() {
-                    Ok(_) => assert!(true, true),
-                    Err(_) => assert!(false, true),
+                    Ok(_) => assert!(true),
+                    Err(_) => assert!(false),
                 }
             }
-            true => assert!(true, true),
+            true => assert!(true),
         }
     }
     #[test]
