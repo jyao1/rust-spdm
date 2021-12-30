@@ -5,6 +5,7 @@
 #![forbid(unsafe_code)]
 
 pub mod crypto_callback;
+pub mod secret_impl_sample;
 pub mod socket_io_transport;
 pub mod spdm_emu;
 pub mod tcp_transport;

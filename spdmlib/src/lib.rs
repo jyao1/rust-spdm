@@ -19,6 +19,7 @@ pub mod crypto;
 pub mod message;
 pub mod requester;
 pub mod responder;
+pub mod secret;
 
 pub mod config;
 
