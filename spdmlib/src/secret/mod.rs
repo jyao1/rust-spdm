@@ -1,0 +1,192 @@
+// Copyright (c) 2021 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+mod secret_callback;
+
+use crate::message::*;
+use conquer_once::spin::OnceCell;
+pub use secret_callback::SpdmSecret;
+
+pub static SECRET_INSTANCE: OnceCell<SpdmSecret> = OnceCell::uninit();
+
+pub fn register(context: SpdmSecret) -> bool {
+    SECRET_INSTANCE.try_init_once(|| context).is_ok()
+}
+
+static UNIMPLETEMTED: SpdmSecret = SpdmSecret {
+    spdm_measurement_collection_cb: |_spdm_version: SpdmVersion,
+                                     _measurement_specification: SpdmMeasurementSpecification,
+                                     _measurement_hash_algo: SpdmBaseHashAlgo,
+                                     _measurement_index: usize|
+     -> Option<SpdmMeasurementRecordStructure> {
+        unimplemented!()
+    },
+
+    spdm_generate_measurement_summary_hash_cb:
+        |_spdm_version: SpdmVersion,
+         _base_hash_algo: SpdmBaseHashAlgo,
+         _measurement_specification: SpdmMeasurementSpecification,
+         _measurement_hash_algo: SpdmBaseHashAlgo,
+         _measurement_summary_hash_type: SpdmMeasurementSummaryHashType|
+         -> Option<SpdmDigestStruct> { unimplemented!() },
+
+    spdm_requester_data_sign_cb: |_spdm_version: SpdmVersion,
+                                  _op_code: u8,
+                                  _req_base_asym_alg: SpdmReqAsymAlgo,
+                                  _base_hash_algo: SpdmBaseHashAlgo,
+                                  _is_data_hash: bool,
+                                  _message: &[u8],
+                                  _message_size: u8|
+     -> Option<SpdmSignatureStruct> { unimplemented!() },
+
+    spdm_responder_data_sign_cb: |_spdm_version: SpdmVersion,
+                                  _op_code: u8,
+                                  _req_base_asym_alg: SpdmReqAsymAlgo,
+                                  _base_hash_algo: SpdmBaseHashAlgo,
+                                  _is_data_hash: bool,
+                                  _message: &[u8],
+                                  _message_size: u8|
+     -> Option<SpdmSignatureStruct> { unimplemented!() },
+
+    spdm_psk_handshake_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
+                                               _base_hash_algo: SpdmBaseHashAlgo,
+                                               _psk_hint: &[u8],
+                                               _psk_hint_size: Option<usize>,
+                                               _info: Option<&[u8]>,
+                                               _info_size: Option<usize>|
+     -> Option<SpdmHKDFKeyStruct> {
+        unimplemented!()
+    },
+
+    spdm_psk_master_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
+                                            _base_hash_algo: SpdmBaseHashAlgo,
+                                            _psk_hint: &[u8],
+                                            _psk_hint_size: Option<usize>,
+                                            _info: Option<&[u8]>,
+                                            _info_size: Option<usize>|
+     -> Option<SpdmHKDFKeyStruct> { unimplemented!() },
+};
+
+pub fn spdm_measurement_collection(
+    spdm_version: SpdmVersion,
+    measurement_specification: SpdmMeasurementSpecification,
+    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_index: usize,
+) -> Option<SpdmMeasurementRecordStructure> {
+    (SECRET_INSTANCE
+        .try_get_or_init(|| UNIMPLETEMTED)
+        .ok()?
+        .spdm_measurement_collection_cb)(
+        spdm_version,
+        measurement_specification,
+        measurement_hash_algo,
+        measurement_index,
+    )
+}
+
+pub fn spdm_generate_measurement_summary_hash(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    measurement_specification: SpdmMeasurementSpecification,
+    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+) -> Option<SpdmDigestStruct> {
+    (SECRET_INSTANCE
+        .try_get_or_init(|| UNIMPLETEMTED)
+        .ok()?
+        .spdm_generate_measurement_summary_hash_cb)(
+        spdm_version,
+        base_hash_algo,
+        measurement_specification,
+        measurement_hash_algo,
+        measurement_summary_hash_type,
+    )
+}
+
+pub fn spdm_requester_data_sign(
+    spdm_version: SpdmVersion,
+    op_code: u8,
+    req_base_asym_alg: SpdmReqAsymAlgo,
+    base_hash_algo: SpdmBaseHashAlgo,
+    is_data_hash: bool,
+    message: &[u8],
+    message_size: u8,
+) -> Option<SpdmSignatureStruct> {
+    (SECRET_INSTANCE
+        .try_get_or_init(|| UNIMPLETEMTED)
+        .ok()?
+        .spdm_requester_data_sign_cb)(
+        spdm_version,
+        op_code,
+        req_base_asym_alg,
+        base_hash_algo,
+        is_data_hash,
+        message,
+        message_size,
+    )
+}
+
+pub fn spdm_responder_data_sign(
+    spdm_version: SpdmVersion,
+    op_code: u8,
+    req_base_asym_alg: SpdmReqAsymAlgo,
+    base_hash_algo: SpdmBaseHashAlgo,
+    is_data_hash: bool,
+    message: &[u8],
+    message_size: u8,
+) -> Option<SpdmSignatureStruct> {
+    (SECRET_INSTANCE
+        .try_get_or_init(|| UNIMPLETEMTED)
+        .ok()?
+        .spdm_responder_data_sign_cb)(
+        spdm_version,
+        op_code,
+        req_base_asym_alg,
+        base_hash_algo,
+        is_data_hash,
+        message,
+        message_size,
+    )
+}
+
+pub fn spdm_psk_handshake_secret_hkdf_expand(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    psk_hint: &[u8],
+    psk_hint_size: Option<usize>,
+    info: Option<&[u8]>,
+    info_size: Option<usize>,
+) -> Option<SpdmHKDFKeyStruct> {
+    (SECRET_INSTANCE
+        .try_get_or_init(|| UNIMPLETEMTED)
+        .ok()?
+        .spdm_psk_handshake_secret_hkdf_expand_cb)(
+        spdm_version,
+        base_hash_algo,
+        psk_hint,
+        psk_hint_size,
+        info,
+        info_size,
+    )
+}
+
+pub fn spdm_psk_master_secret_hkdf_expand(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    psk_hint: &[u8],
+    psk_hint_size: Option<usize>,
+    info: Option<&[u8]>,
+    info_size: Option<usize>,
+) -> Option<SpdmHKDFKeyStruct> {
+    (SECRET_INSTANCE
+        .try_get_or_init(|| UNIMPLETEMTED)
+        .ok()?
+        .spdm_psk_master_secret_hkdf_expand_cb)(
+        spdm_version,
+        base_hash_algo,
+        psk_hint,
+        psk_hint_size,
+        info,
+        info_size,
+    )
+}

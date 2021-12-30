@@ -1,0 +1,272 @@
+// Copyright (c) 2021 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
+#![allow(dead_code)]
+#![allow(unused_variables)]
+use spdmlib::common::algo::{
+    SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
+    SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo,
+    SpdmSignatureStruct,
+};
+use spdmlib::config;
+use spdmlib::crypto::hash;
+use spdmlib::message::SpdmVersion;
+use spdmlib::message::*;
+use spdmlib::secret::*;
+
+static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
+    spdm_measurement_collection_cb: spdm_measurement_collection_impl,
+    spdm_generate_measurement_summary_hash_cb: spdm_generate_measurement_summary_hash_impl,
+    spdm_requester_data_sign_cb: spdm_requester_data_sign_impl,
+    spdm_responder_data_sign_cb: spdm_responder_data_sign_impl,
+    spdm_psk_handshake_secret_hkdf_expand_cb: spdm_psk_handshake_secret_hkdf_expand_impl,
+    spdm_psk_master_secret_hkdf_expand_cb: spdm_psk_master_secret_hkdf_expand_impl,
+};
+
+fn spdm_measurement_collection_impl(
+    spdm_version: SpdmVersion,
+    measurement_specification: SpdmMeasurementSpecification,
+    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_index: usize,
+) -> Option<SpdmMeasurementRecordStructure> {
+    if measurement_specification != SpdmMeasurementSpecification::DMTF {
+        None
+    } else {
+        let hashsize = SpdmBaseHashAlgo::get_size(&measurement_hash_algo);
+        if measurement_index
+            == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize
+        {
+            None
+        } else if measurement_index
+            == SpdmMeasurementOperation::SpdmMeasurementRequestAll.get_u8() as usize
+        {
+            let mut firmware1: [u8; 8] = [0; 8];
+            let mut firmware2: [u8; 8] = [0; 8];
+            let mut firmware3: [u8; 8] = [0; 8];
+            let mut firmware4: [u8; 8] = [0; 8];
+            let mut firmware5: [u8; 8] = [0; 8];
+            firmware1.copy_from_slice("deadbeef".as_bytes());
+            firmware2.copy_from_slice("eadbeefd".as_bytes());
+            firmware3.copy_from_slice("adbeefde".as_bytes());
+            firmware4.copy_from_slice("dbeefdea".as_bytes());
+            firmware5.copy_from_slice("beefdead".as_bytes());
+            let digest1 =
+                hash::hash_all(measurement_hash_algo, &firmware1).expect("hash_all failed!");
+            let digest2 =
+                hash::hash_all(measurement_hash_algo, &firmware2).expect("hash_all failed!");
+            let digest3 =
+                hash::hash_all(measurement_hash_algo, &firmware3).expect("hash_all failed!");
+            let digest4 =
+                hash::hash_all(measurement_hash_algo, &firmware4).expect("hash_all failed!");
+            let digest5 =
+                hash::hash_all(measurement_hash_algo, &firmware5).expect("hash_all failed!");
+            let mut digest_value1: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
+                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut digest_value2: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
+                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut digest_value3: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
+                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut digest_value4: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
+                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut digest_value5: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
+                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            digest_value1.copy_from_slice(digest1.data.as_ref());
+            digest_value2.copy_from_slice(digest2.data.as_ref());
+            digest_value3.copy_from_slice(digest3.data.as_ref());
+            digest_value4.copy_from_slice(digest4.data.as_ref());
+            digest_value5.copy_from_slice(digest5.data.as_ref());
+
+            Some(SpdmMeasurementRecordStructure {
+                number_of_blocks: 5,
+                record: [
+                    SpdmMeasurementBlockStructure {
+                        index: measurement_index as u8,
+                        measurement_specification,
+                        measurement_size: digest1.data_size,
+                        measurement: SpdmDmtfMeasurementStructure {
+                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                            representation:
+                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                            value_size: digest1.data_size,
+                            value: digest_value1,
+                        },
+                    },
+                    SpdmMeasurementBlockStructure {
+                        index: measurement_index as u8,
+                        measurement_specification,
+                        measurement_size: digest2.data_size,
+                        measurement: SpdmDmtfMeasurementStructure {
+                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                            representation:
+                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                            value_size: digest2.data_size,
+                            value: digest_value2,
+                        },
+                    },
+                    SpdmMeasurementBlockStructure {
+                        index: measurement_index as u8,
+                        measurement_specification,
+                        measurement_size: digest3.data_size,
+                        measurement: SpdmDmtfMeasurementStructure {
+                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                            representation:
+                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                            value_size: digest3.data_size,
+                            value: digest_value3,
+                        },
+                    },
+                    SpdmMeasurementBlockStructure {
+                        index: measurement_index as u8,
+                        measurement_specification,
+                        measurement_size: digest4.data_size,
+                        measurement: SpdmDmtfMeasurementStructure {
+                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                            representation:
+                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                            value_size: digest4.data_size,
+                            value: digest_value4,
+                        },
+                    },
+                    SpdmMeasurementBlockStructure {
+                        index: measurement_index as u8,
+                        measurement_specification,
+                        measurement_size: digest5.data_size,
+                        measurement: SpdmDmtfMeasurementStructure {
+                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                            representation:
+                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                            value_size: digest5.data_size,
+                            value: digest_value5,
+                        },
+                    },
+                ],
+            })
+        } else if measurement_index > config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT {
+            None
+        } else {
+            let mut firmware: [u8; 8] = [0; 8];
+            firmware.copy_from_slice("deadbeef".as_bytes());
+
+            let digest = hash::hash_all(measurement_hash_algo, &firmware)?;
+
+            let mut digest_value: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
+                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            digest_value.copy_from_slice(digest.data.as_ref());
+            Some(SpdmMeasurementRecordStructure {
+                number_of_blocks: 1,
+                record: [
+                    SpdmMeasurementBlockStructure {
+                        index: measurement_index as u8,
+                        measurement_specification,
+                        measurement_size: digest.data_size,
+                        measurement: SpdmDmtfMeasurementStructure {
+                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                            representation:
+                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                            value_size: digest.data_size,
+                            value: digest_value,
+                        },
+                    },
+                    SpdmMeasurementBlockStructure::default(),
+                    SpdmMeasurementBlockStructure::default(),
+                    SpdmMeasurementBlockStructure::default(),
+                    SpdmMeasurementBlockStructure::default(),
+                ],
+            })
+        }
+    }
+}
+
+fn spdm_generate_measurement_summary_hash_impl(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    measurement_specification: SpdmMeasurementSpecification,
+    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+) -> Option<SpdmDigestStruct> {
+    Some(SpdmDigestStruct::default())
+}
+
+fn spdm_requester_data_sign_impl(
+    spdm_version: SpdmVersion,
+    op_code: u8,
+    req_base_asym_alg: SpdmReqAsymAlgo,
+    base_hash_algo: SpdmBaseHashAlgo,
+    is_data_hash: bool,
+    message: &[u8],
+    message_size: u8,
+) -> Option<SpdmSignatureStruct> {
+    Some(SpdmSignatureStruct::default())
+}
+
+fn spdm_responder_data_sign_impl(
+    spdm_version: SpdmVersion,
+    op_code: u8,
+    req_base_asym_alg: SpdmReqAsymAlgo,
+    base_hash_algo: SpdmBaseHashAlgo,
+    is_data_hash: bool,
+    message: &[u8],
+    message_size: u8,
+) -> Option<SpdmSignatureStruct> {
+    Some(SpdmSignatureStruct::default())
+}
+
+fn spdm_psk_handshake_secret_hkdf_expand_impl(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    psk_hint: &[u8],
+    psk_hint_size: Option<usize>,
+    info: Option<&[u8]>,
+    info_size: Option<usize>,
+) -> Option<SpdmHKDFKeyStruct> {
+    Some(SpdmHKDFKeyStruct::default())
+}
+
+fn spdm_psk_master_secret_hkdf_expand_impl(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    psk_hint: &[u8],
+    psk_hint_size: Option<usize>,
+    info: Option<&[u8]>,
+    info_size: Option<usize>,
+) -> Option<SpdmHKDFKeyStruct> {
+    Some(SpdmHKDFKeyStruct::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SECRET_IMPL_INSTANCE;
+    use spdmlib::common::algo::{SpdmBaseHashAlgo, SpdmMeasurementSpecification};
+    use spdmlib::message::SpdmVersion;
+    use spdmlib::secret::*;
+
+    #[test]
+    fn test_case0_spdm_measurement_collection() {
+        let reg_result = register(SECRET_IMPL_INSTANCE);
+        assert_eq!(reg_result, true);
+
+        let records = spdm_measurement_collection(
+            SpdmVersion::SpdmVersion11,
+            SpdmMeasurementSpecification::DMTF,
+            SpdmBaseHashAlgo::TPM_ALG_SHA_512,
+            1,
+        );
+        let deadbeefsha512 = [
+            17, 58, 59, 199, 131, 216, 81, 252, 3, 115, 33, 75, 25, 234, 123, 233, 250, 61, 229,
+            65, 236, 185, 254, 2, 109, 82, 198, 3, 232, 234, 25, 193, 116, 204, 14, 151, 5, 248,
+            185, 13, 49, 34, 18, 192, 195, 166, 216, 69, 61, 223, 179, 227, 20, 20, 9, 207, 75,
+            237, 200, 239, 3, 53, 144, 180,
+        ];
+
+        match records {
+            Some(v) => {
+                let resultsha512 = v.record[0].measurement.value;
+                assert_eq!(deadbeefsha512, resultsha512);
+            }
+            None => {
+                assert!(false)
+            }
+        }
+    }
+}

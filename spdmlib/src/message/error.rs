@@ -331,8 +331,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         value.spdm_encode(context, &mut writer);
         let mut reader = Reader::init(u8_slice);
-        let spdm_error_response_payload =
-            SpdmErrorResponsePayload::spdm_read(context, &mut reader).unwrap();
-        spdm_error_response_payload
+
+        SpdmErrorResponsePayload::spdm_read(context, &mut reader).unwrap()
     }
 }
