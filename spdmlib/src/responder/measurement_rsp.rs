@@ -6,6 +6,7 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
+use crate::secret::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
@@ -42,7 +43,6 @@ impl<'a> ResponderContext<'a> {
         }
         let get_measurements = get_measurements.unwrap();
 
-        let measurement_digest_size = self.common.negotiate_info.measurement_hash_sel.get_size();
         let signature_size = self.common.negotiate_info.base_asym_sel.get_size();
 
         if get_measurements
@@ -67,110 +67,47 @@ impl<'a> ResponderContext<'a> {
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         let _ = crypto::rand::get_random(&mut nonce);
 
-        let number_of_measurement = if (get_measurements.measurement_operation
-            == SpdmMeasurementOperation::SpdmMeasurementRequestAll)
-            && (get_measurements.measurement_operation
-                == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber)
+        let real_measurement_block_count = spdm_measurement_collection(
+            SpdmVersion::SpdmVersion11,
+            self.common.negotiate_info.measurement_specification_sel,
+            self.common.negotiate_info.base_hash_sel,
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize,
+        )
+        .unwrap()
+        .number_of_blocks;
+
+        let number_of_measurement: u8 = if get_measurements.measurement_operation
+            == SpdmMeasurementOperation::SpdmMeasurementRequestAll
+            || get_measurements.measurement_operation
+                == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
         {
-            5
+            real_measurement_block_count
         } else {
             1
         };
         let measurement_record = if get_measurements.measurement_operation
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll
         {
-            SpdmMeasurementRecordStructure {
-                number_of_blocks: 5,
-                record: [
-                    SpdmMeasurementBlockStructure {
-                        index: 1,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 3 + measurement_digest_size as u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: measurement_digest_size as u16,
-                            value: [0x5au8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: 2,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 3 + measurement_digest_size as u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: SHA384_DIGEST_SIZE as u16,
-                            value: [0x5bu8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: 3,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 3 + measurement_digest_size as u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: measurement_digest_size as u16,
-                            value: [0x5cu8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: 4,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 3 + measurement_digest_size as u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: measurement_digest_size as u16,
-                            value: [0x5du8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: 5,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 3 + config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
-                            value_size: config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,
-                            value: [0x5eu8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                ],
-            }
+            spdm_measurement_collection(
+                SpdmVersion::SpdmVersion11,
+                self.common.negotiate_info.measurement_specification_sel,
+                self.common.negotiate_info.base_hash_sel,
+                SpdmMeasurementOperation::SpdmMeasurementRequestAll.get_u8() as usize,
+            )
+            .unwrap()
         } else if let SpdmMeasurementOperation::Unknown(index) =
             get_measurements.measurement_operation
         {
-            if index > 5 {
+            if index > real_measurement_block_count {
                 return;
             }
-            SpdmMeasurementRecordStructure {
-                number_of_blocks: 1,
-                record: [
-                    SpdmMeasurementBlockStructure {
-                        index,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 3 + measurement_digest_size as u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: measurement_digest_size as u16,
-                            value: [0x5au8 + index; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                ],
-            }
+            spdm_measurement_collection(
+                SpdmVersion::SpdmVersion11,
+                self.common.negotiate_info.measurement_specification_sel,
+                self.common.negotiate_info.base_hash_sel,
+                index as usize,
+            )
+            .unwrap()
         } else {
             SpdmMeasurementRecordStructure::default()
         };
@@ -247,6 +184,7 @@ mod tests_responder {
     use codec::{Codec, Writer};
 
     #[test]
+    #[should_panic(expected = "not implemented")]
     fn test_case0_handle_spdm_measurement() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -379,6 +317,7 @@ mod tests_responder {
     }
 
     #[test]
+    #[should_panic(expected = "not implemented")]
     fn test_case1_handle_spdm_measurement() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

@@ -67,6 +67,20 @@ static UNIMPLETEMTED: SpdmSecret = SpdmSecret {
      -> Option<SpdmHKDFKeyStruct> { unimplemented!() },
 };
 
+/*
+    Function to get measurements.
+
+    This function wraps SpdmSecret.spdm_measurement_collection_cb callback
+    Device security lib is responsible for the implementation of SpdmSecret.
+    If SECRET_INSTANCE got no registered, a panic with string "not implemented"
+    will be emit.
+
+    @When measurement_index == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+            A dummy Some(SpdmMeasurementRecordStructure) is returned, with its number_of_blocks
+            field set and all other field reserved.
+    @When measurement_index != SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+            A normal Some(SpdmMeasurementRecordStructure) is returned, with all fields valid.
+*/
 pub fn spdm_measurement_collection(
     spdm_version: SpdmVersion,
     measurement_specification: SpdmMeasurementSpecification,

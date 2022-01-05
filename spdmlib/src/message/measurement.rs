@@ -98,7 +98,14 @@ pub struct SpdmMeasurementsResponsePayload {
 
 impl SpdmCodec for SpdmMeasurementsResponsePayload {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.number_of_measurement.encode(bytes); // param1
+        //When Param2 in the requested measurement operation is 0 , this
+        //parameter shall return the total number of measurement indices on
+        //the device. Otherwise, this field is reserved.
+        if self.number_of_measurement == 1 {
+            0_u8.encode(bytes); // param1
+        } else {
+            self.number_of_measurement.encode(bytes); // param1
+        }
         self.slot_id.encode(bytes); // param2
         self.measurement_record.spdm_encode(context, bytes);
         self.nonce.encode(bytes);
