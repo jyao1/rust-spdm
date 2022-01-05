@@ -15,7 +15,7 @@ use spdmlib::message::SpdmVersion;
 use spdmlib::message::*;
 use spdmlib::secret::*;
 
-static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
+pub static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
     spdm_measurement_collection_cb: spdm_measurement_collection_impl,
     spdm_generate_measurement_summary_hash_cb: spdm_generate_measurement_summary_hash_impl,
     spdm_requester_data_sign_cb: spdm_requester_data_sign_impl,
@@ -24,6 +24,7 @@ static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
     spdm_psk_master_secret_hkdf_expand_cb: spdm_psk_master_secret_hkdf_expand_impl,
 };
 
+#[allow(clippy::field_reassign_with_default)]
 fn spdm_measurement_collection_impl(
     spdm_version: SpdmVersion,
     measurement_specification: SpdmMeasurementSpecification,
@@ -37,7 +38,10 @@ fn spdm_measurement_collection_impl(
         if measurement_index
             == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize
         {
-            None
+            let mut dummy_spdm_measurement_record_structure =
+                SpdmMeasurementRecordStructure::default();
+            dummy_spdm_measurement_record_structure.number_of_blocks = 5;
+            Some(dummy_spdm_measurement_record_structure)
         } else if measurement_index
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll.get_u8() as usize
         {
@@ -83,7 +87,7 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
                         measurement_specification,
-                        measurement_size: digest1.data_size,
+                        measurement_size: digest1.data_size + 3,
                         measurement: SpdmDmtfMeasurementStructure {
                             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
                             representation:
@@ -95,7 +99,7 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
                         measurement_specification,
-                        measurement_size: digest2.data_size,
+                        measurement_size: digest2.data_size + 3,
                         measurement: SpdmDmtfMeasurementStructure {
                             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
                             representation:
@@ -107,7 +111,7 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
                         measurement_specification,
-                        measurement_size: digest3.data_size,
+                        measurement_size: digest3.data_size + 3,
                         measurement: SpdmDmtfMeasurementStructure {
                             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
                             representation:
@@ -119,7 +123,7 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
                         measurement_specification,
-                        measurement_size: digest4.data_size,
+                        measurement_size: digest4.data_size + 3,
                         measurement: SpdmDmtfMeasurementStructure {
                             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
                             representation:
@@ -131,7 +135,7 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
                         measurement_specification,
-                        measurement_size: digest5.data_size,
+                        measurement_size: digest5.data_size + 3,
                         measurement: SpdmDmtfMeasurementStructure {
                             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
                             representation:
@@ -159,7 +163,7 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
                         measurement_specification,
-                        measurement_size: digest.data_size,
+                        measurement_size: digest.data_size + 3,
                         measurement: SpdmDmtfMeasurementStructure {
                             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
                             representation:

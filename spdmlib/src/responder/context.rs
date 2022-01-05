@@ -436,6 +436,7 @@ mod tests_responder {
         assert!(status);
     }
     #[test]
+    #[should_panic(expected = "not implemented")]
     fn test_case0_dispatch_secured_message() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

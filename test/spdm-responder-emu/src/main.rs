@@ -17,9 +17,11 @@ use pcidoe_transport::{
     PciDoeDataObjectType, PciDoeMessageHeader, PciDoeTransportEncap, PciDoeVendorId,
 };
 use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
+use spdm_emu::secret_impl_sample::*;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
 use spdmlib::message::*;
+use spdmlib::secret::*;
 use spdmlib::{common, responder};
 
 fn process_socket_message(
@@ -79,6 +81,8 @@ fn new_logger_from_env() -> SimpleLogger {
 
 fn main() {
     new_logger_from_env().init().unwrap();
+
+    register(SECRET_IMPL_INSTANCE);
 
     let listener = TcpListener::bind("127.0.0.1:2323").expect("Couldn't bind to the server");
     println!("server start!");

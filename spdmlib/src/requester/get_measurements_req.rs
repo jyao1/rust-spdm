@@ -242,6 +242,7 @@ mod tests_requester {
     use crate::{crypto, responder};
 
     #[test]
+    #[should_panic(expected = "not implemented")]
     fn test_case0_send_receive_spdm_measurement() {
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
