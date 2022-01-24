@@ -4,10 +4,11 @@
 
 use crate::common;
 use crate::common::algo::{SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
+use crate::common::gen_array_clone;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmGetDigestsRequestPayload {}
 
 impl SpdmCodec for SpdmGetDigestsRequestPayload {
@@ -27,7 +28,7 @@ impl SpdmCodec for SpdmGetDigestsRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmDigestsResponsePayload {
     pub slot_mask: u8,
     pub slot_count: u8,
@@ -69,7 +70,7 @@ impl SpdmCodec for SpdmDigestsResponsePayload {
             }
         }
 
-        let mut digests = [SpdmDigestStruct::default(); SPDM_MAX_SLOT_NUMBER];
+        let mut digests = gen_array_clone(SpdmDigestStruct::default(), SPDM_MAX_SLOT_NUMBER);
         for digest in digests.iter_mut().take(slot_count as usize) {
             *digest = SpdmDigestStruct::spdm_read(context, r)?;
         }
@@ -94,10 +95,13 @@ mod tests {
         let mut value = SpdmDigestsResponsePayload {
             slot_mask: 0b11111111,
             slot_count: 8,
-            digests: [SpdmDigestStruct {
-                data_size: 64,
-                data: [0u8; common::algo::SPDM_MAX_HASH_SIZE],
-            }; SPDM_MAX_SLOT_NUMBER],
+            digests: gen_array_clone(
+                SpdmDigestStruct {
+                    data_size: 64,
+                    data: Box::new([0u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                },
+                SPDM_MAX_SLOT_NUMBER,
+            ),
         };
         for i in 0..8 {
             for j in 0..64 {
@@ -135,7 +139,7 @@ mod tests {
         let mut value = SpdmDigestsResponsePayload::default();
         value.slot_mask = 0b00000000;
         value.slot_count = 0;
-        value.digests = [SpdmDigestStruct::default(); SPDM_MAX_SLOT_NUMBER];
+        value.digests = gen_array_clone(SpdmDigestStruct::default(), SPDM_MAX_SLOT_NUMBER);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -149,7 +153,7 @@ mod tests {
         let mut value = SpdmDigestsResponsePayload::default();
         value.slot_mask = 0b00011111;
         value.slot_count = 3;
-        value.digests = [SpdmDigestStruct::default(); SPDM_MAX_SLOT_NUMBER];
+        value.digests = gen_array_clone(SpdmDigestStruct::default(), SPDM_MAX_SLOT_NUMBER);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);

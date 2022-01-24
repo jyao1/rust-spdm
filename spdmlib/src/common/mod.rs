@@ -23,6 +23,10 @@ use codec::Writer;
 use error::SpdmResult;
 use session::*;
 
+extern crate alloc;
+use alloc::vec::Vec;
+use core::convert::TryInto;
+
 pub const OPAQUE_DATA_SUPPORT_VERSION: [u8; 20] = [
     0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0x01, 0x01, 0x00,
     0x11, 0x00, 0x00, 0x00,
@@ -81,6 +85,23 @@ impl Debug for dyn SpdmTransportEncap {
     }
 }
 
+pub fn gen_array<T: Default + core::fmt::Debug, const N: usize>(count: usize) -> [T; N] {
+    let mut vec = Vec::new();
+    for _i in 0..count {
+        vec.push(T::default());
+    }
+    vec.try_into().unwrap()
+}
+
+pub fn gen_array_clone<T: Clone + core::fmt::Debug, const N: usize>(v: T, count: usize) -> [T; N] {
+    let mut vec = Vec::new();
+    for _i in 1..count {
+        vec.push(v.clone());
+    }
+    vec.push(v);
+    vec.try_into().unwrap()
+}
+
 pub struct SpdmContext<'a> {
     pub device_io: &'a mut dyn SpdmDeviceIo,
     pub transport_encap: &'a mut dyn SpdmTransportEncap,
@@ -102,6 +123,7 @@ impl<'a> SpdmContext<'a> {
         config_info: SpdmConfigInfo,
         provision_info: SpdmProvisionInfo,
     ) -> Self {
+        //dbg!("{:?}",mem::needs_drop::<SpdmSession>());
         SpdmContext {
             device_io,
             transport_encap,
@@ -110,7 +132,7 @@ impl<'a> SpdmContext<'a> {
             runtime_info: SpdmRuntimeInfo::default(),
             provision_info,
             peer_info: SpdmPeerInfo::default(),
-            session: [SpdmSession::new(); config::MAX_SPDM_SESSION_COUNT],
+            session: gen_array(config::MAX_SPDM_SESSION_COUNT),
         }
     }
 
@@ -201,7 +223,7 @@ impl<'a> SpdmContext<'a> {
             .ok_or(spdm_err!(ENOMEM))?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
         if !use_psk {
-            let my_cert_chain_data = self.provision_info.my_cert_chain.unwrap();
+            let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref().unwrap();
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
@@ -551,7 +573,7 @@ pub struct SpdmNegotiateInfo {
 }
 
 // TBD ManagedSmallBuffer
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ManagedBuffer(usize, [u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
 
 impl ManagedBuffer {
@@ -579,7 +601,7 @@ impl Default for ManagedBuffer {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,

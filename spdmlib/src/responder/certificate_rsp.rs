@@ -19,7 +19,7 @@ impl<'a> ResponderContext<'a> {
 
         let get_certificate =
             SpdmGetCertificateRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(get_certificate) = get_certificate {
+        if let Some(get_certificate) = &get_certificate {
             debug!("!!! get_certificate : {:02x?}\n", get_certificate);
         } else {
             error!("!!! get_certificate : fail !!!\n");
@@ -41,7 +41,7 @@ impl<'a> ResponderContext<'a> {
         let get_certificate = get_certificate.unwrap();
         let slot_id = get_certificate.slot_id;
 
-        let my_cert_chain = self.common.provision_info.my_cert_chain.unwrap();
+        let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
 
         let mut length = get_certificate.length;
         if length > config::MAX_SPDM_CERT_PORTION_LEN as u16 {
@@ -100,7 +100,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,

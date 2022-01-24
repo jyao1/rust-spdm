@@ -11,7 +11,7 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmKeyExchangeRequestPayload {
     pub measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     pub slot_id: u8,
@@ -78,7 +78,7 @@ impl Codec for SpdmKeyExchangeMutAuthAttributes {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmKeyExchangeResponsePayload {
     pub heartbeat_period: u8,
     pub rsp_session_id: u16,
@@ -236,7 +236,7 @@ mod tests {
             },
             measurement_summary_hash: SpdmDigestStruct {
                 data_size: 64u16,
-                data: [0x11u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x11u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64u16,
@@ -248,7 +248,7 @@ mod tests {
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64u16,
-                data: [0x33u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x33u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 
@@ -327,7 +327,7 @@ mod tests {
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64u16,
-                data: [0x33u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x33u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 

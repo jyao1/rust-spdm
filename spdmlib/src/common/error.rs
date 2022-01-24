@@ -7,7 +7,7 @@ use core::fmt::{Debug, Formatter, Result};
 /// POSIX errno
 #[repr(u32)]
 #[allow(dead_code)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SpdmErrorNum {
     EUNDEF = 0,
     EPERM = 1,
@@ -73,7 +73,7 @@ impl SpdmError {
     }
 
     pub fn code(&self) -> i32 {
-        -(self.num as u32 as i32)
+        -(self.num.clone() as u32 as i32)
     }
 }
 

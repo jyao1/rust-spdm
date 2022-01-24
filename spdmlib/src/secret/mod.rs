@@ -88,7 +88,7 @@ pub fn spdm_measurement_collection(
     measurement_index: usize,
 ) -> Option<SpdmMeasurementRecordStructure> {
     (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED)
+        .try_get_or_init(|| UNIMPLETEMTED.clone())
         .ok()?
         .spdm_measurement_collection_cb)(
         spdm_version,
@@ -106,7 +106,7 @@ pub fn spdm_generate_measurement_summary_hash(
     measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
 ) -> Option<SpdmDigestStruct> {
     (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED)
+        .try_get_or_init(|| UNIMPLETEMTED.clone())
         .ok()?
         .spdm_generate_measurement_summary_hash_cb)(
         spdm_version,
@@ -127,7 +127,7 @@ pub fn spdm_requester_data_sign(
     message_size: u8,
 ) -> Option<SpdmSignatureStruct> {
     (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED)
+        .try_get_or_init(|| UNIMPLETEMTED.clone())
         .ok()?
         .spdm_requester_data_sign_cb)(
         spdm_version,
@@ -150,7 +150,7 @@ pub fn spdm_responder_data_sign(
     message_size: u8,
 ) -> Option<SpdmSignatureStruct> {
     (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED)
+        .try_get_or_init(|| UNIMPLETEMTED.clone())
         .ok()?
         .spdm_responder_data_sign_cb)(
         spdm_version,
@@ -172,7 +172,7 @@ pub fn spdm_psk_handshake_secret_hkdf_expand(
     info_size: Option<usize>,
 ) -> Option<SpdmHKDFKeyStruct> {
     (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED)
+        .try_get_or_init(|| UNIMPLETEMTED.clone())
         .ok()?
         .spdm_psk_handshake_secret_hkdf_expand_cb)(
         spdm_version,
@@ -193,7 +193,7 @@ pub fn spdm_psk_master_secret_hkdf_expand(
     info_size: Option<usize>,
 ) -> Option<SpdmHKDFKeyStruct> {
     (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED)
+        .try_get_or_init(|| UNIMPLETEMTED.clone())
         .ok()?
         .spdm_psk_master_secret_hkdf_expand_cb)(
         spdm_version,

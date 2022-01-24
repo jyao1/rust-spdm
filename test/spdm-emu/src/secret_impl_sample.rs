@@ -247,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_case0_spdm_measurement_collection() {
-        let reg_result = register(SECRET_IMPL_INSTANCE);
+        let reg_result = register(SECRET_IMPL_INSTANCE.clone());
         assert_eq!(reg_result, true);
 
         let records = spdm_measurement_collection(

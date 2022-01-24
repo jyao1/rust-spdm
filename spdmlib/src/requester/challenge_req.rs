@@ -134,8 +134,8 @@ mod tests_requester {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::rand::register(DEFAULT_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::rand::register(DEFAULT_TEST.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

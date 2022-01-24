@@ -10,7 +10,7 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmChallengeRequestPayload {
     pub slot_id: u8,
     pub measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
@@ -47,7 +47,7 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmChallengeAuthResponsePayload {
     pub slot_id: u8,
     pub slot_mask: u8,
@@ -150,14 +150,14 @@ mod tests {
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
             cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [0xAAu8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0xAAu8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
             nonce: SpdmNonceStruct {
                 data: [100u8; common::algo::SPDM_NONCE_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [0x55u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x55u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
@@ -217,7 +217,7 @@ mod tests {
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
             cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [0xAAu8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0xAAu8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
             nonce: SpdmNonceStruct {
                 data: [100u8; common::algo::SPDM_NONCE_SIZE],

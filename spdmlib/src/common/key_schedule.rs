@@ -6,6 +6,8 @@ use super::algo::*;
 use crate::config::MAX_SPDM_MESSAGE_BUFFER_SIZE;
 use crate::crypto;
 use codec::{Codec, Writer};
+extern crate alloc;
+use alloc::boxed::Box;
 
 const SALT_0: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];
 const ZERO_FILLED: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];
@@ -21,7 +23,7 @@ const BIN_STR8_LABEL: &[u8] = b"exp master";
 const BIN_STR9_LABEL: &[u8] = b"traffic upd";
 const SPDM_VERSION_VALUE: &[u8; 8] = b"spdm1.1 ";
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct SpdmKeySchedule;
 
 impl Default for SpdmKeySchedule {
@@ -136,7 +138,7 @@ impl SpdmKeySchedule {
         let encrypt_key = SpdmAeadKeyStruct {
             data_size: res.data_size,
             data: {
-                let mut k = [0u8; SPDM_MAX_AEAD_KEY_SIZE];
+                let mut k = Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]);
                 k[0..res.data_size as usize].copy_from_slice(&res.data[0..res.data_size as usize]);
                 k
             },
@@ -154,7 +156,7 @@ impl SpdmKeySchedule {
         let iv = SpdmAeadIvStruct {
             data_size: res.data_size,
             data: {
-                let mut k = [0u8; SPDM_MAX_AEAD_IV_SIZE];
+                let mut k = Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]);
                 k[0..res.data_size as usize].copy_from_slice(&res.data[0..res.data_size as usize]);
                 k
             },

@@ -7,6 +7,8 @@ use super::key_schedule::SpdmKeySchedule;
 use crate::config;
 use crate::crypto;
 
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
@@ -26,7 +28,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmSessionCryptoParam {
     pub base_hash_algo: SpdmBaseHashAlgo,
     pub dhe_algo: SpdmDheAlgo,
@@ -34,21 +36,21 @@ pub struct SpdmSessionCryptoParam {
     pub key_schedule_algo: SpdmKeyScheduleAlgo,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmSessionMasterSecret {
     pub dhe_secret: SpdmDheFinalKeyStruct,
     pub handshake_secret: SpdmDigestStruct,
     pub master_secret: SpdmDigestStruct,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmSessionSecretParam {
     pub encryption_key: SpdmAeadKeyStruct,
     pub salt: SpdmAeadIvStruct,
     pub sequence_number: u64,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmSessionHandshakeSecret {
     pub request_handshake_secret: SpdmDigestStruct,
     pub response_handshake_secret: SpdmDigestStruct,
@@ -59,7 +61,7 @@ pub struct SpdmSessionHandshakeSecret {
     pub response_direction: SpdmSessionSecretParam,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmSessionAppliationSecret {
     pub request_data_secret: SpdmDigestStruct,
     pub response_data_secret: SpdmDigestStruct,
@@ -67,20 +69,20 @@ pub struct SpdmSessionAppliationSecret {
     pub response_direction: SpdmSessionSecretParam,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmSessionTransportParam {
     pub sequence_number_count: u8,
     pub max_random_count: u16,
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmSessionRuntimeInfo {
     pub message_k: ManagedBuffer,
     pub message_f: ManagedBuffer,
     pub message_m: ManagedBuffer,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmSession {
     session_id: u32,
     use_psk: bool,
@@ -155,8 +157,8 @@ impl SpdmSession {
         self.use_psk = use_psk;
     }
 
-    pub fn set_dhe_secret(&mut self, dhe_secret: &SpdmDheFinalKeyStruct) {
-        self.master_secret.dhe_secret = *dhe_secret;
+    pub fn set_dhe_secret(&mut self, dhe_secret: SpdmDheFinalKeyStruct) {
+        self.master_secret.dhe_secret = dhe_secret; // take the ownership here!
         let key = &self.master_secret.dhe_secret.as_ref();
 
         // generate master_secret.handshake_secret and master_secret.master_secret
@@ -176,9 +178,12 @@ impl SpdmSession {
 
         debug!(
             "!!! handshake_secret !!!: {:02x?}\n",
-            handshake_secret.as_ref()
+            self.master_secret.handshake_secret.as_ref()
         );
-        debug!("!!! master_secret !!!: {:02x?}\n", master_secret.as_ref());
+        debug!(
+            "!!! master_secret !!!: {:02x?}\n",
+            self.master_secret.master_secret.as_ref()
+        );
     }
 
     pub fn set_crypto_param(
@@ -404,9 +409,9 @@ impl SpdmSession {
 
         if update_requester {
             self.application_secret_backup.request_data_secret =
-                self.application_secret.request_data_secret;
+                self.application_secret.request_data_secret.clone();
             self.application_secret_backup.request_direction =
-                self.application_secret.request_direction;
+                self.application_secret.request_direction.clone();
 
             self.application_secret.request_data_secret = self
                 .key_schedule
@@ -446,9 +451,9 @@ impl SpdmSession {
 
         if update_responder {
             self.application_secret_backup.response_data_secret =
-                self.application_secret.response_data_secret;
+                self.application_secret.response_data_secret.clone();
             self.application_secret_backup.response_direction =
-                self.application_secret.response_direction;
+                self.application_secret.response_direction.clone();
 
             self.application_secret.response_data_secret = self
                 .key_schedule
@@ -496,15 +501,15 @@ impl SpdmSession {
         if !use_new_key {
             if update_requester {
                 self.application_secret.request_data_secret =
-                    self.application_secret_backup.request_data_secret;
+                    self.application_secret_backup.request_data_secret.clone();
                 self.application_secret.request_direction =
-                    self.application_secret_backup.request_direction;
+                    self.application_secret_backup.request_direction.clone();
             }
             if update_responder {
                 self.application_secret.response_data_secret =
-                    self.application_secret_backup.response_data_secret;
+                    self.application_secret_backup.response_data_secret.clone();
                 self.application_secret.response_direction =
-                    self.application_secret_backup.response_direction;
+                    self.application_secret_backup.response_direction.clone();
             }
         } else {
             if update_requester {
@@ -559,7 +564,7 @@ impl SpdmSession {
     }
 
     pub fn verify_hmac_with_request_finished_key(
-        &mut self,
+        &self,
         message: &[u8],
         hmac: &SpdmDigestStruct,
     ) -> SpdmResult {
@@ -574,13 +579,21 @@ impl SpdmSession {
     pub fn export_keys(&mut self) -> (SpdmSessionSecretParam, SpdmSessionSecretParam) {
         (
             SpdmSessionSecretParam {
-                encryption_key: self.application_secret.request_direction.encryption_key,
-                salt: self.application_secret.request_direction.salt,
+                encryption_key: self
+                    .application_secret
+                    .request_direction
+                    .encryption_key
+                    .clone(),
+                salt: self.application_secret.request_direction.salt.clone(),
                 sequence_number: self.application_secret.request_direction.sequence_number,
             },
             SpdmSessionSecretParam {
-                encryption_key: self.application_secret.response_direction.encryption_key,
-                salt: self.application_secret.response_direction.salt,
+                encryption_key: self
+                    .application_secret
+                    .response_direction
+                    .encryption_key
+                    .clone(),
+                salt: self.application_secret.response_direction.salt.clone(),
                 sequence_number: self.application_secret.response_direction.sequence_number,
             },
         )
@@ -724,7 +737,7 @@ impl SpdmSession {
 
         let mut tag_buffer = [0u8; 16];
 
-        let mut salt = secret_param.salt.data;
+        let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
         salt[0] ^= (sequence_number & 0xFF) as u8;
         salt[1] ^= ((sequence_number >> 8) & 0xFF) as u8;
@@ -802,7 +815,7 @@ impl SpdmSession {
 
         let mut plain_text_buf = [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
 
-        let mut salt = secret_param.salt.data;
+        let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
         salt[0] ^= (sequence_number & 0xFF) as u8;
         salt[1] ^= ((sequence_number >> 8) & 0xFF) as u8;
@@ -876,11 +889,11 @@ mod tests_session {
         session.handshake_secret.request_direction = SpdmSessionSecretParam {
             encryption_key: SpdmAeadKeyStruct {
                 data_size: 50,
-                data: [10u8; SPDM_MAX_AEAD_KEY_SIZE],
+                data: Box::new([10u8; SPDM_MAX_AEAD_KEY_SIZE]),
             },
             salt: SpdmAeadIvStruct {
                 data_size: 50,
-                data: [10u8; SPDM_MAX_AEAD_IV_SIZE],
+                data: Box::new([10u8; SPDM_MAX_AEAD_IV_SIZE]),
             },
             sequence_number: 100u64,
         };

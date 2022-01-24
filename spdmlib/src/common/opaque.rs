@@ -9,7 +9,7 @@ use codec::{Codec, Reader, Writer};
 
 //pub const SPDM_MAX_OPAQUE_SIZE : usize = 1024;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmOpaqueStruct {
     pub data_size: u16,
     pub data: [u8; config::MAX_SPDM_OPAQUE_SIZE],

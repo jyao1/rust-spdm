@@ -6,6 +6,8 @@ use super::*;
 use crate::config;
 use codec::{u24, Codec, Reader, Writer};
 use core::fmt::Debug;
+extern crate alloc;
+use alloc::boxed::Box;
 
 pub trait SpdmCodec: Debug + Sized {
     /// Encode yourself by appending onto `bytes`.
@@ -43,7 +45,7 @@ impl SpdmCodec for SpdmDigestStruct {
     }
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmDigestStruct> {
         let data_size = context.get_hash_size();
-        let mut data = [0u8; SPDM_MAX_HASH_SIZE];
+        let mut data = Box::new([0u8; SPDM_MAX_HASH_SIZE]);
         for d in data.iter_mut().take(data_size as usize) {
             *d = u8::read(r)?;
         }
@@ -128,8 +130,7 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
         let number_of_blocks = u8::read(r)?;
         let record_length = u24::read(r)?;
 
-        let mut record =
-            [SpdmMeasurementBlockStructure::default(); config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT];
+        let mut record = gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT);
         for d in record.iter_mut().take(number_of_blocks as usize) {
             *d = SpdmMeasurementBlockStructure::spdm_read(context, r)?;
         }
@@ -247,13 +248,14 @@ impl SpdmCodec for SpdmMeasurementBlockStructure {
 mod tests {
     use super::*;
     use crate::testlib::*;
+
     #[test]
     fn test_case0_spdm_digest_struct() {
         let u8_slice = &mut [0u8; 68];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmDigestStruct {
             data_size: 64,
-            data: [100u8; SPDM_MAX_HASH_SIZE],
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -301,7 +303,7 @@ mod tests {
         let value = SpdmCertChain {
             root_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: [100u8; SPDM_MAX_HASH_SIZE],
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
             cert_chain: SpdmCertChainData {
                 data_size: 4096u16,
@@ -334,17 +336,21 @@ mod tests {
         SpdmMeasurementRecordStructure::default();
         let value = SpdmMeasurementRecordStructure {
             number_of_blocks: 5,
-            record: [SpdmMeasurementBlockStructure {
-                index: 100u8,
-                measurement_specification: SpdmMeasurementSpecification::DMTF,
-                measurement_size: 67u16,
-                measurement: SpdmDmtfMeasurementStructure {
-                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                    representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                    value_size: 64u16,
-                    value: [100u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            record: gen_array_clone(
+                SpdmMeasurementBlockStructure {
+                    index: 100u8,
+                    measurement_specification: SpdmMeasurementSpecification::DMTF,
+                    measurement_size: 67u16,
+                    measurement: SpdmDmtfMeasurementStructure {
+                        r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                        representation:
+                            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                        value_size: 64u16,
+                        value: [100u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                    },
                 },
-            }; config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+                config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -386,8 +392,10 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementRecordStructure {
             number_of_blocks: 5,
-            record: [SpdmMeasurementBlockStructure::default();
-                config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+            record: gen_array_clone(
+                SpdmMeasurementBlockStructure::default(),
+                config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

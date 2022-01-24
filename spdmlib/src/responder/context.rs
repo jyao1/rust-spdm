@@ -114,6 +114,7 @@ impl<'a> ResponderContext<'a> {
         info!("receive_message!\n");
 
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+
         let used = self.common.device_io.receive(receive_buffer)?;
 
         let (used, secured_message) = self
@@ -279,6 +280,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::*;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
@@ -291,7 +293,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
@@ -303,7 +305,7 @@ mod tests_responder {
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(session_id).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -339,7 +341,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
@@ -382,7 +384,7 @@ mod tests_responder {
         shared_buffer.set_buffer(receive_buffer);
 
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
@@ -421,7 +423,7 @@ mod tests_responder {
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(session_id).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -450,7 +452,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -459,7 +461,7 @@ mod tests_responder {
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(session_id).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,

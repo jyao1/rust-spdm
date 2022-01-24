@@ -6,6 +6,8 @@ use crate::responder::*;
 
 use crate::common::ManagedBuffer;
 use crate::message::*;
+extern crate alloc;
+use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
@@ -34,7 +36,7 @@ impl<'a> ResponderContext<'a> {
         SpdmMessageHeader::read(&mut reader);
 
         let finish_req = SpdmFinishRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(finish_req) = finish_req {
+        if let Some(finish_req) = &finish_req {
             debug!("!!! finish req : {:02x?}\n", finish_req);
         } else {
             error!("!!! finish req : fail !!!\n");
@@ -54,17 +56,18 @@ impl<'a> ResponderContext<'a> {
         }
 
         let session = self.common.get_session_via_id(session_id).unwrap();
-        let message_k = session.runtime_info.message_k;
+        let message_k = &session.runtime_info.message_k.clone();
 
         let transcript_data =
-            self.common
-                .calc_rsp_transcript_data(false, &message_k, Some(&message_f));
+            &self
+                .common
+                .calc_rsp_transcript_data(false, message_k, Some(&message_f));
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return false;
         }
-        let transcript_data = transcript_data.unwrap();
-        let session = self.common.get_session_via_id(session_id).unwrap();
+        let transcript_data = transcript_data.as_ref().unwrap();
+        let session = self.common.get_session_via_id(session_id).unwrap().clone();
         if session
             .verify_hmac_with_request_finished_key(
                 transcript_data.as_ref(),
@@ -78,6 +81,9 @@ impl<'a> ResponderContext<'a> {
         } else {
             info!("verify_hmac_with_request_finished_key pass");
         }
+
+        drop(session);
+
         if message_f
             .append_message(finish_req.verify_data.as_ref())
             .is_none()
@@ -105,8 +111,12 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmFinishResponse(SpdmFinishResponsePayload {
                 verify_data: SpdmDigestStruct {
-                    data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: [0xcc; SPDM_MAX_HASH_SIZE],
+                    data_size: (self as &ResponderContext)
+                        .common
+                        .negotiate_info
+                        .base_hash_sel
+                        .get_size(),
+                    data: Box::new([0xcc; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -126,7 +136,7 @@ impl<'a> ResponderContext<'a> {
 
             let transcript_data =
                 self.common
-                    .calc_rsp_transcript_data(false, &message_k, Some(&message_f));
+                    .calc_rsp_transcript_data(false, message_k, Some(&message_f));
             if transcript_data.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 let session = self.common.get_session_via_id(session_id).unwrap();
@@ -148,7 +158,7 @@ impl<'a> ResponderContext<'a> {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return false;
             }
-            session.runtime_info.message_f = message_f;
+            session.runtime_info.message_f = message_f.clone();
 
             // patch the message before send
             writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
@@ -160,13 +170,13 @@ impl<'a> ResponderContext<'a> {
                 return false;
             }
             let session = self.common.get_session_via_id(session_id).unwrap();
-            session.runtime_info.message_f = message_f;
+            session.runtime_info.message_f = message_f.clone();
         }
 
         // generate the data secret
         let th2 = self
             .common
-            .calc_rsp_transcript_hash(false, &message_k, Some(&message_f));
+            .calc_rsp_transcript_hash(false, message_k, Some(&message_f));
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             let session = self.common.get_session_via_id(session_id).unwrap();
@@ -185,6 +195,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
@@ -204,12 +215,12 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::hmac::register(HMAC_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::hmac::register(HMAC_TEST.clone());
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -252,7 +263,7 @@ mod tests_responder {
             },
             verify_data: SpdmDigestStruct {
                 data_size: 48,
-                data: [0x5au8; SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x5au8; SPDM_MAX_HASH_SIZE]),
             },
         };
         value.spdm_encode(&mut context.common, &mut writer);
@@ -275,8 +286,8 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::hmac::register(HMAC_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::hmac::register(HMAC_TEST.clone());
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -284,7 +295,7 @@ mod tests_responder {
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -324,7 +335,7 @@ mod tests_responder {
             },
             verify_data: SpdmDigestStruct {
                 data_size: 48,
-                data: [0x5au8; SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x5au8; SPDM_MAX_HASH_SIZE]),
             },
         };
         value.spdm_encode(&mut context.common, &mut writer);

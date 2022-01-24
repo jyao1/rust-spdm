@@ -31,12 +31,12 @@ impl<'a> ResponderContext<'a> {
                 .iter()
                 .take(negotiate_algorithms.alg_struct_count as usize)
             {
-                match alg.alg_supported {
-                    SpdmAlg::SpdmAlgoDhe(v) => self.common.negotiate_info.dhe_sel = v,
-                    SpdmAlg::SpdmAlgoAead(v) => self.common.negotiate_info.aead_sel = v,
-                    SpdmAlg::SpdmAlgoReqAsym(v) => self.common.negotiate_info.req_asym_sel = v,
+                match &alg.alg_supported {
+                    SpdmAlg::SpdmAlgoDhe(v) => self.common.negotiate_info.dhe_sel = *v,
+                    SpdmAlg::SpdmAlgoAead(v) => self.common.negotiate_info.aead_sel = *v,
+                    SpdmAlg::SpdmAlgoReqAsym(v) => self.common.negotiate_info.req_asym_sel = *v,
                     SpdmAlg::SpdmAlgoKeySchedule(v) => {
-                        self.common.negotiate_info.key_schedule_sel = v
+                        self.common.negotiate_info.key_schedule_sel = *v
                     }
                     SpdmAlg::SpdmAlgoUnknown(_v) => {}
                 }
@@ -95,7 +95,12 @@ impl<'a> ResponderContext<'a> {
         if self.common.provision_info.my_cert_chain.is_none()
             && self.common.provision_info.my_cert_chain_data.is_some()
         {
-            let cert_chain = self.common.provision_info.my_cert_chain_data.unwrap();
+            let cert_chain = self
+                .common
+                .provision_info
+                .my_cert_chain_data
+                .as_ref()
+                .unwrap();
             let (root_cert_begin, root_cert_end) =
                 crypto::cert_operation::get_cert_from_cert_chain(
                     &cert_chain.data[..(cert_chain.data_size as usize)],
@@ -181,6 +186,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -191,7 +197,7 @@ mod tests_responder {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -218,12 +224,15 @@ mod tests_responder {
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
             alg_struct_count: 4,
-            alg_struct: [SpdmAlgStruct {
-                alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                alg_fixed_count: 2,
-                alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                alg_ext_count: 0,
-            }; config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                    alg_ext_count: 0,
+                },
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
         value.spdm_encode(&mut context.common, &mut writer);
 

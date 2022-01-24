@@ -100,7 +100,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmMessageHeader {
     pub version: SpdmVersion,
     pub request_response_code: SpdmRequestResponseCode,
@@ -482,7 +482,9 @@ impl SpdmCodec for SpdmMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::*;
+    use crate::config;
     use crate::config::*;
     use crate::testlib::*;
 
@@ -518,10 +520,13 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
                 version_number_entry_count: 0x02,
-                versions: [SpdmVersionStruct {
-                    update: 100,
-                    version: SpdmVersion::SpdmVersion11,
-                }; crate::config::MAX_SPDM_VERSION_COUNT],
+                versions: gen_array_clone(
+                    SpdmVersionStruct {
+                        update: 100,
+                        version: SpdmVersion::SpdmVersion11,
+                    },
+                    config::MAX_SPDM_VERSION_COUNT,
+                ),
             }),
         };
 
@@ -612,12 +617,15 @@ mod tests {
                     base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                     base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
                     alg_struct_count: 4,
-                    alg_struct: [SpdmAlgStruct {
-                        alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                        alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                        alg_ext_count: 0,
-                    }; crate::config::MAX_SPDM_ALG_STRUCT_COUNT],
+                    alg_struct: gen_array_clone(
+                        SpdmAlgStruct {
+                            alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                            alg_fixed_count: 2,
+                            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                            alg_ext_count: 0,
+                        },
+                        config::MAX_SPDM_ALG_STRUCT_COUNT,
+                    ),
                 },
             ),
         };
@@ -665,12 +673,15 @@ mod tests {
                 base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                 base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
                 alg_struct_count: 4,
-                alg_struct: [SpdmAlgStruct {
-                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                    alg_fixed_count: 2,
-                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                    alg_ext_count: 0,
-                }; MAX_SPDM_ALG_STRUCT_COUNT],
+                alg_struct: gen_array_clone(
+                    SpdmAlgStruct {
+                        alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                        alg_fixed_count: 2,
+                        alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                        alg_ext_count: 0,
+                    },
+                    MAX_SPDM_ALG_STRUCT_COUNT,
+                ),
             }),
         };
         let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
@@ -785,14 +796,14 @@ mod tests {
                     challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
                     cert_chain_hash: SpdmDigestStruct {
                         data_size: 64,
-                        data: [0xAAu8; SPDM_MAX_HASH_SIZE],
+                        data: Box::new([0xAAu8; SPDM_MAX_HASH_SIZE]),
                     },
                     nonce: SpdmNonceStruct {
                         data: [100u8; SPDM_NONCE_SIZE],
                     },
                     measurement_summary_hash: SpdmDigestStruct {
                         data_size: 64,
-                        data: [0x55u8; SPDM_MAX_HASH_SIZE],
+                        data: Box::new([0x55u8; SPDM_MAX_HASH_SIZE]),
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 64,
@@ -898,18 +909,21 @@ mod tests {
                     slot_id: 100u8,
                     measurement_record: SpdmMeasurementRecordStructure {
                         number_of_blocks: 5,
-                        record: [SpdmMeasurementBlockStructure {
-                            index: 100u8,
-                            measurement_specification: SpdmMeasurementSpecification::DMTF,
-                            measurement_size: 67u16,
-                            measurement: SpdmDmtfMeasurementStructure {
-                                r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                                representation:
-                                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                                value_size: 64u16,
-                                value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                        record: gen_array_clone(
+                            SpdmMeasurementBlockStructure {
+                                index: 100u8,
+                                measurement_specification: SpdmMeasurementSpecification::DMTF,
+                                measurement_size: 67u16,
+                                measurement: SpdmDmtfMeasurementStructure {
+                                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                                    representation:
+                                        SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                                    value_size: 64u16,
+                                    value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                                },
                             },
-                        }; MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+                            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
+                        ),
                     },
                     nonce: SpdmNonceStruct {
                         data: [100u8; SPDM_NONCE_SIZE],
@@ -1053,7 +1067,7 @@ mod tests {
                 },
                 verify_data: SpdmDigestStruct {
                     data_size: 64,
-                    data: [0x5au8; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([0x5au8; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -1094,7 +1108,7 @@ mod tests {
             payload: SpdmMessagePayload::SpdmFinishResponse(SpdmFinishResponsePayload {
                 verify_data: SpdmDigestStruct {
                     data_size: 64,
-                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -1177,7 +1191,7 @@ mod tests {
                 rsp_session_id: 0xaa55u16,
                 measurement_summary_hash: SpdmDigestStruct {
                     data_size: 64,
-                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
                 },
                 psk_context: SpdmPskContextStruct {
                     data_size: 64,
@@ -1189,7 +1203,7 @@ mod tests {
                 },
                 verify_data: SpdmDigestStruct {
                     data_size: 64,
-                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -1231,7 +1245,7 @@ mod tests {
             payload: SpdmMessagePayload::SpdmPskFinishRequest(SpdmPskFinishRequestPayload {
                 verify_data: SpdmDigestStruct {
                     data_size: 64,
-                    data: [100u8; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -1513,10 +1527,13 @@ mod tests {
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
                 slot_mask: 0b11111111,
                 slot_count: 8,
-                digests: [SpdmDigestStruct {
-                    data_size: 64,
-                    data: [100u8; SPDM_MAX_HASH_SIZE],
-                }; SPDM_MAX_SLOT_NUMBER],
+                digests: gen_array_clone(
+                    SpdmDigestStruct {
+                        data_size: 64,
+                        data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+                    },
+                    SPDM_MAX_SLOT_NUMBER,
+                ),
             }),
         };
         let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);

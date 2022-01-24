@@ -17,7 +17,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmKeyUpdateRequestPayload {
     pub key_update_operation: SpdmKeyUpdateOperation,
     pub tag: u8,
@@ -43,7 +43,7 @@ impl SpdmCodec for SpdmKeyUpdateRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmKeyUpdateResponsePayload {
     pub key_update_operation: SpdmKeyUpdateOperation,
     pub tag: u8,

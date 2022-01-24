@@ -37,7 +37,7 @@ impl Codec for SpdmRequestCapabilityFlags {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmGetCapabilitiesRequestPayload {
     pub ct_exponent: u8,
     pub flags: SpdmRequestCapabilityFlags,
@@ -107,7 +107,7 @@ impl Codec for SpdmResponseCapabilityFlags {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmCapabilitiesResponsePayload {
     pub ct_exponent: u8,
     pub flags: SpdmResponseCapabilityFlags,

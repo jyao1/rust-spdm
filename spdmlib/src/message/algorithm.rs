@@ -4,12 +4,13 @@
 
 pub use crate::common;
 pub use crate::common::algo::*;
+use crate::common::gen_array_clone;
 pub use crate::common::spdm_codec::*;
 use crate::config;
 
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmNegotiateAlgorithmsRequestPayload {
     pub measurement_specification: SpdmMeasurementSpecification,
     pub base_asym_algo: SpdmBaseAsymAlgo,
@@ -79,7 +80,8 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
 
         u16::read(r)?; // reserved3
 
-        let mut alg_struct = [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT];
+        let mut alg_struct =
+            gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
         for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
             *algo = SpdmAlgStruct::read(r)?;
         }
@@ -106,7 +108,7 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmAlgorithmsResponsePayload {
     pub measurement_specification_sel: SpdmMeasurementSpecification,
     pub measurement_hash_algo: SpdmMeasurementHashAlgo,
@@ -180,7 +182,8 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 
         u16::read(r)?; // reserved3
 
-        let mut alg_struct = [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT];
+        let mut alg_struct =
+            gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
         for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
             *algo = SpdmAlgStruct::read(r)?;
         }
@@ -219,12 +222,15 @@ mod tests {
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 4,
-            alg_struct: [SpdmAlgStruct {
-                alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                alg_fixed_count: 2,
-                alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                alg_ext_count: 0,
-            }; config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                    alg_ext_count: 0,
+                },
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -271,7 +277,10 @@ mod tests {
             base_asym_algo: SpdmBaseAsymAlgo::empty(),
             base_hash_algo: SpdmBaseHashAlgo::empty(),
             alg_struct_count: 0,
-            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct::default(),
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -300,7 +309,10 @@ mod tests {
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 0,
-            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct::default(),
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -326,12 +338,15 @@ mod tests {
             base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 4,
-            alg_struct: [SpdmAlgStruct {
-                alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                alg_fixed_count: 2,
-                alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
-                alg_ext_count: 0,
-            }; config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                    alg_ext_count: 0,
+                },
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -384,7 +399,10 @@ mod tests {
             base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 0,
-            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct::default(),
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -411,7 +429,10 @@ mod tests {
             base_asym_sel: SpdmBaseAsymAlgo::empty(),
             base_hash_sel: SpdmBaseHashAlgo::empty(),
             alg_struct_count: 0,
-            alg_struct: [SpdmAlgStruct::default(); config::MAX_SPDM_ALG_STRUCT_COUNT],
+            alg_struct: gen_array_clone(
+                SpdmAlgStruct::default(),
+                config::MAX_SPDM_ALG_STRUCT_COUNT,
+            ),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

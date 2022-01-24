@@ -6,6 +6,8 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
+extern crate alloc;
+use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_challenge(&mut self, bytes: &[u8]) {
@@ -54,7 +56,7 @@ impl<'a> ResponderContext<'a> {
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         let _ = crypto::rand::get_random(&mut nonce);
 
-        let my_cert_chain = self.common.provision_info.my_cert_chain.unwrap();
+        let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
         let cert_chain_hash = crypto::hash::hash_all(
             self.common.negotiate_info.base_hash_sel,
             my_cert_chain.as_ref(),
@@ -75,7 +77,7 @@ impl<'a> ResponderContext<'a> {
                     nonce: SpdmNonceStruct { data: nonce },
                     measurement_summary_hash: SpdmDigestStruct {
                         data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                        data: [0xaa; SPDM_MAX_HASH_SIZE],
+                        data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,
@@ -125,8 +127,8 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::rand::register(DEFAULT_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::rand::register(DEFAULT_TEST.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,

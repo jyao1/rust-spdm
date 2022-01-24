@@ -93,7 +93,7 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
         .copy_from_slice(leaf_cert.as_ref());
 
     let provision_info = common::SpdmProvisionInfo {
-        my_cert_chain_data: Some(my_cert_chain_data),
+        my_cert_chain_data: Some(my_cert_chain_data.clone()),
         my_cert_chain: None,
         peer_cert_chain_data: Some(my_cert_chain_data),
         peer_cert_chain_root_hash: None,
@@ -136,7 +136,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct PciDoeMessageHeader {
     pub vendor_id: PciDoeVendorId,
     pub data_object_type: PciDoeDataObjectType,
@@ -447,7 +447,7 @@ pub static HMAC_TEST: SpdmHmac = SpdmHmac {
 fn hmac(_base_hash_algo: SpdmBaseHashAlgo, _key: &[u8], _data: &[u8]) -> Option<SpdmDigestStruct> {
     let tag = SpdmDigestStruct {
         data_size: 48,
-        data: [10u8; SPDM_MAX_HASH_SIZE],
+        data: Box::new([10u8; SPDM_MAX_HASH_SIZE]),
     };
     Some(tag)
 }

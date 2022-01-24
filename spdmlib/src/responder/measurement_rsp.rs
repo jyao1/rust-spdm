@@ -34,7 +34,7 @@ impl<'a> ResponderContext<'a> {
 
         let get_measurements =
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(get_measurements) = get_measurements {
+        if let Some(get_measurements) = &get_measurements {
             debug!("!!! get_measurements : {:02x?}\n", get_measurements);
         } else {
             error!("!!! get_measurements : fail !!!\n");
@@ -197,7 +197,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -330,7 +330,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;

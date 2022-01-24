@@ -12,12 +12,12 @@ use crate::common::algo::{
     SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmSignatureStruct,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmHash {
     pub hash_all_cb: fn(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmHmac {
     pub hmac_cb:
         fn(base_hash_algo: SpdmBaseHashAlgo, key: &[u8], data: &[u8]) -> Option<SpdmDigestStruct>,
@@ -50,14 +50,14 @@ type DecryptCb = fn(
     plain_text: &mut [u8],
 ) -> SpdmResult<usize>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmAead {
     pub encrypt_cb: EncryptCb,
 
     pub decrypt_cb: DecryptCb,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmAsymSign {
     pub sign_cb: fn(
         base_hash_algo: SpdmBaseHashAlgo,
@@ -66,7 +66,7 @@ pub struct SpdmAsymSign {
     ) -> Option<SpdmSignatureStruct>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmAsymVerify {
     pub verify_cb: fn(
         base_hash_algo: SpdmBaseHashAlgo,
@@ -77,7 +77,7 @@ pub struct SpdmAsymVerify {
     ) -> SpdmResult,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmHkdf {
     pub hkdf_expand_cb: fn(
         hash_algo: SpdmBaseHashAlgo,
@@ -89,7 +89,7 @@ pub struct SpdmHkdf {
 
 type GetCertFromCertChainCb = fn(cert_chain: &[u8], index: isize) -> SpdmResult<(usize, usize)>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmCertOperation {
     pub get_cert_from_cert_chain_cb: GetCertFromCertChainCb,
 
@@ -99,7 +99,7 @@ pub struct SpdmCertOperation {
 type GenerateKeyPairCb =
     fn(dhe_algo: SpdmDheAlgo) -> Option<(SpdmDheExchangeStruct, Box<dyn SpdmDheKeyExchange>)>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmDhe {
     pub generate_key_pair_cb: GenerateKeyPairCb,
 }
@@ -111,7 +111,7 @@ pub trait SpdmDheKeyExchange {
     ) -> Option<SpdmDheFinalKeyStruct>;
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmCryptoRandom {
     pub get_random_cb: fn(data: &mut [u8]) -> SpdmResult<usize>,
 }
