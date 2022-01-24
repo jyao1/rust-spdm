@@ -6,7 +6,7 @@ use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmHeartbeatRequestPayload {}
 
 impl SpdmCodec for SpdmHeartbeatRequestPayload {
@@ -26,7 +26,7 @@ impl SpdmCodec for SpdmHeartbeatRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmHeartbeatResponsePayload {}
 
 impl SpdmCodec for SpdmHeartbeatResponsePayload {

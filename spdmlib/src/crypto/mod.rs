@@ -44,7 +44,10 @@ pub mod hash {
     }
 
     pub fn hash_all(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
-        (CRYPTO_HASH.try_get_or_init(|| DEFAULT).ok()?.hash_all_cb)(base_hash_algo, data)
+        (CRYPTO_HASH
+            .try_get_or_init(|| DEFAULT.clone())
+            .ok()?
+            .hash_all_cb)(base_hash_algo, data)
     }
 }
 
@@ -79,7 +82,10 @@ pub mod hmac {
         key: &[u8],
         data: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        (CRYPTO_HMAC.try_get_or_init(|| DEFAULT).ok()?.hmac_cb)(base_hash_algo, key, data)
+        (CRYPTO_HMAC
+            .try_get_or_init(|| DEFAULT.clone())
+            .ok()?
+            .hmac_cb)(base_hash_algo, key, data)
     }
 
     pub fn hmac_verify(
@@ -89,7 +95,7 @@ pub mod hmac {
         hmac: &SpdmDigestStruct,
     ) -> SpdmResult {
         (CRYPTO_HMAC
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .hmac_verify_cb)(base_hash_algo, key, data, hmac)
     }
@@ -116,11 +122,10 @@ pub mod asym_sign {
         base_asym_algo: SpdmBaseAsymAlgo,
         data: &[u8],
     ) -> Option<SpdmSignatureStruct> {
-        (CRYPTO_ASYM_SIGN.try_get_or_init(|| DEFAULT).ok()?.sign_cb)(
-            base_hash_algo,
-            base_asym_algo,
-            data,
-        )
+        (CRYPTO_ASYM_SIGN
+            .try_get_or_init(|| DEFAULT.clone())
+            .ok()?
+            .sign_cb)(base_hash_algo, base_asym_algo, data)
     }
 }
 
@@ -155,7 +160,7 @@ pub mod asym_verify {
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         (CRYPTO_ASYM_VERIFY
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .verify_cb)(
             base_hash_algo,
@@ -194,7 +199,7 @@ pub mod dhe {
         dhe_algo: SpdmDheAlgo,
     ) -> Option<(SpdmDheExchangeStruct, Box<dyn SpdmDheKeyExchange>)> {
         (CRYPTO_DHE
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .ok()?
             .generate_key_pair_cb)(dhe_algo)
     }
@@ -222,14 +227,14 @@ pub mod cert_operation {
 
     pub fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usize, usize)> {
         (CRYPTO_CERT_OPERATION
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .get_cert_from_cert_chain_cb)(cert_chain, index)
     }
 
     pub fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
         (CRYPTO_CERT_OPERATION
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .verify_cert_chain_cb)(cert_chain)
     }
@@ -262,9 +267,10 @@ pub mod hkdf {
         info: &[u8],
         out_size: u16,
     ) -> Option<SpdmDigestStruct> {
-        (CRYPTO_HKDF.try_get_or_init(|| DEFAULT).ok()?.hkdf_expand_cb)(
-            hash_algo, pk, info, out_size,
-        )
+        (CRYPTO_HKDF
+            .try_get_or_init(|| DEFAULT.clone())
+            .ok()?
+            .hkdf_expand_cb)(hash_algo, pk, info, out_size)
     }
 }
 
@@ -311,7 +317,7 @@ pub mod aead {
         cipher_text: &mut [u8],
     ) -> SpdmResult<(usize, usize)> {
         (CRYPTO_AEAD
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .encrypt_cb)(aead_algo, key, iv, aad, plain_text, tag, cipher_text)
     }
@@ -326,7 +332,7 @@ pub mod aead {
         plain_text: &mut [u8],
     ) -> SpdmResult<usize> {
         (CRYPTO_AEAD
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .decrypt_cb)(aead_algo, key, iv, aad, cipher_text, tag, plain_text)
     }
@@ -351,7 +357,7 @@ pub mod rand {
 
     pub fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
         (CRYPTO_RAND
-            .try_get_or_init(|| DEFAULT)
+            .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| spdm_err!(EFAULT))?
             .get_random_cb)(data)
     }
@@ -373,32 +379,32 @@ mod tests {
     }
     #[test]
     fn test_case0_hmac_register() {
-        let state = hmac::register(HMAC_TEST);
+        let state = hmac::register(HMAC_TEST.clone());
         assert_eq!(state, true);
     }
     #[test]
     fn test_case0_hash_register() {
-        let state = hash::register(spdm_ring::hash_impl::DEFAULT);
+        let state = hash::register(spdm_ring::hash_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
     #[test]
     fn test_case0_asym_verify_register() {
-        let state = asym_verify::register(spdm_ring::asym_verify_impl::DEFAULT);
+        let state = asym_verify::register(spdm_ring::asym_verify_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
     #[test]
     fn test_case0_dhe_register() {
-        let state = dhe::register(spdm_ring::dhe_impl::DEFAULT);
+        let state = dhe::register(spdm_ring::dhe_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
     #[test]
     fn test_case0_hkdf_register() {
-        let state = hkdf::register(spdm_ring::hkdf_impl::DEFAULT);
+        let state = hkdf::register(spdm_ring::hkdf_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
     #[test]
     fn test_case0_aead_register() {
-        let state = aead::register(spdm_ring::aead_impl::DEFAULT);
+        let state = aead::register(spdm_ring::aead_impl::DEFAULT.clone());
         match state {
             false => {
                 use super::CRYPTO_AEAD;
@@ -412,7 +418,7 @@ mod tests {
     }
     #[test]
     fn test_case0_rand_register() {
-        let state = rand::register(DEFAULT_TEST);
+        let state = rand::register(DEFAULT_TEST.clone());
         assert_eq!(state, true);
     }
 }

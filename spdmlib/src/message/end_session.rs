@@ -25,7 +25,7 @@ impl Codec for SpdmEndSessionRequestAttributes {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SpdmEndSessionRequestPayload {
     pub end_session_request_attributes: SpdmEndSessionRequestAttributes,
 }
@@ -49,7 +49,7 @@ impl SpdmCodec for SpdmEndSessionRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmEndSessionResponsePayload {}
 
 impl SpdmCodec for SpdmEndSessionResponsePayload {

@@ -6,6 +6,11 @@ use crate::config;
 use bytes::BytesMut;
 use codec::{enum_builder, Codec, Reader, Writer};
 use core::convert::From;
+extern crate alloc;
+use alloc::boxed::Box;
+use zeroize::{Zeroize, ZeroizeOnDrop};
+
+use super::gen_array;
 
 pub const SHA256_DIGEST_SIZE: usize = 32;
 pub const SHA384_DIGEST_SIZE: usize = 48;
@@ -57,16 +62,16 @@ pub const SPDM_MAX_DHE_KEY_SIZE: usize = 512;
 pub const SPDM_MAX_AEAD_KEY_SIZE: usize = 32;
 pub const SPDM_MAX_AEAD_IV_SIZE: usize = 12;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmDigestStruct {
     pub data_size: u16,
-    pub data: [u8; SPDM_MAX_HASH_SIZE],
+    pub data: Box<[u8; SPDM_MAX_HASH_SIZE]>,
 }
 impl Default for SpdmDigestStruct {
     fn default() -> SpdmDigestStruct {
         SpdmDigestStruct {
             data_size: 0,
-            data: [0u8; SPDM_MAX_HASH_SIZE],
+            data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
         }
     }
 }
@@ -87,7 +92,7 @@ impl From<&[u8]> for SpdmDigestStruct {
     fn from(value: &[u8]) -> Self {
         assert!(value.len() <= SPDM_MAX_HASH_SIZE);
         let data_size = value.len() as u16;
-        let mut data = [0u8; SPDM_MAX_HASH_SIZE];
+        let mut data = Box::new([0u8; SPDM_MAX_HASH_SIZE]);
         data[0..value.len()].copy_from_slice(value.as_ref());
         Self { data_size, data }
     }
@@ -303,7 +308,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmExtAlgStruct {
     pub registry_id: SpdmStandardId,
     pub reserved: u8,
@@ -555,7 +560,7 @@ impl Codec for SpdmKeyScheduleAlgo {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SpdmUnknownAlgo {}
 impl Codec for SpdmUnknownAlgo {
     fn encode(&self, _bytes: &mut Writer) {}
@@ -576,7 +581,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SpdmAlg {
     SpdmAlgoDhe(SpdmDheAlgo),
     SpdmAlgoAead(SpdmAeadAlgo),
@@ -591,7 +596,7 @@ impl Default for SpdmAlg {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmAlgStruct {
     pub alg_type: SpdmAlgType,
     pub alg_fixed_count: u8,
@@ -672,7 +677,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmNonceStruct {
     pub data: [u8; SPDM_NONCE_SIZE],
 }
@@ -692,7 +697,7 @@ impl Codec for SpdmNonceStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmRandomStruct {
     pub data: [u8; SPDM_RANDOM_SIZE],
 }
@@ -712,7 +717,7 @@ impl Codec for SpdmRandomStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmSignatureStruct {
     pub data_size: u16,
     pub data: [u8; SPDM_MAX_ASYM_KEY_SIZE],
@@ -742,7 +747,7 @@ impl From<BytesMut> for SpdmSignatureStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmHKDFKeyStruct {
     pub data_size: u16,
     pub data: [u8; SPDM_MAX_ASYM_KEY_SIZE],
@@ -772,7 +777,7 @@ impl From<BytesMut> for SpdmHKDFKeyStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmCertChainData {
     pub data_size: u16,
     pub data: [u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -791,7 +796,7 @@ impl AsRef<[u8]> for SpdmCertChainData {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmCertChain {
     pub root_hash: SpdmDigestStruct,
     pub cert_chain: SpdmCertChainData,
@@ -818,7 +823,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmDmtfMeasurementStructure {
     pub r#type: SpdmDmtfMeasurementType,
     pub representation: SpdmDmtfMeasurementRepresentation,
@@ -836,7 +841,7 @@ impl Default for SpdmDmtfMeasurementStructure {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementBlockStructure {
     pub index: u8,
     pub measurement_specification: SpdmMeasurementSpecification,
@@ -844,7 +849,7 @@ pub struct SpdmMeasurementBlockStructure {
     pub measurement: SpdmDmtfMeasurementStructure,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmMeasurementRecordStructure {
     pub number_of_blocks: u8,
     pub record: [SpdmMeasurementBlockStructure; config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
@@ -853,13 +858,12 @@ impl Default for SpdmMeasurementRecordStructure {
     fn default() -> SpdmMeasurementRecordStructure {
         SpdmMeasurementRecordStructure {
             number_of_blocks: 0,
-            record: [SpdmMeasurementBlockStructure::default();
-                config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+            record: gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT),
         }
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmDheExchangeStruct {
     pub data_size: u16,
     pub data: [u8; SPDM_MAX_DHE_KEY_SIZE],
@@ -889,16 +893,16 @@ impl From<BytesMut> for SpdmDheExchangeStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmDheFinalKeyStruct {
     pub data_size: u16,
-    pub data: [u8; SPDM_MAX_DHE_KEY_SIZE],
+    pub data: Box<[u8; SPDM_MAX_DHE_KEY_SIZE]>,
 }
 impl Default for SpdmDheFinalKeyStruct {
     fn default() -> SpdmDheFinalKeyStruct {
         SpdmDheFinalKeyStruct {
             data_size: 0,
-            data: [0u8; SPDM_MAX_DHE_KEY_SIZE],
+            data: Box::new([0u8; SPDM_MAX_DHE_KEY_SIZE]),
         }
     }
 }
@@ -913,13 +917,13 @@ impl From<BytesMut> for SpdmDheFinalKeyStruct {
     fn from(value: BytesMut) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_DHE_KEY_SIZE);
         let data_size = value.as_ref().len() as u16;
-        let mut data = [0u8; SPDM_MAX_DHE_KEY_SIZE];
+        let mut data = Box::new([0u8; SPDM_MAX_DHE_KEY_SIZE]);
         data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
         Self { data_size, data }
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmPskContextStruct {
     pub data_size: u16,
     pub data: [u8; config::MAX_SPDM_PSK_CONTEXT_SIZE],
@@ -939,7 +943,7 @@ impl AsRef<[u8]> for SpdmPskContextStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmPskHintStruct {
     pub data_size: u16,
     pub data: [u8; config::MAX_SPDM_PSK_HINT_SIZE],
@@ -959,16 +963,16 @@ impl AsRef<[u8]> for SpdmPskHintStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmAeadKeyStruct {
     pub data_size: u16,
-    pub data: [u8; SPDM_MAX_AEAD_KEY_SIZE],
+    pub data: Box<[u8; SPDM_MAX_AEAD_KEY_SIZE]>,
 }
 impl Default for SpdmAeadKeyStruct {
     fn default() -> SpdmAeadKeyStruct {
         SpdmAeadKeyStruct {
             data_size: 0,
-            data: [0u8; SPDM_MAX_AEAD_KEY_SIZE],
+            data: Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]),
         }
     }
 }
@@ -983,22 +987,22 @@ impl From<BytesMut> for SpdmAeadKeyStruct {
     fn from(value: BytesMut) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_AEAD_KEY_SIZE);
         let data_size = value.as_ref().len() as u16;
-        let mut data = [0u8; SPDM_MAX_AEAD_KEY_SIZE];
+        let mut data = Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]);
         data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
         Self { data_size, data }
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmAeadIvStruct {
     pub data_size: u16,
-    pub data: [u8; SPDM_MAX_AEAD_IV_SIZE],
+    pub data: Box<[u8; SPDM_MAX_AEAD_IV_SIZE]>,
 }
 impl Default for SpdmAeadIvStruct {
     fn default() -> SpdmAeadIvStruct {
         SpdmAeadIvStruct {
             data_size: 0,
-            data: [0u8; SPDM_MAX_AEAD_IV_SIZE],
+            data: Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]),
         }
     }
 }
@@ -1013,7 +1017,7 @@ impl From<BytesMut> for SpdmAeadIvStruct {
     fn from(value: BytesMut) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_AEAD_IV_SIZE);
         let data_size = value.as_ref().len() as u16;
-        let mut data = [0u8; SPDM_MAX_AEAD_IV_SIZE];
+        let mut data = Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]);
         data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
         Self { data_size, data }
     }
@@ -1298,7 +1302,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmDigestStruct {
             data_size: 64,
-            data: [100u8; SPDM_MAX_HASH_SIZE],
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

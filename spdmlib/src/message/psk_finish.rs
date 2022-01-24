@@ -7,7 +7,7 @@ use crate::common::algo::SpdmDigestStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmPskFinishRequestPayload {
     pub verify_data: SpdmDigestStruct,
 }
@@ -31,7 +31,7 @@ impl SpdmCodec for SpdmPskFinishRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmPskFinishResponsePayload {}
 
 impl SpdmCodec for SpdmPskFinishResponsePayload {
@@ -63,7 +63,7 @@ mod tests {
         let value = SpdmPskFinishRequestPayload {
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: [100u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([100u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 

@@ -154,7 +154,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -213,7 +213,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -226,7 +226,7 @@ mod tests_requester {
             common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        responder.common.session = [SpdmSession::new(); 4];
+        responder.common.session = gen_array_clone(SpdmSession::new(), 4);
         responder.common.session[0].setup(session_id).unwrap();
         responder.common.session[0].set_crypto_param(
             common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -251,7 +251,7 @@ mod tests_requester {
             common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session = gen_array_clone(SpdmSession::new(), 4);
         requester.common.session[0].setup(session_id).unwrap();
         requester.common.session[0].set_crypto_param(
             common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384,

@@ -28,7 +28,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SpdmErrorResponseNoneExtData {}
 
 impl SpdmCodec for SpdmErrorResponseNoneExtData {
@@ -42,7 +42,7 @@ impl SpdmCodec for SpdmErrorResponseNoneExtData {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SpdmErrorResponseNotReadyExtData {
     pub rdt_exponent: u8,
     pub request_code: u8,
@@ -76,7 +76,7 @@ impl SpdmCodec for SpdmErrorResponseNotReadyExtData {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct SpdmErrorResponseVendorExtData {
     pub data_size: u8,
     pub data: [u8; 32],
@@ -113,7 +113,7 @@ impl SpdmCodec for SpdmErrorResponseVendorExtData {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SpdmErrorResponseExtData {
     SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData),
     SpdmErrorExtDataNotReady(SpdmErrorResponseNotReadyExtData),
@@ -125,7 +125,7 @@ impl Default for SpdmErrorResponseExtData {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmErrorResponsePayload {
     pub error_code: SpdmErrorCode,
     pub error_data: u8,

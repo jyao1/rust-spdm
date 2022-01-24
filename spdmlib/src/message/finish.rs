@@ -27,7 +27,7 @@ impl Codec for SpdmFinishRequestAttributes {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmFinishRequestPayload {
     pub finish_request_attributes: SpdmFinishRequestAttributes,
     pub req_slot_id: u8,
@@ -69,7 +69,7 @@ impl SpdmCodec for SpdmFinishRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmFinishResponsePayload {
     pub verify_data: SpdmDigestStruct,
 }
@@ -134,7 +134,7 @@ mod tests {
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: [0x5au8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x5au8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 
@@ -176,7 +176,7 @@ mod tests {
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: [0x5au8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([0x5au8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 
@@ -208,7 +208,7 @@ mod tests {
         let value = SpdmFinishResponsePayload {
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: [100u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([100u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 
@@ -239,7 +239,7 @@ mod tests {
         let value = SpdmFinishResponsePayload {
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: [100u8; common::algo::SPDM_MAX_HASH_SIZE],
+                data: Box::new([100u8; common::algo::SPDM_MAX_HASH_SIZE]),
             },
         };
 

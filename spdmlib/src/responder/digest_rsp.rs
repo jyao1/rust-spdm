@@ -5,6 +5,9 @@
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
+extern crate alloc;
+use crate::common::gen_array_clone;
+use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_digest(&mut self, bytes: &[u8]) {
@@ -49,15 +52,18 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
                 slot_mask: 0x1,
                 slot_count: 1u8,
-                digests: [SpdmDigestStruct {
-                    data_size: digest_size as u16,
-                    data: [0xffu8; SPDM_MAX_HASH_SIZE],
-                }; SPDM_MAX_SLOT_NUMBER],
+                digests: gen_array_clone(
+                    SpdmDigestStruct {
+                        data_size: digest_size as u16,
+                        data: Box::new([0xffu8; SPDM_MAX_HASH_SIZE]),
+                    },
+                    SPDM_MAX_SLOT_NUMBER,
+                ),
             }),
         };
         response.spdm_encode(&mut self.common, writer);
 
-        let my_cert_chain = self.common.provision_info.my_cert_chain.unwrap();
+        let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
         let cert_chain_hash = crypto::hash::hash_all(
             self.common.negotiate_info.base_hash_sel,
             my_cert_chain.as_ref(),
@@ -91,7 +97,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,

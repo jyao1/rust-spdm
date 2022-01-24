@@ -5,8 +5,9 @@
 use crate::common::error::SpdmResult;
 use crate::message::*;
 use crate::requester::*;
-
+extern crate alloc;
 use crate::common::ManagedBuffer;
+use alloc::boxed::Box;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_finish(&mut self, session_id: u32) -> SpdmResult {
@@ -35,7 +36,7 @@ impl<'a> RequesterContext<'a> {
             payload: SpdmMessagePayload::SpdmPskFinishRequest(SpdmPskFinishRequestPayload {
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: [0xcc; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([0xcc; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -101,7 +102,7 @@ impl<'a> RequesterContext<'a> {
                         let th2 = self.common.calc_req_transcript_hash(
                             true,
                             message_k,
-                            Some(&message_f),
+                            Some(&session.runtime_info.message_f),
                         )?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let session = self.common.get_session_via_id(session_id).unwrap();
@@ -148,8 +149,8 @@ mod tests_requester {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::hmac::register(HMAC_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::hmac::register(HMAC_TEST.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -165,7 +166,7 @@ mod tests_requester {
 
         // let rsp_session_id = 0x11u16;
         // let session_id = (0x11u32 << 16) + rsp_session_id as u32;
-        responder.common.session = [SpdmSession::new(); 4];
+        responder.common.session = gen_array_clone(SpdmSession::new(), 4);
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -193,7 +194,7 @@ mod tests_requester {
 
         // let rsp_session_id = 0x11u16;
         // let session_id = (0x11u32 << 16) + rsp_session_id as u32;
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session = gen_array_clone(SpdmSession::new(), 4);
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,

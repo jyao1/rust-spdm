@@ -37,7 +37,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmGetMeasurementsRequestPayload {
     pub measurement_attributes: SpdmMeasurementeAttributes,
     pub measurement_operation: SpdmMeasurementOperation,
@@ -86,7 +86,7 @@ impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementsResponsePayload {
     pub number_of_measurement: u8,
     pub slot_id: u8,
@@ -243,7 +243,8 @@ mod tests {
             slot_id: 100u8,
             measurement_record: SpdmMeasurementRecordStructure {
                 number_of_blocks: 5,
-                record: [common::algo::SpdmMeasurementBlockStructure {
+                record: gen_array_clone(
+                    common::algo::SpdmMeasurementBlockStructure {
                     index: 100u8,
                     measurement_specification: common::algo::SpdmMeasurementSpecification::DMTF,
                     measurement_size: 67u16,
@@ -254,7 +255,7 @@ mod tests {
                         value_size: 64u16,
                         value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
                     },
-                }; MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+                },MAX_SPDM_MEASUREMENT_BLOCK_COUNT),
             },
             nonce: SpdmNonceStruct {
                 data: [100u8; common::algo::SPDM_NONCE_SIZE],

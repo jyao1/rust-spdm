@@ -8,6 +8,8 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
+extern crate alloc;
+use alloc::boxed::Box;
 
 use crate::common::ManagedBuffer;
 
@@ -25,7 +27,7 @@ impl<'a> ResponderContext<'a> {
 
         let psk_exchange_req =
             SpdmPskExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(psk_exchange_req) = psk_exchange_req {
+        if let Some(psk_exchange_req) = &psk_exchange_req {
             debug!("!!! psk_exchange req : {:02x?}\n", psk_exchange_req);
 
             if (psk_exchange_req.measurement_summary_hash_type
@@ -71,7 +73,7 @@ impl<'a> ResponderContext<'a> {
                 rsp_session_id,
                 measurement_summary_hash: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: [0xaa; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
                 },
                 psk_context: SpdmPskContextStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
@@ -80,7 +82,7 @@ impl<'a> ResponderContext<'a> {
                 opaque,
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: [0xcc; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([0xcc; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -134,12 +136,12 @@ impl<'a> ResponderContext<'a> {
         session.set_use_psk(true);
         let mut psk_key = SpdmDheFinalKeyStruct {
             data_size: b"TestPskData\0".len() as u16,
-            ..Default::default()
+            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
         };
         psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
-        session.set_dhe_secret(&psk_key); // TBD
+        session.set_dhe_secret(psk_key); // transfer the ownership out
         session.generate_handshake_secret(&th1).unwrap();
 
         // generate HMAC with finished_key
@@ -189,7 +191,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,

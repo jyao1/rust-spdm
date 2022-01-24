@@ -9,6 +9,8 @@ use crate::common::error::SpdmResult;
 use crate::crypto;
 use crate::message::*;
 use crate::requester::*;
+extern crate alloc;
+use alloc::boxed::Box;
 
 use crate::common::ManagedBuffer;
 
@@ -137,7 +139,7 @@ impl<'a> RequesterContext<'a> {
                         session.set_use_psk(true);
                         let mut psk_key = SpdmDheFinalKeyStruct {
                             data_size: b"TestPskData\0".len() as u16,
-                            ..Default::default()
+                            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
                         };
                         psk_key.data[0..(psk_key.data_size as usize)]
                             .copy_from_slice(b"TestPskData\0");
@@ -148,7 +150,7 @@ impl<'a> RequesterContext<'a> {
                             key_schedule_algo,
                         );
                         session.set_transport_param(sequence_number_count, max_random_count);
-                        session.set_dhe_secret(&psk_key); // TBD
+                        session.set_dhe_secret(psk_key); // transfer the ownership out
                         session.generate_handshake_secret(&th1).unwrap();
 
                         // verify HMAC with finished_key
@@ -209,7 +211,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

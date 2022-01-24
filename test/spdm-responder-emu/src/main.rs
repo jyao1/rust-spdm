@@ -82,7 +82,7 @@ fn new_logger_from_env() -> SimpleLogger {
 fn main() {
     new_logger_from_env().init().unwrap();
 
-    register(SECRET_IMPL_INSTANCE);
+    register(SECRET_IMPL_INSTANCE.clone());
 
     let listener = TcpListener::bind("127.0.0.1:2323").expect("Couldn't bind to the server");
     println!("server start!");
@@ -215,15 +215,13 @@ fn handle_message(
         peer_cert_chain_root_hash: None,
     };
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
     let mut context = responder::ResponderContext::new(
         &mut socket_io_transport,
         transport_encap,
         config_info,
         provision_info,
     );
-
     loop {
         // if failed, receieved message can't be processed. then the message will need caller to deal.
         // now caller need to deal with message in context.

@@ -46,18 +46,20 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
+
     #[test]
     fn test_case0_handle_spdm_end_session() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
@@ -84,7 +86,7 @@ mod tests_responder {
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(session_id).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,

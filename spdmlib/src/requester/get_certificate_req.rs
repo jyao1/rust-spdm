@@ -125,7 +125,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn verify_spdm_certificate_chain(&mut self) -> SpdmResult {
         // verify
-        if let Some(peer_cert_chain_data) = self.common.provision_info.peer_cert_chain_data {
+        if let Some(peer_cert_chain_data) = &self.common.provision_info.peer_cert_chain_data {
             //
             // TBD: Verify cert chain
             //
@@ -212,7 +212,7 @@ mod tests_requester {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

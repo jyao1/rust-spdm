@@ -185,7 +185,7 @@ impl<'a> RequesterContext<'a> {
                             key_schedule_algo,
                         );
                         session.set_transport_param(sequence_number_count, max_random_count);
-                        session.set_dhe_secret(&final_key);
+                        session.set_dhe_secret(final_key);
                         session.generate_handshake_secret(&th1).unwrap();
 
                         // verify HMAC with finished_key
@@ -246,7 +246,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

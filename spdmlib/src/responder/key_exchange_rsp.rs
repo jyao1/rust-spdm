@@ -7,9 +7,10 @@ use crate::responder::*;
 use crate::common::ManagedBuffer;
 
 use crate::crypto;
-
+extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::message::*;
+use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) {
@@ -25,7 +26,7 @@ impl<'a> ResponderContext<'a> {
 
         let key_exchange_req =
             SpdmKeyExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(key_exchange_req) = key_exchange_req {
+        if let Some(key_exchange_req) = &key_exchange_req {
             debug!("!!! key_exchange req : {:02x?}\n", key_exchange_req);
 
             if (key_exchange_req.measurement_summary_hash_type
@@ -52,10 +53,11 @@ impl<'a> ResponderContext<'a> {
 
         debug!(
             "!!! exchange data (peer) : {:02x?}\n",
-            &key_exchange_req.unwrap().exchange
+            &key_exchange_req.as_ref().unwrap().exchange
         );
 
-        let final_key = key_exchange_context.compute_final_key(&key_exchange_req.unwrap().exchange);
+        let final_key =
+            key_exchange_context.compute_final_key(&key_exchange_req.as_ref().unwrap().exchange);
 
         if final_key.is_none() {
             return;
@@ -88,7 +90,7 @@ impl<'a> ResponderContext<'a> {
                 exchange,
                 measurement_summary_hash: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: [0xaa; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
                 },
                 opaque,
                 signature: SpdmSignatureStruct {
@@ -97,7 +99,7 @@ impl<'a> ResponderContext<'a> {
                 },
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: [0xcc; SPDM_MAX_HASH_SIZE],
+                    data: Box::new([0xcc; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
@@ -166,7 +168,7 @@ impl<'a> ResponderContext<'a> {
         session.set_use_psk(false);
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
-        session.set_dhe_secret(&final_key);
+        session.set_dhe_secret(final_key);
         session.generate_handshake_secret(&th1).unwrap();
 
         // generate HMAC with finished_key
@@ -218,8 +220,8 @@ mod tests_responder {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::hmac::register(HMAC_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::hmac::register(HMAC_TEST.clone());
 
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);

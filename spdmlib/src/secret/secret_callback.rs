@@ -59,7 +59,7 @@ type SpdmPskMasterSecretHkdfExpandCbType = fn(
     info_size: Option<usize>,
 ) -> Option<SpdmHKDFKeyStruct>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SpdmSecret {
     pub spdm_measurement_collection_cb: SpdmMeasurementCollectionCbType,
 

@@ -35,7 +35,8 @@ impl<'a> ResponderContext<'a> {
         SpdmMessageHeader::read(&mut reader);
 
         let psk_finish_req = SpdmPskFinishRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(psk_finish_req) = psk_finish_req {
+
+        if let Some(psk_finish_req) = &psk_finish_req {
             debug!("!!! psk_finish req : {:02x?}\n", psk_finish_req);
         } else {
             error!("!!! psk_finish req : fail !!!\n");
@@ -55,17 +56,20 @@ impl<'a> ResponderContext<'a> {
         }
 
         let session = self.common.get_session_via_id(session_id).unwrap();
-        let message_k = session.runtime_info.message_k;
+        let message_k = &session.runtime_info.message_k.clone();
 
         let transcript_data =
             self.common
-                .calc_rsp_transcript_data(true, &message_k, Some(&message_f));
+                .calc_rsp_transcript_data(true, message_k, Some(&message_f));
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return false;
         }
         let transcript_data = transcript_data.unwrap();
-        let session = self.common.get_session_via_id(session_id).unwrap();
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
         if session
             .verify_hmac_with_request_finished_key(
                 transcript_data.as_ref(),
@@ -102,12 +106,12 @@ impl<'a> ResponderContext<'a> {
             panic!("message_f add the message error");
         }
         let session = self.common.get_session_via_id(session_id).unwrap();
-        session.runtime_info.message_f = message_f;
+        session.runtime_info.message_f = message_f.clone();
 
         // generate the data secret
         let th2 = self
             .common
-            .calc_rsp_transcript_hash(true, &message_k, Some(&message_f));
+            .calc_rsp_transcript_hash(true, message_k, Some(&message_f));
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             let session = self.common.get_session_via_id(session_id).unwrap();
@@ -126,6 +130,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
@@ -139,8 +144,8 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        crypto::hmac::register(HMAC_TEST);
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crypto::hmac::register(HMAC_TEST.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
@@ -151,7 +156,7 @@ mod tests_responder {
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session = gen_array_clone(SpdmSession::new(), 4);
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -175,7 +180,7 @@ mod tests_responder {
         let value = SpdmPskFinishRequestPayload {
             verify_data: SpdmDigestStruct {
                 data_size: 48,
-                data: [100u8; SPDM_MAX_HASH_SIZE],
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
         value.spdm_encode(&mut context.common, &mut writer);

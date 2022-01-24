@@ -7,7 +7,7 @@ use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
 use codec::{Codec, Reader, Writer};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmGetCertificateRequestPayload {
     pub slot_id: u8,
     pub offset: u16,
@@ -39,7 +39,7 @@ impl SpdmCodec for SpdmGetCertificateRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmCertificateResponsePayload {
     pub slot_id: u8,
     pub portion_length: u16,

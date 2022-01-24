@@ -40,7 +40,7 @@ impl RegistryOrStandardsBodyID {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct VendorIDStruct {
     pub len: u8,
     pub vendor_id: [u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
@@ -69,7 +69,7 @@ impl Codec for VendorIDStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ReqPayloadStruct {
     pub req_length: u16,
     pub vendor_defined_req_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
@@ -102,7 +102,7 @@ impl Codec for ReqPayloadStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct ResPayloadStruct {
     pub res_length: u16,
     pub vendor_defined_res_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
@@ -136,7 +136,7 @@ impl Codec for ResPayloadStruct {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmVendorDefinedRequestPayload {
     pub standard_id: RegistryOrStandardsBodyID,
     pub vendor_id: VendorIDStruct,
@@ -170,7 +170,7 @@ impl SpdmCodec for SpdmVendorDefinedRequestPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct SpdmVendorDefinedResponsePayload {
     pub standard_id: RegistryOrStandardsBodyID,
     pub vendor_id: VendorIDStruct,
