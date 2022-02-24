@@ -37,6 +37,7 @@ impl<'a> RequesterContext<'a> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer)?;
         self.handle_spdm_key_exhcange_response(
+            0,
             &send_buffer[..send_used],
             &receive_buffer[..receive_used],
             measurement_summary_hash_type,
@@ -88,6 +89,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_key_exhcange_response(
         &mut self,
+        session_id: u32,
         send_buffer: &[u8],
         receive_buffer: &[u8],
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
@@ -222,6 +224,28 @@ impl<'a> RequesterContext<'a> {
                     } else {
                         error!("!!! key_exchange : fail !!!\n");
                         spdm_result_err!(EFAULT)
+                    }
+                }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestKeyExchange,
+                        SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_key_exhcange_response(
+                                session_id,
+                                send_buffer,
+                                &receive_buffer[..used],
+                                measurement_summary_hash_type,
+                                key_exchange_context,
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
                     }
                 }
                 _ => spdm_result_err!(EINVAL),

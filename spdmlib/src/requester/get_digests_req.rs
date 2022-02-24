@@ -15,7 +15,7 @@ impl<'a> RequesterContext<'a> {
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.receive_message(&mut receive_buffer)?;
-        self.handle_spdm_digest_response(&send_buffer[..send_used], &receive_buffer[..used])
+        self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }
 
     pub fn encode_spdm_digest(&mut self, buf: &mut [u8]) -> usize {
@@ -33,6 +33,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_digest_response(
         &mut self,
+        session_id: u32,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult {
@@ -56,6 +57,26 @@ impl<'a> RequesterContext<'a> {
                     } else {
                         error!("!!! digests : fail !!!\n");
                         spdm_result_err!(EFAULT)
+                    }
+                }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestGetDigests,
+                        SpdmRequestResponseCode::SpdmResponseDigests,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_digest_response(
+                                session_id,
+                                send_buffer,
+                                &receive_buffer[..used],
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
                     }
                 }
                 _ => spdm_result_err!(EINVAL),

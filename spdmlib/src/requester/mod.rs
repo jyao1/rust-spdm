@@ -12,12 +12,14 @@ mod get_certificate_req;
 mod get_digests_req;
 mod get_measurements_req;
 mod get_version_req;
+mod handle_error_response_req;
 mod heartbeat_req;
 mod key_exchange_req;
 mod key_update_req;
 mod negotiate_algorithms_req;
 mod psk_exchange_req;
 mod psk_finish_req;
+mod respond_if_ready_req;
 mod vendor_req;
 
 pub use context::RequesterContext;

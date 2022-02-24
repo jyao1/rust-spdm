@@ -23,6 +23,7 @@ impl<'a> RequesterContext<'a> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.receive_message(&mut receive_buffer)?;
         self.handle_spdm_certificate_partial_response(
+            0,
             offset,
             &send_buffer[..send_used],
             &receive_buffer[..used],
@@ -56,6 +57,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_certificate_partial_response(
         &mut self,
+        session_id: u32,
         offset: u16,
         send_buffer: &[u8],
         receive_buffer: &[u8],
@@ -96,6 +98,27 @@ impl<'a> RequesterContext<'a> {
                     } else {
                         error!("!!! certificate : fail !!!\n");
                         spdm_result_err!(EFAULT)
+                    }
+                }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestGetCertificate,
+                        SpdmRequestResponseCode::SpdmResponseCertificate,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_certificate_partial_response(
+                                session_id,
+                                offset,
+                                send_buffer,
+                                &receive_buffer[..used],
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
                     }
                 }
                 _ => spdm_result_err!(EINVAL),
