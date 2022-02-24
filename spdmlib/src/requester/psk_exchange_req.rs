@@ -33,6 +33,7 @@ impl<'a> RequesterContext<'a> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer)?;
         self.handle_spdm_psk_exchange_response(
+            0,
             measurement_summary_hash_type,
             &send_buffer[..send_used],
             &receive_buffer[..receive_used],
@@ -79,6 +80,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_psk_exchange_response(
         &mut self,
+        session_id: u32,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
         send_buffer: &[u8],
         receive_buffer: &[u8],
@@ -187,6 +189,27 @@ impl<'a> RequesterContext<'a> {
                     } else {
                         error!("!!! psk_exchange : fail !!!\n");
                         spdm_result_err!(EFAULT)
+                    }
+                }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestPskExchange,
+                        SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_psk_exchange_response(
+                                session_id,
+                                measurement_summary_hash_type,
+                                send_buffer,
+                                &receive_buffer[..used],
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
                     }
                 }
                 _ => spdm_result_err!(EINVAL),

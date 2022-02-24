@@ -16,7 +16,7 @@ impl<'a> RequesterContext<'a> {
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
-        self.handle_spdm_heartbeat_response(&receive_buffer[..used])
+        self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
     }
 
     pub fn encode_spdm_heartbeat(&mut self, buf: &mut [u8]) -> usize {
@@ -32,7 +32,11 @@ impl<'a> RequesterContext<'a> {
         writer.used()
     }
 
-    pub fn handle_spdm_heartbeat_response(&mut self, receive_buffer: &[u8]) -> SpdmResult {
+    pub fn handle_spdm_heartbeat_response(
+        &mut self,
+        session_id: u32,
+        receive_buffer: &[u8],
+    ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
@@ -45,6 +49,22 @@ impl<'a> RequesterContext<'a> {
                     } else {
                         error!("!!! heartbeat : fail !!!\n");
                         spdm_result_err!(EFAULT)
+                    }
+                }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestHeartbeat,
+                        SpdmRequestResponseCode::SpdmResponseHeartbeatAck,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
+                        }
+                        _ => spdm_result_err!(EINVAL),
                     }
                 }
                 _ => spdm_result_err!(EINVAL),

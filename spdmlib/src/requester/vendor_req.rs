@@ -36,8 +36,17 @@ impl<'a> RequesterContext<'a> {
 
         //receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let _receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;
-        let mut reader = Reader::init(&receive_buffer);
+        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+
+        self.handle_spdm_vendor_defined_respond(session_id, &receive_buffer[..receive_used])
+    }
+
+    pub fn handle_spdm_vendor_defined_respond(
+        &mut self,
+        session_id: u32,
+        receive_buffer: &[u8],
+    ) -> SpdmResult<ResPayloadStruct> {
+        let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => {
@@ -49,6 +58,25 @@ impl<'a> RequesterContext<'a> {
                             res_payload,
                         }) => Ok(res_payload),
                         None => spdm_result_err!(EFAULT),
+                    }
+                }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
+                        SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_vendor_defined_respond(
+                                session_id,
+                                &receive_buffer[..used],
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
                     }
                 }
                 _ => spdm_result_err!(EINVAL),

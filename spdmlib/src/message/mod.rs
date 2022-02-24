@@ -24,6 +24,7 @@ pub mod key_exchange;
 pub mod key_update;
 pub mod psk_exchange;
 pub mod psk_finish;
+pub mod respond_if_ready;
 
 pub use algorithm::*;
 pub use capability::*;
@@ -41,6 +42,7 @@ pub use psk_exchange::*;
 pub use psk_finish::*;
 pub use version::*;
 // Add new SPDM command here.
+pub use respond_if_ready::*;
 pub use vendor::*;
 
 enum_builder! {
@@ -86,7 +88,7 @@ enum_builder! {
         SpdmRequestGetCapabilities => 0xE1,
         SpdmRequestNegotiateAlgorithms => 0xE3,
         SpdmRequestVendorDefinedRequest => 0xFE,
-//        SpdmRequestResponseIfReady => 0xFF,
+        SpdmRequestResponseIfReady => 0xFF,
         // 1.1 request
         SpdmRequestKeyExchange => 0xE4,
         SpdmRequestFinish => 0xE5,
@@ -122,6 +124,43 @@ impl Codec for SpdmMessageHeader {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct SpdmMessageGeneralPayload {
+    pub param1: u8,
+    pub param2: u8,
+    //pub payload: [u8],
+}
+
+impl Codec for SpdmMessageGeneralPayload {
+    fn encode(&self, bytes: &mut Writer) {
+        self.param1.encode(bytes);
+        self.param2.encode(bytes);
+    }
+
+    fn read(r: &mut Reader) -> Option<SpdmMessageGeneralPayload> {
+        let param1 = u8::read(r)?;
+        let param2 = u8::read(r)?;
+        Some(SpdmMessageGeneralPayload { param1, param2 })
+    }
+}
+
+impl SpdmCodec for SpdmMessageGeneralPayload {
+    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+        0u8.encode(bytes); // param1
+        0u8.encode(bytes); // param2
+    }
+
+    fn spdm_read(
+        _context: &mut common::SpdmContext,
+        r: &mut Reader,
+    ) -> Option<SpdmMessageGeneralPayload> {
+        let param1 = u8::read(r)?; // param1
+        let param2 = u8::read(r)?; // param2
+
+        Some(SpdmMessageGeneralPayload { param1, param2 })
+    }
+}
+
 #[derive(Debug)]
 pub struct SpdmMessage {
     pub header: SpdmMessageHeader,
@@ -135,6 +174,8 @@ pub struct SpdmMessage {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum SpdmMessagePayload {
+    SpdmMessageGeneral(SpdmMessageGeneralPayload),
+
     SpdmGetVersionRequest(SpdmGetVersionRequestPayload),
     SpdmVersionResponse(SpdmVersionResponsePayload),
 
@@ -363,6 +404,9 @@ impl SpdmCodec for SpdmMessage {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         self.header.encode(bytes);
         match &self.payload {
+            SpdmMessagePayload::SpdmMessageGeneral(payload) => {
+                payload.spdm_encode(context, bytes);
+            }
             SpdmMessagePayload::SpdmGetVersionRequest(payload) => {
                 payload.spdm_encode(context, bytes);
             }
@@ -1360,7 +1404,7 @@ mod tests {
                         rdt_exponent: 100,
                         request_code: 100,
                         token: 100,
-                        tdtm: 100,
+                        rdtm: 100,
                     },
                 ),
             }),
@@ -1381,7 +1425,7 @@ mod tests {
                 assert_eq!(extended_data.rdt_exponent, 100);
                 assert_eq!(extended_data.request_code, 100);
                 assert_eq!(extended_data.token, 100);
-                assert_eq!(extended_data.tdtm, 100);
+                assert_eq!(extended_data.rdtm, 100);
             }
         }
     }

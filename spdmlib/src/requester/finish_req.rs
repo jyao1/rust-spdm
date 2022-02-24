@@ -179,6 +179,27 @@ impl<'a> RequesterContext<'a> {
                         spdm_result_err!(EFAULT)
                     }
                 }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let erm = self.spdm_handle_error_response_main(
+                        session_id,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestFinish,
+                        SpdmRequestResponseCode::SpdmResponseFinishRsp,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_finish_response(
+                                session_id,
+                                base_hash_size,
+                                message_f,
+                                &receive_buffer[..used],
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
+                    }
+                }
                 _ => spdm_result_err!(EINVAL),
             },
             None => spdm_result_err!(EIO),

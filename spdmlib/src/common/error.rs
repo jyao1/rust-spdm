@@ -4,7 +4,9 @@
 
 use core::fmt::{Debug, Formatter, Result};
 
-/// POSIX errno
+/// POSIX errno + custom errno(bigger than 0xFFFF)
+/// https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/errno.h
+/// https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/errno-base.h
 #[repr(u32)]
 #[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq)]
@@ -22,6 +24,8 @@ pub enum SpdmErrorNum {
     EINVAL = 22,
     ERANGE = 34,
     ENOSYS = 38,
+    ESEC = 0xFFFF + 1, //Security violation was observed
+    EDEV = 0xFFFF + 2, //Device error
 }
 
 pub struct SpdmError {
@@ -51,6 +55,8 @@ impl SpdmErrorNum {
             EINVAL => "Invalid argument",
             ERANGE => "Math result not representable",
             ENOSYS => "Function not implemented",
+            ESEC => "Security violation",
+            EDEV => "Device error",
         }
     }
 }

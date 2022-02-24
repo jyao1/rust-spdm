@@ -173,6 +173,34 @@ impl<'a> RequesterContext<'a> {
                         spdm_result_err!(EFAULT)
                     }
                 }
+                SpdmRequestResponseCode::SpdmResponseError => {
+                    let sid: u32;
+                    if let Some(sid_) = session_id {
+                        sid = sid_;
+                    } else {
+                        sid = 0;
+                    }
+                    let erm = self.spdm_handle_error_response_main(
+                        sid,
+                        receive_buffer,
+                        SpdmRequestResponseCode::SpdmRequestGetDigests,
+                        SpdmRequestResponseCode::SpdmResponseDigests,
+                    );
+                    match erm {
+                        Ok(rm) => {
+                            let receive_buffer = rm.receive_buffer;
+                            let used = rm.used;
+                            self.handle_spdm_measurement_record_response(
+                                session_id,
+                                measurement_attributes,
+                                measurement_operation,
+                                send_buffer,
+                                &receive_buffer[..used],
+                            )
+                        }
+                        _ => spdm_result_err!(EINVAL),
+                    }
+                }
                 _ => spdm_result_err!(EINVAL),
             },
             None => spdm_result_err!(EIO),

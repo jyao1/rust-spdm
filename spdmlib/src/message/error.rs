@@ -47,7 +47,29 @@ pub struct SpdmErrorResponseNotReadyExtData {
     pub rdt_exponent: u8,
     pub request_code: u8,
     pub token: u8,
-    pub tdtm: u8,
+    pub rdtm: u8,
+}
+
+impl Codec for SpdmErrorResponseNotReadyExtData {
+    fn encode(&self, bytes: &mut Writer) {
+        self.rdt_exponent.encode(bytes);
+        self.request_code.encode(bytes);
+        self.token.encode(bytes);
+        self.rdtm.encode(bytes);
+    }
+
+    fn read(r: &mut Reader) -> Option<SpdmErrorResponseNotReadyExtData> {
+        let rdt_exponent = u8::read(r)?;
+        let request_code = u8::read(r)?;
+        let token = u8::read(r)?;
+        let rdtm = u8::read(r)?;
+        Some(SpdmErrorResponseNotReadyExtData {
+            rdt_exponent,
+            request_code,
+            token,
+            rdtm,
+        })
+    }
 }
 
 impl SpdmCodec for SpdmErrorResponseNotReadyExtData {
@@ -55,7 +77,7 @@ impl SpdmCodec for SpdmErrorResponseNotReadyExtData {
         self.rdt_exponent.encode(bytes);
         self.request_code.encode(bytes);
         self.token.encode(bytes);
-        self.tdtm.encode(bytes);
+        self.rdtm.encode(bytes);
     }
 
     fn spdm_read(
@@ -65,13 +87,13 @@ impl SpdmCodec for SpdmErrorResponseNotReadyExtData {
         let rdt_exponent = u8::read(r)?;
         let request_code = u8::read(r)?;
         let token = u8::read(r)?;
-        let tdtm = u8::read(r)?;
+        let rdtm = u8::read(r)?;
 
         Some(SpdmErrorResponseNotReadyExtData {
             rdt_exponent,
             request_code,
             token,
-            tdtm,
+            rdtm,
         })
     }
 }
@@ -197,7 +219,7 @@ mod tests {
             rdt_exponent: 0xaa,
             request_code: 0xaa,
             token: 0x55,
-            tdtm: 0x55,
+            rdtm: 0x55,
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -212,7 +234,7 @@ mod tests {
         assert_eq!(spdm_error_response_not_ready_ext_data.rdt_exponent, 0xaa);
         assert_eq!(spdm_error_response_not_ready_ext_data.request_code, 0xaa);
         assert_eq!(spdm_error_response_not_ready_ext_data.token, 0x55);
-        assert_eq!(spdm_error_response_not_ready_ext_data.tdtm, 0x55);
+        assert_eq!(spdm_error_response_not_ready_ext_data.rdtm, 0x55);
         assert_eq!(4, reader.left());
     }
     #[test]
@@ -266,7 +288,7 @@ mod tests {
                     rdt_exponent: 0x11,
                     request_code: 0x22,
                     token: 0x33,
-                    tdtm: 0x44,
+                    rdtm: 0x44,
                 },
             ),
         };
@@ -288,7 +310,7 @@ mod tests {
             assert_eq!(extended_data.rdt_exponent, 0x11);
             assert_eq!(extended_data.request_code, 0x22);
             assert_eq!(extended_data.token, 0x33);
-            assert_eq!(extended_data.tdtm, 0x44);
+            assert_eq!(extended_data.rdtm, 0x44);
         }
 
         let mut value = SpdmErrorResponsePayload {
