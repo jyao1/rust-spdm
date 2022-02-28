@@ -728,7 +728,8 @@ impl SpdmSession {
         let aad_size = writer.used();
         assert_eq!(aad_size, 6 + transport_param.sequence_number_count as usize);
 
-        let mut plain_text_buf = [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut plain_text_buf =
+            [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE + core::mem::size_of::<u16>()]; // app length + app buffer
         let mut writer = Writer::init(&mut plain_text_buf);
         app_length.encode(&mut writer);
         let head_size = writer.used();
@@ -813,7 +814,7 @@ impl SpdmSession {
 
         let cipher_text_size = length as usize - tag_size;
 
-        let mut plain_text_buf = [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut plain_text_buf = [0; config::MAX_SPDM_TRANSPORT_SIZE];
 
         let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
@@ -874,7 +875,7 @@ mod tests_session {
     fn test_case0_decode_msg() {
         let mut session = SpdmSession::default();
         let session_id = 4294901758u32;
-        let mut send_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
 
         session.setup(session_id).unwrap();
@@ -923,8 +924,8 @@ mod tests_session {
     fn test_case0_encode_msg() {
         let mut session = SpdmSession::default();
         let session_id = 4294901758u32;
-        let send_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let send_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE * 2]; // need to be big enough to hold ciper text
 
         session.setup(session_id).unwrap();
         session.set_crypto_param(

@@ -11,7 +11,7 @@ use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self.write_spdm_finish_response(session_id, bytes, &mut writer) {
             let _ = self.send_secured_message(session_id, writer.used_slice(), false);

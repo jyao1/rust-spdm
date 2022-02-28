@@ -23,14 +23,14 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm psk exchange\n");
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_psk_exchange(measurement_summary_hash_type, &mut send_buffer)?;
 
         self.send_message(&send_buffer[..send_used])?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_psk_exchange_response(
             0,

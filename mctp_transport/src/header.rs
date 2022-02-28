@@ -184,8 +184,8 @@ mod tests {
     #[test]
     fn test_case0_encap() {
         let mut mctp_transport_encap = MctpTransportEncap {};
-        let mut transport_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let spdm_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [100u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let spdm_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
 
         let status = mctp_transport_encap
             .encap(&spdm_buffer, &mut transport_buffer, false)

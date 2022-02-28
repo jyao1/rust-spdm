@@ -281,7 +281,7 @@ mod tests_requester {
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
 
         let request = SpdmMessage {
@@ -301,7 +301,7 @@ mod tests_requester {
             .is_ok();
         assert!(status);
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
 
         let status = requester
             .receive_secured_message(session_id, &mut receive_buffer, false)
