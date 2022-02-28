@@ -22,7 +22,7 @@ impl<'a> RequesterContext<'a> {
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
+        let used = self.receive_message(&mut receive_buffer, true)?;
         self.handle_spdm_challenge_response(
             0, // NULL
             measurement_summary_hash_type,

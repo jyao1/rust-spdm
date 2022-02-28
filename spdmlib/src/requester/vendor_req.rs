@@ -36,7 +36,7 @@ impl<'a> RequesterContext<'a> {
 
         //receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
 
         self.handle_spdm_vendor_defined_respond(session_id, &receive_buffer[..receive_used])
     }

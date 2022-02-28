@@ -102,14 +102,25 @@ impl<'a> RequesterContext<'a> {
         self.common.device_io.send(&transport_buffer[..used])
     }
 
-    pub fn receive_message(&mut self, receive_buffer: &mut [u8]) -> SpdmResult<usize> {
+    pub fn receive_message(
+        &mut self,
+        receive_buffer: &mut [u8],
+        crypto_request: bool,
+    ) -> SpdmResult<usize> {
         info!("receive_message!\n");
+
+        let timeout: usize;
+        if crypto_request {
+            timeout = 2 << self.common.negotiate_info.rsp_ct_exponent_sel;
+        } else {
+            timeout = 100_000;
+        }
 
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = self
             .common
             .device_io
-            .receive(&mut transport_buffer)
+            .receive(&mut transport_buffer, timeout)
             .map_err(|_| spdm_err!(EIO))?;
 
         self.common.decap(&transport_buffer[..used], receive_buffer)
@@ -119,15 +130,23 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         receive_buffer: &mut [u8],
+        crypto_request: bool,
     ) -> SpdmResult<usize> {
         info!("receive_secured_message!\n");
+
+        let timeout: usize;
+        if crypto_request {
+            timeout = 2 << self.common.negotiate_info.rsp_ct_exponent_sel;
+        } else {
+            timeout = 100_000;
+        }
 
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
 
         let used = self
             .common
             .device_io
-            .receive(&mut transport_buffer)
+            .receive(&mut transport_buffer, timeout)
             .map_err(|_| spdm_err!(EIO))?;
 
         self.common
@@ -284,7 +303,7 @@ mod tests_requester {
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
 
         let status = requester
-            .receive_secured_message(session_id, &mut receive_buffer)
+            .receive_secured_message(session_id, &mut receive_buffer, false)
             .is_ok();
         assert!(status);
     }
