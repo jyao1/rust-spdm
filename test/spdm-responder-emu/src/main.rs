@@ -12,6 +12,7 @@ use std::u32;
 
 use codec::{Codec, Reader, Writer};
 use common::SpdmTransportEncap;
+use common::ST1;
 use mctp_transport::MctpTransportEncap;
 use pcidoe_transport::{
     PciDoeDataObjectType, PciDoeMessageHeader, PciDoeTransportEncap, PciDoeVendorId,
@@ -20,9 +21,8 @@ use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 use spdm_emu::secret_impl_sample::*;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
-use spdmlib::message::*;
 use spdmlib::secret::*;
-use spdmlib::{common, responder};
+use spdmlib::{common, message::*, responder};
 
 fn process_socket_message(
     stream: &mut TcpStream,
@@ -225,7 +225,7 @@ fn handle_message(
     loop {
         // if failed, receieved message can't be processed. then the message will need caller to deal.
         // now caller need to deal with message in context.
-        let res = context.process_message();
+        let res = context.process_message(ST1);
         match res {
             Ok(spdm_result) => {
                 if spdm_result {

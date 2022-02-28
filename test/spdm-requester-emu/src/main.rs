@@ -11,6 +11,7 @@ use log::*;
 use simple_logger::SimpleLogger;
 
 use spdmlib::common;
+use spdmlib::common::ST1;
 use spdmlib::config;
 use spdmlib::message::*;
 use spdmlib::requester;
@@ -41,7 +42,7 @@ fn send_receive_hello(
     );
     let mut buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
     let (_transport_type, _command, _payload) =
-        spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..]).unwrap();
+        spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..], ST1).unwrap();
 }
 
 fn send_receive_stop(
@@ -63,7 +64,7 @@ fn send_receive_stop(
     );
     let mut buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
     let (_transport_type, _command, _payload) =
-        spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..]).unwrap();
+        spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..], ST1).unwrap();
 }
 
 fn test_spdm(

@@ -4,6 +4,7 @@
 
 use crate::common::algo::SpdmMeasurementSummaryHashType;
 use crate::common::error::SpdmResult;
+use crate::common::ST1;
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
 
@@ -113,7 +114,7 @@ impl<'a> RequesterContext<'a> {
         if crypto_request {
             timeout = 2 << self.common.negotiate_info.rsp_ct_exponent_sel;
         } else {
-            timeout = 100_000;
+            timeout = ST1;
         }
 
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
@@ -138,7 +139,7 @@ impl<'a> RequesterContext<'a> {
         if crypto_request {
             timeout = 2 << self.common.negotiate_info.rsp_ct_exponent_sel;
         } else {
-            timeout = 100_000;
+            timeout = ST1;
         }
 
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];

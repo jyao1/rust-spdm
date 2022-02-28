@@ -109,7 +109,7 @@ impl SpdmDeviceIo for MySpdmDeviceIo {
         todo!()
     }
 
-    fn receive(&mut self, _buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, _buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         todo!()
     }
 
@@ -327,7 +327,7 @@ impl<'a> FakeSpdmDeviceIo<'a> {
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("requester receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -337,7 +337,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        if self.responder.process_message().is_err() {
+        if self.responder.process_message(ST1).is_err() {
             return spdm_result_err!(ENOMEM);
         }
         Ok(())
@@ -360,7 +360,7 @@ impl<'a> SpdmDeviceIoReceve<'a> {
 }
 
 impl SpdmDeviceIo for SpdmDeviceIoReceve<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -388,7 +388,7 @@ impl<'a> FakeSpdmDeviceIoReceve<'a> {
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)

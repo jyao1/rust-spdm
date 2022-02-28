@@ -35,6 +35,13 @@ pub const OPAQUE_DATA_VERSION_SELECTION: [u8; 16] = [
     0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x11,
 ];
 
+/// The maximum amount of time the Responder has to provide a
+/// response to requests that do not require cryptographic processing, such
+/// as the GET_CAPABILITIES , GET_VERSION , or NEGOTIATE_ALGORITHMS
+/// request messages. See SPDM spec. 1.1.0  Page 29 for more information:
+/// https://www.dmtf.org/sites/default/files/standards/documents/DSP0274_1.1.0.pdf
+pub const ST1: usize = 1_000_000;
+
 pub trait SpdmDeviceIo {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult;
 
