@@ -25,7 +25,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let (key_exchange_context, send_used) = self.encode_spdm_key_exchange(
             &mut send_buffer,
             slot_id,
@@ -34,7 +34,7 @@ impl<'a> RequesterContext<'a> {
         self.send_message(&send_buffer[..send_used])?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_key_exhcange_response(
             0,

@@ -14,7 +14,7 @@ use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_key_exchange_response(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());

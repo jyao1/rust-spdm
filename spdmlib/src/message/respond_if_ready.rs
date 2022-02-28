@@ -49,6 +49,6 @@ impl SpdmCodec for SpdmRespondIfReadyRespondPayload {
 
 #[derive(Debug, Clone)]
 pub struct ReceivedMessage {
-    pub receive_buffer: [u8; config::MAX_SPDM_TRANSPORT_SIZE],
+    pub receive_buffer: [u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE],
     pub used: usize,
 }

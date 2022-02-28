@@ -9,11 +9,11 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_digest(&mut self) -> SpdmResult {
         info!("send spdm digest\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_digest(&mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }

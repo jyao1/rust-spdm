@@ -16,7 +16,7 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
     ) -> SpdmResult<u8> {
         info!("send spdm measurement\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_measurement_record(
             measurement_attributes,
             measurement_operation,
@@ -33,7 +33,7 @@ impl<'a> RequesterContext<'a> {
         }
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = match session_id {
             Some(session_id) => {
                 self.receive_secured_message(session_id, &mut receive_buffer, true)?

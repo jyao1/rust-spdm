@@ -121,7 +121,7 @@ pub const MAX_SPDM_SESSION_COUNT: usize = {session_cnt};
 pub const MAX_SPDM_MESSAGE_BUFFER_SIZE: usize = {msg_buf_sz}; // 0x1200
 
 /// This is used in Transport
-pub const MAX_SPDM_TRANSPORT_SIZE: usize = {trans_sz};
+pub const MAX_SPDM_TRANSPORT_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZE + 0x100(For upper layer headers)
 
 /// This is used in vendor defined message transport
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};

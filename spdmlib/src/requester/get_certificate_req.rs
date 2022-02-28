@@ -15,12 +15,12 @@ impl<'a> RequesterContext<'a> {
         length: u16,
     ) -> SpdmResult<(u16, u16)> {
         info!("send spdm certificate\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_certificate_partial_response(
             0,

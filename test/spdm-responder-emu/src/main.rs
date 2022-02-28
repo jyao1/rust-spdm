@@ -22,7 +22,7 @@ use spdm_emu::secret_impl_sample::*;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
 use spdmlib::secret::*;
-use spdmlib::{common, message::*, responder};
+use spdmlib::{common, config, message::*, responder};
 
 fn process_socket_message(
     stream: &mut TcpStream,
@@ -103,6 +103,7 @@ fn main() {
                     mctp_transport_encap
                 },
             );
+
             match res {
                 Ok(_spdm_result) => {
                     need_continue = true;
@@ -130,7 +131,7 @@ fn main() {
 fn handle_message(
     stream: &mut TcpStream,
     transport_encap: &mut dyn SpdmTransportEncap,
-) -> Result<bool, (usize, [u8; 1024])> {
+) -> Result<bool, (usize, [u8; config::MAX_SPDM_TRANSPORT_SIZE])> {
     println!("handle_message!");
     let mut socket_io_transport = SocketIoTransport::new(stream);
 

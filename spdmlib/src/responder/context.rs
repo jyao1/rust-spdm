@@ -59,7 +59,10 @@ impl<'a> ResponderContext<'a> {
         self.common.device_io.send(&transport_buffer[..used])
     }
 
-    pub fn process_message(&mut self, timeout: usize) -> Result<bool, (usize, [u8; 1024])> {
+    pub fn process_message(
+        &mut self,
+        timeout: usize,
+    ) -> Result<bool, (usize, [u8; config::MAX_SPDM_TRANSPORT_SIZE])> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         match self.receive_message(&mut receive_buffer[..], timeout) {
             Ok((used, secured_message)) => {
@@ -72,7 +75,7 @@ impl<'a> ResponderContext<'a> {
                         .get_session_via_id(session_id)
                         .ok_or((used, receive_buffer))?;
 
-                    let mut app_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+                    let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
 
                     let decode_size = spdm_session.decode_spdm_secured_message(
                         &receive_buffer[..used],
@@ -110,6 +113,10 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
+    // Debug note: receive_buffer is used as return value, when receive got a command
+    // whose value is not normal, will return Err to caller to handle the raw packet,
+    // So can't swap transport_buffer and receive_buffer, even though it should be by
+    // their name suggestion. (03.01.2022)
     fn receive_message(
         &mut self,
         receive_buffer: &mut [u8],
@@ -329,7 +336,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(common::session::SpdmSessionState::SpdmSessionEstablished);
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -365,7 +372,7 @@ mod tests_responder {
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let value = SpdmMessage {
             header: SpdmMessageHeader::default(),
@@ -382,7 +389,7 @@ mod tests_responder {
     }
     #[test]
     fn test_case0_receive_message() {
-        let receive_buffer = &mut [0u8; 1024];
+        let receive_buffer = &mut [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let mut writer = Writer::init(receive_buffer);
         let value = PciDoeMessageHeader {
             vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,

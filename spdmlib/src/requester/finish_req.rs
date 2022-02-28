@@ -13,12 +13,12 @@ use crate::common::ManagedBuffer;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_finish(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm finish\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let (send_used, base_hash_size, message_f) =
             self.encode_spdm_finish(session_id, &mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_finish_response(
             session_id,

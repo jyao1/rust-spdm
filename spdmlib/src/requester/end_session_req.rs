@@ -9,11 +9,11 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_end_session(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm end_session\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.encode_spdm_end_session(&mut send_buffer);
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_end_session_response(session_id, &receive_buffer[..used])
     }
