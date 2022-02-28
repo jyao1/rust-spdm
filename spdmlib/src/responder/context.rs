@@ -294,6 +294,7 @@ mod tests_responder {
     use super::*;
     use crate::common::gen_array_clone;
     use crate::common::session::*;
+    use crate::common::ST1;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -406,7 +407,7 @@ mod tests_responder {
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let status = context
-            .receive_message(&mut receive_buffer[..], 1000_000)
+            .receive_message(&mut receive_buffer[..], ST1)
             .is_ok();
         assert!(status);
     }
@@ -448,7 +449,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let status = context.process_message(1000_000).is_err();
+        let status = context.process_message(ST1).is_err();
         assert!(status);
     }
     #[test]

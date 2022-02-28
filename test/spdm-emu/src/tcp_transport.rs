@@ -15,7 +15,7 @@ pub struct TcpTransport<'a> {
 }
 
 impl SpdmDeviceIo for TcpTransport<'_> {
-    fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         let res = self.data.read(buffer).ok();
         if let Some(size) = res {
             Ok(size)

@@ -52,6 +52,7 @@ impl Codec for SpdmSocketHeader {
 pub fn receive_message<'a>(
     stream: &mut TcpStream,
     buffer: &'a mut [u8],
+    _timeout: usize,
 ) -> Option<(u32, u32, &'a [u8])> {
     let mut buffer_size = 0;
     let mut expected_size = 0;

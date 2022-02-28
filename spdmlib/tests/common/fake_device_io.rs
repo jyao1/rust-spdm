@@ -7,6 +7,7 @@
 use super::shared_buffer::SharedBuffer;
 use spdmlib::common::error::SpdmResult;
 use spdmlib::common::SpdmDeviceIo;
+use spdmlib::common::ST1;
 use spdmlib::responder;
 
 pub struct FakeSpdmDeviceIoReceve<'a> {
@@ -20,7 +21,7 @@ impl<'a> FakeSpdmDeviceIoReceve<'a> {
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -49,7 +50,7 @@ impl<'a> FakeSpdmDeviceIo<'a> {
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("requester receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -59,7 +60,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        let _res = self.responder.process_message();
+        let _res = self.responder.process_message(ST1);
         Ok(())
     }
 
@@ -76,6 +77,6 @@ fn test_fake_device_io() {
     const SEND_DATA: &[u8] = &[1, 2];
     client.send(SEND_DATA).unwrap();
     let mut rev = [0u8, 64];
-    server.receive(&mut rev).unwrap();
+    server.receive(&mut rev, ST1).unwrap();
     assert_eq!(&rev[..=1], SEND_DATA)
 }
