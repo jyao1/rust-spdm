@@ -38,7 +38,7 @@ pub const OPAQUE_DATA_VERSION_SELECTION: [u8; 16] = [
 pub trait SpdmDeviceIo {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult;
 
-    fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, usize>;
+    fn receive(&mut self, buffer: &mut [u8], timeout: usize) -> Result<usize, usize>;
 
     fn flush_all(&mut self) -> SpdmResult;
 }

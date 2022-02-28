@@ -59,9 +59,9 @@ impl<'a> ResponderContext<'a> {
         self.common.device_io.send(&transport_buffer[..used])
     }
 
-    pub fn process_message(&mut self) -> Result<bool, (usize, [u8; 1024])> {
+    pub fn process_message(&mut self, timeout: usize) -> Result<bool, (usize, [u8; 1024])> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        match self.receive_message(&mut receive_buffer[..]) {
+        match self.receive_message(&mut receive_buffer[..], timeout) {
             Ok((used, secured_message)) => {
                 if secured_message {
                     let mut read = Reader::init(&receive_buffer[0..used]);
@@ -110,12 +110,16 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
-    fn receive_message(&mut self, receive_buffer: &mut [u8]) -> Result<(usize, bool), usize> {
+    fn receive_message(
+        &mut self,
+        receive_buffer: &mut [u8],
+        timeout: usize,
+    ) -> Result<(usize, bool), usize> {
         info!("receive_message!\n");
 
         let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
 
-        let used = self.common.device_io.receive(receive_buffer)?;
+        let used = self.common.device_io.receive(receive_buffer, timeout)?;
 
         let (used, secured_message) = self
             .common
@@ -401,7 +405,9 @@ mod tests_responder {
         );
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let status = context.receive_message(&mut receive_buffer[..]).is_ok();
+        let status = context
+            .receive_message(&mut receive_buffer[..], 1000_000)
+            .is_ok();
         assert!(status);
     }
     #[test]
@@ -442,7 +448,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let status = context.process_message().is_err();
+        let status = context.process_message(1000_000).is_err();
         assert!(status);
     }
     #[test]

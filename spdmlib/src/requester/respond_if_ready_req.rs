@@ -30,7 +30,7 @@ impl<'a> RequesterContext<'a> {
         self.send_message(&send_buffer[..used])?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
+        let used = self.receive_message(&mut receive_buffer, false)?;
 
         //Have a sanity check!
         let mut reader = Reader::init(&receive_buffer);

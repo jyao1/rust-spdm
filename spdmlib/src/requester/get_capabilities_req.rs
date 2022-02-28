@@ -13,7 +13,7 @@ impl<'a> RequesterContext<'a> {
         self.send_message(&send_buffer[..send_used])?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_message(&mut receive_buffer)?;
+        let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_capability_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }
 

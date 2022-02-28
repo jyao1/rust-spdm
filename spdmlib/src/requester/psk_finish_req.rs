@@ -17,7 +17,7 @@ impl<'a> RequesterContext<'a> {
         self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_psk_finish_response(session_id, message_f, &receive_buffer[..receive_used])
     }
 

@@ -25,7 +25,7 @@ impl<'a> RequesterContext<'a> {
         let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         session.create_data_secret_update(update_requester, update_responder)?;
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+        let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
 
         self.handle_spdm_key_update_op_response(
             session_id,

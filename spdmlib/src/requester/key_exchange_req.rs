@@ -35,7 +35,7 @@ impl<'a> RequesterContext<'a> {
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let receive_used = self.receive_message(&mut receive_buffer)?;
+        let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_key_exhcange_response(
             0,
             &send_buffer[..send_used],

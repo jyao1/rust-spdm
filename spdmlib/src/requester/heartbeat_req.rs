@@ -15,7 +15,7 @@ impl<'a> RequesterContext<'a> {
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer)?;
+        let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
     }
 

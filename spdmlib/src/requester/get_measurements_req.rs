@@ -35,8 +35,10 @@ impl<'a> RequesterContext<'a> {
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
         let used = match session_id {
-            Some(session_id) => self.receive_secured_message(session_id, &mut receive_buffer)?,
-            None => self.receive_message(&mut receive_buffer)?,
+            Some(session_id) => {
+                self.receive_secured_message(session_id, &mut receive_buffer, true)?
+            }
+            None => self.receive_message(&mut receive_buffer, true)?,
         };
 
         self.handle_spdm_measurement_record_response(
