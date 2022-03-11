@@ -21,7 +21,7 @@ impl<'a> RequesterContext<'a> {
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
             },
             payload: SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(
@@ -112,9 +112,14 @@ impl<'a> RequesterContext<'a> {
                         message_a
                             .append_message(send_buffer)
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        return message_a
+                        message_a
                             .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()));
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        debug!(
+                            "longlong:message_a:negotiate_algorithms: {:02x?}",
+                            &receive_buffer[..used]
+                        );
+                        return Ok(());
                     }
                     error!("!!! algorithms : fail !!!\n");
                     spdm_result_err!(EFAULT)

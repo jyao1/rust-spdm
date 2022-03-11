@@ -44,7 +44,7 @@ impl<'a> RequesterContext<'a> {
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmRequestKeyUpdate,
             },
             payload: SpdmMessagePayload::SpdmKeyUpdateRequest(SpdmKeyUpdateRequestPayload {

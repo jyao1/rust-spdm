@@ -1,6 +1,6 @@
 {
     "__usage": "This helps generate compile-time constant sizes for SPDM arrays. See src/config.rs generated for details.",
-    "max_version_count": 2,
+    "max_version_count": 3,
     "algo_config": {
         "max_ext_asym_algo_count": 0,
         "max_ext_hash_algo_count": 0,

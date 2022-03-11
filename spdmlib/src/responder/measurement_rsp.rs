@@ -68,7 +68,7 @@ impl<'a> ResponderContext<'a> {
         let _ = crypto::rand::get_random(&mut nonce);
 
         let real_measurement_block_count = spdm_measurement_collection(
-            SpdmVersion::SpdmVersion11,
+            self.common.negotiate_info.spdm_version_sel,
             self.common.negotiate_info.measurement_specification_sel,
             self.common.negotiate_info.base_hash_sel,
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize,
@@ -89,7 +89,7 @@ impl<'a> ResponderContext<'a> {
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll
         {
             spdm_measurement_collection(
-                SpdmVersion::SpdmVersion11,
+                self.common.negotiate_info.spdm_version_sel,
                 self.common.negotiate_info.measurement_specification_sel,
                 self.common.negotiate_info.base_hash_sel,
                 SpdmMeasurementOperation::SpdmMeasurementRequestAll.get_u8() as usize,
@@ -102,7 +102,7 @@ impl<'a> ResponderContext<'a> {
                 return;
             }
             spdm_measurement_collection(
-                SpdmVersion::SpdmVersion11,
+                self.common.negotiate_info.spdm_version_sel,
                 self.common.negotiate_info.measurement_specification_sel,
                 self.common.negotiate_info.base_hash_sel,
                 index as usize,
@@ -114,7 +114,7 @@ impl<'a> ResponderContext<'a> {
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseMeasurements,
             },
             payload: SpdmMessagePayload::SpdmMeasurementsResponse(

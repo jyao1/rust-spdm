@@ -44,7 +44,7 @@ impl<'a> RequesterContext<'a> {
 
         let request = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
             },
             payload: SpdmMessagePayload::SpdmChallengeRequest(SpdmChallengeRequestPayload {
@@ -172,6 +172,7 @@ mod tests_requester {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -202,6 +203,7 @@ mod tests_requester {
         requester.common.runtime_info.need_measurement_summary_hash = true;
 
         requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let status = requester
             .send_receive_spdm_challenge(

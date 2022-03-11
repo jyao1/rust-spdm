@@ -58,7 +58,7 @@ impl<'a> ResponderContext<'a> {
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
             },
             payload: SpdmMessagePayload::SpdmKeyUpdateResponse(SpdmKeyUpdateResponsePayload {

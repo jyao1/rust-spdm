@@ -69,7 +69,7 @@ impl<'a> ResponderContext<'a> {
         cert_chain[..cert_chain_data.len()].copy_from_slice(cert_chain_data);
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseCertificate,
             },
             payload: SpdmMessagePayload::SpdmCertificateResponse(SpdmCertificateResponsePayload {
@@ -107,6 +107,9 @@ mod tests_responder {
             config_info,
             provision_info,
         );
+
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -116,7 +119,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestGetCertificate,
         };
         value.encode(&mut writer);
         let capabilities = &mut [0u8; 1024];
@@ -143,7 +146,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmRequestResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestGetCertificate
         );
 
         let spdm_struct_slice = &u8_slice[2..];

@@ -14,7 +14,7 @@ impl<'a> ResponderContext<'a> {
     ) {
         let error = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseError,
             },
             payload: SpdmMessagePayload::SpdmErrorResponse(SpdmErrorResponsePayload {

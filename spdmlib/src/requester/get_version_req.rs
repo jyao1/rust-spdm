@@ -36,6 +36,10 @@ impl<'a> RequesterContext<'a> {
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult {
+        debug!(
+            "longlong:message_a:get_version:raw buffer: {:02x?}",
+            receive_buffer
+        );
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
@@ -46,6 +50,26 @@ impl<'a> RequesterContext<'a> {
                     if let Some(version) = version {
                         debug!("!!! version : {:02x?}\n", version);
 
+                        let SpdmVersionResponsePayload {
+                            version_number_entry_count,
+                            versions,
+                        } = version;
+
+                        self.common.negotiate_info.spdm_version_sel =
+                            versions[version_number_entry_count as usize - 1].version;
+
+                        for spdm_version_struct in
+                            versions.iter().take(version_number_entry_count as usize)
+                        {
+                            if spdm_version_struct.version
+                                == self.common.provision_info.default_version
+                            {
+                                self.common.negotiate_info.spdm_version_sel =
+                                    spdm_version_struct.version;
+                                break;
+                            }
+                        }
+
                         // clear cache data
                         self.common.reset_runtime_info();
 
@@ -55,7 +79,12 @@ impl<'a> RequesterContext<'a> {
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         message_a
                             .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        debug!(
+                            "longlong:message_a:get_version: {:02x?}",
+                            &receive_buffer[..used]
+                        );
+                        Ok(())
                     } else {
                         error!("!!! version : fail !!!\n");
                         spdm_result_err!(EFAULT)

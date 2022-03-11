@@ -9,7 +9,7 @@ use codec::{Codec, Reader, Writer};
 use spdmlib::config;
 
 pub const SOCKET_HEADER_LEN: usize = 12;
-pub const USE_PCIDOE: bool = true;
+pub const USE_PCIDOE: bool = false; // align with DMTF spdm_emu
 pub const USE_ECDSA: bool = true;
 pub const USE_ECDH: bool = true;
 
@@ -85,10 +85,6 @@ pub fn receive_message<'a>(
 
     let mut reader = Reader::init(&buffer[..SOCKET_HEADER_LEN]);
     let socket_header = SpdmSocketHeader::read(&mut reader).unwrap();
-    println!(
-        "longlong:buffer:{:02X?}",
-        &buffer[SOCKET_HEADER_LEN..buffer_size]
-    );
 
     Some((
         socket_header.transport_type.to_be(),
