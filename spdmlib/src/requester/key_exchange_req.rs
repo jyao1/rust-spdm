@@ -71,7 +71,7 @@ impl<'a> RequesterContext<'a> {
             .copy_from_slice(crate::common::OPAQUE_DATA_SUPPORT_VERSION.as_ref());
         let request = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmRequestKeyExchange,
             },
             payload: SpdmMessagePayload::SpdmKeyExchangeRequest(SpdmKeyExchangeRequestPayload {

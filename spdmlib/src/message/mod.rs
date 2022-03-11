@@ -50,7 +50,8 @@ enum_builder! {
     EnumName: SpdmVersion;
     EnumVal{
         SpdmVersion10 => 0x10,
-        SpdmVersion11 => 0x11
+        SpdmVersion11 => 0x11,
+        SpdmVersion12 => 0x12
     }
 }
 

@@ -136,7 +136,11 @@ fn handle_message(
     let mut socket_io_transport = SocketIoTransport::new(stream);
 
     let config_info = common::SpdmConfigInfo {
-        spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11],
+        spdm_version: [
+            SpdmVersion::SpdmVersion10,
+            SpdmVersion::SpdmVersion11,
+            SpdmVersion::SpdmVersion12,
+        ],
         rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
         | SpdmResponseCapabilityFlags::CHAL_CAP
         | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
@@ -214,6 +218,7 @@ fn handle_message(
         my_cert_chain: None,
         peer_cert_chain_data: None,
         peer_cert_chain_root_hash: None,
+        default_version: SpdmVersion::SpdmVersion12,
     };
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());

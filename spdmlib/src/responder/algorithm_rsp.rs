@@ -130,7 +130,7 @@ impl<'a> ResponderContext<'a> {
         info!("send spdm algorithm\n");
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseAlgorithms,
             },
             payload: SpdmMessagePayload::SpdmAlgorithmsResponse(SpdmAlgorithmsResponsePayload {
@@ -209,11 +209,13 @@ mod tests_responder {
             provision_info,
         );
 
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
         };
         value.encode(&mut writer);
 
@@ -253,10 +255,11 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmRequestResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms
         );
-
+        debug!("u8_slice: {:02X?}\n", u8_slice);
         let u8_slice = &u8_slice[2..];
+        debug!("u8_slice: {:02X?}\n", u8_slice);
         let mut reader = Reader::init(u8_slice);
         let spdm_sturct_data =
             SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut context.common, &mut reader)
@@ -274,20 +277,21 @@ mod tests_responder {
             SpdmBaseHashAlgo::TPM_ALG_SHA_384
         );
         assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for i in 0..4 {
+        for index in 0..4 {
             assert_eq!(
-                spdm_sturct_data.alg_struct[i].alg_type,
+                spdm_sturct_data.alg_struct[index].alg_type,
                 SpdmAlgType::SpdmAlgTypeDHE
             );
-            assert_eq!(spdm_sturct_data.alg_struct[i].alg_fixed_count, 2);
+            assert_eq!(spdm_sturct_data.alg_struct[index].alg_fixed_count, 2);
             assert_eq!(
                 spdm_sturct_data.alg_struct[1].alg_supported,
                 SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
             );
-            assert_eq!(spdm_sturct_data.alg_struct[i].alg_ext_count, 0);
+            assert_eq!(spdm_sturct_data.alg_struct[index].alg_ext_count, 0);
         }
 
         let u8_slice = &u8_slice[46..];
+        debug!("u8_slice: {:02X?}\n", u8_slice);
         let mut reader = Reader::init(u8_slice);
         let spdm_message: SpdmMessage =
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();

@@ -19,7 +19,7 @@ impl<'a> RequesterContext<'a> {
         let mut writer = Writer::init(&mut send_buffer);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
             },
             payload: SpdmMessagePayload::SpdmVendorDefinedRequest(

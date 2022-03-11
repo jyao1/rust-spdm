@@ -299,6 +299,18 @@ impl<'a> SpdmContext<'a> {
             .ok_or_else(|| spdm_err!(ENOMEM))?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
+        debug!(
+            "longlong:message a to hash: {:02x?}",
+            self.runtime_info.message_a.as_ref()
+        );
+        debug!(
+            "longlong:message b to hash: {:02x?}",
+            self.runtime_info.message_b.as_ref()
+        );
+        debug!(
+            "longlong:message c to hash: {:02x?}",
+            self.runtime_info.message_c.as_ref()
+        );
         let message_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
@@ -618,13 +630,14 @@ pub struct SpdmRuntimeInfo {
     pub message_m: ManagedBuffer,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SpdmProvisionInfo {
     pub my_cert_chain_data: Option<SpdmCertChainData>,
     pub my_cert_chain: Option<SpdmCertChainData>, // use SpdmCertChainData instead of SpdmCertChain for easy command sending.
     // TBD: union peer. But it is still option.
     pub peer_cert_chain_data: Option<SpdmCertChainData>,
     pub peer_cert_chain_root_hash: Option<SpdmDigestStruct>,
+    pub default_version: SpdmVersion,
 }
 
 #[derive(Default)]

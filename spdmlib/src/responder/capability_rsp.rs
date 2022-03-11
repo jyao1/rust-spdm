@@ -15,7 +15,18 @@ impl<'a> ResponderContext<'a> {
 
     pub fn write_spdm_capability_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
-        SpdmMessageHeader::read(&mut reader);
+        let header = SpdmMessageHeader::read(&mut reader);
+        if let Some(SpdmMessageHeader {
+            version,
+            request_response_code: _,
+        }) = header
+        {
+            self.common.negotiate_info.spdm_version_sel = version;
+        } else {
+            error!("!!! get_capabilities : fail !!!\n");
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
 
         let get_capabilities =
             SpdmGetCapabilitiesRequestPayload::spdm_read(&mut self.common, &mut reader);
@@ -48,7 +59,7 @@ impl<'a> ResponderContext<'a> {
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseCapabilities,
             },
             payload: SpdmMessagePayload::SpdmCapabilitiesResponse(
@@ -91,7 +102,7 @@ mod tests_responder {
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestGetCapabilities,
         };
         value.encode(&mut writer);
         let capabilities = &mut [0u8; 1024];
@@ -127,7 +138,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmRequestResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities
         );
         let capabilities_slice = &u8_slice[2..];
         let mut reader = Reader::init(capabilities_slice);
@@ -142,7 +153,7 @@ mod tests_responder {
         let mut reader = Reader::init(spdm_message_slice);
         let spdm_message: SpdmMessage =
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
-        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
+        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message.header.request_response_code,
             SpdmRequestResponseCode::SpdmResponseCapabilities

@@ -72,7 +72,11 @@ fn test_spdm(
     transport_encap: &mut dyn SpdmTransportEncap,
 ) {
     let config_info = common::SpdmConfigInfo {
-        spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11],
+        spdm_version: [
+            SpdmVersion::SpdmVersion10,
+            SpdmVersion::SpdmVersion11,
+            SpdmVersion::SpdmVersion12,
+        ],
         req_capabilities: SpdmRequestCapabilityFlags::CERT_CAP
         | SpdmRequestCapabilityFlags::CHAL_CAP
         | SpdmRequestCapabilityFlags::ENCRYPT_CAP
@@ -147,6 +151,7 @@ fn test_spdm(
         my_cert_chain: None,
         peer_cert_chain_data: Some(peer_cert_chain_data),
         peer_cert_chain_root_hash: None,
+        default_version: SpdmVersion::SpdmVersion11,
     };
 
     let mut context = requester::RequesterContext::new(

@@ -47,7 +47,7 @@ impl<'a> ResponderContext<'a> {
                 request_response_code: SpdmRequestResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
-                version_number_entry_count: 2,
+                version_number_entry_count: 3,
                 versions: [
                     SpdmVersionStruct {
                         update: 0,
@@ -56,6 +56,10 @@ impl<'a> ResponderContext<'a> {
                     SpdmVersionStruct {
                         update: 0,
                         version: self.common.config_info.spdm_version[1],
+                    },
+                    SpdmVersionStruct {
+                        update: 0,
+                        version: self.common.config_info.spdm_version[2],
                     },
                 ],
             }),
@@ -129,11 +133,13 @@ mod tests_responder {
             SpdmRequestResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.version_number_entry_count, 0x02);
+            assert_eq!(payload.version_number_entry_count, 0x03);
             assert_eq!(payload.versions[0].update, 0);
             assert_eq!(payload.versions[0].version, SpdmVersion::SpdmVersion10);
             assert_eq!(payload.versions[1].update, 0);
             assert_eq!(payload.versions[1].version, SpdmVersion::SpdmVersion11);
+            assert_eq!(payload.versions[2].update, 0);
+            assert_eq!(payload.versions[2].version, SpdmVersion::SpdmVersion12);
         }
     }
 }

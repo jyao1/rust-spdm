@@ -46,7 +46,7 @@ impl<'a> ResponderContext<'a> {
         info!("send spdm digest\n");
         let response = SpdmMessage {
             header: SpdmMessageHeader {
-                version: SpdmVersion::SpdmVersion11,
+                version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseDigests,
             },
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
