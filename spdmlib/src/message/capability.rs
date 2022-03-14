@@ -4,6 +4,7 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::message::*;
 use codec::{Codec, Reader, Writer};
 
 bitflags! {
@@ -41,10 +42,13 @@ impl Codec for SpdmRequestCapabilityFlags {
 pub struct SpdmGetCapabilitiesRequestPayload {
     pub ct_exponent: u8,
     pub flags: SpdmRequestCapabilityFlags,
+    // New fields from SpdmVersion12
+    pub data_transfer_size: u32,
+    pub max_spdm_msg_size: u32,
 }
 
 impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         0u8.encode(bytes); // param1
         0u8.encode(bytes); // param2
 
@@ -52,10 +56,15 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
         self.ct_exponent.encode(bytes);
         0u16.encode(bytes); // reserved2
         self.flags.encode(bytes);
+
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            self.data_transfer_size.encode(bytes);
+            self.max_spdm_msg_size.encode(bytes);
+        }
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmGetCapabilitiesRequestPayload> {
         u8::read(r)?; // param1
@@ -66,7 +75,26 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
         u16::read(r)?; // reserved2
         let flags = SpdmRequestCapabilityFlags::read(r)?;
 
-        Some(SpdmGetCapabilitiesRequestPayload { ct_exponent, flags })
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            let data_transfer_size = u32::read(r)?;
+            let max_spdm_msg_size = u32::read(r)?;
+            if data_transfer_size < 42 || max_spdm_msg_size < 42 {
+                panic!("responder: data_transfer_size or max_spdm_msg_size < 42");
+            }
+            Some(SpdmGetCapabilitiesRequestPayload {
+                ct_exponent,
+                flags,
+                data_transfer_size,
+                max_spdm_msg_size,
+            })
+        } else {
+            Some(SpdmGetCapabilitiesRequestPayload {
+                ct_exponent,
+                flags,
+                data_transfer_size: 0,
+                max_spdm_msg_size: 0,
+            })
+        }
     }
 }
 
@@ -111,10 +139,12 @@ impl Codec for SpdmResponseCapabilityFlags {
 pub struct SpdmCapabilitiesResponsePayload {
     pub ct_exponent: u8,
     pub flags: SpdmResponseCapabilityFlags,
+    pub data_transfer_size: u32,
+    pub max_spdm_msg_size: u32,
 }
 
 impl SpdmCodec for SpdmCapabilitiesResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         0u8.encode(bytes); // param1
         0u8.encode(bytes); // param2
 
@@ -122,10 +152,15 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
         self.ct_exponent.encode(bytes);
         0u16.encode(bytes); // reserved2
         self.flags.encode(bytes);
+
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            self.data_transfer_size.encode(bytes);
+            self.max_spdm_msg_size.encode(bytes);
+        }
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmCapabilitiesResponsePayload> {
         u8::read(r)?; // param1
@@ -136,7 +171,26 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
         u16::read(r)?; // reserved2
         let flags = SpdmResponseCapabilityFlags::read(r)?;
 
-        Some(SpdmCapabilitiesResponsePayload { ct_exponent, flags })
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            let data_transfer_size = u32::read(r)?;
+            let max_spdm_msg_size = u32::read(r)?;
+            if data_transfer_size < 42 || max_spdm_msg_size < 42 {
+                panic!("requester: data_transfer_size or max_spdm_msg_size < 42");
+            }
+            Some(SpdmCapabilitiesResponsePayload {
+                ct_exponent,
+                flags,
+                data_transfer_size,
+                max_spdm_msg_size,
+            })
+        } else {
+            Some(SpdmCapabilitiesResponsePayload {
+                ct_exponent,
+                flags,
+                data_transfer_size: 0,
+                max_spdm_msg_size: 0,
+            })
+        }
     }
 }
 
@@ -238,6 +292,8 @@ mod tests {
         let value = SpdmGetCapabilitiesRequestPayload {
             ct_exponent: 100,
             flags: SpdmRequestCapabilityFlags::CERT_CAP,
+            data_transfer_size: 0,
+            max_spdm_msg_size: 0,
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -263,6 +319,8 @@ mod tests {
         let value = SpdmGetCapabilitiesRequestPayload {
             ct_exponent: 0,
             flags: SpdmRequestCapabilityFlags::all(),
+            data_transfer_size: 0,
+            max_spdm_msg_size: 0,
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -304,6 +362,8 @@ mod tests {
         let value = SpdmCapabilitiesResponsePayload {
             ct_exponent: 100,
             flags: SpdmResponseCapabilityFlags::all(),
+            data_transfer_size: 0,
+            max_spdm_msg_size: 0,
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -329,6 +389,8 @@ mod tests {
         let value = SpdmCapabilitiesResponsePayload {
             ct_exponent: 0,
             flags: SpdmResponseCapabilityFlags::all(),
+            data_transfer_size: 0,
+            max_spdm_msg_size: 0,
         };
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

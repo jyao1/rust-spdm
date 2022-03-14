@@ -28,6 +28,8 @@ impl<'a> RequesterContext<'a> {
                 SpdmGetCapabilitiesRequestPayload {
                     ct_exponent: self.common.config_info.req_ct_exponent,
                     flags: self.common.config_info.req_capabilities,
+                    data_transfer_size: config::MAX_SPDM_MESSAGE_BUFFER_SIZE as u32,
+                    max_spdm_msg_size: config::MAX_SPDM_MESSAGE_BUFFER_SIZE as u32,
                 },
             ),
         };
@@ -62,6 +64,13 @@ impl<'a> RequesterContext<'a> {
                             .append_message(send_buffer)
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         message_a
+                            .append_message(&receive_buffer[..used])
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        let message_vca = &mut self.common.runtime_info.message_vca;
+                        message_vca
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_vca
                             .append_message(&receive_buffer[..used])
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         debug!(

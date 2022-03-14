@@ -175,6 +175,7 @@ mod tests {
         context.runtime_info.need_measurement_summary_hash = true;
         context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT0;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);

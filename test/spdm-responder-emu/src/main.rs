@@ -6,6 +6,7 @@
 
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
+use spdmlib::common::SpdmOpaqueSupport;
 
 use std::net::{TcpListener, TcpStream};
 use std::u32;
@@ -171,6 +172,7 @@ fn handle_message(
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         ..Default::default()
     };
 

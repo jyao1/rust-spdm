@@ -24,21 +24,49 @@ impl Default for SpdmOpaqueStruct {
 }
 
 impl SpdmCodec for SpdmOpaqueStruct {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
-        self.data_size.encode(bytes);
-        for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        if context.negotiate_info.opaque_data_support == SpdmOpaqueSupport::default() {
+            0u16.encode(bytes);
+        } else {
+            self.data_size.encode(bytes);
+            for d in self.data.iter().take(self.data_size as usize) {
+                d.encode(bytes);
+            }
         }
     }
-    fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
+    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
         let data_size = u16::read(r)?;
         let mut data = [0u8; config::MAX_SPDM_OPAQUE_SIZE];
-        for d in data.iter_mut().take(data_size as usize) {
-            *d = u8::read(r)?;
+        if context.negotiate_info.opaque_data_support != SpdmOpaqueSupport::default() {
+            for d in data.iter_mut().take(data_size as usize) {
+                *d = u8::read(r)?;
+            }
         }
+
         Some(SpdmOpaqueStruct { data_size, data })
     }
 }
+
+bitflags! {
+    #[derive(Default)]
+    pub struct SpdmOpaqueSupport: u8 {
+        const OPAQUE_DATA_FMT0 = 0b0000_0001;
+        const OPAQUE_DATA_FMT1 = 0b0000_0010;
+    }
+}
+
+impl Codec for SpdmOpaqueSupport {
+    fn encode(&self, bytes: &mut Writer) {
+        self.bits().encode(bytes);
+    }
+
+    fn read(r: &mut Reader) -> Option<SpdmOpaqueSupport> {
+        let bits = u8::read(r)?;
+
+        SpdmOpaqueSupport::from_bits(bits)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

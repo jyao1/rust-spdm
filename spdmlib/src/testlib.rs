@@ -26,12 +26,14 @@ pub fn new_context<'a>(
     pcidoe_transport_encap: &'a mut PciDoeTransportEncap,
 ) -> SpdmContext<'a> {
     let (config_info, provision_info) = create_info();
-    SpdmContext::new(
+    let mut context = SpdmContext::new(
         my_spdm_device_io,
         pcidoe_transport_encap,
         config_info,
         provision_info,
-    )
+    );
+    context.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
+    context
 }
 
 pub fn new_spdm_message(value: SpdmMessage, mut context: SpdmContext) -> SpdmMessage {
@@ -71,6 +73,7 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         ..Default::default()
     };
 

@@ -4,6 +4,7 @@
 
 use super::{USE_ECDH, USE_ECDSA};
 use spdmlib::common;
+use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::message::*;
 use std::path::PathBuf;
 
@@ -49,6 +50,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         ..Default::default()
     };
 
@@ -140,6 +142,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         ..Default::default()
     };
 
