@@ -93,6 +93,11 @@ fn asym_verify(
                     //debug!("der signature len - 0x{:x?}\n", der_sign_size);
                     //debug!("der signature - {:x?}\n", der_signature);
 
+                    debug!(
+                        "longlong: data:{:02X?}, der_sign_size:{:02X?}\n",
+                        data, der_sign_size
+                    );
+
                     match cert.verify_signature(algorithm, data, &der_signature[..(der_sign_size)])
                     {
                         Ok(()) => Ok(()),

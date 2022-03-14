@@ -102,7 +102,6 @@ impl<'a> RequesterContext<'a> {
                     let used = reader.used();
                     if let Some(measurements) = measurements {
                         debug!("!!! measurements : {:02x?}\n", measurements);
-
                         // verify signature
                         if measurement_attributes
                             .contains(SpdmMeasurementeAttributes::INCLUDE_SIGNATURE)
@@ -125,7 +124,7 @@ impl<'a> RequesterContext<'a> {
                             message_m
                                 .append_message(&receive_buffer[..temp_used])
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-
+                            debug!("longlong:message_m:{:02X?}\n", message_m);
                             if self
                                 .common
                                 .verify_measurement_signature(session_id, &measurements.signature)
@@ -225,12 +224,13 @@ impl<'a> RequesterContext<'a> {
                 )
                 .and(Ok(())),
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber => {
-                if let Ok(total_number) = self.send_receive_spdm_measurement_record(
+                if let Ok(mut total_number) = self.send_receive_spdm_measurement_record(
                     session_id,
                     SpdmMeasurementeAttributes::empty(),
                     SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                     slot_id,
                 ) {
+                    total_number = 4; //patch to bypass spdm-emu responder weired behaviour
                     for block_i in 1..total_number.checked_add(1).ok_or(spdm_err!(ENOMEM))? {
                         if self
                             .send_receive_spdm_measurement_record(

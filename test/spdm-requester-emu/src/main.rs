@@ -11,6 +11,7 @@ use log::*;
 use simple_logger::SimpleLogger;
 
 use spdmlib::common;
+use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::common::ST1;
 use spdmlib::config;
 use spdmlib::message::*;
@@ -104,6 +105,7 @@ fn test_spdm(
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         ..Default::default()
     };
 
@@ -151,7 +153,7 @@ fn test_spdm(
         my_cert_chain: None,
         peer_cert_chain_data: Some(peer_cert_chain_data),
         peer_cert_chain_root_hash: None,
-        default_version: SpdmVersion::SpdmVersion11,
+        default_version: SpdmVersion::SpdmVersion12,
     };
 
     let mut context = requester::RequesterContext::new(

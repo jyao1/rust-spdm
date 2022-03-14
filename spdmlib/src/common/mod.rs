@@ -320,6 +320,22 @@ impl<'a> SpdmContext<'a> {
             + self.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
 
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
         crypto::asym_verify::verify(
             self.negotiate_info.base_hash_sel,
             self.negotiate_info.base_asym_sel,
@@ -347,6 +363,22 @@ impl<'a> SpdmContext<'a> {
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
         crypto::asym_sign::sign(
             self.negotiate_info.base_hash_sel,
             self.negotiate_info.base_asym_sel,
@@ -361,6 +393,16 @@ impl<'a> SpdmContext<'a> {
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         let mut message = ManagedBuffer::default();
+
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            let message_vca = self.runtime_info.message_vca.clone();
+
+            debug!("longlong:message_vca:{:02X?}\n", message_vca);
+            message
+                .append_message(message_vca.as_ref())
+                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+        }
+
         match session_id {
             None => {
                 message
@@ -374,6 +416,7 @@ impl<'a> SpdmContext<'a> {
                     .ok_or_else(|| spdm_err!(ENOMEM))?;
             }
         }
+
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         debug!("message_m - {:02x?}", message.1[..message.0].as_ref());
@@ -385,6 +428,22 @@ impl<'a> SpdmContext<'a> {
         let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data[(4usize
             + self.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
 
         crypto::asym_verify::verify(
             self.negotiate_info.base_hash_sel,
@@ -400,6 +459,16 @@ impl<'a> SpdmContext<'a> {
         session_id: Option<u32>,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = ManagedBuffer::default();
+
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            let message_vca = self.runtime_info.message_vca.clone();
+
+            debug!("longlong:message_vca:{:02X?}\n", message_vca);
+            message
+                .append_message(message_vca.as_ref())
+                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+        }
+
         match session_id {
             None => {
                 message
@@ -419,6 +488,22 @@ impl<'a> SpdmContext<'a> {
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
 
         crypto::asym_sign::sign(
             self.negotiate_info.base_hash_sel,
@@ -572,6 +657,7 @@ pub struct SpdmConfigInfo {
     pub aead_algo: SpdmAeadAlgo,
     pub req_asym_algo: SpdmReqAsymAlgo,
     pub key_schedule_algo: SpdmKeyScheduleAlgo,
+    pub opaque_support: SpdmOpaqueSupport,
 }
 
 #[derive(Debug, Default)]
@@ -589,6 +675,7 @@ pub struct SpdmNegotiateInfo {
     pub aead_sel: SpdmAeadAlgo,
     pub req_asym_sel: SpdmReqAsymAlgo,
     pub key_schedule_sel: SpdmKeyScheduleAlgo,
+    pub opaque_data_support: SpdmOpaqueSupport,
 }
 
 // TBD ManagedSmallBuffer
@@ -628,6 +715,7 @@ pub struct SpdmRuntimeInfo {
     pub message_b: ManagedBuffer,
     pub message_c: ManagedBuffer,
     pub message_m: ManagedBuffer,
+    pub message_vca: ManagedBuffer,
 }
 
 #[derive(Default, Clone)]

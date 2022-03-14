@@ -18,10 +18,13 @@ impl<'a> ResponderContext<'a> {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
+        let other_params_support;
+
         let negotiate_algorithms =
             SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(negotiate_algorithms) = negotiate_algorithms {
             debug!("!!! negotiate_algorithms : {:02x?}\n", negotiate_algorithms);
+            other_params_support = negotiate_algorithms.other_params_support;
             self.common.negotiate_info.measurement_specification_sel =
                 negotiate_algorithms.measurement_specification;
             self.common.negotiate_info.base_hash_sel = negotiate_algorithms.base_hash_algo;
@@ -51,6 +54,14 @@ impl<'a> ResponderContext<'a> {
             .common
             .runtime_info
             .message_a
+            .append_message(&bytes[..reader.used()])
+            .is_none()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+        let message_vca = &mut self.common.runtime_info.message_vca;
+        if message_vca
             .append_message(&bytes[..reader.used()])
             .is_none()
         {
@@ -128,6 +139,10 @@ impl<'a> ResponderContext<'a> {
         }
 
         info!("send spdm algorithm\n");
+
+        let other_params_selection = self.common.config_info.opaque_support & other_params_support;
+        self.common.negotiate_info.opaque_data_support = other_params_selection;
+
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
@@ -138,6 +153,7 @@ impl<'a> ResponderContext<'a> {
                     .common
                     .negotiate_info
                     .measurement_specification_sel,
+                other_params_selection,
                 measurement_hash_algo: self.common.negotiate_info.measurement_hash_sel,
                 base_asym_sel: self.common.negotiate_info.base_asym_sel,
                 base_hash_sel: self.common.negotiate_info.base_hash_sel,
@@ -175,7 +191,11 @@ impl<'a> ResponderContext<'a> {
             }),
         };
         response.spdm_encode(&mut self.common, writer);
-
+        let message_vca = &mut self.common.runtime_info.message_vca;
+        if message_vca.append_message(writer.used_slice()).is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
         self.common
             .runtime_info
             .message_a
@@ -187,6 +207,7 @@ impl<'a> ResponderContext<'a> {
 mod tests_responder {
     use super::*;
     use crate::common::gen_array_clone;
+    use crate::common::opaque::*;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -223,6 +244,7 @@ mod tests_responder {
         let mut writer = Writer::init(negotiate_algorithms);
         let value = SpdmNegotiateAlgorithmsRequestPayload {
             measurement_specification: SpdmMeasurementSpecification::DMTF,
+            other_params_support: SpdmOpaqueSupport::empty(),
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
             alg_struct_count: 4,

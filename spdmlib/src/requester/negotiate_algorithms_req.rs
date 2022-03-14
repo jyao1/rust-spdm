@@ -18,6 +18,8 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn encode_spdm_algorithm(&mut self, buf: &mut [u8]) -> usize {
+        let other_params_support: SpdmOpaqueSupport = self.common.config_info.opaque_support;
+
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -27,6 +29,7 @@ impl<'a> RequesterContext<'a> {
             payload: SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(
                 SpdmNegotiateAlgorithmsRequestPayload {
                     measurement_specification: self.common.config_info.measurement_specification,
+                    other_params_support,
                     base_asym_algo: self.common.config_info.base_asym_algo,
                     base_hash_algo: self.common.config_info.base_hash_algo,
                     alg_struct_count: 4,
@@ -82,8 +85,18 @@ impl<'a> RequesterContext<'a> {
                     let used = reader.used();
                     if let Some(algorithms) = algorithms {
                         debug!("!!! algorithms : {:02x?}\n", algorithms);
+
                         self.common.negotiate_info.measurement_specification_sel =
                             algorithms.measurement_specification_sel;
+
+                        assert_ne!(
+                            self.common.config_info.opaque_support
+                                & algorithms.other_params_selection,
+                            SpdmOpaqueSupport::default()
+                        );
+                        self.common.negotiate_info.opaque_data_support =
+                            algorithms.other_params_selection;
+
                         self.common.negotiate_info.measurement_hash_sel =
                             algorithms.measurement_hash_algo;
                         self.common.negotiate_info.base_hash_sel = algorithms.base_hash_sel;
@@ -113,6 +126,13 @@ impl<'a> RequesterContext<'a> {
                             .append_message(send_buffer)
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         message_a
+                            .append_message(&receive_buffer[..used])
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        let message_vca = &mut self.common.runtime_info.message_vca;
+                        message_vca
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_vca
                             .append_message(&receive_buffer[..used])
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         debug!(

@@ -55,6 +55,15 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        let message_vca = &mut self.common.runtime_info.message_vca;
+        if message_vca
+            .append_message(&bytes[..reader.used()])
+            .is_none()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+
         info!("send spdm capability\n");
 
         let response = SpdmMessage {
@@ -66,11 +75,17 @@ impl<'a> ResponderContext<'a> {
                 SpdmCapabilitiesResponsePayload {
                     ct_exponent: self.common.config_info.rsp_ct_exponent,
                     flags: self.common.config_info.rsp_capabilities,
+                    data_transfer_size: config::MAX_SPDM_MESSAGE_BUFFER_SIZE as u32,
+                    max_spdm_msg_size: config::MAX_SPDM_MESSAGE_BUFFER_SIZE as u32,
                 },
             ),
         };
         response.spdm_encode(&mut self.common, writer);
-
+        let message_vca = &mut self.common.runtime_info.message_vca;
+        if message_vca.append_message(writer.used_slice()).is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
         self.common
             .runtime_info
             .message_a
@@ -110,6 +125,8 @@ mod tests_responder {
         let value = SpdmGetCapabilitiesRequestPayload {
             ct_exponent: 100,
             flags: SpdmRequestCapabilityFlags::CERT_CAP,
+            data_transfer_size: 0,
+            max_spdm_msg_size: 0,
         };
         value.spdm_encode(&mut context.common, &mut writer);
         let bytes = &mut [0u8; 1024];

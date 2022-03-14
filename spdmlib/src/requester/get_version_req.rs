@@ -80,6 +80,13 @@ impl<'a> RequesterContext<'a> {
                         message_a
                             .append_message(&receive_buffer[..used])
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        let message_vca = &mut self.common.runtime_info.message_vca;
+                        message_vca
+                            .append_message(send_buffer)
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        message_vca
+                            .append_message(&receive_buffer[..used])
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         debug!(
                             "longlong:message_a:get_version: {:02x?}",
                             &receive_buffer[..used]
