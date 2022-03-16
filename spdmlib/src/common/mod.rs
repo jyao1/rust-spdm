@@ -31,6 +31,13 @@ pub const OPAQUE_DATA_SUPPORT_VERSION: [u8; 20] = [
     0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0x01, 0x01, 0x00,
     0x11, 0x00, 0x00, 0x00,
 ];
+
+// uint8_t total_elements; uint8_t reserved[3]; uint8_t id; uint8_t vendor_len; uint16_t opaque_element_data_len; uint8_t sm_data_version; uint8_t sm_data_id; uint8_t version_count; uint16_t versions_list[version_count]
+
+pub const OPAQUE_DATA_SUPPORT_VERSION_SPDM12: [u8; 16] = [
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0x01, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00,
+];
+
 pub const OPAQUE_DATA_VERSION_SELECTION: [u8; 16] = [
     0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x11,
 ];
@@ -299,18 +306,6 @@ impl<'a> SpdmContext<'a> {
             .ok_or_else(|| spdm_err!(ENOMEM))?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
-        debug!(
-            "longlong:message a to hash: {:02x?}",
-            self.runtime_info.message_a.as_ref()
-        );
-        debug!(
-            "longlong:message b to hash: {:02x?}",
-            self.runtime_info.message_b.as_ref()
-        );
-        debug!(
-            "longlong:message c to hash: {:02x?}",
-            self.runtime_info.message_c.as_ref()
-        );
         let message_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
@@ -396,8 +391,6 @@ impl<'a> SpdmContext<'a> {
 
         if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             let message_vca = self.runtime_info.message_vca.clone();
-
-            debug!("longlong:message_vca:{:02X?}\n", message_vca);
             message
                 .append_message(message_vca.as_ref())
                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
@@ -462,8 +455,6 @@ impl<'a> SpdmContext<'a> {
 
         if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             let message_vca = self.runtime_info.message_vca.clone();
-
-            debug!("longlong:message_vca:{:02X?}\n", message_vca);
             message
                 .append_message(message_vca.as_ref())
                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
@@ -518,7 +509,7 @@ impl<'a> SpdmContext<'a> {
         message_k: &ManagedBuffer,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let message = self.calc_req_transcript_data(false, message_k, None)?;
+        let mut message = self.calc_req_transcript_data(false, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
@@ -529,6 +520,22 @@ impl<'a> SpdmContext<'a> {
         let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data[(4usize
             + self.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
 
         crypto::asym_verify::verify(
             self.negotiate_info.base_hash_sel,
@@ -543,13 +550,29 @@ impl<'a> SpdmContext<'a> {
         &mut self,
         message_k: &ManagedBuffer,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let message = self.calc_rsp_transcript_data(false, message_k, None)?;
+        let mut message = self.calc_rsp_transcript_data(false, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
 
         crypto::asym_sign::sign(
             self.negotiate_info.base_hash_sel,

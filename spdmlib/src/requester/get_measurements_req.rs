@@ -124,7 +124,6 @@ impl<'a> RequesterContext<'a> {
                             message_m
                                 .append_message(&receive_buffer[..temp_used])
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            debug!("longlong:message_m:{:02X?}\n", message_m);
                             if self
                                 .common
                                 .verify_measurement_signature(session_id, &measurements.signature)

@@ -52,12 +52,22 @@ impl<'a> RequesterContext<'a> {
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
         crypto::rand::get_random(&mut psk_context)?;
 
-        let mut opaque = SpdmOpaqueStruct {
-            data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION.len() as u16,
-            ..Default::default()
-        };
-        opaque.data[..(opaque.data_size as usize)]
-            .copy_from_slice(crate::common::OPAQUE_DATA_SUPPORT_VERSION.as_ref());
+        let mut opaque;
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            opaque = SpdmOpaqueStruct {
+                data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION_SPDM12.len() as u16,
+                ..Default::default()
+            };
+            opaque.data[..(opaque.data_size as usize)]
+                .copy_from_slice(crate::common::OPAQUE_DATA_SUPPORT_VERSION_SPDM12.as_ref());
+        } else {
+            opaque = SpdmOpaqueStruct {
+                data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION.len() as u16,
+                ..Default::default()
+            };
+            opaque.data[..(opaque.data_size as usize)]
+                .copy_from_slice(crate::common::OPAQUE_DATA_SUPPORT_VERSION.as_ref());
+        }
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,

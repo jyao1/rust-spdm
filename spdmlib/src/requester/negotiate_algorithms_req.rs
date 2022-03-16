@@ -135,10 +135,6 @@ impl<'a> RequesterContext<'a> {
                         message_vca
                             .append_message(&receive_buffer[..used])
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        debug!(
-                            "longlong:message_a:negotiate_algorithms: {:02x?}",
-                            &receive_buffer[..used]
-                        );
                         return Ok(());
                     }
                     error!("!!! algorithms : fail !!!\n");
