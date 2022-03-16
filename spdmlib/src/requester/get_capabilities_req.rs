@@ -72,12 +72,7 @@ impl<'a> RequesterContext<'a> {
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         message_vca
                             .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        debug!(
-                            "longlong:message_a:get_capabilities: {:02x?}",
-                            &receive_buffer[..used]
-                        );
-                        Ok(())
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
                     } else {
                         error!("!!! capabilities : fail !!!\n");
                         spdm_result_err!(EFAULT)

@@ -36,10 +36,6 @@ impl<'a> RequesterContext<'a> {
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult {
-        debug!(
-            "longlong:message_a:get_version:raw buffer: {:02x?}",
-            receive_buffer
-        );
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
@@ -86,12 +82,7 @@ impl<'a> RequesterContext<'a> {
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         message_vca
                             .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        debug!(
-                            "longlong:message_a:get_version: {:02x?}",
-                            &receive_buffer[..used]
-                        );
-                        Ok(())
+                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
                     } else {
                         error!("!!! version : fail !!!\n");
                         spdm_result_err!(EFAULT)
