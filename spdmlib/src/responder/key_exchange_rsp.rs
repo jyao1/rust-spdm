@@ -38,6 +38,15 @@ impl<'a> ResponderContext<'a> {
             } else {
                 self.common.runtime_info.need_measurement_summary_hash = false;
             }
+
+            if key_exchange_req.session_policy
+                & KEY_EXCHANGE_REQUESTER_SESSION_POLICY_TERMINATION_POLICY_MASK
+                == KEY_EXCHANGE_REQUESTER_SESSION_POLICY_TERMINATION_POLICY_VALUE
+            {
+                self.common.negotiate_info.termination_policy_set = true;
+            } else {
+                self.common.negotiate_info.termination_policy_set = false;
+            }
         } else {
             error!("!!! key_exchange req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
@@ -261,6 +270,7 @@ mod tests_responder {
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb,
             slot_id: 100u8,
             req_session_id: 0xffu16,
+            session_policy: 1,
             random: SpdmRandomStruct {
                 data: [100u8; SPDM_RANDOM_SIZE],
             },
