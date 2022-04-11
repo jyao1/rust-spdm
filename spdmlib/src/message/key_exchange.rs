@@ -11,11 +11,17 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
+use super::SpdmVersion;
+
+pub const KEY_EXCHANGE_REQUESTER_SESSION_POLICY_TERMINATION_POLICY_MASK: u8 = 0b0000_0001;
+pub const KEY_EXCHANGE_REQUESTER_SESSION_POLICY_TERMINATION_POLICY_VALUE: u8 = 0b0000_0001;
+
 #[derive(Debug, Clone, Default)]
 pub struct SpdmKeyExchangeRequestPayload {
     pub measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     pub slot_id: u8,
     pub req_session_id: u16,
+    pub session_policy: u8,
     pub random: SpdmRandomStruct,
     pub exchange: SpdmDheExchangeStruct,
     pub opaque: SpdmOpaqueStruct,
@@ -26,7 +32,14 @@ impl SpdmCodec for SpdmKeyExchangeRequestPayload {
         self.measurement_summary_hash_type.encode(bytes); // param1
         self.slot_id.encode(bytes); // param2
         self.req_session_id.encode(bytes);
-        0u16.encode(bytes); // reserved
+
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            self.session_policy.encode(bytes);
+        } else {
+            0u8.encode(bytes); // reserved
+        }
+
+        0u8.encode(bytes); // reserved
 
         self.random.encode(bytes);
         self.exchange.spdm_encode(context, bytes);
@@ -40,7 +53,8 @@ impl SpdmCodec for SpdmKeyExchangeRequestPayload {
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?; // param1
         let slot_id = u8::read(r)?; // param2
         let req_session_id = u16::read(r)?;
-        u16::read(r)?;
+        let session_policy = u8::read(r)?;
+        u8::read(r)?;
 
         let random = SpdmRandomStruct::read(r)?;
         let exchange = SpdmDheExchangeStruct::spdm_read(context, r)?;
@@ -50,6 +64,7 @@ impl SpdmCodec for SpdmKeyExchangeRequestPayload {
             measurement_summary_hash_type,
             slot_id,
             req_session_id,
+            session_policy,
             random,
             exchange,
             opaque,
@@ -176,6 +191,7 @@ mod tests {
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
             slot_id: 100u8,
             req_session_id: 100u16,
+            session_policy: 1,
             random: SpdmRandomStruct {
                 data: [100u8; common::algo::SPDM_RANDOM_SIZE],
             },

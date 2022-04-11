@@ -681,6 +681,8 @@ pub struct SpdmConfigInfo {
     pub req_asym_algo: SpdmReqAsymAlgo,
     pub key_schedule_algo: SpdmKeyScheduleAlgo,
     pub opaque_support: SpdmOpaqueSupport,
+    pub session_policy: u8,
+    pub runtime_content_change_support: bool,
 }
 
 #[derive(Debug, Default)]
@@ -699,6 +701,7 @@ pub struct SpdmNegotiateInfo {
     pub req_asym_sel: SpdmReqAsymAlgo,
     pub key_schedule_sel: SpdmKeyScheduleAlgo,
     pub opaque_data_support: SpdmOpaqueSupport,
+    pub termination_policy_set: bool, // used by responder to take action when code or configuration changed.
 }
 
 // TBD ManagedSmallBuffer
@@ -739,6 +742,7 @@ pub struct SpdmRuntimeInfo {
     pub message_c: ManagedBuffer,
     pub message_m: ManagedBuffer,
     pub message_vca: ManagedBuffer,
+    pub content_changed: bool, // used by responder, when content changed and spdm version is 1.2, set to true.
 }
 
 #[derive(Default, Clone)]

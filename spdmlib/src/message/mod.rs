@@ -1010,7 +1010,9 @@ mod tests {
             payload: SpdmMessagePayload::SpdmMeasurementsResponse(
                 SpdmMeasurementsResponsePayload {
                     number_of_measurement: 100u8,
-                    slot_id: 100u8,
+                    slot_id: 7u8,
+                    content_changed:
+                        MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE,
                     measurement_record: SpdmMeasurementRecordStructure {
                         number_of_blocks: 5,
                         record: gen_array_clone(
@@ -1054,7 +1056,11 @@ mod tests {
         );
         if let SpdmMessagePayload::SpdmMeasurementsResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.number_of_measurement, 100);
-            assert_eq!(payload.slot_id, 100);
+            assert_eq!(payload.slot_id, 7);
+            assert_eq!(
+                payload.content_changed,
+                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
+            );
             assert_eq!(payload.measurement_record.number_of_blocks, 5);
             for i in 0..5 {
                 assert_eq!(payload.measurement_record.record[i].index, 100);
@@ -1112,6 +1118,7 @@ mod tests {
                     SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
                 slot_id: 100u8,
                 req_session_id: 100u16,
+                session_policy: 1,
                 random: SpdmRandomStruct {
                     data: [100u8; SPDM_RANDOM_SIZE],
                 },

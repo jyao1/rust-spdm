@@ -90,6 +90,7 @@ impl<'a> RequesterContext<'a> {
                 slot_id,
                 measurement_summary_hash_type,
                 req_session_id,
+                session_policy: self.common.config_info.session_policy,
                 random: SpdmRandomStruct { data: random },
                 exchange,
                 opaque,

@@ -9,6 +9,14 @@ use crate::common::spdm_codec::SpdmCodec;
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
+use super::SpdmVersion;
+
+pub const MEASUREMENT_RESPONDER_PARAM2_SLOT_ID_MASK: u8 = 0b0000_1111;
+pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_MASK: u8 = 0b0011_0000;
+pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE: u8 = 0b0000_0000;
+pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE: u8 = 0b0001_0000;
+pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NO_CHANGE_VALUE: u8 = 0b0010_0000;
+
 bitflags! {
     #[derive(Default)]
     pub struct SpdmMeasurementeAttributes: u8 {
@@ -89,6 +97,7 @@ impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
 #[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementsResponsePayload {
     pub number_of_measurement: u8,
+    pub content_changed: u8,
     pub slot_id: u8,
     pub measurement_record: SpdmMeasurementRecordStructure,
     pub nonce: SpdmNonceStruct,
@@ -106,7 +115,13 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         } else {
             self.number_of_measurement.encode(bytes); // param1
         }
-        self.slot_id.encode(bytes); // param2
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
+            && context.config_info.runtime_content_change_support
+        {
+            (self.slot_id | self.content_changed).encode(bytes); // param2
+        } else {
+            self.slot_id.encode(bytes); // param 2
+        }
         self.measurement_record.spdm_encode(context, bytes);
         self.nonce.encode(bytes);
         self.opaque.spdm_encode(context, bytes);
@@ -120,7 +135,9 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         r: &mut Reader,
     ) -> Option<SpdmMeasurementsResponsePayload> {
         let number_of_measurement = u8::read(r)?; // param1
-        let slot_id = u8::read(r)?; // param2
+        let param2 = u8::read(r)?; // param2
+        let slot_id = param2 & MEASUREMENT_RESPONDER_PARAM2_SLOT_ID_MASK; // Bit [3:0]
+        let content_changed = param2 & MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_MASK; // Bit [5:4]
         let measurement_record = SpdmMeasurementRecordStructure::spdm_read(context, r)?;
         let nonce = SpdmNonceStruct::read(r)?;
         let opaque = SpdmOpaqueStruct::spdm_read(context, r)?;
@@ -131,6 +148,7 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         };
         Some(SpdmMeasurementsResponsePayload {
             number_of_measurement,
+            content_changed,
             slot_id,
             measurement_record,
             nonce,
@@ -240,7 +258,8 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementsResponsePayload {
             number_of_measurement: 100u8,
-            slot_id: 100u8,
+            slot_id: 7u8,
+            content_changed: MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE,
             measurement_record: SpdmMeasurementRecordStructure {
                 number_of_blocks: 5,
                 record: gen_array_clone(
@@ -283,7 +302,11 @@ mod tests {
         let mut measurements_response =
             SpdmMeasurementsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(measurements_response.number_of_measurement, 100);
-        assert_eq!(measurements_response.slot_id, 100);
+        assert_eq!(measurements_response.slot_id, 7);
+        assert_eq!(
+            measurements_response.content_changed,
+            MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
+        );
 
         assert_eq!(measurements_response.measurement_record.number_of_blocks, 5);
         for i in 0..5 {

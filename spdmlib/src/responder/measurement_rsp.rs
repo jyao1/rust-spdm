@@ -112,6 +112,18 @@ impl<'a> ResponderContext<'a> {
             SpdmMeasurementRecordStructure::default()
         };
 
+        let content_changed = if self.common.config_info.runtime_content_change_support
+            && self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
+        {
+            if self.common.runtime_info.content_changed {
+                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE
+            } else {
+                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NO_CHANGE_VALUE
+            }
+        } else {
+            MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
+        };
+
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
@@ -121,6 +133,7 @@ impl<'a> ResponderContext<'a> {
                 SpdmMeasurementsResponsePayload {
                     number_of_measurement,
                     slot_id: get_measurements.slot_id,
+                    content_changed,
                     measurement_record,
                     nonce: SpdmNonceStruct { data: nonce },
                     opaque: SpdmOpaqueStruct {
