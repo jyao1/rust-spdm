@@ -87,7 +87,7 @@ impl<'a> RequesterContext<'a> {
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult<u8> {
-        if measurement_attributes.contains(SpdmMeasurementeAttributes::INCLUDE_SIGNATURE) {
+        if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
             self.common.runtime_info.need_measurement_signature = true;
         } else {
             self.common.runtime_info.need_measurement_signature = false;
@@ -102,9 +102,17 @@ impl<'a> RequesterContext<'a> {
                     let used = reader.used();
                     if let Some(measurements) = measurements {
                         debug!("!!! measurements : {:02x?}\n", measurements);
+
+                        if measurements.content_changed
+                            == MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE
+                            && message_header.version == SpdmVersion::SpdmVersion12
+                        {
+                            self.common.runtime_info.content_changed = true;
+                        }
+
                         // verify signature
                         if measurement_attributes
-                            .contains(SpdmMeasurementeAttributes::INCLUDE_SIGNATURE)
+                            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
                         {
                             let base_asym_size =
                                 self.common.negotiate_info.base_asym_sel.get_size() as usize;
@@ -210,56 +218,22 @@ impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_measurement(
         &mut self,
         session_id: Option<u32>,
+        spdm_measuremente_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
+        out_total_number: &mut u8, // out, total number when measurement_operation = SpdmMeasurementQueryTotalNumber
+        //      number of blocks got measured.
         slot_id: u8,
     ) -> SpdmResult {
-        match measurement_operation {
-            SpdmMeasurementOperation::SpdmMeasurementRequestAll => self
-                .send_receive_spdm_measurement_record(
-                    session_id,
-                    SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
-                    SpdmMeasurementOperation::SpdmMeasurementRequestAll,
-                    slot_id,
-                )
-                .and(Ok(())),
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber => {
-                if let Ok(mut total_number) = self.send_receive_spdm_measurement_record(
-                    session_id,
-                    SpdmMeasurementeAttributes::empty(),
-                    SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
-                    slot_id,
-                ) {
-                    total_number = 4; //patch to bypass spdm-emu responder weired behaviour
-                    for block_i in 1..total_number.checked_add(1).ok_or(spdm_err!(ENOMEM))? {
-                        if self
-                            .send_receive_spdm_measurement_record(
-                                session_id,
-                                if block_i == total_number {
-                                    SpdmMeasurementeAttributes::INCLUDE_SIGNATURE
-                                } else {
-                                    SpdmMeasurementeAttributes::empty()
-                                },
-                                SpdmMeasurementOperation::Unknown(block_i as u8),
-                                slot_id,
-                            )
-                            .is_err()
-                        {
-                            return spdm_result_err!(EFAULT);
-                        }
-                    }
-                    Ok(())
-                } else {
-                    spdm_result_err!(EFAULT)
-                }
-            }
-            SpdmMeasurementOperation::Unknown(index) => self
-                .send_receive_spdm_measurement_record(
-                    session_id,
-                    SpdmMeasurementeAttributes::INCLUDE_SIGNATURE,
-                    SpdmMeasurementOperation::Unknown(index as u8),
-                    slot_id,
-                )
-                .and(Ok(())),
+        if let Ok(total_number) = self.send_receive_spdm_measurement_record(
+            session_id,
+            spdm_measuremente_attributes,
+            measurement_operation,
+            slot_id,
+        ) {
+            *out_total_number = total_number;
+            Ok(())
+        } else {
+            spdm_result_err!(EFAULT)
         }
     }
 }
@@ -343,20 +317,39 @@ mod tests_requester {
         requester.common.reset_runtime_info();
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
+        let mut total_number: u8 = 0;
         let status = requester
-            .send_receive_spdm_measurement(None, measurement_operation, 0)
+            .send_receive_spdm_measurement(
+                None,
+                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                measurement_operation,
+                &mut total_number,
+                0,
+            )
             .is_ok();
         assert!(status);
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementRequestAll;
         let status = requester
-            .send_receive_spdm_measurement(None, measurement_operation, 0)
+            .send_receive_spdm_measurement(
+                None,
+                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                measurement_operation,
+                &mut total_number,
+                0,
+            )
             .is_ok();
         assert!(status);
 
         let measurement_operation = SpdmMeasurementOperation::Unknown(5);
         let status = requester
-            .send_receive_spdm_measurement(None, measurement_operation, 0)
+            .send_receive_spdm_measurement(
+                None,
+                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                measurement_operation,
+                &mut total_number,
+                0,
+            )
             .is_ok();
         assert!(status);
     }

@@ -47,7 +47,7 @@ impl<'a> ResponderContext<'a> {
 
         if get_measurements
             .measurement_attributes
-            .contains(SpdmMeasurementeAttributes::INCLUDE_SIGNATURE)
+            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
         {
             self.common.runtime_info.need_measurement_signature = true;
         } else {
@@ -153,7 +153,7 @@ impl<'a> ResponderContext<'a> {
         // generat signature
         if get_measurements
             .measurement_attributes
-            .contains(SpdmMeasurementeAttributes::INCLUDE_SIGNATURE)
+            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
         {
             let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
             let temp_used = used - base_asym_size;

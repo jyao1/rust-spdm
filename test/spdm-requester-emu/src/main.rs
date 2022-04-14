@@ -185,10 +185,14 @@ fn test_spdm(
         return;
     }
 
+    let mut total_number: u8 = 0;
+
     if context
         .send_receive_spdm_measurement(
             None,
+            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            &mut total_number,
             0,
         )
         .is_err()
@@ -238,7 +242,9 @@ fn test_spdm(
         if context
             .send_receive_spdm_measurement(
                 Some(session_id),
+                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+                &mut total_number,
                 0,
             )
             .is_err()
