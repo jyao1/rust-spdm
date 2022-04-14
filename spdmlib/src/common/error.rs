@@ -29,11 +29,11 @@ pub enum SpdmErrorNum {
 }
 
 pub struct SpdmError {
-    num: SpdmErrorNum,
-    loc_file: &'static str,
-    loc_line: u32,
-    loc_col: u32,
-    msg: &'static str,
+    pub num: SpdmErrorNum,
+    pub loc_file: &'static str,
+    pub loc_line: u32,
+    pub loc_col: u32,
+    pub msg: &'static str,
 }
 
 pub type SpdmResult<T = ()> = core::result::Result<T, SpdmError>;
