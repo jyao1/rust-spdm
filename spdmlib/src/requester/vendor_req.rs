@@ -11,7 +11,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         standard_id: RegistryOrStandardsBodyID,
-        vendor_idstruct: VendorIDStruct,
+        vendor_id_struct: VendorIDStruct,
         req_payload_struct: ReqPayloadStruct,
     ) -> SpdmResult<ResPayloadStruct> {
         info!("send vendor defined request\n");
@@ -25,7 +25,7 @@ impl<'a> RequesterContext<'a> {
             payload: SpdmMessagePayload::SpdmVendorDefinedRequest(
                 SpdmVendorDefinedRequestPayload {
                     standard_id,
-                    vendor_id: vendor_idstruct,
+                    vendor_id: vendor_id_struct,
                     req_payload: req_payload_struct,
                 },
             ),
