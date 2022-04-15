@@ -20,7 +20,8 @@ struct SpdmConfig {
     vendor_defined_config: SpdmVendorDefinedConfig,
     max_session_count: usize,
     max_msg_buffer_size: usize,
-    max_transport_size: usize,
+    data_transfer_size: usize,
+    max_spdm_msg_size: usize,
 }
 
 impl SpdmConfig {
@@ -29,7 +30,7 @@ impl SpdmConfig {
         // This will be checked by the compiler thus no need to check again here.
 
         // Check if meet SPDM requirements.
-        assert!(self.cert_config.max_cert_portion_len < self.max_transport_size);
+        assert!(self.cert_config.max_cert_portion_len < self.data_transfer_size);
         assert!(self.max_opaque_size < 1024);
 
         // TODO: add more sanity checks if needed.
@@ -120,8 +121,11 @@ pub const MAX_SPDM_SESSION_COUNT: usize = {session_cnt};
 /// This is used in SpdmRuntimeInfo. max cached size
 pub const MAX_SPDM_MESSAGE_BUFFER_SIZE: usize = {msg_buf_sz}; // 0x1200
 
-/// This is used in Transport
-pub const MAX_SPDM_TRANSPORT_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZE + 0x100(For upper layer headers)
+/// This is used in Transport, SPDM 1.2
+pub const DATA_TRANSFER_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZE + 0x100(For upper layer headers)
+
+/// SPDM 1.2
+pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz}; // set to equal to DATA_TRANSFER_SIZE @todo
 
 /// This is used in vendor defined message transport
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
@@ -166,7 +170,8 @@ fn main() {
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,
         msg_buf_sz = spdm_config.max_msg_buffer_size,
-        trans_sz = spdm_config.max_transport_size,
+        trans_sz = spdm_config.data_transfer_size,
+        max_spdm_mgs_sz = spdm_config.max_spdm_msg_size,
         vendor_id_len = spdm_config
             .vendor_defined_config
             .max_vendor_defined_vendor_id_len,

@@ -814,7 +814,7 @@ impl SpdmSession {
 
         let cipher_text_size = length as usize - tag_size;
 
-        let mut plain_text_buf = [0; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut plain_text_buf = [0; config::DATA_TRANSFER_SIZE];
 
         let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
