@@ -28,8 +28,8 @@ impl<'a> RequesterContext<'a> {
                 SpdmGetCapabilitiesRequestPayload {
                     ct_exponent: self.common.config_info.req_ct_exponent,
                     flags: self.common.config_info.req_capabilities,
-                    data_transfer_size: config::MAX_SPDM_MESSAGE_BUFFER_SIZE as u32,
-                    max_spdm_msg_size: config::MAX_SPDM_MESSAGE_BUFFER_SIZE as u32,
+                    data_transfer_size: self.common.config_info.data_transfer_size,
+                    max_spdm_msg_size: self.common.config_info.max_spdm_msg_size,
                 },
             ),
         };
@@ -58,6 +58,18 @@ impl<'a> RequesterContext<'a> {
                             self.common.config_info.req_capabilities;
                         self.common.negotiate_info.rsp_ct_exponent_sel = capabilities.ct_exponent;
                         self.common.negotiate_info.rsp_capabilities_sel = capabilities.flags;
+
+                        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
+                        {
+                            self.common.negotiate_info.req_data_transfer_size_sel =
+                                self.common.config_info.data_transfer_size;
+                            self.common.negotiate_info.req_max_spdm_msg_size_sel =
+                                self.common.config_info.max_spdm_msg_size;
+                            self.common.negotiate_info.rsp_data_transfer_size_sel =
+                                capabilities.data_transfer_size;
+                            self.common.negotiate_info.rsp_max_spdm_msg_size_sel =
+                                capabilities.max_spdm_msg_size;
+                        }
 
                         let message_a = &mut self.common.runtime_info.message_a;
                         message_a

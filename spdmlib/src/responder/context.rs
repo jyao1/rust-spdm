@@ -37,7 +37,7 @@ impl<'a> ResponderContext<'a> {
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
@@ -48,7 +48,7 @@ impl<'a> ResponderContext<'a> {
         send_buffer: &[u8],
         is_app_message: bool,
     ) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
             send_buffer,
@@ -62,8 +62,8 @@ impl<'a> ResponderContext<'a> {
     pub fn process_message(
         &mut self,
         timeout: usize,
-    ) -> Result<bool, (usize, [u8; config::MAX_SPDM_TRANSPORT_SIZE])> {
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+    ) -> Result<bool, (usize, [u8; config::DATA_TRANSFER_SIZE])> {
+        let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         match self.receive_message(&mut receive_buffer[..], timeout) {
             Ok((used, secured_message)) => {
                 if secured_message {
@@ -124,7 +124,7 @@ impl<'a> ResponderContext<'a> {
     ) -> Result<(usize, bool), usize> {
         info!("receive_message!\n");
 
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
 
         let used = self.common.device_io.receive(receive_buffer, timeout)?;
 
@@ -389,7 +389,7 @@ mod tests_responder {
     }
     #[test]
     fn test_case0_receive_message() {
-        let receive_buffer = &mut [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let receive_buffer = &mut [0u8; config::DATA_TRANSFER_SIZE];
         let mut writer = Writer::init(receive_buffer);
         let value = PciDoeMessageHeader {
             vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
@@ -412,7 +412,7 @@ mod tests_responder {
             provision_info,
         );
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let status = context
             .receive_message(&mut receive_buffer[..], ST1)
             .is_ok();

@@ -637,7 +637,7 @@ impl<'a> SpdmContext<'a> {
         transport_buffer: &[u8],
         receive_buffer: &mut [u8],
     ) -> SpdmResult<usize> {
-        let mut encoded_receive_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut encoded_receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let (used, secured_message) = self
             .transport_encap
             .decap(transport_buffer, &mut encoded_receive_buffer)?;
@@ -683,6 +683,8 @@ pub struct SpdmConfigInfo {
     pub opaque_support: SpdmOpaqueSupport,
     pub session_policy: u8,
     pub runtime_content_change_support: bool,
+    pub data_transfer_size: u32,
+    pub max_spdm_msg_size: u32,
 }
 
 #[derive(Debug, Default)]
@@ -702,6 +704,10 @@ pub struct SpdmNegotiateInfo {
     pub key_schedule_sel: SpdmKeyScheduleAlgo,
     pub opaque_data_support: SpdmOpaqueSupport,
     pub termination_policy_set: bool, // used by responder to take action when code or configuration changed.
+    pub req_data_transfer_size_sel: u32, // spdm 1.2
+    pub req_max_spdm_msg_size_sel: u32, // spdm 1.2
+    pub rsp_data_transfer_size_sel: u32, // spdm 1.2
+    pub rsp_max_spdm_msg_size_sel: u32, // spdm 1.2
 }
 
 // TBD ManagedSmallBuffer

@@ -81,7 +81,7 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
@@ -92,7 +92,7 @@ impl<'a> RequesterContext<'a> {
         send_buffer: &[u8],
         is_app_message: bool,
     ) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
             send_buffer,
@@ -117,7 +117,7 @@ impl<'a> RequesterContext<'a> {
             timeout = ST1;
         }
 
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self
             .common
             .device_io
@@ -142,7 +142,7 @@ impl<'a> RequesterContext<'a> {
             timeout = ST1;
         }
 
-        let mut transport_buffer = [0u8; config::MAX_SPDM_TRANSPORT_SIZE];
+        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
 
         let used = self
             .common
