@@ -95,6 +95,7 @@ pub struct SpdmSession {
     transport_param: SpdmSessionTransportParam,
     pub runtime_info: SpdmSessionRuntimeInfo,
     key_schedule: SpdmKeySchedule,
+    pub heartbeat_period: u8, // valid only when HEARTBEAT cap set
 }
 
 impl Default for SpdmSession {
@@ -117,6 +118,7 @@ impl SpdmSession {
             transport_param: SpdmSessionTransportParam::default(),
             runtime_info: SpdmSessionRuntimeInfo::default(),
             key_schedule: SpdmKeySchedule::new(),
+            heartbeat_period: 0,
         }
     }
 

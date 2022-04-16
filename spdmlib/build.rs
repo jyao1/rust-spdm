@@ -22,6 +22,7 @@ struct SpdmConfig {
     max_msg_buffer_size: usize,
     data_transfer_size: usize,
     max_spdm_msg_size: usize,
+    heartbeat_period_value: u8,
 }
 
 impl SpdmConfig {
@@ -130,6 +131,11 @@ pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz}; // set to equal to DATA_
 /// This is used in vendor defined message transport
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
 pub const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = {vendor_payload_sz};
+
+/// This is used by responder to specify the heartbeat period
+/// 0 represents either Heartbeat is not supported or
+/// heartbeat is not desired on a session
+pub const HEARTBEAT_PERIOD: u8 = {heartbeat_period};
 "
 };
 }
@@ -177,7 +183,8 @@ fn main() {
             .max_vendor_defined_vendor_id_len,
         vendor_payload_sz = spdm_config
             .vendor_defined_config
-            .max_vendor_defined_payload_size
+            .max_vendor_defined_payload_size,
+        heartbeat_period = spdm_config.heartbeat_period_value,
     )
     .expect("Failed to generate configuration code from the template and JSON config");
 
