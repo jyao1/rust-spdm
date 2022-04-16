@@ -91,7 +91,7 @@ impl<'a> ResponderContext<'a> {
                 request_response_code: SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
             },
             payload: SpdmMessagePayload::SpdmKeyExchangeResponse(SpdmKeyExchangeResponsePayload {
-                heartbeat_period: 0x0,
+                heartbeat_period: self.common.config_info.heartbeat_period,
                 rsp_session_id,
                 mut_auth_req: SpdmKeyExchangeMutAuthAttributes::empty(),
                 req_slot_id: 0x0,

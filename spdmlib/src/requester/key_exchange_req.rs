@@ -233,6 +233,8 @@ impl<'a> RequesterContext<'a> {
                             crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                         );
 
+                        session.heartbeat_period = key_exchange_rsp.heartbeat_period;
+
                         Ok(session_id)
                     } else {
                         error!("!!! key_exchange : fail !!!\n");
