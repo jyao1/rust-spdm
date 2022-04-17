@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use super::algo::*;
-use crate::config::MAX_SPDM_MESSAGE_BUFFER_SIZE;
 use crate::crypto;
+use crate::{config::MAX_SPDM_MESSAGE_BUFFER_SIZE, message::SpdmVersion};
 use codec::{Codec, Writer};
 extern crate alloc;
 use alloc::boxed::Box;
@@ -21,7 +21,9 @@ const BIN_STR6_LABEL: &[u8] = b"iv";
 const BIN_STR7_LABEL: &[u8] = b"finished";
 const BIN_STR8_LABEL: &[u8] = b"exp master";
 const BIN_STR9_LABEL: &[u8] = b"traffic upd";
-const SPDM_VERSION_VALUE: &[u8; 8] = b"spdm1.1 ";
+const SPDM_VERSION_VALUE: &[u8; 8] = b"spdm .  ";
+const SPDM_VERSION_VALUE_MAJOR_INDEX: usize = 4;
+const SPDM_VERSION_VALUE_MINOR_INDEX: usize = 6;
 
 #[derive(Clone, Debug)]
 pub struct SpdmKeySchedule;
@@ -39,6 +41,7 @@ impl SpdmKeySchedule {
 
     pub fn derive_handshake_secret(
         &self,
+        _spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
@@ -47,19 +50,19 @@ impl SpdmKeySchedule {
 
     pub fn derive_master_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str0 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR0_LABEL,
             None,
             buffer,
         )?;
         let salt_1 = crypto::hkdf::hkdf_expand(hash_algo, key, bin_str0, hash_algo.get_size())?;
-
         debug!("salt_1 - {:02x?}", salt_1.as_ref());
 
         crypto::hmac::hmac(
@@ -71,6 +74,7 @@ impl SpdmKeySchedule {
 
     pub fn derive_request_handshake_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
         th1: &[u8],
@@ -78,7 +82,7 @@ impl SpdmKeySchedule {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str1 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR1_LABEL,
             Some(th1),
             buffer,
@@ -88,6 +92,7 @@ impl SpdmKeySchedule {
 
     pub fn derive_response_handshake_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
         th1: &[u8],
@@ -95,7 +100,7 @@ impl SpdmKeySchedule {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str2 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR2_LABEL,
             Some(th1),
             buffer,
@@ -105,13 +110,14 @@ impl SpdmKeySchedule {
 
     pub fn derive_finished_key(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str7 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR7_LABEL,
             None,
             buffer,
@@ -121,6 +127,7 @@ impl SpdmKeySchedule {
 
     pub fn derive_aead_key_iv(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         aead_algo: SpdmAeadAlgo,
         key: &[u8],
@@ -128,7 +135,7 @@ impl SpdmKeySchedule {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str5 = self.binconcat(
             aead_algo.get_key_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR5_LABEL,
             None,
             buffer,
@@ -146,7 +153,7 @@ impl SpdmKeySchedule {
 
         let bin_str6 = self.binconcat(
             aead_algo.get_iv_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR6_LABEL,
             None,
             buffer,
@@ -166,6 +173,7 @@ impl SpdmKeySchedule {
 
     pub fn derive_request_data_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
         th2: &[u8],
@@ -173,7 +181,7 @@ impl SpdmKeySchedule {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str3 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR3_LABEL,
             Some(th2),
             buffer,
@@ -183,6 +191,7 @@ impl SpdmKeySchedule {
 
     pub fn derive_response_data_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
         th2: &[u8],
@@ -190,7 +199,7 @@ impl SpdmKeySchedule {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str4 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR4_LABEL,
             Some(th2),
             buffer,
@@ -200,13 +209,14 @@ impl SpdmKeySchedule {
 
     pub fn derive_export_master_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str8 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR8_LABEL,
             None,
             buffer,
@@ -216,13 +226,14 @@ impl SpdmKeySchedule {
 
     pub fn derive_update_secret(
         &self,
+        spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let bin_str9 = self.binconcat(
             hash_algo.get_size(),
-            SPDM_VERSION_VALUE,
+            spdm_version,
             BIN_STR9_LABEL,
             None,
             buffer,
@@ -233,7 +244,7 @@ impl SpdmKeySchedule {
     fn binconcat<'a>(
         &self,
         length: u16,
-        version: &[u8; 8],
+        spdm_version: SpdmVersion,
         label: &[u8],
         context: Option<&[u8]>,
         buffer: &'a mut [u8],
@@ -245,6 +256,12 @@ impl SpdmKeySchedule {
         if len > buffer.len() - 2 - 8 {
             return None;
         }
+
+        let mut version = [0u8; 8];
+        version.copy_from_slice(SPDM_VERSION_VALUE);
+        version[SPDM_VERSION_VALUE_MAJOR_INDEX] = (spdm_version.get_u8() >> 4) + b'0';
+        version[SPDM_VERSION_VALUE_MINOR_INDEX] = (spdm_version.get_u8() & 0x0F) + b'0';
+
         let mut writer = Writer::init(buffer);
         length.encode(&mut writer);
         writer.extend_from_slice(&version[..]);

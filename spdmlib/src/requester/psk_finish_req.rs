@@ -88,6 +88,7 @@ impl<'a> RequesterContext<'a> {
                     let receive_used = reader.used();
                     if let Some(psk_finish_rsp) = psk_finish_rsp {
                         debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
+                        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                         let session = self.common.get_session_via_id(session_id).unwrap();
                         message_f
                             .append_message(&receive_buffer[..receive_used])
@@ -106,7 +107,9 @@ impl<'a> RequesterContext<'a> {
                         )?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let session = self.common.get_session_via_id(session_id).unwrap();
-                        session.generate_data_secret(&th2).unwrap();
+                        session
+                            .generate_data_secret(spdm_version_sel, &th2)
+                            .unwrap();
                         session.set_session_state(
                             crate::common::session::SpdmSessionState::SpdmSessionEstablished,
                         );

@@ -35,17 +35,18 @@ impl<'a> ResponderContext<'a> {
         }
         let key_update_req = key_update_req.unwrap();
 
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_session_via_id(session_id).unwrap();
         match key_update_req.key_update_operation {
             SpdmKeyUpdateOperation::SpdmUpdateSingleKey => {
-                let _ = session.create_data_secret_update(true, false);
+                let _ = session.create_data_secret_update(spdm_version_sel, true, false);
             }
             SpdmKeyUpdateOperation::SpdmUpdateAllKeys => {
-                let _ = session.create_data_secret_update(true, true);
-                let _ = session.activate_data_secret_update(true, true, true);
+                let _ = session.create_data_secret_update(spdm_version_sel, true, true);
+                let _ = session.activate_data_secret_update(spdm_version_sel, true, true, true);
             }
             SpdmKeyUpdateOperation::SpdmVerifyNewKey => {
-                let _ = session.activate_data_secret_update(true, false, true);
+                let _ = session.activate_data_secret_update(spdm_version_sel, true, false, true);
             }
             _ => {
                 error!("!!! key_update req : fail !!!\n");

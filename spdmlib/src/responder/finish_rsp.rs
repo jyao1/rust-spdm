@@ -185,8 +185,11 @@ impl<'a> ResponderContext<'a> {
         }
         let th2 = th2.unwrap();
         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_session_via_id(session_id).unwrap();
-        session.generate_data_secret(&th2).unwrap();
+        session
+            .generate_data_secret(spdm_version_sel, &th2)
+            .unwrap();
 
         true
     }

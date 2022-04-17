@@ -4,7 +4,7 @@
 
 use crate::responder::*;
 
-use crate::common::ManagedBuffer;
+use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
 
 use crate::crypto;
 extern crate alloc;
@@ -26,6 +26,9 @@ impl<'a> ResponderContext<'a> {
 
         let key_exchange_req =
             SpdmKeyExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);
+
+        let mut return_opaque = SpdmOpaqueStruct::default();
+
         if let Some(key_exchange_req) = &key_exchange_req {
             debug!("!!! key_exchange req : {:02x?}\n", key_exchange_req);
 
@@ -46,6 +49,42 @@ impl<'a> ResponderContext<'a> {
                 self.common.negotiate_info.termination_policy_set = true;
             } else {
                 self.common.negotiate_info.termination_policy_set = false;
+            }
+
+            if let Some(secured_message_version_list) = key_exchange_req
+                .opaque
+                .rsp_get_dmtf_supported_secure_spdm_version_list(&mut self.common)
+            {
+                for index in 0..secured_message_version_list.version_count as usize {
+                    if secured_message_version_list.versions_list[index].get_secure_spdm_version()
+                        == self.common.config_info.secure_spdm_version
+                    {
+                        if self
+                            .common
+                            .negotiate_info
+                            .opaque_data_support
+                            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+                        {
+                            return_opaque.data_size =
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                    .len() as u16;
+                            return_opaque.data[..(return_opaque.data_size as usize)]
+                                .copy_from_slice(
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                    .as_ref(),
+                            );
+                        } else {
+                            return_opaque.data_size =
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                    .len() as u16;
+                            return_opaque.data[..(return_opaque.data_size as usize)]
+                                .copy_from_slice(
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                    .as_ref(),
+                            );
+                        }
+                    }
+                }
             }
         } else {
             error!("!!! key_exchange req : fail !!!\n");
@@ -79,12 +118,6 @@ impl<'a> ResponderContext<'a> {
 
         let rsp_session_id = 0xFFFE;
 
-        let mut opaque = SpdmOpaqueStruct {
-            data_size: crate::common::OPAQUE_DATA_VERSION_SELECTION.len() as u16,
-            ..Default::default()
-        };
-        opaque.data[..(opaque.data_size as usize)]
-            .copy_from_slice(crate::common::OPAQUE_DATA_VERSION_SELECTION.as_ref());
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
@@ -101,7 +134,7 @@ impl<'a> ResponderContext<'a> {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
                     data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
                 },
-                opaque,
+                opaque: return_opaque.clone(),
                 signature: SpdmSignatureStruct {
                     data_size: self.common.negotiate_info.base_asym_sel.get_size(),
                     data: [0xbb; SPDM_MAX_ASYM_KEY_SIZE],
@@ -163,6 +196,7 @@ impl<'a> ResponderContext<'a> {
         let sequence_number_count = self.common.transport_encap.get_sequence_number_count();
         let max_random_count = self.common.transport_encap.get_max_random_count();
 
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_next_avaiable_session();
         if session.is_none() {
             error!("!!! too many sessions : fail !!!\n");
@@ -177,8 +211,10 @@ impl<'a> ResponderContext<'a> {
         session.set_use_psk(false);
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
-        session.set_dhe_secret(final_key);
-        session.generate_handshake_secret(&th1).unwrap();
+        session.set_dhe_secret(spdm_version_sel, final_key);
+        session
+            .generate_handshake_secret(spdm_version_sel, &th1)
+            .unwrap();
 
         // generate HMAC with finished_key
         let transcript_data = self
@@ -210,8 +246,15 @@ impl<'a> ResponderContext<'a> {
             .copy_from_slice(signature.as_ref());
         writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref()); // impl AsRef<[u8]> for SpdmDigestStruct
 
+        let heartbeat_period = self.common.config_info.heartbeat_period;
+        let secure_spdm_version_sel = self.common.config_info.secure_spdm_version;
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+
+        session.heartbeat_period = heartbeat_period;
+        if return_opaque.data_size != 0 {
+            session.secure_spdm_version_sel = secure_spdm_version_sel;
+        }
     }
 }
 
@@ -265,7 +308,7 @@ mod tests_responder {
 
         let key_exchange: &mut [u8; 1024] = &mut [0u8; 1024];
         let mut writer = Writer::init(key_exchange);
-        let value = SpdmKeyExchangeRequestPayload {
+        let mut value = SpdmKeyExchangeRequestPayload {
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb,
             slot_id: 100u8,
@@ -276,10 +319,14 @@ mod tests_responder {
             },
             exchange: SpdmDheExchangeStruct::from(public_key),
             opaque: SpdmOpaqueStruct {
-                data_size: 64u16,
-                data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                    .len() as u16,
+                data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
             },
         };
+        value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
+            &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
+        );
         value.spdm_encode(&mut context.common, &mut writer);
 
         let bytes = &mut [0u8; 1024];

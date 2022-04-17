@@ -96,6 +96,7 @@ pub struct SpdmSession {
     pub runtime_info: SpdmSessionRuntimeInfo,
     key_schedule: SpdmKeySchedule,
     pub heartbeat_period: u8, // valid only when HEARTBEAT cap set
+    pub secure_spdm_version_sel: u8,
 }
 
 impl Default for SpdmSession {
@@ -119,6 +120,7 @@ impl SpdmSession {
             runtime_info: SpdmSessionRuntimeInfo::default(),
             key_schedule: SpdmKeySchedule::new(),
             heartbeat_period: 0,
+            secure_spdm_version_sel: DMTF_SECURE_SPDM_VERSION_11,
         }
     }
 
@@ -159,20 +161,20 @@ impl SpdmSession {
         self.use_psk = use_psk;
     }
 
-    pub fn set_dhe_secret(&mut self, dhe_secret: SpdmDheFinalKeyStruct) {
+    pub fn set_dhe_secret(&mut self, spdm_version: SpdmVersion, dhe_secret: SpdmDheFinalKeyStruct) {
         self.master_secret.dhe_secret = dhe_secret; // take the ownership here!
         let key = &self.master_secret.dhe_secret.as_ref();
 
         // generate master_secret.handshake_secret and master_secret.master_secret
         let handshake_secret = self
             .key_schedule
-            .derive_handshake_secret(self.crypto_param.base_hash_algo, key)
+            .derive_handshake_secret(spdm_version, self.crypto_param.base_hash_algo, key)
             .unwrap();
 
         let key = handshake_secret.as_ref();
         let master_secret = self
             .key_schedule
-            .derive_master_secret(self.crypto_param.base_hash_algo, key)
+            .derive_master_secret(spdm_version, self.crypto_param.base_hash_algo, key)
             .unwrap();
 
         self.master_secret.handshake_secret = handshake_secret;
@@ -210,7 +212,11 @@ impl SpdmSession {
         self.session_state = session_state;
     }
 
-    pub fn generate_handshake_secret(&mut self, th1: &SpdmDigestStruct) -> SpdmResult {
+    pub fn generate_handshake_secret(
+        &mut self,
+        spdm_version: SpdmVersion,
+        th1: &SpdmDigestStruct,
+    ) -> SpdmResult {
         // generate key
         info!("!!! generate_handshake_secret !!!:\n");
         let hash_algo = self.crypto_param.base_hash_algo;
@@ -219,6 +225,7 @@ impl SpdmSession {
         self.handshake_secret.request_handshake_secret = self
             .key_schedule
             .derive_request_handshake_secret(
+                spdm_version,
                 hash_algo,
                 self.master_secret.handshake_secret.as_ref(),
                 th1.as_ref(),
@@ -231,6 +238,7 @@ impl SpdmSession {
         self.handshake_secret.response_handshake_secret = self
             .key_schedule
             .derive_response_handshake_secret(
+                spdm_version,
                 hash_algo,
                 self.master_secret.handshake_secret.as_ref(),
                 th1.as_ref(),
@@ -243,6 +251,7 @@ impl SpdmSession {
         self.handshake_secret.request_finished_key = self
             .key_schedule
             .derive_finished_key(
+                spdm_version,
                 hash_algo,
                 self.handshake_secret.request_handshake_secret.as_ref(),
             )
@@ -254,6 +263,7 @@ impl SpdmSession {
         self.handshake_secret.response_finished_key = self
             .key_schedule
             .derive_finished_key(
+                spdm_version,
                 hash_algo,
                 self.handshake_secret.response_handshake_secret.as_ref(),
             )
@@ -266,6 +276,7 @@ impl SpdmSession {
         let res = self
             .key_schedule
             .derive_aead_key_iv(
+                spdm_version,
                 hash_algo,
                 aead_algo,
                 self.handshake_secret.request_handshake_secret.as_ref(),
@@ -289,6 +300,7 @@ impl SpdmSession {
         let res = self
             .key_schedule
             .derive_aead_key_iv(
+                spdm_version,
                 hash_algo,
                 aead_algo,
                 self.handshake_secret.response_handshake_secret.as_ref(),
@@ -311,6 +323,7 @@ impl SpdmSession {
         self.handshake_secret.export_master_secret = self
             .key_schedule
             .derive_export_master_secret(
+                spdm_version,
                 hash_algo,
                 self.handshake_secret.export_master_secret.as_ref(),
             )
@@ -319,7 +332,11 @@ impl SpdmSession {
         Ok(())
     }
 
-    pub fn generate_data_secret(&mut self, th2: &SpdmDigestStruct) -> SpdmResult {
+    pub fn generate_data_secret(
+        &mut self,
+        spdm_version: SpdmVersion,
+        th2: &SpdmDigestStruct,
+    ) -> SpdmResult {
         // generate key
         info!("!!! generate_data_secret !!!:\n");
         let hash_algo = self.crypto_param.base_hash_algo;
@@ -328,6 +345,7 @@ impl SpdmSession {
         self.application_secret.request_data_secret = self
             .key_schedule
             .derive_request_data_secret(
+                spdm_version,
                 hash_algo,
                 self.master_secret.master_secret.as_ref(),
                 th2.as_ref(),
@@ -336,6 +354,7 @@ impl SpdmSession {
         self.application_secret.response_data_secret = self
             .key_schedule
             .derive_response_data_secret(
+                spdm_version,
                 hash_algo,
                 self.master_secret.master_secret.as_ref(),
                 th2.as_ref(),
@@ -353,6 +372,7 @@ impl SpdmSession {
         let res = self
             .key_schedule
             .derive_aead_key_iv(
+                spdm_version,
                 hash_algo,
                 aead_algo,
                 self.application_secret.request_data_secret.as_ref(),
@@ -375,6 +395,7 @@ impl SpdmSession {
         let res = self
             .key_schedule
             .derive_aead_key_iv(
+                spdm_version,
                 hash_algo,
                 aead_algo,
                 self.application_secret.response_data_secret.as_ref(),
@@ -399,6 +420,7 @@ impl SpdmSession {
 
     pub fn create_data_secret_update(
         &mut self,
+        spdm_version: SpdmVersion,
         update_requester: bool,
         update_responder: bool,
     ) -> SpdmResult {
@@ -418,6 +440,7 @@ impl SpdmSession {
             self.application_secret.request_data_secret = self
                 .key_schedule
                 .derive_update_secret(
+                    spdm_version,
                     hash_algo,
                     self.application_secret.request_data_secret.as_ref(),
                 )
@@ -430,6 +453,7 @@ impl SpdmSession {
             let res = self
                 .key_schedule
                 .derive_aead_key_iv(
+                    spdm_version,
                     hash_algo,
                     aead_algo,
                     self.application_secret.request_data_secret.as_ref(),
@@ -460,6 +484,7 @@ impl SpdmSession {
             self.application_secret.response_data_secret = self
                 .key_schedule
                 .derive_update_secret(
+                    spdm_version,
                     hash_algo,
                     self.application_secret.response_data_secret.as_ref(),
                 )
@@ -472,6 +497,7 @@ impl SpdmSession {
             let res = self
                 .key_schedule
                 .derive_aead_key_iv(
+                    spdm_version,
                     hash_algo,
                     aead_algo,
                     self.application_secret.response_data_secret.as_ref(),
@@ -496,6 +522,7 @@ impl SpdmSession {
     }
     pub fn activate_data_secret_update(
         &mut self,
+        _spdm_version: SpdmVersion,
         update_requester: bool,
         update_responder: bool,
         use_new_key: bool,
@@ -859,17 +886,17 @@ mod tests_session {
     fn test_case0_activate_data_secret_update() {
         let mut session = SpdmSession::default();
         let status = session
-            .activate_data_secret_update(true, true, false)
+            .activate_data_secret_update(SpdmVersion::SpdmVersion12, true, true, false)
             .is_ok();
         assert!(status);
 
         let status = session
-            .activate_data_secret_update(true, false, false)
+            .activate_data_secret_update(SpdmVersion::SpdmVersion12, true, false, false)
             .is_ok();
         assert!(status);
 
         let status = session
-            .activate_data_secret_update(false, false, false)
+            .activate_data_secret_update(SpdmVersion::SpdmVersion12, false, false, false)
             .is_ok();
         assert!(status);
     }
