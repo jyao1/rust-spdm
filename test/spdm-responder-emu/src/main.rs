@@ -175,6 +175,8 @@ fn handle_message(
         opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
         max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
+        heartbeat_period: config::HEARTBEAT_PERIOD,
+        secure_spdm_version: config::SECURE_SPDM_VERSION,
         ..Default::default()
     };
 

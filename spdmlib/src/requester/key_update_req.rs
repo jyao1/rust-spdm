@@ -19,11 +19,12 @@ impl<'a> RequesterContext<'a> {
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         // update key
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_session_via_id(session_id).unwrap();
         let update_requester = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateSingleKey
             || key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
-        session.create_data_secret_update(update_requester, update_responder)?;
+        session.create_data_secret_update(spdm_version_sel, update_requester, update_responder)?;
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
 
@@ -69,10 +70,12 @@ impl<'a> RequesterContext<'a> {
                 SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => {
                     let key_update_rsp =
                         SpdmKeyUpdateResponsePayload::spdm_read(&mut self.common, &mut reader);
+                    let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                     let session = self.common.get_session_via_id(session_id).unwrap();
                     if let Some(key_update_rsp) = key_update_rsp {
                         debug!("!!! key_update rsp : {:02x?}\n", key_update_rsp);
                         session.activate_data_secret_update(
+                            spdm_version_sel,
                             update_requester,
                             update_responder,
                             true,
@@ -81,6 +84,7 @@ impl<'a> RequesterContext<'a> {
                     } else {
                         error!("!!! key_update : fail !!!\n");
                         session.activate_data_secret_update(
+                            spdm_version_sel,
                             update_requester,
                             update_responder,
                             false,

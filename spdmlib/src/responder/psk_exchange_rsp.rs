@@ -5,6 +5,7 @@
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
@@ -27,6 +28,9 @@ impl<'a> ResponderContext<'a> {
 
         let psk_exchange_req =
             SpdmPskExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);
+
+        let mut return_opaque = SpdmOpaqueStruct::default();
+
         if let Some(psk_exchange_req) = &psk_exchange_req {
             debug!("!!! psk_exchange req : {:02x?}\n", psk_exchange_req);
 
@@ -38,6 +42,42 @@ impl<'a> ResponderContext<'a> {
                 self.common.runtime_info.need_measurement_summary_hash = true;
             } else {
                 self.common.runtime_info.need_measurement_summary_hash = false;
+            }
+
+            if let Some(secured_message_version_list) = psk_exchange_req
+                .opaque
+                .rsp_get_dmtf_supported_secure_spdm_version_list(&mut self.common)
+            {
+                for index in 0..secured_message_version_list.version_count as usize {
+                    if secured_message_version_list.versions_list[index].get_secure_spdm_version()
+                        == self.common.config_info.secure_spdm_version
+                    {
+                        if self
+                            .common
+                            .negotiate_info
+                            .opaque_data_support
+                            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+                        {
+                            return_opaque.data_size =
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                    .len() as u16;
+                            return_opaque.data[..(return_opaque.data_size as usize)]
+                                .copy_from_slice(
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                    .as_ref(),
+                            );
+                        } else {
+                            return_opaque.data_size =
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                    .len() as u16;
+                            return_opaque.data[..(return_opaque.data_size as usize)]
+                                .copy_from_slice(
+                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                    .as_ref(),
+                            );
+                        }
+                    }
+                }
             }
         } else {
             error!("!!! psk_exchange req : fail !!!\n");
@@ -52,24 +92,13 @@ impl<'a> ResponderContext<'a> {
 
         let rsp_session_id = 0xFFFD;
 
-        let mut opaque = SpdmOpaqueStruct {
-            data_size: crate::common::OPAQUE_DATA_VERSION_SELECTION.len() as u16,
-            ..Default::default()
-        };
-        opaque.data[..(opaque.data_size as usize)]
-            .copy_from_slice(crate::common::OPAQUE_DATA_VERSION_SELECTION.as_ref());
-
-        if self.common.negotiate_info.base_hash_sel.is_empty() {
-            return;
-        }
-
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
                 request_response_code: SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
             },
             payload: SpdmMessagePayload::SpdmPskExchangeResponse(SpdmPskExchangeResponsePayload {
-                heartbeat_period: 0x0,
+                heartbeat_period: self.common.config_info.heartbeat_period,
                 rsp_session_id,
                 measurement_summary_hash: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
@@ -79,7 +108,7 @@ impl<'a> ResponderContext<'a> {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
                     data: psk_context,
                 },
-                opaque,
+                opaque: return_opaque.clone(),
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
                     data: Box::new([0xcc; SPDM_MAX_HASH_SIZE]),
@@ -122,6 +151,7 @@ impl<'a> ResponderContext<'a> {
         let sequence_number_count = self.common.transport_encap.get_sequence_number_count();
         let max_random_count = self.common.transport_encap.get_max_random_count();
 
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_next_avaiable_session();
         if session.is_none() {
             error!("!!! too many sessions : fail !!!\n");
@@ -141,8 +171,10 @@ impl<'a> ResponderContext<'a> {
         psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
-        session.set_dhe_secret(psk_key); // transfer the ownership out
-        session.generate_handshake_secret(&th1).unwrap();
+        session.set_dhe_secret(spdm_version_sel, psk_key); // transfer the ownership out
+        session
+            .generate_handshake_secret(spdm_version_sel, &th1)
+            .unwrap();
 
         // generate HMAC with finished_key
         let transcript_data = self.common.calc_rsp_transcript_data(true, &message_k, None);
@@ -169,16 +201,22 @@ impl<'a> ResponderContext<'a> {
 
         // patch the message before send
         writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
-
+        let heartbeat_period = self.common.config_info.heartbeat_period;
+        let secure_spdm_version_sel = self.common.config_info.secure_spdm_version;
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+
+        session.heartbeat_period = heartbeat_period;
+        if return_opaque.data_size != 0 {
+            session.secure_spdm_version_sel = secure_spdm_version_sel;
+        }
     }
 }
 
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::config::{MAX_SPDM_OPAQUE_SIZE, MAX_SPDM_PSK_HINT_SIZE};
+    use crate::config::MAX_SPDM_PSK_HINT_SIZE;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -217,7 +255,7 @@ mod tests_responder {
 
         let challenge = &mut [0u8; 1024];
         let mut writer = Writer::init(challenge);
-        let value = SpdmPskExchangeRequestPayload {
+        let mut value = SpdmPskExchangeRequestPayload {
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             req_session_id: 100u16,
@@ -230,10 +268,14 @@ mod tests_responder {
                 data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: 64,
-                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                    .len() as u16,
+                data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
             },
         };
+        value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
+            &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
+        );
         value.spdm_encode(&mut context.common, &mut writer);
 
         let bytes = &mut [0u8; 1024];

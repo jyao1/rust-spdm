@@ -27,21 +27,6 @@ extern crate alloc;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 
-pub const OPAQUE_DATA_SUPPORT_VERSION: [u8; 20] = [
-    0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0x01, 0x01, 0x00,
-    0x11, 0x00, 0x00, 0x00,
-];
-
-// uint8_t total_elements; uint8_t reserved[3]; uint8_t id; uint8_t vendor_len; uint16_t opaque_element_data_len; uint8_t sm_data_version; uint8_t sm_data_id; uint8_t version_count; uint16_t versions_list[version_count]
-
-pub const OPAQUE_DATA_SUPPORT_VERSION_SPDM12: [u8; 16] = [
-    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x01, 0x01, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00,
-];
-
-pub const OPAQUE_DATA_VERSION_SELECTION: [u8; 16] = [
-    0x46, 0x54, 0x4d, 0x44, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x11,
-];
-
 /// The maximum amount of time the Responder has to provide a
 /// response to requests that do not require cryptographic processing, such
 /// as the GET_CAPABILITIES , GET_VERSION , or NEGOTIATE_ALGORITHMS
@@ -685,7 +670,8 @@ pub struct SpdmConfigInfo {
     pub runtime_content_change_support: bool,
     pub data_transfer_size: u32,
     pub max_spdm_msg_size: u32,
-    pub heartbeat_period: u8, // used by responder only
+    pub heartbeat_period: u8,    // used by responder only
+    pub secure_spdm_version: u8, // used by responder only
 }
 
 #[derive(Debug, Default)]

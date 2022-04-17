@@ -53,21 +53,31 @@ impl<'a> RequesterContext<'a> {
         crypto::rand::get_random(&mut psk_context)?;
 
         let mut opaque;
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self
+            .common
+            .negotiate_info
+            .opaque_data_support
+            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+        {
             opaque = SpdmOpaqueStruct {
-                data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION_SPDM12.len() as u16,
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                    .len() as u16,
                 ..Default::default()
             };
-            opaque.data[..(opaque.data_size as usize)]
-                .copy_from_slice(crate::common::OPAQUE_DATA_SUPPORT_VERSION_SPDM12.as_ref());
+            opaque.data[..(opaque.data_size as usize)].copy_from_slice(
+                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1.as_ref(),
+            );
         } else {
             opaque = SpdmOpaqueStruct {
-                data_size: crate::common::OPAQUE_DATA_SUPPORT_VERSION.len() as u16,
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0
+                    .len() as u16,
                 ..Default::default()
             };
-            opaque.data[..(opaque.data_size as usize)]
-                .copy_from_slice(crate::common::OPAQUE_DATA_SUPPORT_VERSION.as_ref());
+            opaque.data[..(opaque.data_size as usize)].copy_from_slice(
+                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0.as_ref(),
+            );
         }
+
         let request = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
@@ -140,8 +150,20 @@ impl<'a> RequesterContext<'a> {
                             self.common.transport_encap.get_sequence_number_count();
                         let max_random_count = self.common.transport_encap.get_max_random_count();
 
+                        let secure_spdm_version_sel;
+                        if let Some(secured_message_version) = psk_exchange_rsp
+                            .opaque
+                            .req_get_dmtf_secure_spdm_version_selection(&mut self.common)
+                        {
+                            secure_spdm_version_sel =
+                                secured_message_version.get_secure_spdm_version();
+                        } else {
+                            secure_spdm_version_sel = 0;
+                        }
+
                         let session_id = ((INITIAL_SESSION_ID as u32) << 16)
                             + psk_exchange_rsp.rsp_session_id as u32;
+                        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                         let session = self
                             .common
                             .get_next_avaiable_session()
@@ -162,8 +184,10 @@ impl<'a> RequesterContext<'a> {
                             key_schedule_algo,
                         );
                         session.set_transport_param(sequence_number_count, max_random_count);
-                        session.set_dhe_secret(psk_key); // transfer the ownership out
-                        session.generate_handshake_secret(&th1).unwrap();
+                        session.set_dhe_secret(spdm_version_sel, psk_key); // transfer the ownership out
+                        session
+                            .generate_handshake_secret(spdm_version_sel, &th1)
+                            .unwrap();
 
                         // verify HMAC with finished_key
                         let transcript_data = self
@@ -194,6 +218,9 @@ impl<'a> RequesterContext<'a> {
                         session.set_session_state(
                             crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                         );
+
+                        session.secure_spdm_version_sel = secure_spdm_version_sel;
+                        session.heartbeat_period = psk_exchange_rsp.heartbeat_period;
 
                         Ok(session_id)
                     } else {

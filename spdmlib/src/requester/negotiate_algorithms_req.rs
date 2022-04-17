@@ -89,11 +89,6 @@ impl<'a> RequesterContext<'a> {
                         self.common.negotiate_info.measurement_specification_sel =
                             algorithms.measurement_specification_sel;
 
-                        assert_ne!(
-                            self.common.config_info.opaque_support
-                                & algorithms.other_params_selection,
-                            SpdmOpaqueSupport::default()
-                        );
                         self.common.negotiate_info.opaque_data_support =
                             algorithms.other_params_selection;
 
