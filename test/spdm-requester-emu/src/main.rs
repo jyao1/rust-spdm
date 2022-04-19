@@ -188,13 +188,14 @@ fn test_spdm(
     }
 
     let mut total_number: u8 = 0;
-
+    let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
     if context
         .send_receive_spdm_measurement(
             None,
             SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             &mut total_number,
+            &mut spdm_measurement_record_structure,
             0,
         )
         .is_err()
@@ -247,6 +248,7 @@ fn test_spdm(
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                 &mut total_number,
+                &mut spdm_measurement_record_structure,
                 0,
             )
             .is_err()
