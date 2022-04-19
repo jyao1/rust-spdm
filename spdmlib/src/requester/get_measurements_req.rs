@@ -13,6 +13,7 @@ impl<'a> RequesterContext<'a> {
         session_id: Option<u32>,
         measurement_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
+        spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
         slot_id: u8,
     ) -> SpdmResult<u8> {
         info!("send spdm measurement\n");
@@ -45,6 +46,7 @@ impl<'a> RequesterContext<'a> {
             session_id,
             measurement_attributes,
             measurement_operation,
+            spdm_measurement_record_structure,
             &send_buffer[..send_used],
             &receive_buffer[..used],
         )
@@ -84,6 +86,7 @@ impl<'a> RequesterContext<'a> {
         session_id: Option<u32>,
         measurement_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
+        spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult<u8> {
@@ -164,6 +167,10 @@ impl<'a> RequesterContext<'a> {
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         }
 
+                        *spdm_measurement_record_structure = SpdmMeasurementRecordStructure {
+                            ..measurements.measurement_record
+                        };
+
                         match measurement_operation {
                             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber => {
                                 Ok(measurements.number_of_measurement)
@@ -188,8 +195,8 @@ impl<'a> RequesterContext<'a> {
                     let erm = self.spdm_handle_error_response_main(
                         sid,
                         receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestGetDigests,
-                        SpdmRequestResponseCode::SpdmResponseDigests,
+                        SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+                        SpdmRequestResponseCode::SpdmResponseMeasurements,
                     );
                     match erm {
                         Ok(rm) => {
@@ -199,6 +206,7 @@ impl<'a> RequesterContext<'a> {
                                 session_id,
                                 measurement_attributes,
                                 measurement_operation,
+                                spdm_measurement_record_structure,
                                 send_buffer,
                                 &receive_buffer[..used],
                             )
@@ -219,12 +227,14 @@ impl<'a> RequesterContext<'a> {
         measurement_operation: SpdmMeasurementOperation,
         out_total_number: &mut u8, // out, total number when measurement_operation = SpdmMeasurementQueryTotalNumber
         //      number of blocks got measured.
+        spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure, // out
         slot_id: u8,
     ) -> SpdmResult {
         if let Ok(total_number) = self.send_receive_spdm_measurement_record(
             session_id,
             spdm_measuremente_attributes,
             measurement_operation,
+            spdm_measurement_record_structure,
             slot_id,
         ) {
             *out_total_number = total_number;
@@ -315,12 +325,14 @@ mod tests_requester {
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
         let mut total_number: u8 = 0;
+        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
         let status = requester
             .send_receive_spdm_measurement(
                 None,
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
+                &mut spdm_measurement_record_structure,
                 0,
             )
             .is_ok();
@@ -333,6 +345,7 @@ mod tests_requester {
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
+                &mut spdm_measurement_record_structure,
                 0,
             )
             .is_ok();
@@ -345,6 +358,7 @@ mod tests_requester {
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
+                &mut spdm_measurement_record_structure,
                 0,
             )
             .is_ok();
