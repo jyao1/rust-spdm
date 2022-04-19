@@ -735,8 +735,8 @@ pub struct SpdmRuntimeInfo {
     pub message_c: ManagedBuffer,
     pub message_m: ManagedBuffer,
     pub message_vca: ManagedBuffer,
-    pub content_changed: bool, // used by responder, when content changed and spdm version is 1.2, set to true.
-                               // used by requester, when measurement response report content changed, set to false after consumed.
+    pub content_changed: u8, // used by responder, set when content changed and spdm version is 1.2.
+                             // used by requester, consume when measurement response report content changed.
 }
 
 #[derive(Default, Clone)]

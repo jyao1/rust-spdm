@@ -103,11 +103,8 @@ impl<'a> RequesterContext<'a> {
                     if let Some(measurements) = measurements {
                         debug!("!!! measurements : {:02x?}\n", measurements);
 
-                        if measurements.content_changed
-                            == MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE
-                            && message_header.version == SpdmVersion::SpdmVersion12
-                        {
-                            self.common.runtime_info.content_changed = true;
+                        if message_header.version == SpdmVersion::SpdmVersion12 {
+                            self.common.runtime_info.content_changed = measurements.content_changed;
                         }
 
                         // verify signature
