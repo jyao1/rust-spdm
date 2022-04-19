@@ -115,11 +115,7 @@ impl<'a> ResponderContext<'a> {
         let content_changed = if self.common.config_info.runtime_content_change_support
             && self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
         {
-            if self.common.runtime_info.content_changed {
-                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE
-            } else {
-                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NO_CHANGE_VALUE
-            }
+            self.common.runtime_info.content_changed
         } else {
             MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
         };
