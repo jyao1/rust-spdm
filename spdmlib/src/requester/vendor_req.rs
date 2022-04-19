@@ -12,8 +12,8 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         standard_id: RegistryOrStandardsBodyID,
         vendor_id_struct: VendorIDStruct,
-        req_payload_struct: ReqPayloadStruct,
-    ) -> SpdmResult<ResPayloadStruct> {
+        req_payload_struct: VendorDefinedReqPayloadStruct,
+    ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         info!("send vendor defined request\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
@@ -45,18 +45,16 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         receive_buffer: &[u8],
-    ) -> SpdmResult<ResPayloadStruct> {
+    ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => {
                     match SpdmVendorDefinedResponsePayload::spdm_read(&mut self.common, &mut reader)
                     {
-                        Some(SpdmVendorDefinedResponsePayload {
-                            standard_id: _,
-                            vendor_id: _,
-                            res_payload,
-                        }) => Ok(res_payload),
+                        Some(spdm_vendor_defined_response_payload) => {
+                            Ok(spdm_vendor_defined_response_payload.rsp_payload)
+                        }
                         None => spdm_result_err!(EFAULT),
                     }
                 }
@@ -127,7 +125,7 @@ mod tests_requester {
             len: 0,
             vendor_id: [0u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
         };
-        let req_payload_struct: ReqPayloadStruct = ReqPayloadStruct {
+        let req_payload_struct: VendorDefinedReqPayloadStruct = VendorDefinedReqPayloadStruct {
             req_length: 0,
             vendor_defined_req_payload: [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
         };

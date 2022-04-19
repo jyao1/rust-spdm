@@ -15,7 +15,7 @@ impl<'a> ResponderContext<'a> {
         let standard_id = vendor_defined_request_payload.standard_id;
         let vendor_id = vendor_defined_request_payload.vendor_id;
         let req_payload = vendor_defined_request_payload.req_payload;
-        let res_payload = self
+        let rsp_payload = self
             .respond_to_vendor_defined_request(&req_payload)
             .unwrap();
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
@@ -30,7 +30,7 @@ impl<'a> ResponderContext<'a> {
                 SpdmVendorDefinedResponsePayload {
                     standard_id,
                     vendor_id,
-                    res_payload,
+                    rsp_payload,
                 },
             ),
         };
@@ -42,8 +42,8 @@ impl<'a> ResponderContext<'a> {
     #[allow(dead_code)]
     pub fn respond_to_vendor_defined_request(
         &mut self,
-        _req: &ReqPayloadStruct,
-    ) -> SpdmResult<ResPayloadStruct> {
+        _req: &VendorDefinedReqPayloadStruct,
+    ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         //Vendor to define reponse to request by vendor defined protocol, which is unkown to us.
         Err(SpdmError::new(
             SpdmErrorNum::EUNDEF,

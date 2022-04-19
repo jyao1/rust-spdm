@@ -70,11 +70,11 @@ impl Codec for VendorIDStruct {
 }
 
 #[derive(Debug, Clone)]
-pub struct ReqPayloadStruct {
+pub struct VendorDefinedReqPayloadStruct {
     pub req_length: u16,
     pub vendor_defined_req_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
 }
-impl Codec for ReqPayloadStruct {
+impl Codec for VendorDefinedReqPayloadStruct {
     fn encode(&self, bytes: &mut Writer) {
         self.req_length.encode(bytes);
         for d in self
@@ -86,7 +86,7 @@ impl Codec for ReqPayloadStruct {
         }
     }
 
-    fn read(r: &mut Reader) -> Option<ReqPayloadStruct> {
+    fn read(r: &mut Reader) -> Option<VendorDefinedReqPayloadStruct> {
         let req_length = u16::read(r)?;
         let mut vendor_defined_req_payload = [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
         for d in vendor_defined_req_payload
@@ -95,7 +95,7 @@ impl Codec for ReqPayloadStruct {
         {
             *d = u8::read(r)?;
         }
-        Some(ReqPayloadStruct {
+        Some(VendorDefinedReqPayloadStruct {
             req_length,
             vendor_defined_req_payload,
         })
@@ -103,35 +103,35 @@ impl Codec for ReqPayloadStruct {
 }
 
 #[derive(Debug, Clone)]
-pub struct ResPayloadStruct {
-    pub res_length: u16,
-    pub vendor_defined_res_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+pub struct VendorDefinedRspPayloadStruct {
+    pub rsp_length: u16,
+    pub vendor_defined_rsp_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
 }
 
-impl Codec for ResPayloadStruct {
+impl Codec for VendorDefinedRspPayloadStruct {
     fn encode(&self, bytes: &mut Writer) {
-        self.res_length.encode(bytes);
+        self.rsp_length.encode(bytes);
         for d in self
-            .vendor_defined_res_payload
+            .vendor_defined_rsp_payload
             .iter()
-            .take(self.res_length as usize)
+            .take(self.rsp_length as usize)
         {
             d.encode(bytes);
         }
     }
 
-    fn read(r: &mut Reader) -> Option<ResPayloadStruct> {
-        let res_length = u16::read(r)?;
-        let mut vendor_defined_res_payload = [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
-        for d in vendor_defined_res_payload
+    fn read(r: &mut Reader) -> Option<VendorDefinedRspPayloadStruct> {
+        let rsp_length = u16::read(r)?;
+        let mut vendor_defined_rsp_payload = [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
+        for d in vendor_defined_rsp_payload
             .iter_mut()
-            .take(res_length as usize)
+            .take(rsp_length as usize)
         {
             *d = u8::read(r)?;
         }
-        Some(ResPayloadStruct {
-            res_length,
-            vendor_defined_res_payload,
+        Some(VendorDefinedRspPayloadStruct {
+            rsp_length,
+            vendor_defined_rsp_payload,
         })
     }
 }
@@ -140,7 +140,7 @@ impl Codec for ResPayloadStruct {
 pub struct SpdmVendorDefinedRequestPayload {
     pub standard_id: RegistryOrStandardsBodyID,
     pub vendor_id: VendorIDStruct,
-    pub req_payload: ReqPayloadStruct,
+    pub req_payload: VendorDefinedReqPayloadStruct,
 }
 
 impl SpdmCodec for SpdmVendorDefinedRequestPayload {
@@ -160,7 +160,7 @@ impl SpdmCodec for SpdmVendorDefinedRequestPayload {
         u8::read(r)?; // param2
         let standard_id = RegistryOrStandardsBodyID::read(r)?; // Standard ID
         let vendor_id = VendorIDStruct::read(r)?;
-        let req_payload = ReqPayloadStruct::read(r)?;
+        let req_payload = VendorDefinedReqPayloadStruct::read(r)?;
 
         Some(SpdmVendorDefinedRequestPayload {
             standard_id,
@@ -174,7 +174,7 @@ impl SpdmCodec for SpdmVendorDefinedRequestPayload {
 pub struct SpdmVendorDefinedResponsePayload {
     pub standard_id: RegistryOrStandardsBodyID,
     pub vendor_id: VendorIDStruct,
-    pub res_payload: ResPayloadStruct,
+    pub rsp_payload: VendorDefinedRspPayloadStruct,
 }
 
 impl SpdmCodec for SpdmVendorDefinedResponsePayload {
@@ -183,7 +183,7 @@ impl SpdmCodec for SpdmVendorDefinedResponsePayload {
         0u8.encode(bytes); // param2
         self.standard_id.encode(bytes); //Standard ID
         self.vendor_id.encode(bytes);
-        self.res_payload.encode(bytes);
+        self.rsp_payload.encode(bytes);
     }
 
     fn spdm_read(
@@ -194,12 +194,12 @@ impl SpdmCodec for SpdmVendorDefinedResponsePayload {
         u8::read(r)?; // param2
         let standard_id = RegistryOrStandardsBodyID::read(r)?; // Standard ID
         let vendor_id = VendorIDStruct::read(r)?;
-        let res_payload = ResPayloadStruct::read(r)?;
+        let rsp_payload = VendorDefinedRspPayloadStruct::read(r)?;
 
         Some(SpdmVendorDefinedResponsePayload {
             standard_id,
             vendor_id,
-            res_payload,
+            rsp_payload,
         })
     }
 }
