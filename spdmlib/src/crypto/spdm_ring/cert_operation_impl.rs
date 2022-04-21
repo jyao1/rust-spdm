@@ -65,10 +65,16 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let anchors = vec![webpki::TrustAnchor::try_from_cert_der(ca).unwrap()];
 
     #[cfg(any(target_os = "uefi", target_os = "none"))]
-    let time = webpki::Time::from_seconds_since_unix_epoch(uefi_time::get_rtc_time() as u64);
-
-    #[cfg(feature = "std")]
-    let time = webpki::Time::try_from(std::time::SystemTime::now()).unwrap();
+    let timestamp = uefi_time::get_rtc_time() as u64;
+    #[cfg(not(any(target_os = "uefi", target_os = "none")))]
+    let timestamp = {
+        extern crate std;
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    };
+    let time = webpki::Time::from_seconds_since_unix_epoch(timestamp);
 
     let cert = webpki::EndEntityCert::try_from(ee).unwrap();
 
