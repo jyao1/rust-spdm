@@ -138,9 +138,12 @@ impl<'a> RequesterContext<'a> {
                             .ok_or(spdm_err!(ENOMEM))?;
 
                         // create session - generate the handshake secret (including finished_key)
-                        let th1 = self
-                            .common
-                            .calc_req_transcript_hash(true, &message_k, None)?;
+                        let th1 = self.common.calc_req_transcript_hash(
+                            INVALID_SLOT,
+                            true,
+                            &message_k,
+                            None,
+                        )?;
                         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                         let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                         let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -190,9 +193,12 @@ impl<'a> RequesterContext<'a> {
                             .unwrap();
 
                         // verify HMAC with finished_key
-                        let transcript_data = self
-                            .common
-                            .calc_req_transcript_data(true, &message_k, None)?;
+                        let transcript_data = self.common.calc_req_transcript_data(
+                            INVALID_SLOT,
+                            true,
+                            &message_k,
+                            None,
+                        )?;
                         let session = self
                             .common
                             .get_session_via_id(session_id)

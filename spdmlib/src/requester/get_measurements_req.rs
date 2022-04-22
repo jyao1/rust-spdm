@@ -44,6 +44,7 @@ impl<'a> RequesterContext<'a> {
 
         self.handle_spdm_measurement_record_response(
             session_id,
+            slot_id,
             measurement_attributes,
             measurement_operation,
             spdm_measurement_record_structure,
@@ -81,9 +82,11 @@ impl<'a> RequesterContext<'a> {
         Ok(writer.used())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_spdm_measurement_record_response(
         &mut self,
         session_id: Option<u32>,
+        slot_id: u8,
         measurement_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
@@ -134,7 +137,11 @@ impl<'a> RequesterContext<'a> {
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                             if self
                                 .common
-                                .verify_measurement_signature(session_id, &measurements.signature)
+                                .verify_measurement_signature(
+                                    slot_id,
+                                    session_id,
+                                    &measurements.signature,
+                                )
                                 .is_err()
                             {
                                 error!("verify_measurement_signature fail");
@@ -204,6 +211,7 @@ impl<'a> RequesterContext<'a> {
                             let used = rm.used;
                             self.handle_spdm_measurement_record_response(
                                 session_id,
+                                slot_id,
                                 measurement_attributes,
                                 measurement_operation,
                                 spdm_measurement_record_structure,
@@ -223,12 +231,12 @@ impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_measurement(
         &mut self,
         session_id: Option<u32>,
+        slot_id: u8,
         spdm_measuremente_attributes: SpdmMeasurementeAttributes,
         measurement_operation: SpdmMeasurementOperation,
         out_total_number: &mut u8, // out, total number when measurement_operation = SpdmMeasurementQueryTotalNumber
         //      number of blocks got measured.
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure, // out
-        slot_id: u8,
     ) -> SpdmResult {
         if let Ok(total_number) = self.send_receive_spdm_measurement_record(
             session_id,
@@ -320,7 +328,11 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
+        requester.common.peer_info.peer_cert_chain[0]
+            .as_mut()
+            .unwrap()
+            .cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.reset_runtime_info();
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
@@ -329,11 +341,11 @@ mod tests_requester {
         let status = requester
             .send_receive_spdm_measurement(
                 None,
+                0,
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
-                0,
             )
             .is_ok();
         assert!(status);
@@ -342,11 +354,11 @@ mod tests_requester {
         let status = requester
             .send_receive_spdm_measurement(
                 None,
+                0,
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
-                0,
             )
             .is_ok();
         assert!(status);
@@ -355,11 +367,11 @@ mod tests_requester {
         let status = requester
             .send_receive_spdm_measurement(
                 None,
+                0,
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
-                0,
             )
             .is_ok();
         assert!(status);

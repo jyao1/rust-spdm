@@ -38,6 +38,7 @@ impl<'a> RequesterContext<'a> {
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_key_exhcange_response(
             0,
+            slot_id,
             &send_buffer[..send_used],
             &receive_buffer[..receive_used],
             measurement_summary_hash_type,
@@ -112,6 +113,7 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_key_exhcange_response(
         &mut self,
         session_id: u32,
+        slot_id: u8,
         send_buffer: &[u8],
         receive_buffer: &[u8],
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
@@ -165,6 +167,7 @@ impl<'a> RequesterContext<'a> {
                         if self
                             .common
                             .verify_key_exchange_rsp_signature(
+                                slot_id,
                                 &message_k,
                                 &key_exchange_rsp.signature,
                             )
@@ -182,7 +185,7 @@ impl<'a> RequesterContext<'a> {
                         // create session - generate the handshake secret (including finished_key)
                         let th1 = self
                             .common
-                            .calc_req_transcript_hash(false, &message_k, None)?;
+                            .calc_req_transcript_hash(slot_id, false, &message_k, None)?;
                         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                         let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                         let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -235,7 +238,7 @@ impl<'a> RequesterContext<'a> {
                         // verify HMAC with finished_key
                         let transcript_data = self
                             .common
-                            .calc_req_transcript_data(false, &message_k, None)?;
+                            .calc_req_transcript_data(slot_id, false, &message_k, None)?;
                         let session;
                         session = self
                             .common
@@ -286,6 +289,7 @@ impl<'a> RequesterContext<'a> {
                             let used = rm.used;
                             self.handle_spdm_key_exhcange_response(
                                 session_id,
+                                slot_id,
                                 send_buffer,
                                 &receive_buffer[..used],
                                 measurement_summary_hash_type,
@@ -345,7 +349,7 @@ mod tests_requester {
             .runtime_info
             .message_m
             .append_message(message_m);
-        responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        responder.common.provision_info.my_cert_chain_data = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -370,7 +374,11 @@ mod tests_requester {
             .runtime_info
             .message_m
             .append_message(message_m);
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
+        requester.common.peer_info.peer_cert_chain[0]
+            .as_mut()
+            .unwrap()
+            .cert_chain = REQ_CERT_CHAIN_DATA;
 
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;

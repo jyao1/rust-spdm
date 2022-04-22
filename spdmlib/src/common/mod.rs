@@ -34,6 +34,9 @@ use core::convert::TryInto;
 /// https://www.dmtf.org/sites/default/files/standards/documents/DSP0274_1.1.0.pdf
 pub const ST1: usize = 1_000_000;
 
+/// used as parameter to be slot_id when use_psk is true
+pub const INVALID_SLOT: u8 = 0xFF;
+
 pub trait SpdmDeviceIo {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult;
 
@@ -173,6 +176,7 @@ impl<'a> SpdmContext<'a> {
 
     pub fn calc_req_transcript_data(
         &self,
+        slot_id: u8,
         use_psk: bool,
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
@@ -182,9 +186,22 @@ impl<'a> SpdmContext<'a> {
             .append_message(self.runtime_info.message_a.as_ref())
             .ok_or(spdm_err!(ENOMEM))?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
+
         if !use_psk {
-            let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data
-                [..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+            if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+                error!("peer_cert_chain is not populated!\n");
+                return spdm_result_err!(EINVAL);
+            }
+
+            let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
                     .ok_or_else(|| spdm_err!(EFAULT))?;
@@ -213,15 +230,17 @@ impl<'a> SpdmContext<'a> {
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
     ) -> SpdmResult<ManagedBuffer> {
-        if !use_psk && self.provision_info.my_cert_chain.is_none() {
-            return spdm_result_err!(EINVAL);
-        }
         let mut message = ManagedBuffer::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
             .ok_or(spdm_err!(ENOMEM))?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
         if !use_psk {
+            if self.provision_info.my_cert_chain.is_none() {
+                error!("my_cert_chain is not populated!\n");
+                return spdm_result_err!(EINVAL);
+            }
+
             let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref().unwrap();
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
@@ -249,11 +268,12 @@ impl<'a> SpdmContext<'a> {
 
     pub fn calc_req_transcript_hash(
         &self,
+        slot_id: u8,
         use_psk: bool,
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
     ) -> SpdmResult<SpdmDigestStruct> {
-        let message = self.calc_req_transcript_data(use_psk, message_k, message_f)?;
+        let message = self.calc_req_transcript_data(slot_id, use_psk, message_k, message_f)?;
 
         let transcript_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
@@ -277,6 +297,7 @@ impl<'a> SpdmContext<'a> {
 
     pub fn verify_challenge_auth_signature(
         &mut self,
+        slot_id: u8,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         let mut message = ManagedBuffer::default();
@@ -296,9 +317,21 @@ impl<'a> SpdmContext<'a> {
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data[(4usize
-            + self.negotiate_info.base_hash_sel.get_size() as usize)
-            ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+        if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
 
         if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
@@ -369,6 +402,7 @@ impl<'a> SpdmContext<'a> {
 
     pub fn verify_measurement_signature(
         &mut self,
+        slot_id: u8,
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
@@ -403,9 +437,21 @@ impl<'a> SpdmContext<'a> {
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data[(4usize
-            + self.negotiate_info.base_hash_sel.get_size() as usize)
-            ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+        if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
 
         if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
@@ -491,10 +537,11 @@ impl<'a> SpdmContext<'a> {
 
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
+        slot_id: u8,
         message_k: &ManagedBuffer,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let mut message = self.calc_req_transcript_data(false, message_k, None)?;
+        let mut message = self.calc_req_transcript_data(slot_id, false, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
@@ -502,9 +549,21 @@ impl<'a> SpdmContext<'a> {
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let cert_chain_data = &self.peer_info.peer_cert_chain.cert_chain.data[(4usize
-            + self.negotiate_info.base_hash_sel.get_size() as usize)
-            ..(self.peer_info.peer_cert_chain.cert_chain.data_size as usize)];
+        if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
 
         if self.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
@@ -751,5 +810,5 @@ pub struct SpdmProvisionInfo {
 
 #[derive(Default)]
 pub struct SpdmPeerInfo {
-    pub peer_cert_chain: SpdmCertChain,
+    pub peer_cert_chain: [Option<SpdmCertChain>; 8],
 }

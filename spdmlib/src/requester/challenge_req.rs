@@ -25,6 +25,7 @@ impl<'a> RequesterContext<'a> {
         let used = self.receive_message(&mut receive_buffer, true)?;
         self.handle_spdm_challenge_response(
             0, // NULL
+            slot_id,
             measurement_summary_hash_type,
             &send_buffer[..send_used],
             &receive_buffer[..used],
@@ -60,6 +61,7 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_challenge_response(
         &mut self,
         session_id: u32,
+        slot_id: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
         send_buffer: &[u8],
         receive_buffer: &[u8],
@@ -99,7 +101,7 @@ impl<'a> RequesterContext<'a> {
 
                         if self
                             .common
-                            .verify_challenge_auth_signature(&challenge_auth.signature)
+                            .verify_challenge_auth_signature(slot_id, &challenge_auth.signature)
                             .is_err()
                         {
                             error!("verify_challenge_auth_signature fail");
@@ -127,6 +129,7 @@ impl<'a> RequesterContext<'a> {
                             let used = rm.used;
                             self.handle_spdm_challenge_response(
                                 session_id,
+                                slot_id,
                                 measurement_summary_hash_type,
                                 send_buffer,
                                 &receive_buffer[..used],
@@ -202,7 +205,11 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.runtime_info.need_measurement_summary_hash = true;
 
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
+        requester.common.peer_info.peer_cert_chain[0]
+            .as_mut()
+            .unwrap()
+            .cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let status = requester

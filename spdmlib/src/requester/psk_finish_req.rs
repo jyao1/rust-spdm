@@ -58,9 +58,12 @@ impl<'a> RequesterContext<'a> {
             .unwrap();
         let message_k = &session.runtime_info.message_k;
 
-        let transcript_data =
-            self.common
-                .calc_req_transcript_data(true, message_k, Some(&message_f))?;
+        let transcript_data = self.common.calc_req_transcript_data(
+            INVALID_SLOT,
+            true,
+            message_k,
+            Some(&message_f),
+        )?;
         let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
         message_f
@@ -101,6 +104,7 @@ impl<'a> RequesterContext<'a> {
                             .unwrap();
                         let message_k = &session.runtime_info.message_k; // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
+                            INVALID_SLOT,
                             true,
                             message_k,
                             Some(&session.runtime_info.message_f),

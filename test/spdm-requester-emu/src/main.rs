@@ -192,11 +192,11 @@ fn test_spdm(
     if context
         .send_receive_spdm_measurement(
             None,
+            0,
             SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
             SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             &mut total_number,
             &mut spdm_measurement_record_structure,
-            0,
         )
         .is_err()
     {
@@ -245,11 +245,11 @@ fn test_spdm(
         if context
             .send_receive_spdm_measurement(
                 Some(session_id),
+                0,
                 SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
                 SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
-                0,
             )
             .is_err()
         {

@@ -51,7 +51,7 @@ impl<'a> RequesterContext<'a> {
             let result =
                 self.send_receive_spdm_key_exchange(slot_id, measurement_summary_hash_type);
             if let Ok(session_id) = result {
-                let result = self.send_receive_spdm_finish(session_id);
+                let result = self.send_receive_spdm_finish(slot_id, session_id);
                 if result.is_ok() {
                     Ok(session_id)
                 } else {
