@@ -11,17 +11,18 @@ use alloc::boxed::Box;
 use crate::common::ManagedBuffer;
 
 impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_finish(&mut self, session_id: u32) -> SpdmResult {
+    pub fn send_receive_spdm_finish(&mut self, slot_id: u8, session_id: u32) -> SpdmResult {
         info!("send spdm finish\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let (send_used, base_hash_size, message_f) =
-            self.encode_spdm_finish(session_id, &mut send_buffer)?;
+            self.encode_spdm_finish(session_id, slot_id, &mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_finish_response(
             session_id,
+            slot_id,
             base_hash_size,
             message_f,
             &receive_buffer[..receive_used],
@@ -31,6 +32,7 @@ impl<'a> RequesterContext<'a> {
     pub fn encode_spdm_finish(
         &mut self,
         session_id: u32,
+        slot_id: u8,
         buf: &mut [u8],
     ) -> SpdmResult<(usize, usize, ManagedBuffer)> {
         let mut writer = Writer::init(buf);
@@ -42,7 +44,7 @@ impl<'a> RequesterContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmFinishRequest(SpdmFinishRequestPayload {
                 finish_request_attributes: SpdmFinishRequestAttributes::empty(),
-                req_slot_id: 0,
+                req_slot_id: slot_id,
                 signature: SpdmSignatureStruct::default(),
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
@@ -70,7 +72,7 @@ impl<'a> RequesterContext<'a> {
 
         let transcript_data =
             self.common
-                .calc_req_transcript_data(false, message_k, Some(&message_f))?;
+                .calc_req_transcript_data(slot_id, false, message_k, Some(&message_f))?;
         let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
         message_f
@@ -85,6 +87,7 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_finish_response(
         &mut self,
         session_id: u32,
+        slot_id: u8,
         base_hash_size: usize,
         mut message_f: ManagedBuffer,
         receive_buffer: &[u8],
@@ -124,6 +127,7 @@ impl<'a> RequesterContext<'a> {
                                 .ok_or(spdm_err!(ENOMEM))?;
 
                             let transcript_data = self.common.calc_req_transcript_data(
+                                slot_id,
                                 false,
                                 message_k,
                                 Some(&message_f),
@@ -162,6 +166,7 @@ impl<'a> RequesterContext<'a> {
                         let message_k = &session.runtime_info.message_k;
                         // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
+                            slot_id,
                             false,
                             message_k,
                             Some(&message_f),
@@ -195,6 +200,7 @@ impl<'a> RequesterContext<'a> {
                             let used = rm.used;
                             self.handle_spdm_finish_response(
                                 session_id,
+                                slot_id,
                                 base_hash_size,
                                 message_f,
                                 &receive_buffer[..used],
@@ -285,7 +291,11 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
+        requester.common.peer_info.peer_cert_chain[0]
+            .as_mut()
+            .unwrap()
+            .cert_chain = REQ_CERT_CHAIN_DATA;
 
         requester.common.reset_runtime_info();
 
@@ -301,7 +311,7 @@ mod tests_requester {
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         // let _ = requester.send_receive_spdm_finish(4294901758);
-        let status = requester.send_receive_spdm_finish(4294901758).is_ok();
+        let status = requester.send_receive_spdm_finish(0, 4294901758).is_ok();
         assert!(status);
     }
 }

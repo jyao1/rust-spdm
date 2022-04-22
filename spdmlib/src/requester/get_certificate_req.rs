@@ -24,6 +24,7 @@ impl<'a> RequesterContext<'a> {
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_certificate_partial_response(
             0,
+            slot_id,
             offset,
             &send_buffer[..send_used],
             &receive_buffer[..used],
@@ -58,6 +59,7 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_certificate_partial_response(
         &mut self,
         session_id: u32,
+        slot_id: u8,
         offset: u16,
         send_buffer: &[u8],
         receive_buffer: &[u8],
@@ -77,14 +79,33 @@ impl<'a> RequesterContext<'a> {
                         {
                             return spdm_result_err!(ENOMEM);
                         }
-                        self.common.peer_info.peer_cert_chain.cert_chain.data[(offset as usize)
+                        if certificate.slot_id != slot_id {
+                            error!("slot id is not match between requester and responder!\n");
+                            return spdm_result_err!(EINVAL);
+                        }
+                        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+                            if offset != 0 {
+                                error!("offset invalid!\n");
+                                return spdm_result_err!(EIO);
+                            }
+                            self.common.peer_info.peer_cert_chain[slot_id as usize] =
+                                Some(SpdmCertChain::default());
+                        }
+                        self.common.peer_info.peer_cert_chain[slot_id as usize]
+                            .as_mut()
+                            .unwrap()
+                            .cert_chain
+                            .data[(offset as usize)
                             ..(offset as usize + certificate.portion_length as usize)]
                             .copy_from_slice(
                                 &certificate.cert_chain[0..(certificate.portion_length as usize)],
                             );
 
-                        self.common.peer_info.peer_cert_chain.cert_chain.data_size =
-                            offset + certificate.portion_length;
+                        self.common.peer_info.peer_cert_chain[slot_id as usize]
+                            .as_mut()
+                            .unwrap()
+                            .cert_chain
+                            .data_size = offset + certificate.portion_length;
 
                         let message_b = &mut self.common.runtime_info.message_b;
                         message_b
@@ -113,6 +134,7 @@ impl<'a> RequesterContext<'a> {
                             let used = rm.used;
                             self.handle_spdm_certificate_partial_response(
                                 session_id,
+                                slot_id,
                                 offset,
                                 send_buffer,
                                 &receive_buffer[..used],
@@ -143,29 +165,49 @@ impl<'a> RequesterContext<'a> {
                 Err(_) => return spdm_result_err!(EIO),
             }
         }
-        self.verify_spdm_certificate_chain()
+        self.verify_spdm_certificate_chain(slot_id)
     }
 
-    pub fn verify_spdm_certificate_chain(&mut self) -> SpdmResult {
+    pub fn verify_spdm_certificate_chain(&mut self, slot_id: u8) -> SpdmResult {
         // verify
         if let Some(peer_cert_chain_data) = &self.common.provision_info.peer_cert_chain_data {
             //
             // TBD: Verify cert chain
             //
-            if self.common.peer_info.peer_cert_chain.cert_chain.data_size
+            if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+                error!("peer_cert_chain is not populated!\n");
+                return spdm_result_err!(EIO);
+            }
+            if self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size
                 <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
             {
                 return spdm_result_err!(EIO);
             }
 
-            let data_size = self.common.peer_info.peer_cert_chain.cert_chain.data_size
+            let data_size = self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size
                 - 4
                 - self.common.negotiate_info.base_hash_sel.get_size();
             let mut data = [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
             data[0..(data_size as usize)].copy_from_slice(
-                &self.common.peer_info.peer_cert_chain.cert_chain.data[(4usize
+                &self.common.peer_info.peer_cert_chain[slot_id as usize]
+                    .as_ref()
+                    .unwrap()
+                    .cert_chain
+                    .data[(4usize
                     + self.common.negotiate_info.base_hash_sel.get_size() as usize)
-                    ..(self.common.peer_info.peer_cert_chain.cert_chain.data_size as usize)],
+                    ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                        .as_ref()
+                        .unwrap()
+                        .cert_chain
+                        .data_size as usize)],
             );
             let runtime_peer_cert_chain_data = SpdmCertChainData { data_size, data };
 
@@ -180,7 +222,11 @@ impl<'a> RequesterContext<'a> {
                 crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
                     .unwrap();
             if root_hash.data[..(root_hash.data_size as usize)]
-                != self.common.peer_info.peer_cert_chain.cert_chain.data[4usize
+                != self.common.peer_info.peer_cert_chain[slot_id as usize]
+                    .as_ref()
+                    .unwrap()
+                    .cert_chain
+                    .data[4usize
                     ..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]
             {
                 error!("root_hash - fail!\n");
