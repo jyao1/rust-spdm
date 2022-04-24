@@ -153,16 +153,15 @@ impl<'a> RequesterContext<'a> {
                             self.common.transport_encap.get_sequence_number_count();
                         let max_random_count = self.common.transport_encap.get_max_random_count();
 
-                        let secure_spdm_version_sel;
-                        if let Some(secured_message_version) = psk_exchange_rsp
-                            .opaque
-                            .req_get_dmtf_secure_spdm_version_selection(&mut self.common)
+                        let secure_spdm_version_sel = if let Some(secured_message_version) =
+                            psk_exchange_rsp
+                                .opaque
+                                .req_get_dmtf_secure_spdm_version_selection(&mut self.common)
                         {
-                            secure_spdm_version_sel =
-                                secured_message_version.get_secure_spdm_version();
+                            secured_message_version.get_secure_spdm_version()
                         } else {
-                            secure_spdm_version_sel = 0;
-                        }
+                            0
+                        };
 
                         let session_id = ((INITIAL_SESSION_ID as u32) << 16)
                             + psk_exchange_rsp.rsp_session_id as u32;

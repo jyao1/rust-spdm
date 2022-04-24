@@ -30,14 +30,8 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn init_connection(&mut self) -> SpdmResult {
-        let result = self.send_receive_spdm_version();
-        if result.is_err() {
-            return result;
-        }
-        let result = self.send_receive_spdm_capability();
-        if result.is_err() {
-            return result;
-        }
+        self.send_receive_spdm_version()?;
+        self.send_receive_spdm_capability()?;
         self.send_receive_spdm_algorithm()
     }
 
@@ -110,12 +104,11 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<usize> {
         info!("receive_message!\n");
 
-        let timeout: usize;
-        if crypto_request {
-            timeout = 2 << self.common.negotiate_info.rsp_ct_exponent_sel;
+        let timeout: usize = if crypto_request {
+            2 << self.common.negotiate_info.rsp_ct_exponent_sel
         } else {
-            timeout = ST1;
-        }
+            ST1
+        };
 
         let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self
@@ -135,12 +128,11 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<usize> {
         info!("receive_secured_message!\n");
 
-        let timeout: usize;
-        if crypto_request {
-            timeout = 2 << self.common.negotiate_info.rsp_ct_exponent_sel;
+        let timeout: usize = if crypto_request {
+            2 << self.common.negotiate_info.rsp_ct_exponent_sel
         } else {
-            timeout = ST1;
-        }
+            ST1
+        };
 
         let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
 

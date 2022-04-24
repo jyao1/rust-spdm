@@ -51,3 +51,5 @@ exclude = [
     "external/webpki",
     "fuzz-target/"
 ]
+
+resolver = "2"

@@ -193,12 +193,7 @@ impl<'a> RequesterContext<'a> {
                     }
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
-                    let sid: u32;
-                    if let Some(sid_) = session_id {
-                        sid = sid_;
-                    } else {
-                        sid = 0;
-                    }
+                    let sid: u32 = if let Some(sid_) = session_id { sid_ } else { 0 };
                     let erm = self.spdm_handle_error_response_main(
                         sid,
                         receive_buffer,
