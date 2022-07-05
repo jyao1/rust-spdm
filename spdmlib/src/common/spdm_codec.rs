@@ -190,18 +190,36 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         let final_value = u8::read(r)?;
         let type_value = final_value & 0x7f;
         let representation_value = final_value & 0x80;
+        let representation = match representation_value {
+            0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+            0x80 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
+            val => SpdmDmtfMeasurementRepresentation::Unknown(val),
+        };
         let r#type = match type_value {
             0 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             1 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
             2 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig,
             3 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig,
             4 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest,
+            5 => match representation {
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementStructuredRepresentationMode
+                }
+                _ => SpdmDmtfMeasurementType::Unknown(5),
+            },
+            6 => match representation {
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareVersionNumber
+                }
+                _ => SpdmDmtfMeasurementType::Unknown(6),
+            },
+            7 => match representation {
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareSecurityVersionNumber
+                }
+                _ => SpdmDmtfMeasurementType::Unknown(7),
+            },
             val => SpdmDmtfMeasurementType::Unknown(val),
-        };
-        let representation = match representation_value {
-            0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            0x80 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
-            val => SpdmDmtfMeasurementRepresentation::Unknown(val),
         };
 
         // TBD: Check measurement_hash
