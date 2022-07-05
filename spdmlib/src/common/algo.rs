@@ -112,7 +112,6 @@ impl Codec for SpdmMeasurementSpecification {
 
     fn read(r: &mut Reader) -> Option<SpdmMeasurementSpecification> {
         let bits = u8::read(r)?;
-
         SpdmMeasurementSpecification::from_bits(bits)
     }
 }
@@ -810,7 +809,10 @@ enum_builder! {
         SpdmDmtfMeasurementFirmware => 0x1,
         SpdmDmtfMeasurementHardwareConfig => 0x2,
         SpdmDmtfMeasurementFirmwareConfig => 0x3,
-        SpdmDmtfMeasurementManifest => 0x4
+        SpdmDmtfMeasurementManifest => 0x4,
+        SpdmDmtfMeasurementStructuredRepresentationMode => 0x5,
+        SpdmDmtfMeasurementMutableFirmwareVersionNumber => 0x6,
+        SpdmDmtfMeasurementMutableFirmwareSecurityVersionNumber => 0x7
     }
 }
 
