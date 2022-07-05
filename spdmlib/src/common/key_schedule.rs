@@ -45,7 +45,7 @@ impl SpdmKeySchedule {
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        crypto::hmac::hmac(hash_algo, key, &SALT_0[0..hash_algo.get_size() as usize])
+        crypto::hmac::hmac(hash_algo, &SALT_0[0..hash_algo.get_size() as usize], key)
     }
 
     pub fn derive_master_secret(
