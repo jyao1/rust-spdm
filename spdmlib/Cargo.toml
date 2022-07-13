@@ -36,3 +36,4 @@ pcidoe_transport = { path = "../pcidoe_transport" }
 default = ["spdm-ring", "std"]
 std = ["webpki/std"]
 spdm-ring = ["ring", "webpki", "untrusted", "uefi_time"]
+downcast = []

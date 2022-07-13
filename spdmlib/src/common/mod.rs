@@ -25,6 +25,8 @@ use session::*;
 
 extern crate alloc;
 use alloc::vec::Vec;
+#[cfg(feature = "downcast")]
+use core::any::Any;
 use core::convert::TryInto;
 
 /// The maximum amount of time the Responder has to provide a
@@ -43,6 +45,9 @@ pub trait SpdmDeviceIo {
     fn receive(&mut self, buffer: &mut [u8], timeout: usize) -> Result<usize, usize>;
 
     fn flush_all(&mut self) -> SpdmResult;
+
+    #[cfg(feature = "downcast")]
+    fn as_any(&mut self) -> &mut dyn Any;
 }
 
 use core::fmt::Debug;
