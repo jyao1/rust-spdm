@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::common::{self, error::SpdmResult};
 use crate::config;
 use codec::{enum_builder, Codec, Reader, Writer};
+
+use conquer_once::spin::OnceCell;
 
 enum_builder! {
     @U16
@@ -202,4 +204,31 @@ impl SpdmCodec for SpdmVendorDefinedResponsePayload {
             rsp_payload,
         })
     }
+}
+
+#[derive(Clone, Copy)]
+pub struct VendorDefinedStruct {
+    pub vendor_defined_request_handler:
+        fn(&VendorDefinedReqPayloadStruct) -> SpdmResult<VendorDefinedRspPayloadStruct>,
+}
+
+static VENDOR_DEFNIED: OnceCell<VendorDefinedStruct> = OnceCell::uninit();
+
+static VENDOR_DEFNIED_DEFAULT: VendorDefinedStruct = VendorDefinedStruct {
+    vendor_defined_request_handler: |_vendor_defined_req_payload_struct: &VendorDefinedReqPayloadStruct|
+     -> SpdmResult<VendorDefinedRspPayloadStruct> { log::info!("not implement vendor defined struct!!!\n"); spdm_result_err!(EUNDEF) },
+};
+
+pub fn register_vendor_defined_struct(context: VendorDefinedStruct) -> bool {
+    VENDOR_DEFNIED.try_init_once(|| context).is_ok()
+}
+
+pub fn vendor_defined_request_handler(
+    vendor_defined_req_payload_struct: &VendorDefinedReqPayloadStruct,
+) -> SpdmResult<VendorDefinedRspPayloadStruct> {
+    (VENDOR_DEFNIED
+        .try_get_or_init(|| VENDOR_DEFNIED_DEFAULT)
+        .ok()
+        .unwrap()
+        .vendor_defined_request_handler)(vendor_defined_req_payload_struct)
 }
