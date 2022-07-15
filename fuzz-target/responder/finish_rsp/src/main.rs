@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::algo::*;
+use crate::spdmlib::message::capability::*;
 use fuzzlib::{
     spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
-use crate::common::algo::*;
-use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_finish(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();

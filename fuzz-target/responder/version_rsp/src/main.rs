@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
 use crate::spdmlib::message::capability::*;
+use fuzzlib::*;
 
 fn fuzz_handle_spdm_version(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -28,7 +28,7 @@ fn fuzz_handle_spdm_version(data: &[u8]) {
 
     context.handle_spdm_version(data);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf,60).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 fn main() {

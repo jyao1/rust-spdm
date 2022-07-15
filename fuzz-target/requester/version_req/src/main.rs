@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
 use crate::common::algo::*;
+use fuzzlib::*;
 // use crate::spdmlib::message::capability::*;
 use crate::spdmlib::message::key_update::*;
 // use crate::spdmlib::requester::key_update_req::*;
