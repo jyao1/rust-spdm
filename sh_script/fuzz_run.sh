@@ -28,13 +28,14 @@ done
 
 if [ "core" != `cat /proc/sys/kernel/core_pattern` ];then
     if [ `id -u` -ne 0 ];then
-        if [[ $PWD =~ rust-spdm$ ]];then
-            pushd sh_script
-            expect switch_root_run_cmd.sh
-            popd
-        else
-            expect switch_root_run_cmd.sh
-        fi
+        sudo su - root <<EOF;
+        echo core >/proc/sys/kernel/core_pattern;
+        pushd /sys/devices/system/cpu;
+        echo performance | tee cpu*/cpufreq/scaling_governor;
+        popd;
+        echo "root path is $PWD";
+        exit;
+EOF
     else
         echo core >/proc/sys/kernel/core_pattern
         pushd /sys/devices/system/cpu
@@ -51,7 +52,8 @@ cmds=(
 "digest_rsp"
 "certificate_rsp"
 "challenge_rsp"
-# "measurement_rsp"       # ERROR >> Unable to create 'fuzz-target/out/measurement_rsp'----------------- wrong
+# "measurement_rsp"       # build OK. Other:[-] PROGRAM ABORT : We need at least one valid input seed that does not crash!
+                                            #Location : main(), src/afl-fuzz.c:2148
 "keyexchange_rsp"
 "pskexchange_rsp"     
 "finish_rsp"       
@@ -60,16 +62,17 @@ cmds=(
 "key_update_rsp"
 "end_session_rsp"
 
-"version_req"         # run pass  But Error>>We need at least one valid input seed that does not crash!  Location : main(), src/afl-fuzz.c:2148
+# "version_req"         # build OK. Other:[-] PROGRAM ABORT : We need at least one valid input seed that does not crash!
+                                            #Location : main(), src/afl-fuzz.c:2148
 "capability_req"
 "algorithm_req"
 "digest_req"
 "certificate_req"
-"challenge_req"       #Error  remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-# "measurement_req"     #Error   supplied 3 arguments   expected 6 arguments
-"key_exchange_req"    #Error    remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-"psk_exchange_req"    #Error    remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-"finish_req"          #Error    remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+"challenge_req"       #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+# # "measurement_req"     #Error   supplied 3 arguments   expected 6 arguments
+"key_exchange_req"    #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+"psk_exchange_req"    #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+"finish_req"          #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
 "psk_finish_req"
 "heartbeat_req"
 "key_update_req"

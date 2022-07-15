@@ -796,7 +796,7 @@ impl AsRef<[u8]> for SpdmCertChainData {
     }
 }
 
-#[derive(Default,Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct SpdmCertChain {
     pub root_hash: SpdmDigestStruct,
     pub cert_chain: SpdmCertChainData,

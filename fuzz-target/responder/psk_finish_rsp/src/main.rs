@@ -6,9 +6,7 @@ use crate::spdmlib::common::algo::*;
 // use crate::spdmlib::message::capability::*;
 use fuzzlib::{
     // spdmlib::config::*,
-    spdmlib::common::{
-        session::{SpdmSession, SpdmSessionState},
-    },
+    spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
 

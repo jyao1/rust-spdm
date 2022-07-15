@@ -4,8 +4,8 @@
 
 use crate::spdmlib::crypto::SpdmAead;
 // use crate::spdmlib::error::SpdmResult;
-use spdmlib::common::error::SpdmResult;
 use bytes::BytesMut;
+use spdmlib::common::error::SpdmResult;
 use spdmlib::{spdm_err, spdm_result_err};
 
 // use crate::spdmlib::msgs::SpdmAeadAlgo;

@@ -1,14 +1,17 @@
 use super::*;
 // use crate::spdmlib::*;
 // use spdmlib::common::*;
-use spdmlib::message::*;
-use spdmlib::message::SpdmVersion;
 use spdmlib::message::SpdmMeasurementSpecification;
-
+use spdmlib::message::SpdmVersion;
+use spdmlib::message::*;
 
 pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
-        spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11, SpdmVersion::SpdmVersion12],
+        spdm_version: [
+            SpdmVersion::SpdmVersion10,
+            SpdmVersion::SpdmVersion11,
+            SpdmVersion::SpdmVersion12,
+        ],
         rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
         | SpdmResponseCapabilityFlags::CHAL_CAP
         | SpdmResponseCapabilityFlags::MEAS_CAP_SIG

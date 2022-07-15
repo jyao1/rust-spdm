@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
 use crate::spdmlib::common::algo::*;
+use fuzzlib::*;
 
 fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();

@@ -82,7 +82,7 @@ pub struct SpdmSessionRuntimeInfo {
     pub message_m: ManagedBuffer,
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct SpdmSession {
     session_id: u32,
     use_psk: bool,
@@ -122,7 +122,7 @@ impl SpdmSession {
             heartbeat_period: 0,
             secure_spdm_version_sel: DMTF_SECURE_SPDM_VERSION_11,
         }
-    } 
+    }
 
     fn set_default(&mut self) {
         self.session_id = 0;

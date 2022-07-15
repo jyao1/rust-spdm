@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
 use crate::common::algo::*;
+use fuzzlib::*;
 // use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_measurement(data: &[u8]) {

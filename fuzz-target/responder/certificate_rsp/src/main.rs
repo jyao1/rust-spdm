@@ -5,7 +5,6 @@
 use fuzzlib::*;
 // use crate::spdmlib::message::capability::*;
 
-
 fn fuzz_handle_spdm_certificate(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

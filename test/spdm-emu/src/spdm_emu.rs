@@ -9,7 +9,7 @@ use codec::{Codec, Reader, Writer};
 use spdmlib::config;
 
 pub const SOCKET_HEADER_LEN: usize = 12;
-pub const USE_PCIDOE: bool = false; // align with DMTF spdm_emu
+pub const USE_PCIDOE: bool = true; // align with DMTF spdm_emu
 pub const USE_ECDSA: bool = true;
 pub const USE_ECDH: bool = true;
 

@@ -10,7 +10,6 @@ use fuzzlib::{
     *,
 };
 
-
 fn fuzz_send_receive_spdm_heartbeat(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();

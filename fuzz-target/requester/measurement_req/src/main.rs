@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
-use fuzzlib::spdmlib::message::SpdmMeasurementOperation;
 use crate::common::algo::*;
+use fuzzlib::spdmlib::message::SpdmMeasurementOperation;
+use fuzzlib::*;
 // use crate::common::algo::*;
 use crate::spdmlib::message::capability::*;
-
 
 fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
