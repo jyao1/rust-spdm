@@ -811,4 +811,5 @@ pub struct SpdmProvisionInfo {
 #[derive(Default)]
 pub struct SpdmPeerInfo {
     pub peer_cert_chain: [Option<SpdmCertChain>; 8],
+    // pub peer_cert_chain_data: SpdmCertChain,
 }

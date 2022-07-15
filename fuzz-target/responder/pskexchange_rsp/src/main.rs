@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{spdmlib::session::SpdmSession, *};
+use fuzzlib::{spdmlib::common::session::SpdmSession, *};
+use crate::spdmlib::common::algo::*;
+
 
 fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -10,7 +12,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     {
         let shared_buffer = SharedBuffer::new();
@@ -63,7 +65,10 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
         context.common.reset_runtime_info();
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
+        context.common.session[1] = SpdmSession::new();
+        context.common.session[2] = SpdmSession::new();
+        context.common.session[3] = SpdmSession::new();
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[1].setup(4294901758).unwrap();
         context.common.session[2].setup(4294901758).unwrap();

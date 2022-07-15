@@ -1,8 +1,17 @@
 use super::*;
+// use spdmlib::common::*;
+use spdmlib::message::SpdmVersion;
+use spdmlib::message::SpdmRequestCapabilityFlags;
+use spdmlib::message::SpdmMeasurementSpecification;
+use crate::spdmlib::common::algo::*;
+//     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE,
+// };
+// use crate::common::algo::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
+
 
 pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
-        spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11],
+        spdm_version: [SpdmVersion::SpdmVersion10, SpdmVersion::SpdmVersion11,SpdmVersion::SpdmVersion12],
         req_capabilities: SpdmRequestCapabilityFlags::CERT_CAP
         | SpdmRequestCapabilityFlags::CHAL_CAP
         | SpdmRequestCapabilityFlags::ENCRYPT_CAP
@@ -79,6 +88,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         my_cert_chain: None,
         peer_cert_chain_data: Some(peer_cert_chain_data),
         peer_cert_chain_root_hash: None,
+        default_version: SpdmVersion::SpdmVersion12,
     };
 
     (config_info, provision_info)

@@ -2,8 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::algo::*;
+// use crate::common::algo::*;
+use crate::spdmlib::message::capability::*;
 use fuzzlib::{
-    spdmlib::session::{SpdmSession, SpdmSessionState},
+    spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
 
@@ -21,7 +24,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -50,7 +53,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
-        responder.common.session = [SpdmSession::new(); 4];
+        responder.common.session[0] = SpdmSession::new();
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -88,11 +91,11 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain_data.cert_chain = [Some(REQ_CERT_CHAIN_DATA);8 ].clone();
 
         requester.common.reset_runtime_info();
 
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -102,7 +105,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         );
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(4294901758);
+        let _ = requester.send_receive_spdm_finish(0, 4294901758);
     }
 
     {
@@ -111,7 +114,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -146,7 +149,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
-        responder.common.session = [SpdmSession::new(); 4];
+        responder.common.session[0] = SpdmSession::new();
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -182,11 +185,11 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         requester.common.reset_runtime_info();
 
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -196,7 +199,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         );
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(4294901758);
+        let _ = requester.send_receive_spdm_finish(0, 4294901758);
     }
     {
         let shared_buffer = SharedBuffer::new();
@@ -204,7 +207,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -232,7 +235,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
-        responder.common.session = [SpdmSession::new(); 4];
+        responder.common.session[0] = SpdmSession::new();
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -268,11 +271,11 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         requester.common.reset_runtime_info();
 
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -282,7 +285,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         );
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(4294901758);
+        let _ = requester.send_receive_spdm_finish(0, 4294901758);
     }
 }
 
