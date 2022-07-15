@@ -8,7 +8,9 @@ use spdmlib::spdm_result_err;
 
 use spdmlib::spdm_err;
 
-use crate::spdmlib::error::SpdmResult;
+// use crate::spdmlib::error::SpdmResult;
+use crate::spdmlib::common::error::SpdmResult;
+// use crate::spdmlib::responder::context::*;
 
 use super::*;
 
@@ -23,7 +25,7 @@ impl<'a> FakeSpdmDeviceIoReceve<'a> {
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8],_timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -57,7 +59,7 @@ impl<'a> FuzzTmpSpdmDeviceIoReceve<'a> {
 }
 
 impl SpdmDeviceIo for FuzzTmpSpdmDeviceIoReceve<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8],_timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -90,7 +92,7 @@ impl<'a> FuzzSpdmDeviceIoReceve<'a> {
 }
 
 impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8],_timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("responder receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -122,7 +124,7 @@ impl<'a> FakeSpdmDeviceIo<'a> {
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
-    fn receive(&mut self, read_buffer: &mut [u8]) -> Result<usize, usize> {
+    fn receive(&mut self, read_buffer: &mut [u8],_timeout: usize) -> Result<usize, usize> {
         let len = self.data.get_buffer(read_buffer);
         log::info!("requester receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
@@ -131,8 +133,8 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
-
-        if self.responder.process_message().is_err() {
+        let timeout = 60; 
+        if self.responder.process_message(timeout).is_err() {
             return spdm_result_err!(ENOMEM);
         }
         Ok(())

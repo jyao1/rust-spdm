@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use crate::common::algo::*;
+
 
 fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -15,7 +17,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -45,7 +47,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             .runtime_info
             .message_m
             .append_message(message_m);
-        responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -71,7 +73,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             .runtime_info
             .message_m
             .append_message(message_m);
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,
@@ -84,7 +86,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -114,7 +116,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             .runtime_info
             .message_m
             .append_message(message_m);
-        responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -140,7 +142,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             .runtime_info
             .message_m
             .append_message(message_m);
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,

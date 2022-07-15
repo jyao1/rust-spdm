@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::spdmlib::crypto::SpdmAead;
-use crate::spdmlib::error::SpdmResult;
+// use crate::spdmlib::error::SpdmResult;
+use spdmlib::common::error::SpdmResult;
 use bytes::BytesMut;
 use spdmlib::{spdm_err, spdm_result_err};
 
-use crate::spdmlib::msgs::SpdmAeadAlgo;
+// use crate::spdmlib::msgs::SpdmAeadAlgo;
+use crate::common::algo::SpdmAeadAlgo;
 
 pub static FUZZ_AEAD: SpdmAead = SpdmAead {
     encrypt_cb: encrypt,

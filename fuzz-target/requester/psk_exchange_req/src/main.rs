@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use crate::common::algo::*;
+
 
 fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -15,7 +17,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -41,7 +43,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         // -- end --
 
         let _ = requester.send_receive_spdm_psk_exchange(
@@ -54,7 +56,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -80,7 +82,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         // -- end --
 
         let _ = requester.send_receive_spdm_psk_exchange(

@@ -781,6 +781,7 @@ pub struct SpdmCertChainData {
     pub data_size: u16,
     pub data: [u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
 }
+
 impl Default for SpdmCertChainData {
     fn default() -> Self {
         SpdmCertChainData {
@@ -795,7 +796,7 @@ impl AsRef<[u8]> for SpdmCertChainData {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Default,Debug, Clone)]
 pub struct SpdmCertChain {
     pub root_hash: SpdmDigestStruct,
     pub cert_chain: SpdmCertChainData,

@@ -3,13 +3,14 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use crate::spdmlib::common::algo::*;
 
 fn fuzz_handle_spdm_digest(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);

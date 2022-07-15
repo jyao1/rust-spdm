@@ -1,9 +1,11 @@
 pub use spdmlib::crypto::SpdmCryptoRandom;
 use spdmlib::crypto::SpdmHmac;
-pub use spdmlib::error::SpdmResult;
-use spdmlib::msgs::SpdmBaseHashAlgo;
-use spdmlib::msgs::SpdmDigestStruct;
-use spdmlib::msgs::SPDM_NONCE_SIZE;
+// pub use spdmlib::error::SpdmResult;
+pub use spdmlib::common::error::SpdmResult;
+use spdmlib::message::*;
+use crate::common::algo::SpdmDigestStruct;
+// use spdmlib::msgs::SPDM_NONCE_SIZE;
+use crate::common::algo::SPDM_NONCE_SIZE;
 pub use spdmlib::spdm_err;
 pub use spdmlib::spdm_result_err;
 

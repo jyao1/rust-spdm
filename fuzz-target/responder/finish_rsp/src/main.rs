@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::{
-    spdmlib::session::{SpdmSession, SpdmSessionState},
+    spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
+use crate::common::algo::*;
+use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_finish(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -17,8 +19,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-    spdmlib::crypto::hmac::register(FUZZ_HMAC);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::crypto::hmac::register(FUZZ_HMAC.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -38,7 +40,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
+        // context.common.session = [SpdmSession::new(); 4];
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -54,7 +57,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.handle_spdm_finish(4294901758, data);
         let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
+        socket_io_transport.receive(&mut req_buf, 60).unwrap();
     }
 
     {
@@ -72,7 +75,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.session = [SpdmSession::new(); 4];
+        // context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -101,7 +105,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        context.common.session = [SpdmSession::new(); 4];
+        // context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -135,7 +140,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-        context.common.session = [SpdmSession::new(); 4];
+        // context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -170,7 +176,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
-        context.common.session = [SpdmSession::new(); 4];
+        // context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -208,7 +215,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.session = [SpdmSession::new(); 4];
+        // context.common.session = [SpdmSession::new(); 4];
+        context.common.session[0] = SpdmSession::new();
         context.common.session[0].setup(4294901758).unwrap();
         context.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -229,7 +237,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.handle_spdm_finish(4294901758, data);
         let mut req_buf = [0u8; 1024];
-        socket_io_transport.receive(&mut req_buf).unwrap();
+        socket_io_transport.receive(&mut req_buf, 60).unwrap();
     }
 }
 fn main() {

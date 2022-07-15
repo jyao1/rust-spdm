@@ -3,16 +3,18 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::{
-    spdmlib::session::{SpdmSession, SpdmSessionState},
+    spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
+use crate::spdmlib::common::algo::*;
+// use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_end_session(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -29,7 +31,8 @@ fn fuzz_handle_spdm_end_session(data: &[u8]) {
     );
 
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    context.common.session = [SpdmSession::new(); 4];
+    // context.common.session = [SpdmSession::new(); 4];
+    context.common.session[0] = SpdmSession::new();
     context.common.session[0].setup(4294901758).unwrap();
     context.common.session[0].set_crypto_param(
         SpdmBaseHashAlgo::TPM_ALG_SHA_384,

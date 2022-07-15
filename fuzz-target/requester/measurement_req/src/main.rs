@@ -3,6 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use fuzzlib::spdmlib::message::SpdmMeasurementOperation;
+use crate::common::algo::*;
+// use crate::common::algo::*;
+use crate::spdmlib::message::capability::*;
+
 
 fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -79,7 +84,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = [Some(REQ_CERT_CHAIN_DATA);8].clone();
         requester.common.reset_runtime_info();
         let _ = requester.send_receive_spdm_measurement(
             None,
@@ -153,7 +158,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.reset_runtime_info();
         let _ = requester.send_receive_spdm_measurement(
             None,
@@ -298,7 +303,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.reset_runtime_info();
 
         let _ =

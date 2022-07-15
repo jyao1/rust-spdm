@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::{
-    spdmlib::session::{SpdmSession, SpdmSessionState},
+    spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
+use crate::common::algo::*;
+use crate::spdmlib::message::*;
+
 
 fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -21,8 +24,8 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-        spdmlib::crypto::aead::register(FUZZ_AEAD);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::crypto::aead::register(FUZZ_AEAD.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -50,7 +53,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
             req_config_info,
             req_provision_info,
         );
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -70,7 +73,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -99,7 +102,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
             req_provision_info1,
         );
 
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -118,7 +121,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -147,7 +150,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
             req_provision_info2,
         );
 
-        requester.common.session = [SpdmSession::new(); 4];
+        requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
             SpdmBaseHashAlgo::TPM_ALG_SHA_384,

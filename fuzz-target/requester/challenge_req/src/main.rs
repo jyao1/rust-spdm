@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use crate::common::algo::*;
+
 
 fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -13,8 +15,8 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
-    spdmlib::crypto::rand::register(FUZZ_RAND);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::crypto::rand::register(FUZZ_RAND.clone());
 
     let mut responder = responder::ResponderContext::new(
         &mut device_io_responder,
@@ -56,7 +58,7 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     requester.common.runtime_info.need_measurement_summary_hash = true;
 
-    requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+    // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
     let _ = requester
         .send_receive_spdm_challenge(
