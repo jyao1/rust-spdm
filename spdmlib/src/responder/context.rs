@@ -254,15 +254,13 @@ impl<'a> ResponderContext<'a> {
                 }
 
                 SpdmRequestResponseCode::SpdmRequestKeyExchange => {
-                    self.handle_spdm_key_exchange(bytes);
-                    true
+                    matches!(self.handle_spdm_key_exchange(bytes), Ok(_))
                 }
 
                 SpdmRequestResponseCode::SpdmRequestFinish => false,
 
                 SpdmRequestResponseCode::SpdmRequestPskExchange => {
-                    self.handle_spdm_psk_exchange(bytes);
-                    true
+                    matches!(self.handle_spdm_psk_exchange(bytes), Ok(_))
                 }
 
                 SpdmRequestResponseCode::SpdmRequestPskFinish => false,

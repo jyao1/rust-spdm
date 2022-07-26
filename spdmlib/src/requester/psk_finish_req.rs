@@ -52,10 +52,11 @@ impl<'a> RequesterContext<'a> {
             .append_message(&buf[..temp_used])
             .ok_or(spdm_err!(ENOMEM))?;
 
-        let session = self
-            .common
-            .get_immutable_session_via_id(session_id)
-            .unwrap();
+        let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
+            s
+        } else {
+            return spdm_result_err!(EFAULT);
+        };
         let message_k = &session.runtime_info.message_k;
 
         let transcript_data = self.common.calc_req_transcript_data(
@@ -64,7 +65,11 @@ impl<'a> RequesterContext<'a> {
             message_k,
             Some(&message_f),
         )?;
-        let session = self.common.get_session_via_id(session_id).unwrap();
+        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+            s
+        } else {
+            return spdm_result_err!(EFAULT);
+        };
         let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
         message_f
             .append_message(hmac.as_ref())
@@ -92,16 +97,22 @@ impl<'a> RequesterContext<'a> {
                     if let Some(psk_finish_rsp) = psk_finish_rsp {
                         debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                        let session = self.common.get_session_via_id(session_id).unwrap();
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
                         message_f
                             .append_message(&receive_buffer[..receive_used])
                             .ok_or(spdm_err!(ENOMEM))?;
                         session.runtime_info.message_f = message_f;
 
-                        let session = self
-                            .common
-                            .get_immutable_session_via_id(session_id)
-                            .unwrap();
+                        let session =
+                            if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
+                                s
+                            } else {
+                                return spdm_result_err!(EFAULT);
+                            };
                         let message_k = &session.runtime_info.message_k; // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
                             INVALID_SLOT,
@@ -110,10 +121,12 @@ impl<'a> RequesterContext<'a> {
                             Some(&session.runtime_info.message_f),
                         )?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
-                        let session = self.common.get_session_via_id(session_id).unwrap();
-                        session
-                            .generate_data_secret(spdm_version_sel, &th2)
-                            .unwrap();
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
+                        session.generate_data_secret(spdm_version_sel, &th2)?;
                         session.set_session_state(
                             crate::common::session::SpdmSessionState::SpdmSessionEstablished,
                         );

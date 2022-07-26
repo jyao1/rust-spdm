@@ -20,7 +20,11 @@ impl<'a> RequesterContext<'a> {
 
         // update key
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-        let session = self.common.get_session_via_id(session_id).unwrap();
+        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+            s
+        } else {
+            return spdm_result_err!(EFAULT);
+        };
         let update_requester = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateSingleKey
             || key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
@@ -71,7 +75,11 @@ impl<'a> RequesterContext<'a> {
                     let key_update_rsp =
                         SpdmKeyUpdateResponsePayload::spdm_read(&mut self.common, &mut reader);
                     let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                    let session = self.common.get_session_via_id(session_id).unwrap();
+                    let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                        s
+                    } else {
+                        return spdm_result_err!(EFAULT);
+                    };
                     if let Some(key_update_rsp) = key_update_rsp {
                         debug!("!!! key_update rsp : {:02x?}\n", key_update_rsp);
                         session.activate_data_secret_update(

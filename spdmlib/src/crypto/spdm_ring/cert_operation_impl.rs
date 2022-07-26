@@ -62,21 +62,30 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let (ee_begin, ee_end) = get_cert_from_cert_chain(cert_chain, -1)?;
     let ee = &cert_chain[ee_begin..ee_end];
 
-    let anchors = vec![webpki::TrustAnchor::try_from_cert_der(ca).unwrap()];
+    let anchors = if let Ok(ta) = webpki::TrustAnchor::try_from_cert_der(ca) {
+        vec![ta]
+    } else {
+        return spdm_result_err!(ESEC);
+    };
 
     #[cfg(any(target_os = "uefi", target_os = "none"))]
     let timestamp = uefi_time::get_rtc_time() as u64;
     #[cfg(not(any(target_os = "uefi", target_os = "none")))]
     let timestamp = {
         extern crate std;
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
+        if let Ok(ds) = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+            ds.as_secs()
+        } else {
+            return spdm_result_err!(EDEV);
+        }
     };
     let time = webpki::Time::from_seconds_since_unix_epoch(timestamp);
 
-    let cert = webpki::EndEntityCert::try_from(ee).unwrap();
+    let cert = if let Ok(eec) = webpki::EndEntityCert::try_from(ee) {
+        eec
+    } else {
+        return spdm_result_err!(ESEC);
+    };
 
     // we cannot call verify_is_valid_tls_server_cert because it will check verify_cert::EKU_SERVER_AUTH.
     if cert

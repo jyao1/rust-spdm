@@ -28,8 +28,13 @@ impl<'a> RequesterContext<'a> {
             let extoff = core::mem::size_of::<SpdmMessageHeader>()
                 + core::mem::size_of::<SpdmMessageGeneralPayload>();
             let mut extend_error_data_reader = Reader::init(&response[extoff..]);
-            let extend_error_data =
-                SpdmErrorResponseNotReadyExtData::read(&mut extend_error_data_reader).unwrap();
+            let extend_error_data = if let Some(eed) =
+                SpdmErrorResponseNotReadyExtData::read(&mut extend_error_data_reader)
+            {
+                eed
+            } else {
+                return spdm_result_err!(EINVAL);
+            };
 
             if extend_error_data.request_code != original_request_code.get_u8() {
                 return spdm_result_err!(EDEV);
@@ -53,7 +58,11 @@ impl<'a> RequesterContext<'a> {
         } else if error_code == SpdmErrorCode::SpdmErrorBusy.get_u8() {
             return spdm_result_err!(EBUSY);
         } else if error_code == SpdmErrorCode::SpdmErrorRequestResynch.get_u8() {
-            let mut session = self.common.get_session_via_id(session_id).unwrap().clone();
+            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                s
+            } else {
+                return spdm_result_err!(EFAULT);
+            };
             session.set_session_state(SpdmSessionState::SpdmSessionNotStarted);
             return spdm_result_err!(EDEV);
         } else {
@@ -69,7 +78,12 @@ impl<'a> RequesterContext<'a> {
         expected_response_code: SpdmRequestResponseCode,
     ) -> SpdmResult<ReceivedMessage> {
         let mut spdm_message_header_reader = Reader::init(response);
-        let spdm_message_header = SpdmMessageHeader::read(&mut spdm_message_header_reader).unwrap();
+        let spdm_message_header =
+            if let Some(smh) = SpdmMessageHeader::read(&mut spdm_message_header_reader) {
+                smh
+            } else {
+                return spdm_result_err!(EINVAL);
+            };
         let header_size = spdm_message_header_reader.used();
         assert_eq!(
             spdm_message_header.version,
@@ -82,10 +96,18 @@ impl<'a> RequesterContext<'a> {
 
         let mut spdm_message_payload_reader = Reader::init(&response[header_size..]);
         let spdm_message_general_payload =
-            SpdmMessageGeneralPayload::read(&mut spdm_message_payload_reader).unwrap();
+            if let Some(smgp) = SpdmMessageGeneralPayload::read(&mut spdm_message_payload_reader) {
+                smgp
+            } else {
+                return spdm_result_err!(EINVAL);
+            };
 
         if spdm_message_general_payload.param1 == SpdmErrorCode::SpdmErrorDecryptError.get_u8() {
-            let session = self.common.get_session_via_id(session_id).unwrap();
+            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                s
+            } else {
+                return spdm_result_err!(EFAULT);
+            };
             let _ = session.teardown(session_id);
 
             spdm_result_err!(ESEC)

@@ -218,9 +218,13 @@ impl<'a> RequesterContext<'a> {
                     0,
                 )?;
             let root_cert = &runtime_peer_cert_chain_data.data[root_cert_begin..root_cert_end];
-            let root_hash =
+            let root_hash = if let Some(rh) =
                 crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
-                    .unwrap();
+            {
+                rh
+            } else {
+                return spdm_result_err!(ESEC);
+            };
             if root_hash.data[..(root_hash.data_size as usize)]
                 != self.common.peer_info.peer_cert_chain[slot_id as usize]
                     .as_ref()

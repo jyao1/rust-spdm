@@ -226,9 +226,9 @@ pub fn register_vendor_defined_struct(context: VendorDefinedStruct) -> bool {
 pub fn vendor_defined_request_handler(
     vendor_defined_req_payload_struct: &VendorDefinedReqPayloadStruct,
 ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
-    (VENDOR_DEFNIED
-        .try_get_or_init(|| VENDOR_DEFNIED_DEFAULT)
-        .ok()
-        .unwrap()
-        .vendor_defined_request_handler)(vendor_defined_req_payload_struct)
+    if let Ok(vds) = VENDOR_DEFNIED.try_get_or_init(|| VENDOR_DEFNIED_DEFAULT) {
+        (vds.vendor_defined_request_handler)(vendor_defined_req_payload_struct)
+    } else {
+        return spdm_result_err!(EUNDEF);
+    }
 }
