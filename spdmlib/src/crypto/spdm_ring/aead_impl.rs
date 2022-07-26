@@ -60,7 +60,12 @@ fn encrypt(
     let mut in_out = BytesMut::new();
     in_out.extend_from_slice(plain_text);
 
-    let mut s_key: ring::aead::SealingKey<OneNonceSequence> = make_key(algorithm, key, nonce);
+    let mut s_key: ring::aead::SealingKey<OneNonceSequence> =
+        if let Ok(k) = make_key(algorithm, key, nonce) {
+            k
+        } else {
+            return spdm_result_err!(ESEC);
+        };
     match s_key.seal_in_place_append_tag(ring::aead::Aad::from(aad), &mut in_out) {
         Ok(()) => {
             cipher_text.copy_from_slice(&in_out[..plain_text_size]);
@@ -69,7 +74,7 @@ fn encrypt(
             //debug!("cipher_text - {:02x?}\n", cipher_text);
             Ok((plain_text_size, tag_size))
         }
-        Err(_) => spdm_result_err!(EFAULT),
+        Err(_) => spdm_result_err!(ESEC),
     }
 }
 
@@ -122,14 +127,19 @@ fn decrypt(
     in_out.extend_from_slice(cipher_text);
     in_out.extend_from_slice(tag);
 
-    let mut o_key: ring::aead::OpeningKey<OneNonceSequence> = make_key(algorithm, key, nonce);
+    let mut o_key: ring::aead::OpeningKey<OneNonceSequence> =
+        if let Ok(k) = make_key(algorithm, key, nonce) {
+            k
+        } else {
+            return spdm_result_err!(ESEC);
+        };
     match o_key.open_in_place(ring::aead::Aad::from(aad), &mut in_out) {
         Ok(in_out_result) => {
             plain_text.copy_from_slice(&in_out_result[..cipher_text_size]);
             //info!("plain_text - {:02x?}\n", plain_text);
             Ok(cipher_text_size)
         }
-        Err(_) => spdm_result_err!(EFAULT),
+        Err(_) => spdm_result_err!(ESEC),
     }
 }
 
@@ -153,10 +163,14 @@ fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
     algorithm: &'static ring::aead::Algorithm,
     key: &[u8],
     nonce: ring::aead::Nonce,
-) -> K {
-    let key = ring::aead::UnboundKey::new(algorithm, key).unwrap();
+) -> SpdmResult<K> {
+    let key = if let Ok(k) = ring::aead::UnboundKey::new(algorithm, key) {
+        k
+    } else {
+        return spdm_result_err!(ESEC);
+    };
     let nonce_sequence = OneNonceSequence::new(nonce);
-    K::new(key, nonce_sequence)
+    Ok(K::new(key, nonce_sequence))
 }
 
 #[cfg(test)]

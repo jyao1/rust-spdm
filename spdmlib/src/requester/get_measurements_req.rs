@@ -123,8 +123,13 @@ impl<'a> RequesterContext<'a> {
 
                             let message_m = match session_id {
                                 Some(session_id) => {
-                                    let session =
-                                        self.common.get_session_via_id(session_id).unwrap();
+                                    let session = if let Some(s) =
+                                        self.common.get_session_via_id(session_id)
+                                    {
+                                        s
+                                    } else {
+                                        return spdm_result_err!(EFAULT);
+                                    };
                                     &mut session.runtime_info.message_m
                                 }
                                 None => &mut self.common.runtime_info.message_m,
@@ -151,8 +156,13 @@ impl<'a> RequesterContext<'a> {
                             }
                             match session_id {
                                 Some(session_id) => {
-                                    let session =
-                                        self.common.get_session_via_id(session_id).unwrap();
+                                    let session = if let Some(s) =
+                                        self.common.get_session_via_id(session_id)
+                                    {
+                                        s
+                                    } else {
+                                        return spdm_result_err!(EFAULT);
+                                    };
                                     session.runtime_info.message_m.reset_message();
                                 }
                                 None => self.common.runtime_info.message_m.reset_message(),
@@ -160,8 +170,13 @@ impl<'a> RequesterContext<'a> {
                         } else {
                             let message_m = match session_id {
                                 Some(session_id) => {
-                                    let session =
-                                        self.common.get_session_via_id(session_id).unwrap();
+                                    let session = if let Some(s) =
+                                        self.common.get_session_via_id(session_id)
+                                    {
+                                        s
+                                    } else {
+                                        return spdm_result_err!(EFAULT);
+                                    };
                                     &mut session.runtime_info.message_m
                                 }
                                 None => &mut self.common.runtime_info.message_m,

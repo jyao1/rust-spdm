@@ -161,21 +161,35 @@ impl SpdmSession {
         self.use_psk = use_psk;
     }
 
-    pub fn set_dhe_secret(&mut self, spdm_version: SpdmVersion, dhe_secret: SpdmDheFinalKeyStruct) {
+    pub fn set_dhe_secret(
+        &mut self,
+        spdm_version: SpdmVersion,
+        dhe_secret: SpdmDheFinalKeyStruct,
+    ) -> SpdmResult {
         self.master_secret.dhe_secret = dhe_secret; // take the ownership here!
         let key = &self.master_secret.dhe_secret.as_ref();
 
         // generate master_secret.handshake_secret and master_secret.master_secret
-        let handshake_secret = self
-            .key_schedule
-            .derive_handshake_secret(spdm_version, self.crypto_param.base_hash_algo, key)
-            .unwrap();
+        let handshake_secret = if let Some(hs) = self.key_schedule.derive_handshake_secret(
+            spdm_version,
+            self.crypto_param.base_hash_algo,
+            key,
+        ) {
+            hs
+        } else {
+            return spdm_result_err!(ESEC);
+        };
 
         let key = handshake_secret.as_ref();
-        let master_secret = self
-            .key_schedule
-            .derive_master_secret(spdm_version, self.crypto_param.base_hash_algo, key)
-            .unwrap();
+        let master_secret = if let Some(ms) = self.key_schedule.derive_master_secret(
+            spdm_version,
+            self.crypto_param.base_hash_algo,
+            key,
+        ) {
+            ms
+        } else {
+            return spdm_result_err!(ESEC);
+        };
 
         self.master_secret.handshake_secret = handshake_secret;
         self.master_secret.master_secret = master_secret;
@@ -188,6 +202,8 @@ impl SpdmSession {
             "!!! master_secret !!!: {:02x?}\n",
             self.master_secret.master_secret.as_ref()
         );
+
+        Ok(())
     }
 
     pub fn set_crypto_param(
@@ -222,66 +238,75 @@ impl SpdmSession {
         let hash_algo = self.crypto_param.base_hash_algo;
         let aead_algo = self.crypto_param.aead_algo;
 
-        self.handshake_secret.request_handshake_secret = self
-            .key_schedule
-            .derive_request_handshake_secret(
+        self.handshake_secret.request_handshake_secret = if let Some(rhs) =
+            self.key_schedule.derive_request_handshake_secret(
                 spdm_version,
                 hash_algo,
                 self.master_secret.handshake_secret.as_ref(),
                 th1.as_ref(),
-            )
-            .unwrap();
+            ) {
+            rhs
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         debug!(
             "!!! request_handshake_secret !!!: {:02x?}\n",
             self.handshake_secret.request_handshake_secret.as_ref()
         );
-        self.handshake_secret.response_handshake_secret = self
-            .key_schedule
-            .derive_response_handshake_secret(
+        self.handshake_secret.response_handshake_secret = if let Some(rhs) =
+            self.key_schedule.derive_response_handshake_secret(
                 spdm_version,
                 hash_algo,
                 self.master_secret.handshake_secret.as_ref(),
                 th1.as_ref(),
-            )
-            .unwrap();
+            ) {
+            rhs
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         debug!(
             "!!! response_handshake_secret !!!: {:02x?}\n",
             self.handshake_secret.response_handshake_secret.as_ref()
         );
-        self.handshake_secret.request_finished_key = self
-            .key_schedule
-            .derive_finished_key(
+        self.handshake_secret.request_finished_key = if let Some(rfk) =
+            self.key_schedule.derive_finished_key(
                 spdm_version,
                 hash_algo,
                 self.handshake_secret.request_handshake_secret.as_ref(),
-            )
-            .unwrap();
+            ) {
+            rfk
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         debug!(
             "!!! request_finished_key !!!: {:02x?}\n",
             self.handshake_secret.request_finished_key.as_ref()
         );
-        self.handshake_secret.response_finished_key = self
-            .key_schedule
-            .derive_finished_key(
+        self.handshake_secret.response_finished_key = if let Some(rfk) =
+            self.key_schedule.derive_finished_key(
                 spdm_version,
                 hash_algo,
                 self.handshake_secret.response_handshake_secret.as_ref(),
-            )
-            .unwrap();
+            ) {
+            rfk
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         debug!(
             "!!! response_finished_key !!!: {:02x?}\n",
             self.handshake_secret.response_finished_key.as_ref()
         );
 
-        let res = self
-            .key_schedule
-            .derive_aead_key_iv(
-                spdm_version,
-                hash_algo,
-                aead_algo,
-                self.handshake_secret.request_handshake_secret.as_ref(),
-            )
-            .unwrap();
+        let res = if let Some(aki) = self.key_schedule.derive_aead_key_iv(
+            spdm_version,
+            hash_algo,
+            aead_algo,
+            self.handshake_secret.request_handshake_secret.as_ref(),
+        ) {
+            aki
+        } else {
+            return spdm_result_err!(ESEC);
+        };
 
         self.handshake_secret.request_direction.encryption_key = res.0;
         self.handshake_secret.request_direction.salt = res.1;
@@ -297,15 +322,16 @@ impl SpdmSession {
             self.handshake_secret.request_direction.salt.as_ref()
         );
 
-        let res = self
-            .key_schedule
-            .derive_aead_key_iv(
-                spdm_version,
-                hash_algo,
-                aead_algo,
-                self.handshake_secret.response_handshake_secret.as_ref(),
-            )
-            .unwrap();
+        let res = if let Some(aki) = self.key_schedule.derive_aead_key_iv(
+            spdm_version,
+            hash_algo,
+            aead_algo,
+            self.handshake_secret.response_handshake_secret.as_ref(),
+        ) {
+            aki
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         self.handshake_secret.response_direction.encryption_key = res.0;
         self.handshake_secret.response_direction.salt = res.1;
         debug!(
@@ -320,14 +346,16 @@ impl SpdmSession {
             self.handshake_secret.response_direction.salt.as_ref()
         );
 
-        self.handshake_secret.export_master_secret = self
-            .key_schedule
-            .derive_export_master_secret(
+        self.handshake_secret.export_master_secret = if let Some(ems) =
+            self.key_schedule.derive_export_master_secret(
                 spdm_version,
                 hash_algo,
                 self.handshake_secret.export_master_secret.as_ref(),
-            )
-            .unwrap();
+            ) {
+            ems
+        } else {
+            return spdm_result_err!(ESEC);
+        };
 
         Ok(())
     }
@@ -342,24 +370,28 @@ impl SpdmSession {
         let hash_algo = self.crypto_param.base_hash_algo;
         let aead_algo = self.crypto_param.aead_algo;
 
-        self.application_secret.request_data_secret = self
-            .key_schedule
-            .derive_request_data_secret(
+        self.application_secret.request_data_secret = if let Some(rds) =
+            self.key_schedule.derive_request_data_secret(
                 spdm_version,
                 hash_algo,
                 self.master_secret.master_secret.as_ref(),
                 th2.as_ref(),
-            )
-            .unwrap();
-        self.application_secret.response_data_secret = self
-            .key_schedule
-            .derive_response_data_secret(
+            ) {
+            rds
+        } else {
+            return spdm_result_err!(ESEC);
+        };
+        self.application_secret.response_data_secret = if let Some(rds) =
+            self.key_schedule.derive_response_data_secret(
                 spdm_version,
                 hash_algo,
                 self.master_secret.master_secret.as_ref(),
                 th2.as_ref(),
-            )
-            .unwrap();
+            ) {
+            rds
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         debug!(
             "!!! request_data_secret !!!: {:02x?}\n",
             self.application_secret.request_data_secret.as_ref()
@@ -369,15 +401,16 @@ impl SpdmSession {
             self.application_secret.response_data_secret.as_ref()
         );
 
-        let res = self
-            .key_schedule
-            .derive_aead_key_iv(
-                spdm_version,
-                hash_algo,
-                aead_algo,
-                self.application_secret.request_data_secret.as_ref(),
-            )
-            .unwrap();
+        let res = if let Some(aki) = self.key_schedule.derive_aead_key_iv(
+            spdm_version,
+            hash_algo,
+            aead_algo,
+            self.application_secret.request_data_secret.as_ref(),
+        ) {
+            aki
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         self.application_secret.request_direction.encryption_key = res.0;
         self.application_secret.request_direction.salt = res.1;
         debug!(
@@ -392,15 +425,16 @@ impl SpdmSession {
             self.application_secret.request_direction.salt.as_ref()
         );
 
-        let res = self
-            .key_schedule
-            .derive_aead_key_iv(
-                spdm_version,
-                hash_algo,
-                aead_algo,
-                self.application_secret.response_data_secret.as_ref(),
-            )
-            .unwrap();
+        let res = if let Some(aki) = self.key_schedule.derive_aead_key_iv(
+            spdm_version,
+            hash_algo,
+            aead_algo,
+            self.application_secret.response_data_secret.as_ref(),
+        ) {
+            aki
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         self.application_secret.response_direction.encryption_key = res.0;
         self.application_secret.response_direction.salt = res.1;
         debug!(
@@ -437,28 +471,31 @@ impl SpdmSession {
             self.application_secret_backup.request_direction =
                 self.application_secret.request_direction.clone();
 
-            self.application_secret.request_data_secret = self
-                .key_schedule
-                .derive_update_secret(
+            self.application_secret.request_data_secret = if let Some(us) =
+                self.key_schedule.derive_update_secret(
                     spdm_version,
                     hash_algo,
                     self.application_secret.request_data_secret.as_ref(),
-                )
-                .unwrap();
+                ) {
+                us
+            } else {
+                return spdm_result_err!(ESEC);
+            };
             debug!(
                 "!!! request_data_secret !!!: {:02x?}\n",
                 self.application_secret.request_data_secret.as_ref()
             );
 
-            let res = self
-                .key_schedule
-                .derive_aead_key_iv(
-                    spdm_version,
-                    hash_algo,
-                    aead_algo,
-                    self.application_secret.request_data_secret.as_ref(),
-                )
-                .unwrap();
+            let res = if let Some(aki) = self.key_schedule.derive_aead_key_iv(
+                spdm_version,
+                hash_algo,
+                aead_algo,
+                self.application_secret.request_data_secret.as_ref(),
+            ) {
+                aki
+            } else {
+                return spdm_result_err!(ESEC);
+            };
             self.application_secret.request_direction.encryption_key = res.0;
             self.application_secret.request_direction.salt = res.1;
             debug!(
@@ -481,28 +518,31 @@ impl SpdmSession {
             self.application_secret_backup.response_direction =
                 self.application_secret.response_direction.clone();
 
-            self.application_secret.response_data_secret = self
-                .key_schedule
-                .derive_update_secret(
+            self.application_secret.response_data_secret = if let Some(us) =
+                self.key_schedule.derive_update_secret(
                     spdm_version,
                     hash_algo,
                     self.application_secret.response_data_secret.as_ref(),
-                )
-                .unwrap();
+                ) {
+                us
+            } else {
+                return spdm_result_err!(ESEC);
+            };
             debug!(
                 "!!! response_data_secret !!!: {:02x?}\n",
                 self.application_secret.response_data_secret.as_ref()
             );
 
-            let res = self
-                .key_schedule
-                .derive_aead_key_iv(
-                    spdm_version,
-                    hash_algo,
-                    aead_algo,
-                    self.application_secret.response_data_secret.as_ref(),
-                )
-                .unwrap();
+            let res = if let Some(aki) = self.key_schedule.derive_aead_key_iv(
+                spdm_version,
+                hash_algo,
+                aead_algo,
+                self.application_secret.response_data_secret.as_ref(),
+            ) {
+                aki
+            } else {
+                return spdm_result_err!(ESEC);
+            };
             self.application_secret.response_direction.encryption_key = res.0;
             self.application_secret.response_direction.salt = res.1;
             debug!(
@@ -520,6 +560,7 @@ impl SpdmSession {
         }
         Ok(())
     }
+
     pub fn activate_data_secret_update(
         &mut self,
         _spdm_version: SpdmVersion,
@@ -564,7 +605,7 @@ impl SpdmSession {
             self.handshake_secret.response_finished_key.as_ref(),
             message,
         )
-        .ok_or(spdm_err!(EFAULT))
+        .ok_or(spdm_err!(ESEC))
     }
 
     pub fn generate_hmac_with_request_finished_key(
@@ -576,7 +617,7 @@ impl SpdmSession {
             self.handshake_secret.request_finished_key.as_ref(),
             message,
         )
-        .ok_or(spdm_err!(EFAULT))
+        .ok_or(spdm_err!(ESEC))
     }
 
     pub fn verify_hmac_with_response_finished_key(

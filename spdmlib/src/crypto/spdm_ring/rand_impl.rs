@@ -15,7 +15,11 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
     let mut len = data.len();
     let mut offset = 0usize;
     while len > 0 {
-        let rand_data: [u8; 64] = ring::rand::generate(&rng).unwrap().expose();
+        let rand_data: [u8; 64] = if let Ok(rd) = ring::rand::generate(&rng) {
+            rd.expose()
+        } else {
+            return spdm_result_err!(ESEC);
+        };
         if len > 64 {
             data[offset..(offset + 64)].copy_from_slice(&rand_data);
             len -= 64;

@@ -4,6 +4,7 @@
 
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
+use crate::common::error::SpdmResult;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
@@ -15,14 +16,18 @@ use alloc::boxed::Box;
 use crate::common::ManagedBuffer;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_psk_exchange(&mut self, bytes: &[u8]) {
+    pub fn handle_spdm_psk_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_psk_exchange_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        self.write_spdm_psk_exchange_response(bytes, &mut writer)?;
+        self.send_message(writer.used_slice())
     }
 
-    pub fn write_spdm_psk_exchange_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    pub fn write_spdm_psk_exchange_response(
+        &mut self,
+        bytes: &[u8],
+        writer: &mut Writer,
+    ) -> SpdmResult {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -82,7 +87,7 @@ impl<'a> ResponderContext<'a> {
         } else {
             error!("!!! psk_exchange req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
 
         info!("send spdm psk_exchange rsp\n");
@@ -124,7 +129,7 @@ impl<'a> ResponderContext<'a> {
         let mut message_k = ManagedBuffer::default();
         if message_k.append_message(&bytes[..reader.used()]).is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
 
         let temp_used = used - base_hash_size;
@@ -133,14 +138,14 @@ impl<'a> ResponderContext<'a> {
             .is_none()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
 
         // create session - generate the handshake secret (including finished_key)
         let th1 = self.common.calc_rsp_transcript_hash(true, &message_k, None);
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
         let th1 = th1.unwrap();
         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
@@ -156,7 +161,7 @@ impl<'a> ResponderContext<'a> {
         if session.is_none() {
             error!("!!! too many sessions : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
 
         let session = session.unwrap();
@@ -171,7 +176,7 @@ impl<'a> ResponderContext<'a> {
         psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
-        session.set_dhe_secret(spdm_version_sel, psk_key); // transfer the ownership out
+        session.set_dhe_secret(spdm_version_sel, psk_key)?; // transfer the ownership out
         session
             .generate_handshake_secret(spdm_version_sel, &th1)
             .unwrap();
@@ -180,7 +185,7 @@ impl<'a> ResponderContext<'a> {
         let transcript_data = self.common.calc_rsp_transcript_data(true, &message_k, None);
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
         let transcript_data = transcript_data.unwrap();
 
@@ -189,13 +194,13 @@ impl<'a> ResponderContext<'a> {
         if hmac.is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
         let hmac = hmac.unwrap();
         if message_k.append_message(hmac.as_ref()).is_none() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return spdm_result_err!(EFAULT);
         }
         session.runtime_info.message_k = message_k;
 
@@ -210,6 +215,8 @@ impl<'a> ResponderContext<'a> {
         if return_opaque.data_size != 0 {
             session.secure_spdm_version_sel = secure_spdm_version_sel;
         }
+
+        Ok(())
     }
 }
 

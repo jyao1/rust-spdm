@@ -152,6 +152,6 @@ fn test_single_run() {
     let mut client = FakeSpdmDeviceIoReceve::new(&buffer);
     client.send(&[1, 2]).unwrap();
     let mut rev = [0u8, 64];
-    client.receive(&mut rev).unwrap();
+    client.receive(&mut rev, 0).unwrap();
     println!("rev: {:?}", rev);
 }

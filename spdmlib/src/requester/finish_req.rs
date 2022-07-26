@@ -64,16 +64,21 @@ impl<'a> RequesterContext<'a> {
             .append_message(&buf[..temp_used])
             .ok_or(spdm_err!(ENOMEM))?;
 
-        let session = self
-            .common
-            .get_immutable_session_via_id(session_id)
-            .unwrap();
+        let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
+            s
+        } else {
+            return spdm_result_err!(EFAULT);
+        };
         let message_k = &session.runtime_info.message_k;
 
         let transcript_data =
             self.common
                 .calc_req_transcript_data(slot_id, false, message_k, Some(&message_f))?;
-        let session = self.common.get_session_via_id(session_id).unwrap();
+        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+            s
+        } else {
+            return spdm_result_err!(EFAULT);
+        };
         let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
         message_f
             .append_message(hmac.as_ref())
@@ -114,10 +119,13 @@ impl<'a> RequesterContext<'a> {
                         debug!("!!! finish rsp : {:02x?}\n", finish_rsp);
 
                         if in_clear_text {
-                            let session = self
-                                .common
-                                .get_immutable_session_via_id(session_id)
-                                .unwrap();
+                            let session = if let Some(s) =
+                                self.common.get_immutable_session_via_id(session_id)
+                            {
+                                s
+                            } else {
+                                return spdm_result_err!(EFAULT);
+                            };
                             let message_k = &session.runtime_info.message_k;
 
                             // verify HMAC with finished_key
@@ -133,7 +141,12 @@ impl<'a> RequesterContext<'a> {
                                 Some(&message_f),
                             )?;
 
-                            let session = self.common.get_session_via_id(session_id).unwrap();
+                            let session =
+                                if let Some(s) = self.common.get_session_via_id(session_id) {
+                                    s
+                                } else {
+                                    return spdm_result_err!(EFAULT);
+                                };
                             if session
                                 .verify_hmac_with_response_finished_key(
                                     transcript_data.as_ref(),
@@ -152,17 +165,24 @@ impl<'a> RequesterContext<'a> {
                                 .ok_or(spdm_err!(ENOMEM))?;
                             session.runtime_info.message_f = message_f.clone();
                         } else {
-                            let session = self.common.get_session_via_id(session_id).unwrap();
+                            let session =
+                                if let Some(s) = self.common.get_session_via_id(session_id) {
+                                    s
+                                } else {
+                                    return spdm_result_err!(EFAULT);
+                                };
                             message_f
                                 .append_message(&receive_buffer[..receive_used])
                                 .ok_or(spdm_err!(ENOMEM))?;
                             session.runtime_info.message_f = message_f.clone();
                         }
 
-                        let session = self
-                            .common
-                            .get_immutable_session_via_id(session_id)
-                            .unwrap();
+                        let session =
+                            if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
+                                s
+                            } else {
+                                return spdm_result_err!(EFAULT);
+                            };
                         let message_k = &session.runtime_info.message_k;
                         // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
@@ -173,10 +193,17 @@ impl<'a> RequesterContext<'a> {
                         )?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                        let session = self.common.get_session_via_id(session_id).unwrap();
-                        session
-                            .generate_data_secret(spdm_version_sel, &th2)
-                            .unwrap();
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
+                        match session.generate_data_secret(spdm_version_sel, &th2) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                return Err(e);
+                            }
+                        }
                         session.set_session_state(
                             crate::common::session::SpdmSessionState::SpdmSessionEstablished,
                         );

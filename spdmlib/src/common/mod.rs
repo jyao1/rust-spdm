@@ -427,7 +427,11 @@ impl<'a> SpdmContext<'a> {
                     .ok_or_else(|| spdm_err!(ENOMEM))?;
             }
             Some(session_id) => {
-                let session = self.get_session_via_id(session_id).unwrap();
+                let session = if let Some(s) = self.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return spdm_result_err!(EINVAL);
+                };
                 message
                     .append_message(session.runtime_info.message_m.as_ref())
                     .ok_or_else(|| spdm_err!(ENOMEM))?;
@@ -503,7 +507,11 @@ impl<'a> SpdmContext<'a> {
                     .ok_or_else(|| spdm_err!(ENOMEM))?;
             }
             Some(session_id) => {
-                let session = self.get_session_via_id(session_id).unwrap();
+                let session = if let Some(s) = self.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return spdm_result_err!(EINVAL);
+                };
                 message
                     .append_message(session.runtime_info.message_m.as_ref())
                     .ok_or_else(|| spdm_err!(ENOMEM))?;

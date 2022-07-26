@@ -48,7 +48,11 @@ impl<'a> RequesterContext<'a> {
                     if let Some(end_session_rsp) = end_session_rsp {
                         debug!("!!! end_session rsp : {:02x?}\n", end_session_rsp);
 
-                        let session = self.common.get_session_via_id(session_id).unwrap();
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
                         session.teardown(session_id)?;
 
                         Ok(())

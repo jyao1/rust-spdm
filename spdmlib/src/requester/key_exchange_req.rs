@@ -218,7 +218,10 @@ impl<'a> RequesterContext<'a> {
                             .get_next_avaiable_session()
                             .ok_or(spdm_err!(EINVAL))?;
 
-                        session.setup(session_id).unwrap();
+                        if let Err(e) = session.setup(session_id) {
+                            return Err(e);
+                        }
+
                         session.set_use_psk(false);
 
                         session.set_crypto_param(
@@ -228,10 +231,8 @@ impl<'a> RequesterContext<'a> {
                             key_schedule_algo,
                         );
                         session.set_transport_param(sequence_number_count, max_random_count);
-                        session.set_dhe_secret(spdm_version_sel, final_key);
-                        session
-                            .generate_handshake_secret(spdm_version_sel, &th1)
-                            .unwrap();
+                        session.set_dhe_secret(spdm_version_sel, final_key)?;
+                        session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
                         // verify HMAC with finished_key
                         let transcript_data = self
