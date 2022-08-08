@@ -4,7 +4,7 @@
 
 use crate::common::algo::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use crate::common::error::SpdmResult;
-use crate::crypto::{self, SpdmAsymVerify};
+use crate::crypto::SpdmAsymVerify;
 use core::convert::TryFrom;
 
 pub static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {
@@ -70,7 +70,7 @@ fn asym_verify(
     // TBD: Find leaf cert - need use WEBPKI function
     //
     let (leaf_begin, leaf_end) =
-        crypto::cert_operation::get_cert_from_cert_chain(public_cert_der, -1)?;
+        (super::cert_operation_impl::DEFAULT.get_cert_from_cert_chain_cb)(public_cert_der, -1)?;
     let leaf_cert_der = &public_cert_der[leaf_begin..leaf_end];
 
     //debug!("signature len - 0x{:x?}\n", signature.data_size);
