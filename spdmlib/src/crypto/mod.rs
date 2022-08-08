@@ -370,11 +370,7 @@ mod tests {
 
     #[test]
     fn test_case0_cert_operation_register() {
-        let context = SpdmCertOperation {
-            get_cert_from_cert_chain_cb: cert_operation::get_cert_from_cert_chain,
-            verify_cert_chain_cb: cert_operation::verify_cert_chain,
-        };
-        let state = cert_operation::register(context);
+        let state = cert_operation::register(spdm_ring::cert_operation_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
     #[test]
