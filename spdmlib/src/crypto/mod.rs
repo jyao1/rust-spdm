@@ -375,7 +375,7 @@ mod tests {
             verify_cert_chain_cb: cert_operation::verify_cert_chain,
         };
         let state = cert_operation::register(context);
-        assert_eq!(state, false);
+        assert_eq!(state, true);
     }
     #[test]
     fn test_case0_hmac_register() {
