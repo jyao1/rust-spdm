@@ -19,7 +19,7 @@ git submodule update --init --recursive
 
 1. Install [RUST](https://www.rust-lang.org/)
 
-Please use nightly-2022-04-07.
+Please use nightly-2022-05-15.
 
 2. Install [NASM](https://www.nasm.us/)
 
