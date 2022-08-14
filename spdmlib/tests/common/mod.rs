@@ -10,3 +10,5 @@ pub mod utils;
 // TBD: need test different algorithm combinations
 pub const USE_ECDSA: bool = true;
 pub const USE_ECDH: bool = true;
+
+pub mod testlib;

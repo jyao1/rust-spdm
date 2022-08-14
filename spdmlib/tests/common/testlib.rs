@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::*;
-use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
-use crate::{common, responder};
+use spdmlib::common::*;
+use spdmlib::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
+use spdmlib::{common, responder};
 
-use crate::common::error::SpdmResult;
-use crate::message::*;
-use crate::{spdm_err, spdm_result_err};
+use spdmlib::common::error::SpdmResult;
+use spdmlib::message::*;
+use spdmlib::{spdm_err, spdm_result_err};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 use std::cell::RefCell;
