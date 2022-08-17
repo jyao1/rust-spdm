@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use super::algo::*;
+use crate::protocol::*;
 use crate::crypto;
-use crate::{config::MAX_SPDM_MESSAGE_BUFFER_SIZE, message::SpdmVersion};
+use crate::config::MAX_SPDM_MESSAGE_BUFFER_SIZE;
 use codec::{Codec, Writer};
 extern crate alloc;
 use alloc::boxed::Box;

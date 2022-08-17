@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 mod secret_callback;
 
-use crate::message::*;
+use crate::protocol::*;
 use conquer_once::spin::OnceCell;
 pub use secret_callback::SpdmSecret;
 

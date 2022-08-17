@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::{SpdmBaseHashAlgo, SpdmDigestStruct};
-use crate::common::error::SpdmResult;
+use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
+use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmHmac;
 
 pub static DEFAULT: SpdmHmac = SpdmHmac {

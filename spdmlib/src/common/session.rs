@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use super::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use super::key_schedule::SpdmKeySchedule;
 use crate::config;
 use crate::crypto;

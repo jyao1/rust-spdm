@@ -4,7 +4,7 @@
 
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
-use crate::common::error::SpdmResult;
+use crate::error::{SpdmResult, spdm_result_err};
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;

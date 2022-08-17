@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::common::algo::{
+use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
 };
 use crate::common::opaque::SpdmOpaqueStruct;

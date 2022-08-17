@@ -101,11 +101,11 @@ impl Debug for SpdmError {
 #[macro_export]
 macro_rules! spdm_err {
     ($num: ident) => {{
-        use $crate::common::error::{SpdmError, SpdmErrorNum::*};
+        use $crate::error::{SpdmError, SpdmErrorNum::*};
         SpdmError::new($num, file!(), line!(), column!(), "")
     }};
     ($num: ident, $msg: expr) => {{
-        use $crate::common::error::{SpdmError, SpdmErrorNum::*};
+        use $crate::error::{SpdmError, SpdmErrorNum::*};
         SpdmError::new($num, file!(), line!(), column!(), $msg)
     }};
 }
@@ -117,6 +117,7 @@ macro_rules! spdm_result_err {
         Err(spdm_err!($num))
     };
     ($num: ident, $msg: expr) => {
+        use $crate::error::{SpdmError, SpdmErrorNum::*};
         Err(spdm_err!($num, $msg))
     };
 }

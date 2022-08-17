@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::error::SpdmResult;
+use crate::error::{SpdmResult, spdm_err, spdm_result_err};
 use crate::responder::*;
 
 use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
@@ -173,7 +173,7 @@ impl<'a> ResponderContext<'a> {
             return spdm_result_err!(EFAULT);
         }
 
-        let signature = self.common.generate_key_exchange_rsp_signature(&message_k);
+        let signature = self.generate_key_exchange_rsp_signature(&message_k);
         if signature.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
@@ -263,6 +263,44 @@ impl<'a> ResponderContext<'a> {
 
         Ok(())
     }
+
+    pub fn generate_key_exchange_rsp_signature(
+        &mut self,
+        message_k: &ManagedBuffer,
+    ) -> SpdmResult<SpdmSignatureStruct> {
+        let mut message = self.common.calc_rsp_transcript_data(false, message_k, None)?;
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_hash =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
+                .ok_or_else(|| spdm_err!(EFAULT))?;
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            message.as_ref(),
+        )
+        .ok_or_else(|| spdm_err!(EFAULT))
+    }
+
+
 }
 
 #[cfg(test)]

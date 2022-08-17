@@ -4,7 +4,7 @@
 
 use codec::{Codec, Reader};
 
-use crate::common::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{spdm_result_err, SpdmResult};
 use crate::common::session::SpdmSessionState;
 use crate::message::*;
 use crate::requester::RequesterContext;

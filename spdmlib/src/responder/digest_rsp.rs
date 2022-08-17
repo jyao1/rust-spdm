@@ -6,7 +6,7 @@ use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
 extern crate alloc;
-use crate::common::gen_array_clone;
+use crate::protocol::gen_array_clone;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {

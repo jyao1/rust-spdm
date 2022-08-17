@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::{
+use crate::protocol::{
     SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
     SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo,
-    SpdmSignatureStruct,
+    SpdmSignatureStruct, SpdmVersion,
 };
-use crate::message::SpdmVersion;
 
 type SpdmMeasurementCollectionCbType = fn(
     spdm_version: SpdmVersion,

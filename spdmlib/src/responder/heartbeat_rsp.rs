@@ -42,7 +42,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::common::gen_array_clone;
+    use crate::protocol::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::error::SpdmResult;
+use crate::error::{SpdmResult, spdm_err, spdm_result_err};
 use crate::crypto;
 use crate::message::*;
 use crate::requester::*;
@@ -141,7 +141,6 @@ impl<'a> RequesterContext<'a> {
                                 .append_message(&receive_buffer[..temp_used])
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                             if self
-                                .common
                                 .verify_measurement_signature(
                                     slot_id,
                                     session_id,
@@ -261,6 +260,89 @@ impl<'a> RequesterContext<'a> {
             spdm_result_err!(EFAULT)
         }
     }
+
+    pub fn verify_measurement_signature(
+        &mut self,
+        slot_id: u8,
+        session_id: Option<u32>,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
+        let mut message = ManagedBuffer::default();
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            let message_vca = self.common.runtime_info.message_vca.clone();
+            message
+                .append_message(message_vca.as_ref())
+                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+        }
+
+        match session_id {
+            None => {
+                message
+                    .append_message(self.common.runtime_info.message_m.as_ref())
+                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+            }
+            Some(session_id) => {
+                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return spdm_result_err!(EINVAL);
+                };
+                message
+                    .append_message(session.runtime_info.message_m.as_ref())
+                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+            }
+        }
+
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        debug!("message_m - {:02x?}", message.as_ref());
+        let message_hash =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
+                .ok_or_else(|| spdm_err!(EFAULT))?;
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            cert_chain_data,
+            message.as_ref(),
+            signature,
+        )
+    }
+
 }
 
 #[cfg(test)]

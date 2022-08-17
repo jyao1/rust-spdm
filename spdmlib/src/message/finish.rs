@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use super::capability::{SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags};
+use crate::protocol::{SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmDigestStruct, SpdmSignatureStruct};
 use crate::common;
-use crate::common::algo::{SpdmDigestStruct, SpdmSignatureStruct};
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 

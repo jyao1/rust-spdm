@@ -5,15 +5,15 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::common::error::SpdmResult;
 use crate::requester::*;
 
 use crate::common::ManagedBuffer;
 
 use crate::crypto;
 
-use crate::common::algo::SpdmMeasurementSummaryHashType;
+use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmVersion, SpdmSignatureStruct};
 use crate::message::*;
+use crate::error::{SpdmResult, spdm_err, spdm_result_err};
 
 const INITIAL_SESSION_ID: u16 = 0xFFFE;
 
@@ -165,7 +165,6 @@ impl<'a> RequesterContext<'a> {
                             .ok_or(spdm_err!(ENOMEM))?;
 
                         if self
-                            .common
                             .verify_key_exchange_rsp_signature(
                                 slot_id,
                                 &message_k,
@@ -302,6 +301,63 @@ impl<'a> RequesterContext<'a> {
             None => spdm_result_err!(EIO),
         }
     }
+
+
+    pub fn verify_key_exchange_rsp_signature(
+        &mut self,
+        slot_id: u8,
+        message_k: &ManagedBuffer,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
+        let mut message = self.common.calc_req_transcript_data(slot_id, false, message_k, None)?;
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_hash =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
+                .ok_or_else(|| spdm_err!(EFAULT))?;
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            cert_chain_data,
+            message.as_ref(),
+            signature,
+        )
+    }
+
 }
 
 #[cfg(test)]
