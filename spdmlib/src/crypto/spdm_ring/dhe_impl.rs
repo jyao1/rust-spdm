@@ -5,7 +5,7 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::common::algo::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
+use crate::protocol::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
 use crate::crypto::{SpdmDhe, SpdmDheKeyExchange};
 use bytes::{BufMut, BytesMut};
 

@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 pub use crate::common;
-pub use crate::common::algo::*;
-use crate::common::gen_array_clone;
+pub use crate::protocol::*;
 pub use crate::common::spdm_codec::*;
 use crate::config;
 

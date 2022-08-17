@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::error::SpdmResult;
+use crate::error::SpdmResult;
 
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::common::algo::{
+use crate::protocol::{
     SpdmAeadAlgo, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo, SpdmDheExchangeStruct,
     SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmSignatureStruct,
 };

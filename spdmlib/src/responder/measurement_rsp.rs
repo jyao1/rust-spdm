@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::{ManagedBuffer};
+use crate::error::{SpdmResult, spdm_err, spdm_result_err};
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
@@ -155,7 +157,7 @@ impl<'a> ResponderContext<'a> {
             let temp_used = used - base_asym_size;
             self.append_message_m_response(session_id, &writer.used_slice()[..temp_used]);
 
-            let signature = self.common.generate_measurement_signature(session_id);
+            let signature = self.generate_measurement_signature(session_id);
             if signature.is_err() {
                 self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
                 return;
@@ -182,6 +184,68 @@ impl<'a> ResponderContext<'a> {
             }
         }
     }
+
+    pub fn generate_measurement_signature(
+        &mut self,
+        session_id: Option<u32>,
+    ) -> SpdmResult<SpdmSignatureStruct> {
+        let mut message = ManagedBuffer::default();
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            let message_vca = self.common.runtime_info.message_vca.clone();
+            message
+                .append_message(message_vca.as_ref())
+                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+        }
+
+        match session_id {
+            None => {
+                message
+                    .append_message(self.common.runtime_info.message_m.as_ref())
+                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+            }
+            Some(session_id) => {
+                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return spdm_result_err!(EINVAL);
+                };
+                message
+                    .append_message(session.runtime_info.message_m.as_ref())
+                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+            }
+        }
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_hash =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
+                .ok_or_else(|| spdm_err!(EFAULT))?;
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            message.as_ref(),
+        )
+        .ok_or_else(|| spdm_err!(EFAULT))
+    }
+
 }
 
 #[cfg(test)]

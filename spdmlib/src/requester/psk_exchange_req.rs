@@ -4,8 +4,8 @@
 
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
-use crate::common::algo::SpdmMeasurementSummaryHashType;
-use crate::common::error::SpdmResult;
+use crate::protocol::SpdmMeasurementSummaryHashType;
+use crate::error::{SpdmResult, spdm_result_err, spdm_err};
 use crate::crypto;
 use crate::message::*;
 use crate::requester::*;

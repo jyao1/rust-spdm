@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::common::algo::{SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
-use crate::common::gen_array_clone;
+use crate::protocol::{SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER, gen_array_clone};
 use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 

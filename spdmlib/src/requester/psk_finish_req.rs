@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::error::SpdmResult;
+use crate::error::{SpdmResult, spdm_result_err, spdm_err};
 use crate::message::*;
 use crate::requester::*;
 extern crate alloc;

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::common::algo::{SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmSignatureStruct};
+use crate::protocol::{SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmSignatureStruct};
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use codec::enum_builder;

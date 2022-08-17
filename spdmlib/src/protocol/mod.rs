@@ -1,0 +1,31 @@
+
+extern crate alloc;
+use alloc::vec::Vec;
+
+use core::convert::TryInto;
+
+mod algo;
+mod capability;
+mod version;
+pub use algo::*;
+pub use capability::*;
+pub use version::*;
+
+// util function
+pub fn gen_array<T: Default + core::fmt::Debug, const N: usize>(count: usize) -> [T; N] {
+    let mut vec = Vec::new();
+    for _i in 0..count {
+        vec.push(T::default());
+    }
+    vec.try_into().unwrap()
+}
+
+// util function
+pub fn gen_array_clone<T: Clone + core::fmt::Debug, const N: usize>(v: T, count: usize) -> [T; N] {
+    let mut vec = Vec::new();
+    for _i in 1..count {
+        vec.push(v.clone());
+    }
+    vec.push(v);
+    vec.try_into().unwrap()
+}

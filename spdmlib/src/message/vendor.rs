@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::spdm_codec::SpdmCodec;
-use crate::common::{self, error::SpdmResult};
+use crate::common;
+use crate::error::{SpdmResult, spdm_result_err};
 use crate::config;
 use codec::{enum_builder, Codec, Reader, Writer};
 

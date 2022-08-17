@@ -6,7 +6,7 @@ extern crate alloc;
 use alloc::vec;
 use core::convert::TryFrom;
 
-use crate::common::error::SpdmResult;
+use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmCertOperation;
 
 pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {

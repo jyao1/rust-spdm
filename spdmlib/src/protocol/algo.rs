@@ -9,7 +9,6 @@ use core::convert::From;
 extern crate alloc;
 use alloc::boxed::Box;
 use zeroize::{Zeroize, ZeroizeOnDrop};
-
 use super::gen_array;
 
 pub const SHA256_DIGEST_SIZE: usize = 32;

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::error::SpdmResult;
+use crate::error::SpdmResult;
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
 use crate::message::*;
@@ -297,7 +297,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(test)]
 mod tests_responder {
     use super::*;
-    use crate::common::gen_array_clone;
+    use crate::protocol::gen_array_clone;
     use crate::common::session::*;
     use crate::common::ST1;
     use crate::message::SpdmMessageHeader;

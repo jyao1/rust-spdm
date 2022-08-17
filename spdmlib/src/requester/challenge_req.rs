@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::SpdmMeasurementSummaryHashType;
-use crate::common::error::SpdmResult;
+use crate::protocol::SpdmMeasurementSummaryHashType;
+use crate::error::{SpdmResult, spdm_err, spdm_result_err};
 use crate::crypto;
 use crate::message::*;
 use crate::requester::*;
@@ -100,7 +100,6 @@ impl<'a> RequesterContext<'a> {
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
 
                         if self
-                            .common
                             .verify_challenge_auth_signature(slot_id, &challenge_auth.signature)
                             .is_err()
                         {
@@ -143,6 +142,72 @@ impl<'a> RequesterContext<'a> {
             None => spdm_result_err!(EIO),
         }
     }
+
+    pub fn verify_challenge_auth_signature(
+        &mut self,
+        slot_id: u8,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
+        let mut message = ManagedBuffer::default();
+        message
+            .append_message(self.common.runtime_info.message_a.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        message
+            .append_message(self.common.runtime_info.message_b.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        message
+            .append_message(self.common.runtime_info.message_c.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_hash =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
+                .ok_or_else(|| spdm_err!(EFAULT))?;
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            cert_chain_data,
+            message.as_ref(),
+            signature,
+        )
+    }
+
+
+
 }
 #[cfg(test)]
 mod tests_requester {

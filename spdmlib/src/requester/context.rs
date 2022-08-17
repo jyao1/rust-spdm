@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::SpdmMeasurementSummaryHashType;
-use crate::common::error::SpdmResult;
+use crate::protocol::SpdmMeasurementSummaryHashType;
+use crate::error::{SpdmResult, spdm_result_err, spdm_err};
 use crate::common::ST1;
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;

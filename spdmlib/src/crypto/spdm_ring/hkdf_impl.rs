@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::{SpdmBaseHashAlgo, SpdmDigestStruct};
+use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 use crate::crypto::SpdmHkdf;
 
 pub static DEFAULT: SpdmHkdf = SpdmHkdf {

@@ -13,13 +13,16 @@ extern crate bitflags;
 
 extern crate codec;
 
+pub mod protocol;
 #[macro_use]
-pub mod common;
+pub mod error;
 pub mod crypto;
+pub mod secret;
+pub mod time;
+pub mod common;
+
 pub mod message;
 pub mod requester;
 pub mod responder;
-pub mod secret;
-pub mod time;
 
 pub mod config;

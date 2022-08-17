@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::ManagedBuffer;
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
+use crate::error::{SpdmResult, spdm_err};
 extern crate alloc;
 use alloc::boxed::Box;
 
@@ -101,7 +103,7 @@ impl<'a> ResponderContext<'a> {
             .message_c
             .append_message(&writer.used_slice()[..temp_used]);
 
-        let signature = self.common.generate_challenge_auth_signature();
+        let signature = self.generate_challenge_auth_signature();
         if signature.is_err() {
             self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
             return;
@@ -110,6 +112,49 @@ impl<'a> ResponderContext<'a> {
         // patch the message before send
         writer.mut_used_slice()[(used - base_asym_size)..used].copy_from_slice(signature.as_ref());
     }
+
+    pub fn generate_challenge_auth_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
+        let mut message = ManagedBuffer::default();
+        message
+            .append_message(self.common.runtime_info.message_a.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        message
+            .append_message(self.common.runtime_info.message_b.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        message
+            .append_message(self.common.runtime_info.message_c.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_hash =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
+                .ok_or_else(|| spdm_err!(EFAULT))?;
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            message.as_ref(),
+        )
+        .ok_or_else(|| spdm_err!(EFAULT))
+    }
+
 }
 
 #[cfg(test)]

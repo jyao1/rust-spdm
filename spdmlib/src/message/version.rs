@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use super::SpdmVersion;
+use crate::protocol::{SpdmVersion, gen_array_clone};
 use crate::common::spdm_codec::SpdmCodec;
-use crate::common::{self, gen_array_clone};
+use crate::common;
 use crate::config;
 use codec::{Codec, Reader, Writer};
 
