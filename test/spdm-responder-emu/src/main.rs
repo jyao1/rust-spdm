@@ -23,7 +23,7 @@ use spdm_emu::secret_impl_sample::*;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
 use spdmlib::secret::*;
-use spdmlib::{common, config, message::*, responder};
+use spdmlib::{common, config, protocol::*, responder};
 
 fn process_socket_message(
     stream: &mut TcpStream,

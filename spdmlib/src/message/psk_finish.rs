@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::protocol::SpdmDigestStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::protocol::SpdmDigestStruct;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -51,10 +51,16 @@ impl SpdmCodec for SpdmPskFinishResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use crate::protocol::*;
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_key_exchange_request_payload() {
@@ -63,14 +69,13 @@ mod tests {
         let value = SpdmPskFinishRequestPayload {
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([100u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        create_spdm_context!(context);
+
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -89,9 +94,9 @@ mod tests {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskFinishResponsePayload {};
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        create_spdm_context!(context);
+
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         SpdmPskFinishResponsePayload::spdm_read(&mut context, &mut reader);

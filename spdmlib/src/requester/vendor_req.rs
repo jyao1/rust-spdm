@@ -84,7 +84,7 @@ impl<'a> RequesterContext<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_requester {
     use super::*;
     use crate::crypto;

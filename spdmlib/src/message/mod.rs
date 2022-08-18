@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::{SpdmCodec, SpdmContext};
+use crate::protocol::*;
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
-pub use crate::protocol::*;
 
 // SPDM 1.0
 pub mod algorithm;
@@ -137,15 +138,12 @@ impl Codec for SpdmMessageGeneralPayload {
 }
 
 impl SpdmCodec for SpdmMessageGeneralPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
         0u8.encode(bytes); // param1
         0u8.encode(bytes); // param2
     }
 
-    fn spdm_read(
-        _context: &mut common::SpdmContext,
-        r: &mut Reader,
-    ) -> Option<SpdmMessageGeneralPayload> {
+    fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmMessageGeneralPayload> {
         let param1 = u8::read(r)?; // param1
         let param2 = u8::read(r)?; // param2
 
@@ -218,7 +216,7 @@ pub enum SpdmMessagePayload {
 
 impl SpdmMessage {
     pub fn read_with_detailed_error(
-        context: &mut common::SpdmContext,
+        context: &mut SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmMessage> {
         let header = SpdmMessageHeader::read(r)?;
@@ -393,7 +391,7 @@ impl SpdmMessage {
 }
 
 impl SpdmCodec for SpdmMessage {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
         self.header.encode(bytes);
         match &self.payload {
             SpdmMessagePayload::SpdmMessageGeneral(payload) => {
@@ -510,19 +508,23 @@ impl SpdmCodec for SpdmMessage {
         }
     }
 
-    fn spdm_read(context: &mut common::SpdmContext, r: &mut Reader) -> Option<SpdmMessage> {
+    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmMessage> {
         SpdmMessage::read_with_detailed_error(context, r)
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::protocol::gen_array_clone;
-    use crate::common::*;
-    use crate::config;
-    use crate::config::*;
-    use crate::testlib::*;
+    use crate::common::{
+        SpdmConfigInfo, SpdmContext, SpdmOpaqueStruct, SpdmOpaqueSupport, SpdmProvisionInfo,
+    };
+    use crate::config::{self, *};
+    use testlib::{create_spdm_context, new_spdm_message, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_message_header() {
@@ -546,9 +548,6 @@ mod tests {
 
     #[test]
     fn test_case0_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -561,12 +560,13 @@ mod tests {
                         update: 100,
                         version: SpdmVersion::SpdmVersion11,
                     },
-                    config::MAX_SPDM_VERSION_COUNT,
+                    MAX_SPDM_VERSION_COUNT,
                 ),
             }),
         };
 
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
@@ -583,9 +583,6 @@ mod tests {
     }
     #[test]
     fn test_case1_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -600,7 +597,8 @@ mod tests {
                 },
             ),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -613,9 +611,6 @@ mod tests {
     }
     #[test]
     fn test_case2_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -630,7 +625,8 @@ mod tests {
                 },
             ),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -643,9 +639,6 @@ mod tests {
     }
     #[test]
     fn test_case3_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -670,7 +663,8 @@ mod tests {
                 },
             ),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -700,9 +694,6 @@ mod tests {
     }
     #[test]
     fn test_case4_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -726,7 +717,8 @@ mod tests {
                 ),
             }),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -757,9 +749,6 @@ mod tests {
     }
     #[test]
     fn test_case5_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -772,7 +761,8 @@ mod tests {
                 cert_chain: [100u8; MAX_SPDM_CERT_PORTION_LEN],
             }),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -789,9 +779,6 @@ mod tests {
     }
     #[test]
     fn test_case6_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -804,7 +791,9 @@ mod tests {
                 nonce: SpdmNonceStruct { data: [100u8; 32] },
             }),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -823,9 +812,6 @@ mod tests {
     }
     #[test]
     fn test_case7_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -858,7 +844,8 @@ mod tests {
                 },
             ),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         context.runtime_info.need_measurement_summary_hash = true;
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
@@ -894,9 +881,6 @@ mod tests {
     }
     #[test]
     fn test_case8_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -914,7 +898,8 @@ mod tests {
                 },
             ),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -937,9 +922,6 @@ mod tests {
     }
     #[test]
     fn test_case9_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -983,7 +965,8 @@ mod tests {
                 },
             ),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_signature = true;
@@ -1043,9 +1026,6 @@ mod tests {
     }
     #[test]
     fn test_case10_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1070,7 +1050,7 @@ mod tests {
                 },
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
@@ -1099,9 +1079,6 @@ mod tests {
     }
     #[test]
     fn test_case12_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1120,7 +1097,7 @@ mod tests {
                 },
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
@@ -1146,9 +1123,6 @@ mod tests {
     }
     #[test]
     fn test_case13_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1161,7 +1135,7 @@ mod tests {
                 },
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.req_capabilities_sel =
             SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
@@ -1181,9 +1155,6 @@ mod tests {
     }
     #[test]
     fn test_case114_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1207,7 +1178,8 @@ mod tests {
                 },
             }),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -1256,7 +1228,7 @@ mod tests {
                 },
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_summary_hash = true;
         let spdm_message = new_spdm_message(value, context);
@@ -1283,9 +1255,6 @@ mod tests {
     }
     #[test]
     fn test_case15_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1298,7 +1267,7 @@ mod tests {
                 },
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -1314,9 +1283,6 @@ mod tests {
     }
     #[test]
     fn test_case17_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1327,7 +1293,7 @@ mod tests {
                 tag: 100u8,
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
         if let SpdmMessagePayload::SpdmKeyUpdateRequest(payload) = &spdm_message.payload {
@@ -1348,7 +1314,7 @@ mod tests {
                 tag: 100u8,
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -1365,9 +1331,6 @@ mod tests {
     }
     #[test]
     fn test_case18_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1378,7 +1341,7 @@ mod tests {
                     SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
             }),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -1393,9 +1356,6 @@ mod tests {
     }
     #[test]
     fn test_case19_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1414,7 +1374,7 @@ mod tests {
                 ),
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -1436,9 +1396,6 @@ mod tests {
     }
     #[test]
     fn test_case20_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1447,14 +1404,11 @@ mod tests {
             payload: SpdmMessagePayload::SpdmGetVersionRequest(SpdmGetVersionRequestPayload {}),
         };
 
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         new_spdm_message(value, context);
     }
     #[test]
     fn test_case21_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1463,14 +1417,11 @@ mod tests {
             payload: SpdmMessagePayload::SpdmGetDigestsRequest(SpdmGetDigestsRequestPayload {}),
         };
 
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         new_spdm_message(value, context);
     }
     #[test]
     fn test_case22_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1485,7 +1436,7 @@ mod tests {
             ),
         };
 
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
@@ -1499,9 +1450,6 @@ mod tests {
     }
     #[test]
     fn test_case23_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1509,14 +1457,11 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmPskFinishResponse(SpdmPskFinishResponsePayload {}),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         new_spdm_message(value, context);
     }
     #[test]
     fn test_case24_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1524,29 +1469,22 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmHeartbeatRequest(SpdmHeartbeatRequestPayload {}),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         new_spdm_message(value, context);
     }
     #[test]
     fn test_case25_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
-        let value = SpdmMessage {
+        let _value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseEndSessionAck,
             },
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        new_spdm_message(value, context);
+        create_spdm_context!(context);
     }
     #[test]
     fn test_case26_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1554,7 +1492,7 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         let u8_slice = &mut [0u8; 1000];
         let mut writer = Writer::init(u8_slice);
         value.spdm_encode(&mut context, &mut writer);
@@ -1565,9 +1503,6 @@ mod tests {
 
     #[test]
     fn test_case27_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1585,7 +1520,7 @@ mod tests {
                 ),
             }),
         };
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -1601,9 +1536,6 @@ mod tests {
     }
     #[test]
     fn test_case28_spdm_message() {
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -1611,7 +1543,7 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
         };
-        let context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
         new_spdm_message(value, context);
     }
 }

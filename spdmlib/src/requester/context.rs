@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::protocol::SpdmMeasurementSummaryHashType;
-use crate::error::{SpdmResult, spdm_result_err, spdm_err};
 use crate::common::ST1;
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::protocol::*;
 
 pub struct RequesterContext<'a> {
     pub common: common::SpdmContext<'a>,
@@ -147,7 +147,7 @@ impl<'a> RequesterContext<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_requester {
     use super::*;
     use crate::common::session::SpdmSession;
@@ -235,16 +235,16 @@ mod tests_requester {
         );
 
         responder.common.negotiate_info.base_hash_sel =
-            common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+            crate::protocol::SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
         responder.common.session = gen_array_clone(SpdmSession::new(), 4);
         responder.common.session[0].setup(session_id).unwrap();
         responder.common.session[0].set_crypto_param(
-            common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            common::algo::SpdmDheAlgo::SECP_384_R1,
-            common::algo::SpdmAeadAlgo::AES_256_GCM,
-            common::algo::SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+            crate::protocol::SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            crate::protocol::SpdmDheAlgo::SECP_384_R1,
+            crate::protocol::SpdmAeadAlgo::AES_256_GCM,
+            crate::protocol::SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         responder.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
@@ -260,16 +260,16 @@ mod tests_requester {
         );
 
         requester.common.negotiate_info.base_hash_sel =
-            common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+            crate::protocol::SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
         requester.common.session = gen_array_clone(SpdmSession::new(), 4);
         requester.common.session[0].setup(session_id).unwrap();
         requester.common.session[0].set_crypto_param(
-            common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            common::algo::SpdmDheAlgo::SECP_384_R1,
-            common::algo::SpdmAeadAlgo::AES_256_GCM,
-            common::algo::SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+            crate::protocol::SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            crate::protocol::SpdmDheAlgo::SECP_384_R1,
+            crate::protocol::SpdmAeadAlgo::AES_256_GCM,
+            crate::protocol::SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);

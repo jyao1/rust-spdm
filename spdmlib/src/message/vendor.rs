@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::spdm_codec::SpdmCodec;
 use crate::common;
-use crate::error::{SpdmResult, spdm_result_err};
+use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
+use crate::error::{spdm_result_err, SpdmResult};
 use codec::{enum_builder, Codec, Reader, Writer};
 
 use conquer_once::spin::OnceCell;
@@ -230,6 +230,6 @@ pub fn vendor_defined_request_handler(
     if let Ok(vds) = VENDOR_DEFNIED.try_get_or_init(|| VENDOR_DEFNIED_DEFAULT) {
         (vds.vendor_defined_request_handler)(vendor_defined_req_payload_struct)
     } else {
-        return spdm_result_err!(EUNDEF);
+        spdm_result_err!(EUNDEF)
     }
 }

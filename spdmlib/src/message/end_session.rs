@@ -25,7 +25,7 @@ impl Codec for SpdmEndSessionRequestAttributes {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmEndSessionRequestPayload {
     pub end_session_request_attributes: SpdmEndSessionRequestAttributes,
 }
@@ -69,10 +69,16 @@ impl SpdmCodec for SpdmEndSessionResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
+
     #[test]
     fn test_case0_spdm_response_capability_flags() {
         let u8_slice = &mut [0u8; 1];
@@ -96,9 +102,7 @@ mod tests {
                 SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -116,9 +120,9 @@ mod tests {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmEndSessionResponsePayload {};
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        create_spdm_context!(context);
+
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         SpdmEndSessionResponsePayload::spdm_read(&mut context, &mut reader);

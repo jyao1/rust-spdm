@@ -91,10 +91,15 @@ impl SpdmCodec for SpdmCertificateResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_get_capabilities_request_payload() {
@@ -105,9 +110,7 @@ mod tests {
         value.offset = 100;
         value.length = 100;
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -129,15 +132,7 @@ mod tests {
         value.remainder_length = 100;
         value.cert_chain = [100u8; config::MAX_SPDM_CERT_PORTION_LEN];
 
-        let (config_info, provision_info) = create_info();
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = common::SpdmContext::new(
-            my_spdm_device_io,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);

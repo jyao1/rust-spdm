@@ -9,7 +9,7 @@ use core::fmt::{Debug, Formatter, Result};
 /// https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/errno-base.h
 #[repr(u32)]
 #[allow(dead_code)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpdmErrorNum {
     EUNDEF = 0,
     EPERM = 1,

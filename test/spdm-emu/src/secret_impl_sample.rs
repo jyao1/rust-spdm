@@ -4,15 +4,15 @@
 
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use spdmlib::common::algo::{
+use spdmlib::config;
+use spdmlib::crypto::hash;
+use spdmlib::message::*;
+use spdmlib::protocol::*;
+use spdmlib::protocol::{
     SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
     SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo,
     SpdmSignatureStruct,
 };
-use spdmlib::config;
-use spdmlib::crypto::hash;
-use spdmlib::message::SpdmVersion;
-use spdmlib::message::*;
 use spdmlib::secret::*;
 
 pub static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
@@ -338,11 +338,10 @@ fn spdm_psk_master_secret_hkdf_expand_impl(
     Some(SpdmHKDFKeyStruct::default())
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::SECRET_IMPL_INSTANCE;
-    use spdmlib::common::algo::{SpdmBaseHashAlgo, SpdmMeasurementSpecification};
-    use spdmlib::message::SpdmVersion;
+    use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmMeasurementSpecification, SpdmVersion};
     use spdmlib::secret::*;
 
     #[test]

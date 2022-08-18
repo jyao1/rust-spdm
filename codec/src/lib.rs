@@ -12,7 +12,7 @@ pub use crate::codec::*;
 #[macro_use]
 pub mod macros;
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
 
     use crate::{Codec, Reader, Writer};

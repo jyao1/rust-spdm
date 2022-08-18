@@ -34,7 +34,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmErrorResponseNoneExtData {}
 
 impl SpdmCodec for SpdmErrorResponseNoneExtData {
@@ -48,7 +48,7 @@ impl SpdmCodec for SpdmErrorResponseNoneExtData {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmErrorResponseNotReadyExtData {
     pub rdt_exponent: u8,
     pub request_code: u8,
@@ -104,7 +104,7 @@ impl SpdmCodec for SpdmErrorResponseNotReadyExtData {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmErrorResponseVendorExtData {
     pub data_size: u8,
     pub data: [u8; 32],
@@ -141,7 +141,7 @@ impl SpdmCodec for SpdmErrorResponseVendorExtData {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpdmErrorResponseExtData {
     SpdmErrorExtDataNone(SpdmErrorResponseNoneExtData),
     SpdmErrorExtDataNotReady(SpdmErrorResponseNotReadyExtData),
@@ -211,10 +211,15 @@ impl SpdmCodec for SpdmErrorResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_error_response_not_ready_ext_data() {
@@ -228,9 +233,7 @@ mod tests {
             rdtm: 0x55,
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -251,9 +254,8 @@ mod tests {
             data_size: 32,
             data: [100u8; 32],
         };
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -270,9 +272,8 @@ mod tests {
         let u8_slice = &mut [0u8; 32];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmErrorResponseVendorExtData::default();
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -299,9 +300,7 @@ mod tests {
             ),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
         let mut spdm_error_response_payload = new_spdm_response(value, &mut context);
 

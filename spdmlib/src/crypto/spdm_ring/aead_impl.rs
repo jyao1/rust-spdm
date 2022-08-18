@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmAead;
+use crate::error::{spdm_result_err, SpdmResult};
 use bytes::BytesMut;
 
 use crate::protocol::SpdmAeadAlgo;
@@ -173,7 +173,7 @@ fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
     Ok(K::new(key, nonce_sequence))
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
     use crate::protocol::*;

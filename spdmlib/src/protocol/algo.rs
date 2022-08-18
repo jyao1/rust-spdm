@@ -7,9 +7,9 @@ use bytes::BytesMut;
 use codec::{enum_builder, Codec, Reader, Writer};
 use core::convert::From;
 extern crate alloc;
+use super::gen_array;
 use alloc::boxed::Box;
 use zeroize::{Zeroize, ZeroizeOnDrop};
-use super::gen_array;
 
 pub const SHA256_DIGEST_SIZE: usize = 32;
 pub const SHA384_DIGEST_SIZE: usize = 48;
@@ -89,6 +89,8 @@ impl From<BytesMut> for SpdmDigestStruct {
 
 impl From<&[u8]> for SpdmDigestStruct {
     fn from(value: &[u8]) -> Self {
+        // TODO: verify
+        // ensure value.len() in 32 48 64
         assert!(value.len() <= SPDM_MAX_HASH_SIZE);
         let data_size = value.len() as u16;
         let mut data = Box::new([0u8; SPDM_MAX_HASH_SIZE]);
@@ -558,7 +560,7 @@ impl Codec for SpdmKeyScheduleAlgo {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmUnknownAlgo {}
 impl Codec for SpdmUnknownAlgo {
     fn encode(&self, _bytes: &mut Writer) {}
@@ -579,7 +581,7 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpdmAlg {
     SpdmAlgoDhe(SpdmDheAlgo),
     SpdmAlgoAead(SpdmAeadAlgo),
@@ -1025,11 +1027,9 @@ impl From<BytesMut> for SpdmAeadIvStruct {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::message::*;
-    use crate::testlib::*;
     use codec::{Codec, Reader, Writer};
 
     #[test]
@@ -1301,20 +1301,13 @@ mod tests {
     fn test_case0_spdm_digest_struct() {
         let bytes_mut = BytesMut::new();
         let u8_slice = &mut [0u8; 68];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmDigestStruct {
+        let mut _writer = Writer::init(u8_slice);
+        let _value = SpdmDigestStruct {
             data_size: 64,
             data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-
-        value.spdm_encode(&mut context, &mut writer);
-        let mut reader = Reader::init(u8_slice);
-        SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
+        // TODO: assert should use should_panic
         let spdm_digest_struct = SpdmDigestStruct::from(bytes_mut);
         assert_eq!(spdm_digest_struct.data_size, 0);
     }

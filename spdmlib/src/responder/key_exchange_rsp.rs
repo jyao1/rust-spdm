@@ -2,12 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{SpdmResult, spdm_err, spdm_result_err};
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::responder::*;
 
+use crate::common::SpdmCodec;
 use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
-
 use crate::crypto;
+use crate::protocol::*;
 extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::message::*;
@@ -268,7 +269,9 @@ impl<'a> ResponderContext<'a> {
         &mut self,
         message_k: &ManagedBuffer,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = self.common.calc_rsp_transcript_data(false, message_k, None)?;
+        let mut message = self
+            .common
+            .calc_rsp_transcript_data(false, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
@@ -299,11 +302,9 @@ impl<'a> ResponderContext<'a> {
         )
         .ok_or_else(|| spdm_err!(EFAULT))
     }
-
-
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_responder {
     use super::*;
     use crate::message::SpdmMessageHeader;
@@ -378,6 +379,6 @@ mod tests_responder {
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&key_exchange[0..1022]);
 
-        context.handle_spdm_key_exchange(bytes);
+        let _ = context.handle_spdm_key_exchange(bytes);
     }
 }

@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-pub use crate::common;
-pub use crate::protocol::*;
-pub use crate::common::spdm_codec::*;
+use crate::common;
+use crate::common::spdm_codec::*;
 use crate::config;
+use crate::protocol::*;
 
 use codec::{Codec, Reader, Writer};
 
@@ -217,10 +217,15 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_negotiate_algorithms_request_payload() {
@@ -242,9 +247,11 @@ mod tests {
                 config::MAX_SPDM_ALG_STRUCT_COUNT,
             ),
         };
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let transport_encap = &mut TransportEncap {};
+        let device_io = &mut DeviceIO {};
+        let config_info = SpdmConfigInfo::default();
+        let provision_info = SpdmProvisionInfo::default();
+        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -278,6 +285,7 @@ mod tests {
         }
         assert_eq!(2, reader.left());
     }
+
     #[test]
     fn test_case1_spdm_negotiate_algorithms_request_payload() {
         let u8_slice = &mut [0u8; 48];
@@ -294,9 +302,12 @@ mod tests {
             ),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let transport_encap = &mut TransportEncap {};
+        let device_io = &mut DeviceIO {};
+        let config_info = SpdmConfigInfo::default();
+        let provision_info = SpdmProvisionInfo::default();
+        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
         assert_eq!(48, reader.left());
@@ -327,9 +338,12 @@ mod tests {
             ),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let transport_encap = &mut TransportEncap {};
+        let device_io = &mut DeviceIO {};
+        let config_info = SpdmConfigInfo::default();
+        let provision_info = SpdmProvisionInfo::default();
+        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+
         value.spdm_encode(&mut context, &mut writer);
         u8_slice[26] = 1;
         u8_slice[31] = 1;
@@ -362,9 +376,11 @@ mod tests {
             ),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let transport_encap = &mut TransportEncap {};
+        let device_io = &mut DeviceIO {};
+        let config_info = SpdmConfigInfo::default();
+        let provision_info = SpdmProvisionInfo::default();
+        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -419,9 +435,8 @@ mod tests {
             ),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         value.spdm_encode(&mut context, &mut writer);
 
         u8_slice[30] = 1;
@@ -450,9 +465,11 @@ mod tests {
             ),
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        let transport_encap = &mut TransportEncap {};
+        let device_io = &mut DeviceIO {};
+        let config_info = SpdmConfigInfo::default();
+        let provision_info = SpdmProvisionInfo::default();
+        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);

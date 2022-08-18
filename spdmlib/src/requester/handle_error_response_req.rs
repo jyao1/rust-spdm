@@ -4,8 +4,8 @@
 
 use codec::{Codec, Reader};
 
-use crate::error::{spdm_result_err, SpdmResult};
 use crate::common::session::SpdmSessionState;
+use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::RequesterContext;
 use crate::time::sleep;
@@ -23,7 +23,7 @@ impl<'a> RequesterContext<'a> {
                 + core::mem::size_of::<SpdmMessageGeneralPayload>()
                 + core::mem::size_of::<SpdmErrorResponseNotReadyExtData>()
         {
-            return spdm_result_err!(EDEV);
+            spdm_result_err!(EDEV)
         } else {
             let extoff = core::mem::size_of::<SpdmMessageHeader>()
                 + core::mem::size_of::<SpdmMessageGeneralPayload>();
@@ -54,9 +54,9 @@ impl<'a> RequesterContext<'a> {
         /* NOT_READY is treated as error here.
          * Use spdm_handle_error_response_main to handle NOT_READY message in long latency command.*/
         if error_code == SpdmErrorCode::SpdmErrorResponseNotReady.get_u8() {
-            return spdm_result_err!(EDEV);
+            spdm_result_err!(EDEV)
         } else if error_code == SpdmErrorCode::SpdmErrorBusy.get_u8() {
-            return spdm_result_err!(EBUSY);
+            spdm_result_err!(EBUSY)
         } else if error_code == SpdmErrorCode::SpdmErrorRequestResynch.get_u8() {
             let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                 s
@@ -64,9 +64,9 @@ impl<'a> RequesterContext<'a> {
                 return spdm_result_err!(EFAULT);
             };
             session.set_session_state(SpdmSessionState::SpdmSessionNotStarted);
-            return spdm_result_err!(EDEV);
+            spdm_result_err!(EDEV)
         } else {
-            return spdm_result_err!(EDEV);
+            spdm_result_err!(EDEV)
         }
     }
 

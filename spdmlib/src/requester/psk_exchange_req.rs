@@ -4,10 +4,11 @@
 
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
-use crate::protocol::SpdmMeasurementSummaryHashType;
-use crate::error::{SpdmResult, spdm_result_err, spdm_err};
 use crate::crypto;
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::SpdmMeasurementSummaryHashType;
+use crate::protocol::*;
 use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
@@ -171,9 +172,8 @@ impl<'a> RequesterContext<'a> {
                             .get_next_avaiable_session()
                             .ok_or(spdm_err!(EINVAL))?;
 
-                        if let Err(e) = session.setup(session_id) {
-                            return Err(e);
-                        }
+                        session.setup(session_id)?;
+
                         session.set_use_psk(true);
                         let mut psk_key = SpdmDheFinalKeyStruct {
                             data_size: b"TestPskData\0".len() as u16,
@@ -261,7 +261,7 @@ impl<'a> RequesterContext<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_requester {
     use super::*;
     use crate::testlib::*;

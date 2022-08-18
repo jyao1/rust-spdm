@@ -2,14 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::SpdmResult;
-use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
+use crate::common::{SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
+use crate::error::SpdmResult;
 use crate::message::*;
 use codec::{Codec, Reader};
 
 pub struct ResponderContext<'a> {
-    pub common: common::SpdmContext<'a>,
+    pub common: crate::common::SpdmContext<'a>,
 }
 
 pub const M_SECURE_SESSION_RESPONSE: &[u8; 5] = &[
@@ -23,11 +23,11 @@ impl<'a> ResponderContext<'a> {
     pub fn new(
         device_io: &'a mut dyn SpdmDeviceIo,
         transport_encap: &'a mut dyn SpdmTransportEncap,
-        config_info: common::SpdmConfigInfo,
-        provision_info: common::SpdmProvisionInfo,
+        config_info: crate::common::SpdmConfigInfo,
+        provision_info: crate::common::SpdmProvisionInfo,
     ) -> Self {
         ResponderContext {
-            common: common::SpdmContext::new(
+            common: crate::common::SpdmContext::new(
                 device_io,
                 transport_encap,
                 config_info,
@@ -294,13 +294,14 @@ impl<'a> ResponderContext<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_responder {
     use super::*;
-    use crate::protocol::gen_array_clone;
     use crate::common::session::*;
+    use crate::common::spdm_codec::SpdmCodec;
     use crate::common::ST1;
     use crate::message::SpdmMessageHeader;
+    use crate::protocol::gen_array_clone;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::Writer;
@@ -332,7 +333,7 @@ mod tests_responder {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0]
-            .set_session_state(common::session::SpdmSessionState::SpdmSessionEstablished);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
@@ -452,7 +453,7 @@ mod tests_responder {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0]
-            .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let status = context.process_message(ST1).is_err();
         assert!(status);
@@ -494,7 +495,7 @@ mod tests_responder {
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
         context.common.session[0]
-            .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         for i in 0..5 {
             let bytes = &mut [0u8; 4];
