@@ -5,6 +5,7 @@ default-members = [
     "codec",
     "test/spdm-requester-emu",
     "test/spdm-responder-emu",
+    "tdisp",
 ]
 
 members = [
@@ -12,6 +13,7 @@ members = [
     "codec",
     "test/spdm-requester-emu",
     "test/spdm-responder-emu",
+    "tdisp",
 
     "fuzz-target/responder/version_rsp",
     "fuzz-target/responder/capability_rsp",

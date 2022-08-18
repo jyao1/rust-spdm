@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use core::fmt::Debug;
+use core::{fmt::Debug, mem};
 
 /// Read from a byte slice.
 pub struct Reader<'a> {
@@ -253,6 +253,19 @@ impl Codec for u64 {
 
     fn read(r: &mut Reader) -> Option<u64> {
         r.take(8).and_then(decode_u64)
+    }
+}
+
+impl Codec for u128 {
+    fn encode(&self, bytes: &mut Writer) {
+        bytes.extend_from_slice(&u128::to_le_bytes(*self));
+    }
+
+    fn read(r: &mut Reader) -> Option<Self> {
+        let mut v = [0u8; mem::size_of::<u128>()];
+        v.copy_from_slice(r.take(mem::size_of::<u128>())?);
+
+        Some(u128::from_le_bytes(v))
     }
 }
 
