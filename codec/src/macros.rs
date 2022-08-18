@@ -85,4 +85,44 @@ macro_rules! enum_builder {
             }
         }
     };
+    (
+        $(#[$comment:meta])*
+        @U32
+            EnumName: $enum_name: ident;
+            EnumVal { $( $enum_var: ident => $enum_val: expr ),* }
+        ) => {
+            $(#[$comment])*
+            #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+            pub enum $enum_name {
+                $( $enum_var),*
+                ,Unknown(u32)
+            }
+            impl $enum_name {
+                pub fn get_u32(&self) -> u32 {
+                    let x = self.clone();
+                    match x {
+                        $( $enum_name::$enum_var => $enum_val),*
+                        ,$enum_name::Unknown(x) => x
+                    }
+                }
+            }
+            impl Default for $enum_name {
+                fn default() -> $enum_name {
+                    $enum_name::Unknown(0u32)
+                }
+            }
+            impl Codec for $enum_name {
+                fn encode(&self, bytes: &mut Writer) {
+                    self.get_u32().encode(bytes);
+                }
+
+                fn read(r: &mut Reader) -> Option<Self> {
+                    Some(match u32::read(r) {
+                        None => return None,
+                        $( Some($enum_val) => $enum_name::$enum_var),*
+                        ,Some(x) => $enum_name::Unknown(x)
+                    })
+                }
+            }
+        };
 }
