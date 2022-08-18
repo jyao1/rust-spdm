@@ -14,8 +14,8 @@ pub use spdm_codec::SpdmCodec;
 
 use crate::config;
 use crate::crypto;
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use codec::Writer;
-use crate::error::{spdm_result_err, spdm_err, SpdmResult};
 use session::*;
 
 #[cfg(feature = "downcast")]
@@ -133,21 +133,15 @@ impl<'a> SpdmContext<'a> {
     }
 
     pub fn get_immutable_session_via_id(&self, session_id: u32) -> Option<&SpdmSession> {
-        for session in self.session.iter() {
-            if session.get_session_id() == session_id {
-                return Some(session);
-            }
-        }
-        None
+        self.session
+            .iter()
+            .find(|&session| session.get_session_id() == session_id)
     }
 
     pub fn get_session_via_id(&mut self, session_id: u32) -> Option<&mut SpdmSession> {
-        for session in self.session.iter_mut() {
-            if session.get_session_id() == session_id {
-                return Some(session);
-            }
-        }
-        None
+        self.session
+            .iter_mut()
+            .find(|session| session.get_session_id() == session_id)
     }
 
     pub fn get_next_avaiable_session(&mut self) -> Option<&mut SpdmSession> {

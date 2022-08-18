@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
-use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmHmac;
+use crate::error::{spdm_result_err, SpdmResult};
+use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHmac = SpdmHmac {
     hmac_cb: hmac,
@@ -49,7 +49,7 @@ fn hmac_verify(
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
 

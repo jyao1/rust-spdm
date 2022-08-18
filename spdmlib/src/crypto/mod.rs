@@ -26,8 +26,8 @@ static CRYPTO_RAND: OnceCell<SpdmCryptoRandom> = OnceCell::uninit();
 
 pub mod hash {
     use super::CRYPTO_HASH;
-    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
     use crate::crypto::SpdmHash;
+    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHash = SpdmHash {
@@ -53,9 +53,9 @@ pub mod hash {
 
 pub mod hmac {
     use super::CRYPTO_HMAC;
-    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
-    use crate::error::{SpdmResult, spdm_err};
     use crate::crypto::SpdmHmac;
+    use crate::error::{spdm_err, SpdmResult};
+    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHmac = SpdmHmac {
@@ -103,8 +103,8 @@ pub mod hmac {
 
 pub mod asym_sign {
     use super::CRYPTO_ASYM_SIGN;
-    use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
     use crate::crypto::SpdmAsymSign;
+    use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 
     pub fn register(context: SpdmAsymSign) -> bool {
         CRYPTO_ASYM_SIGN.try_init_once(|| context).is_ok()
@@ -131,9 +131,9 @@ pub mod asym_sign {
 
 pub mod asym_verify {
     use super::CRYPTO_ASYM_VERIFY;
-    use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
-    use crate::error::{SpdmResult, spdm_err};
     use crate::crypto::SpdmAsymVerify;
+    use crate::error::{spdm_err, SpdmResult};
+    use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {
@@ -177,8 +177,8 @@ pub mod dhe {
     use alloc::boxed::Box;
 
     use super::CRYPTO_DHE;
-    use crate::protocol::{SpdmDheAlgo, SpdmDheExchangeStruct};
     use crate::crypto::{SpdmDhe, SpdmDheKeyExchange};
+    use crate::protocol::{SpdmDheAlgo, SpdmDheExchangeStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmDhe =
@@ -207,8 +207,8 @@ pub mod dhe {
 
 pub mod cert_operation {
     use super::CRYPTO_CERT_OPERATION;
-    use crate::error::{SpdmResult, spdm_err};
     use crate::crypto::SpdmCertOperation;
+    use crate::error::{spdm_err, SpdmResult};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmCertOperation = SpdmCertOperation {
@@ -242,8 +242,8 @@ pub mod cert_operation {
 
 pub mod hkdf {
     use super::CRYPTO_HKDF;
-    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
     use crate::crypto::SpdmHkdf;
+    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHkdf = SpdmHkdf {
@@ -276,9 +276,9 @@ pub mod hkdf {
 
 pub mod aead {
     use super::CRYPTO_AEAD;
-    use crate::protocol::SpdmAeadAlgo;
-    use crate::error::{SpdmResult, spdm_err};
     use crate::crypto::SpdmAead;
+    use crate::error::{spdm_err, SpdmResult};
+    use crate::protocol::SpdmAeadAlgo;
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmAead = SpdmAead {
@@ -340,8 +340,8 @@ pub mod aead {
 
 pub mod rand {
     use super::CRYPTO_RAND;
-    use crate::error::{SpdmResult, spdm_err};
     use crate::crypto::SpdmCryptoRandom;
+    use crate::error::{spdm_err, SpdmResult};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
@@ -363,10 +363,9 @@ pub mod rand {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
 
     #[test]
     fn test_case0_cert_operation_register() {
@@ -375,7 +374,7 @@ mod tests {
     }
     #[test]
     fn test_case0_hmac_register() {
-        let state = hmac::register(HMAC_TEST.clone());
+        let state = hmac::register(spdm_ring::hmac_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
     #[test]
@@ -414,7 +413,7 @@ mod tests {
     }
     #[test]
     fn test_case0_rand_register() {
-        let state = rand::register(DEFAULT_TEST.clone());
+        let state = rand::register(spdm_ring::rand_impl::DEFAULT.clone());
         assert_eq!(state, true);
     }
 }

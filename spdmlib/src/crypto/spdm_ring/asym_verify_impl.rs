@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
-use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmAsymVerify;
+use crate::error::{spdm_result_err, SpdmResult};
+use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use core::convert::TryFrom;
 
 pub static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {
@@ -171,10 +171,9 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     der_sign_size
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
 
     #[test]
     fn test_case0_ecc_signature_bin_to_der() {
@@ -226,7 +225,7 @@ mod tests {
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
 
-        let public_cert_der = &mut cert_chain_array();
+        let public_cert_der = &include_bytes!("public_cert.der")[..];
         let data = &mut [0x10u8; 4096];
 
         let asym_verify = asym_verify(
@@ -249,7 +248,7 @@ mod tests {
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
 
-        let public_cert_der = &mut cert_chain_array();
+        let public_cert_der = &include_bytes!("public_cert.der")[..];
         let data = &mut [0x10u8; 4096];
 
         let asym_verify = asym_verify(
@@ -283,7 +282,7 @@ mod tests {
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
 
-        let public_cert_der = &mut cert_chain_array();
+        let public_cert_der = &include_bytes!("public_cert.der")[..];
         let data = &mut [0x10u8; 4096];
 
         for base_hash_algo in base_hash_algo.iter() {
@@ -311,7 +310,7 @@ mod tests {
         signature.data[250] = 0x10;
         signature.data[510] = 0x10;
 
-        let public_cert_der = &mut cert_chain_array();
+        let public_cert_der = &include_bytes!("public_cert.der")[..];
         let data = &mut [0x10u8; 4096];
 
         let asym_verify = asym_verify(

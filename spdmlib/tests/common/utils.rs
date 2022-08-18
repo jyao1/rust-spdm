@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+#![allow(unused)]
+
 use super::{USE_ECDH, USE_ECDSA};
 use spdmlib::common;
 use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::config;
-use spdmlib::message::*;
+use spdmlib::protocol::*;
 use std::path::PathBuf;
 
 /// Get test_key Dir

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{SpdmResult, spdm_result_err};
+use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
 
@@ -146,7 +146,7 @@ impl<'a> RequesterContext<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_requester {
     use super::*;
     use crate::common::session::SpdmSession;

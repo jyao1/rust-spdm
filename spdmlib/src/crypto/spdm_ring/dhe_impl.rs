@@ -5,8 +5,8 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::protocol::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
 use crate::crypto::{SpdmDhe, SpdmDheKeyExchange};
+use crate::protocol::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
 use bytes::{BufMut, BytesMut};
 
 pub static DEFAULT: SpdmDhe = SpdmDhe {
@@ -115,7 +115,7 @@ impl SpdmDheKeyExchangeP384 {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
 

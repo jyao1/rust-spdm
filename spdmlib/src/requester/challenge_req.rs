@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::protocol::SpdmMeasurementSummaryHashType;
-use crate::error::{SpdmResult, spdm_err, spdm_result_err};
 use crate::crypto;
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
@@ -205,11 +205,8 @@ impl<'a> RequesterContext<'a> {
             signature,
         )
     }
-
-
-
 }
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_requester {
     use super::*;
     use crate::testlib::*;

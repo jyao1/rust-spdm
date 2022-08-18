@@ -4,8 +4,8 @@
 
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
-use spdmlib::error::SpdmResult;
 use spdmlib::common::SpdmTransportEncap;
+use spdmlib::error::SpdmResult;
 use spdmlib::{spdm_err, spdm_result_err};
 
 enum_builder! {
@@ -40,6 +40,11 @@ impl Codec for PciDoeMessageHeader {
         0u8.encode(bytes);
         let mut length = (self.payload_length + 8) >> 2;
         if length > 0x100000 {
+            // TODO: check 0x100000
+            // ECN - Data Object Exchange - 12 Mar 2020.pdf
+            // ECN - Data Object Exchange - 12 Mar 2020.docx Page 3 of 13
+            // 6.xx.1 Data Objects Length 0-17bit?
+            // should max_length be 0x40000???
             panic!();
         }
         if length == 0x100000 {
@@ -158,7 +163,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_header {
     use super::*;
 

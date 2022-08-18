@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmCryptoRandom;
+use crate::error::{spdm_result_err, SpdmResult};
 
 pub static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
     get_random_cb: get_random,
@@ -33,7 +33,7 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
     Ok(data.len())
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
 

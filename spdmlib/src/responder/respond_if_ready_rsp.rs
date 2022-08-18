@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::SpdmCodec;
 use crate::message::*;
 use crate::responder::*;
 

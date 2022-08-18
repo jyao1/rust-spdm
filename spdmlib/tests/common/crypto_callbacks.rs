@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+#![allow(unused)]
+
 use spdmlib::crypto::SpdmAsymSign;
 
-use spdmlib::common::algo::{
+use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE,
 };
 

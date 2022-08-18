@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::common::SpdmCodec;
 use crate::message::*;
 use crate::responder::*;
 
@@ -39,12 +40,12 @@ impl<'a> ResponderContext<'a> {
         true
     }
 }
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_responder {
     use super::*;
-    use crate::protocol::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
+    use crate::protocol::gen_array_clone;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
@@ -75,7 +76,7 @@ mod tests_responder {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0]
-            .set_session_state(common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let bytes = &mut [0u8; 1024];
         let mut writer = Writer::init(bytes);

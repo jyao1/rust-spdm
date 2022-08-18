@@ -4,16 +4,16 @@
 
 #![allow(unused)]
 
-use spdmlib::common::*;
-use spdmlib::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
-use spdmlib::protocol::*;
-use spdmlib::{common, responder};
+use crate::common::*;
+use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
+pub use crate::protocol::*;
+use crate::{common, responder};
 
+use crate::error::SpdmResult;
+use crate::message::*;
+use crate::{spdm_err, spdm_result_err};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
-use spdmlib::error::SpdmResult;
-use spdmlib::message::*;
-use spdmlib::{spdm_err, spdm_result_err};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::PathBuf;

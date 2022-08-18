@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 use crate::crypto::SpdmHash;
+use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHash = SpdmHash {
     hash_all_cb: hash_all,
@@ -20,7 +20,7 @@ fn hash_all(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestS
     Some(SpdmDigestStruct::from(digest_value.as_ref()))
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
 

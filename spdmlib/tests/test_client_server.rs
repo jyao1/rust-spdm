@@ -7,7 +7,7 @@ use common::fake_device_io::{FakeSpdmDeviceIo, FakeSpdmDeviceIoReceve};
 use common::shared_buffer::SharedBuffer;
 
 use pcidoe_transport::PciDoeTransportEncap;
-use spdmlib::common::algo::SpdmMeasurementSummaryHashType;
+use spdmlib::protocol::SpdmMeasurementSummaryHashType;
 use spdmlib::requester;
 use spdmlib::responder;
 

@@ -5,15 +5,15 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::requester::*;
-
 use crate::common::ManagedBuffer;
+use crate::protocol::*;
+use crate::requester::*;
 
 use crate::crypto;
 
-use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmVersion, SpdmSignatureStruct};
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
-use crate::error::{SpdmResult, spdm_err, spdm_result_err};
+use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmVersion};
 
 const INITIAL_SESSION_ID: u16 = 0xFFFE;
 
@@ -217,9 +217,7 @@ impl<'a> RequesterContext<'a> {
                             .get_next_avaiable_session()
                             .ok_or(spdm_err!(EINVAL))?;
 
-                        if let Err(e) = session.setup(session_id) {
-                            return Err(e);
-                        }
+                        session.setup(session_id)?;
 
                         session.set_use_psk(false);
 
@@ -302,14 +300,15 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
-
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
         message_k: &ManagedBuffer,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let mut message = self.common.calc_req_transcript_data(slot_id, false, message_k, None)?;
+        let mut message = self
+            .common
+            .calc_req_transcript_data(slot_id, false, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
@@ -357,10 +356,9 @@ impl<'a> RequesterContext<'a> {
             signature,
         )
     }
-
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_requester {
     use super::*;
     use crate::testlib::*;

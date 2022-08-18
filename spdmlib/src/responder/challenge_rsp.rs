@@ -4,10 +4,12 @@
 
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
+use crate::common::SpdmCodec;
 use crate::crypto;
+use crate::error::{spdm_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::*;
 use crate::responder::*;
-use crate::error::{SpdmResult, spdm_err};
 extern crate alloc;
 use alloc::boxed::Box;
 
@@ -154,10 +156,9 @@ impl<'a> ResponderContext<'a> {
         )
         .ok_or_else(|| spdm_err!(EFAULT))
     }
-
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_responder {
     use super::*;
     use crate::message::SpdmMessageHeader;

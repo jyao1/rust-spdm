@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::protocol::{SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmDigestStruct, SpdmSignatureStruct};
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::protocol::{
+    SpdmDigestStruct, SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmSignatureStruct,
+};
 use codec::{Codec, Reader, Writer};
 
 bitflags! {
@@ -115,10 +117,16 @@ impl SpdmCodec for SpdmFinishResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use crate::protocol::*;
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_finish_request_payload() {
@@ -129,19 +137,18 @@ mod tests {
             req_slot_id: 100,
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [0xa5u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([0x5au8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0x5au8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        create_spdm_context!(context);
+
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -171,19 +178,18 @@ mod tests {
             req_slot_id: 100,
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [0xa5u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([0x5au8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0x5au8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        create_spdm_context!(context);
+
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -207,15 +213,13 @@ mod tests {
         let value = SpdmFinishResponsePayload {
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([100u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.req_capabilities_sel =
             SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.negotiate_info.rsp_capabilities_sel =
@@ -238,15 +242,13 @@ mod tests {
         let value = SpdmFinishResponsePayload {
             verify_data: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([100u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.req_capabilities_sel =
             SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::KEY_UPD_CAP;

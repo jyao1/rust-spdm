@@ -16,13 +16,15 @@ extern crate codec;
 pub mod protocol;
 #[macro_use]
 pub mod error;
-pub mod crypto;
-pub mod secret;
-pub mod time;
 pub mod common;
-
+pub mod crypto;
 pub mod message;
 pub mod requester;
 pub mod responder;
+pub mod secret;
+pub mod time;
 
 pub mod config;
+
+#[cfg(test)]
+mod testlib;

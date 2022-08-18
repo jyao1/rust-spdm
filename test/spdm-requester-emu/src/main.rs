@@ -15,6 +15,7 @@ use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::common::ST1;
 use spdmlib::config;
 use spdmlib::message::*;
+use spdmlib::protocol::*;
 use spdmlib::requester;
 
 use mctp_transport::MctpTransportEncap;

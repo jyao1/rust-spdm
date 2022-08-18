@@ -3,11 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
+use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::spdm_codec::SpdmCodec;
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmSignatureStruct,
 };
-use crate::common::opaque::SpdmOpaqueStruct;
-use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -103,12 +103,18 @@ impl SpdmCodec for SpdmChallengeAuthResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::common::*;
+    use crate::common::SpdmOpaqueSupport;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
     use crate::config::*;
-    use crate::testlib::*;
+    use crate::protocol::*;
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_challenge_request_payload() {
@@ -121,9 +127,7 @@ mod tests {
             nonce: SpdmNonceStruct { data: [100u8; 32] },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -150,14 +154,14 @@ mod tests {
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
             cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([0xAAu8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0xAAu8; SPDM_MAX_HASH_SIZE]),
             },
             nonce: SpdmNonceStruct {
-                data: [100u8; common::algo::SPDM_NONCE_SIZE],
+                data: [100u8; SPDM_NONCE_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([0x55u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0x55u8; SPDM_MAX_HASH_SIZE]),
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
@@ -165,16 +169,15 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [0x55u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         context.runtime_info.need_measurement_summary_hash = true;
-        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT0;
 
         value.spdm_encode(&mut context, &mut writer);
@@ -218,10 +221,10 @@ mod tests {
             challenge_auth_attribute: SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ,
             cert_chain_hash: SpdmDigestStruct {
                 data_size: 64,
-                data: Box::new([0xAAu8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0xAAu8; SPDM_MAX_HASH_SIZE]),
             },
             nonce: SpdmNonceStruct {
-                data: [100u8; common::algo::SPDM_NONCE_SIZE],
+                data: [100u8; SPDM_NONCE_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
@@ -230,16 +233,15 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,
-                data: [0x55u8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0x55u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+        create_spdm_context!(context);
+
         context.runtime_info.need_measurement_summary_hash = false;
-        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         assert_eq!(800, writer.left());
         value.spdm_encode(&mut context, &mut writer);

@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
+use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::spdm_codec::SpdmCodec;
 use crate::protocol::{
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmRandomStruct,
     SpdmSignatureStruct,
 };
-use crate::common::opaque::SpdmOpaqueStruct;
-use crate::common::spdm_codec::SpdmCodec;
 use codec::{Codec, Reader, Writer};
 
 use super::SpdmVersion;
@@ -161,11 +161,16 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
+#[path = "mod_test.common.inc.rs"]
+mod testlib;
+
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::common::*;
-    use crate::testlib::*;
+    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use crate::protocol::*;
+    use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
     fn test_case0_spdm_key_exchange_mut_auth_attributes() {
@@ -193,11 +198,11 @@ mod tests {
             req_session_id: 100u16,
             session_policy: 1,
             random: SpdmRandomStruct {
-                data: [100u8; common::algo::SPDM_RANDOM_SIZE],
+                data: [100u8; SPDM_RANDOM_SIZE],
             },
             exchange: SpdmDheExchangeStruct {
                 data_size: 512u16,
-                data: [100u8; common::algo::SPDM_MAX_DHE_KEY_SIZE],
+                data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64u16,
@@ -205,10 +210,9 @@ mod tests {
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.dhe_sel = common::algo::SpdmDheAlgo::FFDHE_4096;
+        create_spdm_context!(context);
+
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -244,15 +248,15 @@ mod tests {
             mut_auth_req: SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ,
             req_slot_id: 100u8,
             random: SpdmRandomStruct {
-                data: [100u8; common::algo::SPDM_RANDOM_SIZE],
+                data: [100u8; SPDM_RANDOM_SIZE],
             },
             exchange: SpdmDheExchangeStruct {
                 data_size: 512u16,
-                data: [0xa5u8; common::algo::SPDM_MAX_DHE_KEY_SIZE],
+                data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct {
                 data_size: 64u16,
-                data: Box::new([0x11u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0x11u8; SPDM_MAX_HASH_SIZE]),
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64u16,
@@ -260,20 +264,19 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512u16,
-                data: [0x5au8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64u16,
-                data: Box::new([0x33u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0x33u8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.dhe_sel = common::algo::SpdmDheAlgo::FFDHE_4096;
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
+        create_spdm_context!(context);
+
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
         context.runtime_info.need_measurement_summary_hash = true;
 
         value.spdm_encode(&mut context, &mut writer);
@@ -326,11 +329,11 @@ mod tests {
             mut_auth_req: SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ,
             req_slot_id: 100u8,
             random: SpdmRandomStruct {
-                data: [100u8; common::algo::SPDM_RANDOM_SIZE],
+                data: [100u8; SPDM_RANDOM_SIZE],
             },
             exchange: SpdmDheExchangeStruct {
                 data_size: 512u16,
-                data: [0xa5u8; common::algo::SPDM_MAX_DHE_KEY_SIZE],
+                data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
@@ -339,20 +342,19 @@ mod tests {
             },
             signature: SpdmSignatureStruct {
                 data_size: 512u16,
-                data: [0x5au8; common::algo::SPDM_MAX_ASYM_KEY_SIZE],
+                data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64u16,
-                data: Box::new([0x33u8; common::algo::SPDM_MAX_HASH_SIZE]),
+                data: Box::new([0x33u8; SPDM_MAX_HASH_SIZE]),
             },
         };
 
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let my_spdm_device_io = &mut MySpdmDeviceIo;
-        let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-        context.negotiate_info.dhe_sel = common::algo::SpdmDheAlgo::FFDHE_4096;
-        context.negotiate_info.base_hash_sel = common::algo::SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        context.negotiate_info.base_asym_sel = common::algo::SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
+        create_spdm_context!(context);
+
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+        context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
         context.runtime_info.need_measurement_summary_hash = false;
 
         value.spdm_encode(&mut context, &mut writer);

@@ -3,11 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #![forbid(unsafe_code)]
+#![allow(unused)]
 
 use super::shared_buffer::SharedBuffer;
-use spdmlib::common::error::SpdmResult;
 use spdmlib::common::SpdmDeviceIo;
 use spdmlib::common::ST1;
+use spdmlib::error::SpdmResult;
 use spdmlib::responder;
 
 pub struct FakeSpdmDeviceIoReceve<'a> {

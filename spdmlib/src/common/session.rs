@@ -2,10 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use super::key_schedule::SpdmKeySchedule;
 use crate::config;
 use crate::crypto;
+use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -765,7 +765,7 @@ impl SpdmSession {
                     r
                 }
             }
-            _ => return spdm_result_err!(ENOMEM),
+            _ => spdm_result_err!(ENOMEM),
         }
     }
 
@@ -919,7 +919,7 @@ impl SpdmSession {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_session {
     use super::*;
 

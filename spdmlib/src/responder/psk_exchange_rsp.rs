@@ -2,14 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use config::MAX_SPDM_PSK_CONTEXT_SIZE;
-
-use crate::error::{SpdmResult, spdm_result_err};
 use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::SpdmCodec;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
+use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::*;
 use crate::responder::*;
+use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 extern crate alloc;
 use alloc::boxed::Box;
 
@@ -220,7 +221,7 @@ impl<'a> ResponderContext<'a> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests_responder {
     use super::*;
     use crate::config::MAX_SPDM_PSK_HINT_SIZE;
@@ -288,6 +289,6 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&challenge[0..1022]);
-        context.handle_spdm_psk_exchange(bytes);
+        let _ = context.handle_spdm_psk_exchange(bytes);
     }
 }

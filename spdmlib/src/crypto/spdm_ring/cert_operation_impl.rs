@@ -6,8 +6,8 @@ extern crate alloc;
 use alloc::vec;
 use core::convert::TryFrom;
 
-use crate::error::{SpdmResult, spdm_result_err};
 use crate::crypto::SpdmCertOperation;
+use crate::error::{spdm_result_err, SpdmResult};
 
 pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {
     get_cert_from_cert_chain_cb: get_cert_from_cert_chain,
@@ -106,27 +106,26 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
         spdm_result_err!(EFAULT)
     }
 }
-#[cfg(test)]
+#[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::testlib::*;
 
     #[test]
     fn test_case0_cert_from_cert_chain() {
-        let cert_chain = &mut cert_chain_array();
+        let cert_chain = &include_bytes!("public_cert.der")[..];
         let status = get_cert_from_cert_chain(cert_chain, -1).is_ok();
         assert!(status);
     }
 
     #[test]
     fn test_case1_cert_from_cert_chain() {
-        let cert_chain = &mut cert_chain_array();
+        let cert_chain = &include_bytes!("public_cert.der")[..];
         let status = get_cert_from_cert_chain(cert_chain, 0).is_ok();
         assert!(status);
     }
     #[test]
     fn test_case2_cert_from_cert_chain() {
-        let cert_chain = &mut cert_chain_array();
+        let cert_chain = &include_bytes!("public_cert.der")[..];
         let status = get_cert_from_cert_chain(cert_chain, 1).is_ok();
         assert!(status);
     }
@@ -146,7 +145,7 @@ mod tests {
     }
     #[test]
     fn test_case5_cert_from_cert_chain() {
-        let cert_chain = &mut cert_chain_array();
+        let cert_chain = &include_bytes!("public_cert.der")[..];
         let status = get_cert_from_cert_chain(cert_chain, -1).is_ok();
         assert!(status);
 
