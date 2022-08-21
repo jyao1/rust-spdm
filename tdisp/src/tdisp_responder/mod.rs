@@ -5,7 +5,7 @@
 pub use crate::tdisp_codec::*;
 pub use ::codec::*;
 use spdmlib::{
-    common::error::*,
+    error::*,
     message::{VendorDefinedReqPayloadStruct, VendorDefinedRspPayloadStruct},
     spdm_err, spdm_result_err,
 };

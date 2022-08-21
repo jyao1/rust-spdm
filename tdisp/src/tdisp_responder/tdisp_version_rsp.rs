@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use spdmlib::common::error::*;
+use spdmlib::error::*;
 
 use crate::{
     config::MAX_VERSION_COUNT,
