@@ -2,33 +2,33 @@
 
 # pkill screen
 
-if [[ ! $PWD =~ rust-spdm$ ]];then
+if [[ ! $PWD =~ rust-spdm$ ]]; then
     pushd ..
 fi
 
-if [ ! -d "fuzz-target/out" ];then
+if [ ! -d "fuzz-target/out" ]; then
     mkdir fuzz-target/out
 else # add rm mkdir:
     rm -rf fuzz-target/out
     mkdir -p fuzz-target/out
 fi
 
-for i in fuzz-target/out/*;do
+for i in fuzz-target/out/*; do
 
-    if [[ ! -f $i/default/crashes ]];then
+    if [[ ! -f $i/default/crashes ]]; then
         break
     fi
 
-    if [[ "`ls -A $i/default/crashes`" != "" ]];then
+    if [[ "$(ls -A $i/default/crashes)" != "" ]]; then
         echo -e "\033[31m There are some crashes \033[0m"
         echo -e "\033[31m Path in fuzz-target/out/$i/default/crashes \033[0m"
         exit
     fi
 done
 
-if [ "core" != `cat /proc/sys/kernel/core_pattern` ];then
-    if [ `id -u` -ne 0 ];then
-        sudo su - root <<EOF;
+if [ "core" != $(cat /proc/sys/kernel/core_pattern) ]; then
+    if [ $(id -u) -ne 0 ]; then
+        sudo su - root <<EOF
         echo core >/proc/sys/kernel/core_pattern;
         pushd /sys/devices/system/cpu;
         echo performance | tee cpu*/cpufreq/scaling_governor;
@@ -46,46 +46,42 @@ fi
 
 rm -rf fuzz-target/out/*
 cmds=(
-"version_rsp"
-"capability_rsp"
-"algorithm_rsp"
-"digest_rsp"
-"certificate_rsp"
-"challenge_rsp"
-# "measurement_rsp"       # build OK. Other:[-] PROGRAM ABORT : We need at least one valid input seed that does not crash!
-                                            #Location : main(), src/afl-fuzz.c:2148
-"keyexchange_rsp"
-"pskexchange_rsp"     
-"finish_rsp"       
-"psk_finish_rsp"        
-"heartbeat_rsp"
-"key_update_rsp"
-"end_session_rsp"
-
-# "version_req"         # build OK. Other:[-] PROGRAM ABORT : We need at least one valid input seed that does not crash!
-                                            #Location : main(), src/afl-fuzz.c:2148
-"capability_req"
-"algorithm_req"
-"digest_req"
-"certificate_req"
-"challenge_req"       #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-# # "measurement_req"     #Error   supplied 3 arguments   expected 6 arguments
-"key_exchange_req"    #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-"psk_exchange_req"    #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-"finish_req"          #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-"psk_finish_req"
-"heartbeat_req"
-"key_update_req"
-"end_session_req"
+    "version_rsp"
+    "capability_rsp"
+    "algorithm_rsp"
+    "digest_rsp"
+    "certificate_rsp"
+    "challenge_rsp"
+    "measurement_rsp"
+    "keyexchange_rsp"
+    "pskexchange_rsp"
+    "finish_rsp"
+    "psk_finish_rsp"
+    "heartbeat_rsp"
+    "key_update_rsp"
+    "end_session_rsp"
+    "version_req"
+    "capability_req"
+    "algorithm_req"
+    "digest_req"
+    "certificate_req"
+    "challenge_req" #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+    "measurement_req"
+    "key_exchange_req" #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+    "psk_exchange_req" #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+    "finish_req"       #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+    "psk_finish_req"
+    "heartbeat_req"
+    "key_update_req"
+    "end_session_req"
 )
 
 buildpackage=''
-for i in ${cmds[@]};do
-    buildpackage="-p $i $buildpackage";
+for i in ${cmds[@]}; do
+    buildpackage="-p $i $buildpackage"
 done
 
 echo "cargo afl build --features fuzz $buildpackage"
-
 
 if [[ $1 == "Scoverage" ]]; then
     echo "$1"
@@ -102,8 +98,7 @@ fi
 
 cargo afl build --features fuzz $buildpackage
 
-for ((i=0;i<${#cmds[*]};i++))
-do
+for ((i = 0; i < ${#cmds[*]}; i++)); do
     # echo ${cmds[$i]}
     # screen -ls | grep ${cmds[$i]}
     # if [[ $? -ne 0 ]]
@@ -119,10 +114,8 @@ do
 
 done
 
-
-
 if [[ $1 == "Scoverage" || $1 == "Gcoverage" ]]; then
-grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/fuzz_coverage/
+    grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/fuzz_coverage/
     unset RUSTFLAGS
     unset LLVM_PROFILE_FILE
     unset CARGO_INCREMENTAL

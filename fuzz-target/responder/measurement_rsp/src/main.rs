@@ -2,9 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::*;
 use fuzzlib::*;
-// use crate::spdmlib::message::capability::*;
+use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_measurement(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -30,6 +29,8 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     context.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+    context.common.negotiate_info.measurement_specification_sel =
+        SpdmMeasurementSpecification::DMTF;
 
     context.handle_spdm_measurement(None, data);
 }
@@ -48,6 +49,8 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
+
+    spdmlib::secret::register(fuzzlib::secret::SECRET_IMPL_INSTANCE.clone());
     #[cfg(not(feature = "fuzz"))]
     {
         let args: Vec<String> = std::env::args().collect();

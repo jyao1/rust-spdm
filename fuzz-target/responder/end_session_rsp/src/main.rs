@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::spdmlib::common::algo::*;
 use fuzzlib::{
     spdmlib::common::session::{SpdmSession, SpdmSessionState},
     *,
 };
+use spdmlib::protocol::*;
 // use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_end_session(data: &[u8]) {

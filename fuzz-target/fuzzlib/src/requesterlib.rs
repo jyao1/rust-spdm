@@ -1,12 +1,9 @@
+// Copyright (c) 2022 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 use super::*;
-// use spdmlib::common::*;
-use crate::spdmlib::common::algo::*;
-use spdmlib::message::SpdmMeasurementSpecification;
-use spdmlib::message::SpdmRequestCapabilityFlags;
-use spdmlib::message::SpdmVersion;
-//     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE,
-// };
-// use crate::common::algo::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
+use spdmlib::protocol::*;
 
 pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
@@ -73,7 +70,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     let ca_len = ca_cert.len();
     let inter_len = inter_cert.len();
     let leaf_len = leaf_cert.len();
-    println!(
+    log::info!(
         "total cert size - {:?} = {:?} + {:?} + {:?}",
         ca_len + inter_len + leaf_len,
         ca_len,

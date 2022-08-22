@@ -1,9 +1,9 @@
+// Copyright (c) 2022 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 use super::*;
-// use crate::spdmlib::*;
-// use spdmlib::common::*;
-use spdmlib::message::SpdmMeasurementSpecification;
-use spdmlib::message::SpdmVersion;
-use spdmlib::message::*;
+use spdmlib::protocol::*;
 
 pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
@@ -74,7 +74,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     let ca_len = ca_cert.len();
     let inter_len = inter_cert.len();
     let leaf_len = leaf_cert.len();
-    println!(
+    log::info!(
         "total cert size - {:?} = {:?} + {:?} + {:?}",
         ca_len + inter_len + leaf_len,
         ca_len,

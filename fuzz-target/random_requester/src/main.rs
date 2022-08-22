@@ -1,5 +1,11 @@
+// Copyright (c) 2022 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 // import commonly used items from the prelude:
 use fuzzlib::*;
+use spdmlib::message::*;
+use spdmlib::protocol::*;
 
 fn run_spdm(spdm: Vec<i32>) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -11,7 +17,7 @@ fn run_spdm(spdm: Vec<i32>) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     // let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let mut responder = responder::ResponderContext::new(
         &mut device_io_responder,
@@ -76,11 +82,17 @@ fn run_spdm(spdm: Vec<i32>) {
                 }
             }
             7 => {
+                let mut total_number = 0;
+                let mut spdm_measurement_record_structure =
+                    SpdmMeasurementRecordStructure::default();
                 if requester
                     .send_receive_spdm_measurement(
                         None,
-                        SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                         0,
+                        SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                        SpdmMeasurementOperation::SpdmMeasurementRequestAll,
+                        &mut total_number,
+                        &mut spdm_measurement_record_structure,
                     )
                     .is_err()
                 {

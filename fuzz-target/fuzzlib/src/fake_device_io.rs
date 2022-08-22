@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2022 Intel Corporation
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -9,7 +9,7 @@ use spdmlib::spdm_result_err;
 use spdmlib::spdm_err;
 
 // use crate::spdmlib::error::SpdmResult;
-use crate::spdmlib::common::error::SpdmResult;
+use spdmlib::error::SpdmResult;
 // use crate::spdmlib::responder::context::*;
 
 use super::*;

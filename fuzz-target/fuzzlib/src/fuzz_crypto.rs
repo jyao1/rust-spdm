@@ -1,13 +1,11 @@
-pub use spdmlib::crypto::SpdmCryptoRandom;
-use spdmlib::crypto::SpdmHmac;
-// pub use spdmlib::error::SpdmResult;
-use crate::common::algo::SpdmDigestStruct;
-pub use spdmlib::common::error::SpdmResult;
-use spdmlib::message::*;
-// use spdmlib::msgs::SPDM_NONCE_SIZE;
-use crate::common::algo::SPDM_NONCE_SIZE;
-pub use spdmlib::spdm_err;
-pub use spdmlib::spdm_result_err;
+// Copyright (c) 2022 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
+use spdmlib::crypto::{SpdmCryptoRandom, SpdmHmac};
+use spdmlib::error::SpdmResult;
+use spdmlib::error::{spdm_err, spdm_result_err};
+use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct, SPDM_NONCE_SIZE};
 
 pub static FUZZ_HMAC: SpdmHmac = SpdmHmac {
     hmac_cb: hmac,

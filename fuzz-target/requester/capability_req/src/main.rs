@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
-// use crate::common::algo::*;
+// use spdmlib::protocol::*;
 // use crate::spdmlib::message::capability::*;
 
 fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
