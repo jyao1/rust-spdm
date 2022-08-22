@@ -109,7 +109,7 @@ macro_rules! spdm_err {
         SpdmError::new($num, file!(), line!(), column!(), $msg)
     }};
 }
-pub(crate) use spdm_err;
+pub use spdm_err;
 
 #[macro_export]
 macro_rules! spdm_result_err {
@@ -121,4 +121,4 @@ macro_rules! spdm_result_err {
         Err(spdm_err!($num, $msg))
     };
 }
-pub(crate) use spdm_result_err;
+pub use spdm_result_err;
