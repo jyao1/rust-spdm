@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::spdmlib::common::algo::*;
 use fuzzlib::{spdmlib::common::session::SpdmSession, *};
+use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -38,7 +38,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
 
         context.common.reset_runtime_info();
 
-        context.handle_spdm_psk_exchange(data);
+        let _ = context.handle_spdm_psk_exchange(data);
     }
 
     {
@@ -72,7 +72,7 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.session[1].setup(4294901758).unwrap();
         context.common.session[2].setup(4294901758).unwrap();
         context.common.session[3].setup(4294901758).unwrap();
-        context.handle_spdm_psk_exchange(data);
+        let _ = context.handle_spdm_psk_exchange(data);
     }
 }
 fn main() {

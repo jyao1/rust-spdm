@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use spdmlib::protocol::SpdmMeasurementSummaryHashType;
 
 pub fn fuzz_total_requesters() {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -14,7 +15,7 @@ pub fn fuzz_total_requesters() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     // let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let mut responder = responder::ResponderContext::new(
         &mut device_io_responder,
@@ -79,6 +80,4 @@ pub fn fuzz_total_requesters() {
     } else {
         log::info!("\nSession session_id not got ????? \n");
     }
-
-    return;
 }

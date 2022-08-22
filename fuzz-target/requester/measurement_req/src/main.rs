@@ -2,11 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::*;
 use fuzzlib::spdmlib::message::SpdmMeasurementOperation;
 use fuzzlib::*;
-// use crate::common::algo::*;
-use crate::spdmlib::message::capability::*;
+use spdmlib::message::*;
+use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -23,7 +22,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -85,10 +84,15 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         // requester.common.peer_info.peer_cert_chain.cert_chain = [Some(REQ_CERT_CHAIN_DATA);8].clone();
         requester.common.reset_runtime_info();
+        let mut total_number = 0;
+        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
         let _ = requester.send_receive_spdm_measurement(
             None,
-            SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             0,
+            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+            SpdmMeasurementOperation::SpdmMeasurementRequestAll,
+            &mut total_number,
+            &mut spdm_measurement_record_structure,
         );
     }
     {
@@ -97,7 +101,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -159,10 +163,16 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.reset_runtime_info();
+
+        let mut total_number = 0;
+        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
         let _ = requester.send_receive_spdm_measurement(
             None,
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             0,
+            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            &mut total_number,
+            &mut spdm_measurement_record_structure,
         );
     }
 
@@ -230,12 +240,18 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
         requester.common.reset_runtime_info();
+
+        let mut total_number = 0;
+        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
         let _ = requester.send_receive_spdm_measurement(
             None,
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             0,
+            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
+            &mut total_number,
+            &mut spdm_measurement_record_structure,
         );
     }
     {
@@ -305,8 +321,16 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.reset_runtime_info();
 
-        let _ =
-            requester.send_receive_spdm_measurement(None, SpdmMeasurementOperation::Unknown(4), 0);
+        let mut total_number = 0;
+        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
+        let _ = requester.send_receive_spdm_measurement(
+            None,
+            0,
+            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+            SpdmMeasurementOperation::Unknown(4),
+            &mut total_number,
+            &mut spdm_measurement_record_structure,
+        );
     }
 }
 
@@ -326,6 +350,7 @@ fn main() {
         .start()
         .unwrap();
 
+    spdmlib::secret::register(fuzzlib::secret::SECRET_IMPL_INSTANCE.clone());
     #[cfg(not(feature = "fuzz"))]
     {
         let args: Vec<String> = std::env::args().collect();

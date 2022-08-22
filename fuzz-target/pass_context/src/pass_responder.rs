@@ -10,7 +10,7 @@ pub fn pass_rsp_handle_spdm_version() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -28,7 +28,7 @@ pub fn pass_rsp_handle_spdm_version() {
 
     context.handle_spdm_version(&[00, 00, 00, 00]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -37,7 +37,7 @@ pub fn pass_rsp_handle_spdm_capability() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -56,7 +56,7 @@ pub fn pass_rsp_handle_spdm_capability() {
     // context.handle_spdm_capability(&[0x10, 0x84, 00,00, 0x11, 0xE1, 00, 00, 00, 00, 00, 00, 00,00,00,0x0C]);
     context.handle_spdm_capability(&[17, 225, 0, 0, 0, 0, 0, 0, 198, 118, 0, 0]);
     let mut req_buf = [0u8; 512];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -65,7 +65,7 @@ pub fn pass_rsp_handle_spdm_algorithm() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -86,7 +86,7 @@ pub fn pass_rsp_handle_spdm_algorithm() {
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 0).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -95,7 +95,7 @@ pub fn pass_rsp_handle_spdm_digest() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -118,7 +118,7 @@ pub fn pass_rsp_handle_spdm_digest() {
 
     context.handle_spdm_digest(&[17, 129, 0, 0]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -127,7 +127,7 @@ pub fn pass_rsp_handle_spdm_certificate() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -149,7 +149,7 @@ pub fn pass_rsp_handle_spdm_certificate() {
     context.handle_spdm_digest(&[17, 129, 0, 0]);
     context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -158,7 +158,7 @@ pub fn pass_rsp_handle_spdm_challenge() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -184,7 +184,7 @@ pub fn pass_rsp_handle_spdm_challenge() {
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
     ]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -193,7 +193,7 @@ pub fn pass_rsp_handle_spdm_measurement() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -220,7 +220,7 @@ pub fn pass_rsp_handle_spdm_measurement() {
     ]);
     context.handle_spdm_measurement(None, &[17, 224, 0, 0]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -229,7 +229,7 @@ pub fn pass_rsp_handle_spdm_key_exchange() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -256,7 +256,7 @@ pub fn pass_rsp_handle_spdm_key_exchange() {
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
     ]);
     context.handle_spdm_measurement(None, &[17, 224, 0, 0]);
-    context.handle_spdm_key_exchange(&[
+    let _ = context.handle_spdm_key_exchange(&[
         17, 228, 0, 0, 254, 255, 0, 0, 227, 11, 91, 150, 99, 148, 85, 82, 35, 135, 88, 241, 249,
         244, 105, 233, 225, 89, 237, 166, 13, 142, 13, 115, 102, 29, 108, 90, 113, 211, 174, 92,
         16, 14, 136, 6, 200, 113, 5, 174, 212, 211, 70, 68, 204, 188, 78, 228, 190, 118, 132, 77,
@@ -267,7 +267,7 @@ pub fn pass_rsp_handle_spdm_key_exchange() {
         34, 20, 0, 70, 84, 77, 68, 1, 1, 0, 0, 0, 0, 5, 0, 1, 1, 1, 0, 17, 0, 0, 0, 0, 0,
     ]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
 
@@ -276,7 +276,7 @@ pub fn pass_rsp_handle_spdm_psk_exchange() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL);
+    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -302,7 +302,7 @@ pub fn pass_rsp_handle_spdm_psk_exchange() {
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
     ]);
     context.handle_spdm_measurement(None, &[17, 224, 0, 0]);
-    context.handle_spdm_key_exchange(&[
+    let _ = context.handle_spdm_key_exchange(&[
         17, 228, 0, 0, 254, 255, 0, 0, 227, 11, 91, 150, 99, 148, 85, 82, 35, 135, 88, 241, 249,
         244, 105, 233, 225, 89, 237, 166, 13, 142, 13, 115, 102, 29, 108, 90, 113, 211, 174, 92,
         16, 14, 136, 6, 200, 113, 5, 174, 212, 211, 70, 68, 204, 188, 78, 228, 190, 118, 132, 77,
@@ -312,13 +312,13 @@ pub fn pass_rsp_handle_spdm_psk_exchange() {
         154, 63, 97, 36, 64, 150, 86, 131, 90, 36, 64, 150, 86, 131, 90, 36, 93, 181, 85, 154, 164,
         34, 20, 0, 70, 84, 77, 68, 1, 1, 0, 0, 0, 0, 5, 0, 1, 1, 1, 0, 17, 0, 0, 0, 0, 0,
     ]);
-    context.handle_spdm_psk_exchange(&[
+    let _ = context.handle_spdm_psk_exchange(&[
         17, 230, 0, 0, 253, 255, 0, 0, 48, 0, 20, 0, 61, 242, 81, 71, 115, 174, 43, 116, 19, 203,
         159, 205, 247, 38, 95, 20, 209, 170, 249, 97, 98, 89, 160, 168, 4, 8, 69, 184, 51, 15, 78,
         178, 208, 229, 109, 184, 239, 207, 44, 98, 13, 141, 223, 116, 114, 42, 39, 215, 70, 84, 77,
         68, 1, 10, 0, 0, 0, 5, 0, 1, 1, 1, 0, 17, 0, 0, 0,
     ]);
     let mut req_buf = [0u8; 1024];
-    socket_io_transport.receive(&mut req_buf).unwrap();
+    socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }

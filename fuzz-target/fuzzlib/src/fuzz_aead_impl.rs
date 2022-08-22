@@ -5,11 +5,11 @@
 use crate::spdmlib::crypto::SpdmAead;
 // use crate::spdmlib::error::SpdmResult;
 use bytes::BytesMut;
-use spdmlib::common::error::SpdmResult;
+use spdmlib::error::SpdmResult;
 use spdmlib::{spdm_err, spdm_result_err};
 
 // use crate::spdmlib::msgs::SpdmAeadAlgo;
-use crate::common::algo::SpdmAeadAlgo;
+use spdmlib::protocol::SpdmAeadAlgo;
 
 pub static FUZZ_AEAD: SpdmAead = SpdmAead {
     encrypt_cb: encrypt,

@@ -4,7 +4,7 @@
 
 use fuzzlib::*;
 // use crate::spdmlib::message::capability::*;
-// use crate::spdmlib::common::algo::*;
+// use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_algorithm(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();

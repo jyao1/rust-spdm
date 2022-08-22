@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::algo::*;
-// use crate::common::algo::*;
+use spdmlib::protocol::*;
+// use spdmlib::protocol::*;
 
 use fuzzlib::{
     spdmlib::common::session::{SpdmSession, SpdmSessionState},

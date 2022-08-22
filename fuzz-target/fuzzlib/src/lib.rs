@@ -1,8 +1,13 @@
+// Copyright (c) 2022 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 pub mod fake_device_io;
 pub mod fuzz_aead_impl;
 pub mod fuzz_crypto;
 pub mod requesterlib;
 pub mod responderlib;
+pub mod secret;
 pub mod shared_buffer;
 
 use std::path::PathBuf;
