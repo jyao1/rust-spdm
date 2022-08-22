@@ -91,7 +91,10 @@ jobs:
       - name: cargo build
         run: |
           cargo build -p spdm-responder-emu -p spdm-requester-emu
-        
+
+      - name: Build fuzz
+        run: ./sh_script/fuzz_run.sh -b
+
       - name: cargo tests
         run: cargo test
           

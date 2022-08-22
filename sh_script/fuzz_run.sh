@@ -2,6 +2,32 @@
 
 # pkill screen
 
+usage() {
+    cat <<EOM
+Usage: $(basename "$0") [OPTION]...
+  -c [Scoverage|Gcoverage]
+  -b Build only
+  -n <Fuzz crate Name> Run specific fuzz
+  -h Show help info
+EOM
+    exit 0
+}
+
+coverage_type=""
+
+process_args() {
+    while getopts ":bc:n:h" option; do
+        case "${option}" in
+        c) coverage_type=${OPTARG} ;;
+        b) build_only="true" ;;
+        n) fuzz_target_name=${OPTARG} ;;
+        h) usage ;;
+        esac
+    done
+}
+
+process_args $@
+
 if [[ ! $PWD =~ rust-spdm$ ]]; then
     pushd ..
 fi
@@ -26,9 +52,10 @@ for i in fuzz-target/out/*; do
     fi
 done
 
-if [ "core" != $(cat /proc/sys/kernel/core_pattern) ]; then
-    if [ $(id -u) -ne 0 ]; then
-        sudo su - root <<EOF
+if [ ! ${build_only} ]; then
+    if [ "core" != $(cat /proc/sys/kernel/core_pattern) ]; then
+        if [ $(id -u) -ne 0 ]; then
+            sudo su - root <<EOF
         echo core >/proc/sys/kernel/core_pattern;
         pushd /sys/devices/system/cpu;
         echo performance | tee cpu*/cpufreq/scaling_governor;
@@ -36,11 +63,12 @@ if [ "core" != $(cat /proc/sys/kernel/core_pattern) ]; then
         echo "root path is $PWD";
         exit;
 EOF
-    else
-        echo core >/proc/sys/kernel/core_pattern
-        pushd /sys/devices/system/cpu
-        echo performance | tee cpu*/cpufreq/scaling_governor
-        popd
+        else
+            echo core >/proc/sys/kernel/core_pattern
+            pushd /sys/devices/system/cpu
+            echo performance | tee cpu*/cpufreq/scaling_governor
+            popd
+        fi
     fi
 fi
 
@@ -83,38 +111,47 @@ done
 
 echo "cargo afl build --features fuzz $buildpackage"
 
-if [[ $1 == "Scoverage" ]]; then
-    echo "$1"
+if [[ $coverage_type == "Scoverage" ]]; then
+    echo "$coverage_type"
     export RUSTFLAGS="-Zinstrument-coverage"
     export LLVM_PROFILE_FILE='fuzz_run%m.profraw'
 fi
 
-if [[ $1 == "Gcoverage" ]]; then
-    echo "$1"
+if [[ $coverage_type == "Gcoverage" ]]; then
+    echo "$coverage_type"
     export CARGO_INCREMENTAL=0
     export RUSTDOCFLAGS="-Cpanic=abort"
     export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort"
 fi
 
-cargo afl build --features fuzz $buildpackage
+if [[ $fuzz_target_name ]]; then
+    cargo afl build --features fuzz -p $fuzz_target_name
+else
+    cargo afl build --features fuzz $buildpackage
+fi
 
-for ((i = 0; i < ${#cmds[*]}; i++)); do
-    # echo ${cmds[$i]}
-    # screen -ls | grep ${cmds[$i]}
-    # if [[ $? -ne 0 ]]
-    # then
-    # screen -dmS ${cmds[$i]}
-    # fi
-    # screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
-    # screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-    # sleep 3600
-    # screen -S ${cmds[$i]} -X quit
-    # sleep 5
-    timeout 10 cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}
+if [ ! ${build_only} ]; then
+    if [[ $fuzz_target_name ]]; then
+        timeout 10 cargo afl fuzz -i fuzz-target/in/${fuzz_target_name} -o fuzz-target/out/${fuzz_target_name} target/debug/${fuzz_target_name}
+    else
+        for ((i = 0; i < ${#cmds[*]}; i++)); do
+            # echo ${cmds[$i]}
+            # screen -ls | grep ${cmds[$i]}
+            # if [[ $? -ne 0 ]]
+            # then
+            # screen -dmS ${cmds[$i]}
+            # fi
+            # screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
+            # screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
+            # sleep 3600
+            # screen -S ${cmds[$i]} -X quit
+            # sleep 5
+            timeout 10 cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}
+        done
+    fi
+fi
 
-done
-
-if [[ $1 == "Scoverage" || $1 == "Gcoverage" ]]; then
+if [[ $coverage_type == "Scoverage" || $coverage_type == "Gcoverage" ]]; then
     grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/fuzz_coverage/
     unset RUSTFLAGS
     unset LLVM_PROFILE_FILE
