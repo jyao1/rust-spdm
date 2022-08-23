@@ -48,7 +48,8 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
             let data_transfer_size = u32::read(r)?;
             let max_spdm_msg_size = u32::read(r)?;
             if data_transfer_size < 42 || max_spdm_msg_size < 42 {
-                panic!("responder: data_transfer_size or max_spdm_msg_size < 42");
+                log::error!("responder: data_transfer_size or max_spdm_msg_size < 42");
+                return None;
             }
             Some(SpdmGetCapabilitiesRequestPayload {
                 ct_exponent,
