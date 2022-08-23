@@ -5,7 +5,8 @@
 use fuzzlib::{
     fake_device_io::FakeSpdmDeviceIo, req_create_info, rsp_create_info, spdmlib,
     spdmlib::requester::RequesterContext, spdmlib::responder::ResponderContext,
-    FuzzSpdmDeviceIoReceve, PciDoeTransportEncap, SharedBuffer, ASYM_SIGN_IMPL,
+    time::SPDM_TIME_IMPL, FuzzSpdmDeviceIoReceve, PciDoeTransportEncap, SharedBuffer,
+    ASYM_SIGN_IMPL,
 };
 
 #[allow(unused)]
@@ -22,6 +23,7 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::time::register(SPDM_TIME_IMPL.clone());
 
         let mut responder = ResponderContext::new(
             &mut device_io_responder,
