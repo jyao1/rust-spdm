@@ -85,14 +85,14 @@ impl<'a> RequesterContext<'a> {
                 return spdm_result_err!(EINVAL);
             };
         let header_size = spdm_message_header_reader.used();
-        assert_eq!(
-            spdm_message_header.version,
-            self.common.negotiate_info.spdm_version_sel
-        );
-        assert_eq!(
-            spdm_message_header.request_response_code,
-            SpdmRequestResponseCode::SpdmResponseError
-        );
+
+        if spdm_message_header.version != self.common.negotiate_info.spdm_version_sel {
+            return spdm_result_err!(EINVAL);
+        }
+
+        if spdm_message_header.request_response_code != SpdmRequestResponseCode::SpdmResponseError {
+            return spdm_result_err!(EINVAL);
+        }
 
         let mut spdm_message_payload_reader = Reader::init(&response[header_size..]);
         let spdm_message_general_payload =

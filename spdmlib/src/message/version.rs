@@ -79,6 +79,12 @@ impl SpdmCodec for SpdmVersionResponsePayload {
         u8::read(r)?; // reserved
         let version_number_entry_count = u8::read(r)?;
 
+        if version_number_entry_count < 1
+            || version_number_entry_count > config::MAX_SPDM_VERSION_COUNT as u8
+        {
+            return None;
+        }
+
         let mut versions = gen_array_clone(
             SpdmVersionStruct {
                 update: 0,
