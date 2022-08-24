@@ -603,7 +603,9 @@ impl SpdmSession {
         crypto::hmac::hmac(
             self.crypto_param.base_hash_algo,
             self.handshake_secret.response_finished_key.as_ref(),
-            message,
+            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
+                .ok_or(spdm_err!(EINVAL))?
+                .as_ref(),
         )
         .ok_or(spdm_err!(ESEC))
     }
@@ -615,7 +617,9 @@ impl SpdmSession {
         crypto::hmac::hmac(
             self.crypto_param.base_hash_algo,
             self.handshake_secret.request_finished_key.as_ref(),
-            message,
+            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
+                .ok_or(spdm_err!(EINVAL))?
+                .as_ref(),
         )
         .ok_or(spdm_err!(ESEC))
     }
@@ -628,7 +632,9 @@ impl SpdmSession {
         crypto::hmac::hmac_verify(
             self.crypto_param.base_hash_algo,
             self.handshake_secret.response_finished_key.as_ref(),
-            message,
+            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
+                .ok_or(spdm_err!(EINVAL))?
+                .as_ref(),
             hmac,
         )
     }
@@ -641,7 +647,9 @@ impl SpdmSession {
         crypto::hmac::hmac_verify(
             self.crypto_param.base_hash_algo,
             self.handshake_secret.request_finished_key.as_ref(),
-            message,
+            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
+                .ok_or(spdm_err!(EINVAL))?
+                .as_ref(),
             hmac,
         )
     }
