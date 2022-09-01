@@ -182,7 +182,7 @@ impl<'a> ResponderContext<'a> {
                 }
 
                 SpdmRequestResponseCode::SpdmRequestEndSession => {
-                    self.handle_spdm_end_session(session_id, bytes);
+                    let _ = self.handle_spdm_end_session(session_id, bytes);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
