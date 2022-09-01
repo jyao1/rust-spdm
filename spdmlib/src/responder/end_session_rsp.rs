@@ -3,17 +3,23 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::error::{spdm_err, SpdmResult};
 use crate::message::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_end_session(&mut self, session_id: u32, bytes: &[u8]) {
+    pub fn handle_spdm_end_session(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self.write_spdm_end_session_response(bytes, &mut writer) {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+            self.send_secured_message(session_id, writer.used_slice(), false)?;
+            let session = self
+                .common
+                .get_session_via_id(session_id)
+                .ok_or(spdm_err!(EINVAL))?;
+            session.teardown(session_id)
         } else {
-            let _ = self.send_message(writer.used_slice());
+            self.send_message(writer.used_slice())
         }
     }
 
@@ -101,6 +107,6 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&session_request[0..1022]);
-        context.handle_spdm_end_session(session_id, bytes);
+        let _ = context.handle_spdm_end_session(session_id, bytes);
     }
 }
