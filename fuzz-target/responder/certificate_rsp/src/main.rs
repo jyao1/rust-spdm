@@ -27,7 +27,7 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
     );
 
     context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
-    context.handle_spdm_certificate(data);
+    context.handle_spdm_certificate(data, None);
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]

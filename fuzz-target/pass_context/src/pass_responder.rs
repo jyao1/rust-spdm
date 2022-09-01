@@ -116,7 +116,7 @@ pub fn pass_rsp_handle_spdm_digest() {
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
 
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
+    context.handle_spdm_digest(&[17, 129, 0, 0], None);
     let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
@@ -146,8 +146,8 @@ pub fn pass_rsp_handle_spdm_certificate() {
         17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
-    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
+    context.handle_spdm_digest(&[17, 129, 0, 0], None);
+    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2], None);
     let mut req_buf = [0u8; 1024];
     socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
@@ -177,8 +177,8 @@ pub fn pass_rsp_handle_spdm_challenge() {
         17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
-    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
+    context.handle_spdm_digest(&[17, 129, 0, 0], None);
+    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2], None);
     context.handle_spdm_challenge(&[
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
@@ -212,8 +212,8 @@ pub fn pass_rsp_handle_spdm_measurement() {
         17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
-    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
+    context.handle_spdm_digest(&[17, 129, 0, 0], None);
+    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2], None);
     context.handle_spdm_challenge(&[
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
@@ -249,8 +249,8 @@ pub fn pass_rsp_handle_spdm_key_exchange() {
         17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
-    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
+    context.handle_spdm_digest(&[17, 129, 0, 0], None);
+    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2], None);
     context.handle_spdm_challenge(&[
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,
@@ -295,8 +295,8 @@ pub fn pass_rsp_handle_spdm_psk_exchange() {
         17, 227, 4, 0, 48, 0, 1, 0, 128, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 2, 32, 16, 0, 3, 32, 2, 0, 4, 32, 2, 0, 5, 32, 1, 0,
     ]);
-    context.handle_spdm_digest(&[17, 129, 0, 0]);
-    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2]);
+    context.handle_spdm_digest(&[17, 129, 0, 0], None);
+    context.handle_spdm_certificate(&[17, 130, 0, 0, 0, 0, 0, 2], None);
     context.handle_spdm_challenge(&[
         17, 131, 0, 0, 96, 98, 50, 80, 166, 189, 68, 2, 27, 142, 255, 200, 180, 230, 76, 45, 12,
         178, 253, 70, 242, 202, 83, 171, 115, 148, 32, 249, 52, 170, 141, 122,

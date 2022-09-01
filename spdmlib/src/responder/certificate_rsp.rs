@@ -7,14 +7,14 @@ use crate::message::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_certificate(&mut self, bytes: &[u8]) {
+    pub fn handle_spdm_certificate(&mut self, bytes: &[u8], _session_id: Option<u32>) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_certificate_response(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());
     }
 
-    pub fn write_spdm_certificate_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    fn write_spdm_certificate_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -134,7 +134,7 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&capabilities[0..1022]);
-        context.handle_spdm_certificate(bytes);
+        context.handle_spdm_certificate(bytes, None);
 
         let data = context.common.runtime_info.message_b.as_ref();
         let u8_slice = &mut [0u8; 2048];

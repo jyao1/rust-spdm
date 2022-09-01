@@ -12,14 +12,14 @@ use crate::protocol::gen_array_clone;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_digest(&mut self, bytes: &[u8]) {
+    pub fn handle_spdm_digest(&mut self, bytes: &[u8], _session_id: Option<u32>) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_digest_response(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());
     }
 
-    pub fn write_spdm_digest_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    fn write_spdm_digest_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -122,6 +122,6 @@ mod tests_responder {
         value.encode(&mut writer);
 
         let bytes = &mut [0u8; 1024];
-        context.handle_spdm_digest(bytes);
+        context.handle_spdm_digest(bytes, None);
     }
 }

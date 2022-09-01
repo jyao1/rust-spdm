@@ -149,8 +149,14 @@ impl<'a> ResponderContext<'a> {
                 SpdmRequestResponseCode::SpdmRequestGetVersion => false,
                 SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
                 SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
-                SpdmRequestResponseCode::SpdmRequestGetDigests => false,
-                SpdmRequestResponseCode::SpdmRequestGetCertificate => false,
+                SpdmRequestResponseCode::SpdmRequestGetDigests => {
+                    self.handle_spdm_digest(bytes, Some(session_id));
+                    true
+                }
+                SpdmRequestResponseCode::SpdmRequestGetCertificate => {
+                    self.handle_spdm_certificate(bytes, Some(session_id));
+                    true
+                }
                 SpdmRequestResponseCode::SpdmRequestChallenge => false,
                 SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
                     self.handle_spdm_measurement(Some(session_id), bytes);
@@ -237,11 +243,11 @@ impl<'a> ResponderContext<'a> {
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetDigests => {
-                    self.handle_spdm_digest(bytes);
+                    self.handle_spdm_digest(bytes, None);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetCertificate => {
-                    self.handle_spdm_certificate(bytes);
+                    self.handle_spdm_certificate(bytes, None);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestChallenge => {

@@ -31,7 +31,7 @@ fn fuzz_handle_spdm_digest(data: &[u8]) {
         data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
     });
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    context.handle_spdm_digest(data);
+    context.handle_spdm_digest(data, None);
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
