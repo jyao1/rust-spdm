@@ -251,7 +251,9 @@ fn spdm_measurement_collection_impl(
 
             let mut digest_value: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
                 [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            digest_value.copy_from_slice(digest.data.as_ref());
+            digest_value[(measurement_index) * SPDM_MAX_HASH_SIZE
+                ..(measurement_index + 1) * SPDM_MAX_HASH_SIZE]
+                .copy_from_slice(digest.data.as_ref());
             Some(SpdmMeasurementRecordStructure {
                 number_of_blocks: 1,
                 record: [
