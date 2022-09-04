@@ -296,20 +296,16 @@ pub fn send_unknown(
 
 pub fn send_stop(
     stream: &mut TcpStream,
-    transport_encap: &mut dyn SpdmTransportEncap,
+    _transport_encap: &mut dyn SpdmTransportEncap,
     transport_type: u32,
 ) {
     println!("get stop");
-
-    let mut payload = [0u8; 1024];
-
-    let used = transport_encap.encap(b"", &mut payload[..], false).unwrap();
 
     let _buffer_size = spdm_emu::spdm_emu::send_message(
         stream,
         transport_type,
         spdm_emu::spdm_emu::SOCKET_SPDM_COMMAND_STOP,
-        &payload[..used],
+        &[],
     );
 }
 
