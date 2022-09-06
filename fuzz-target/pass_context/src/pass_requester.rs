@@ -39,11 +39,14 @@ pub fn fuzz_total_requesters() {
         return;
     }
 
-    if requester.send_receive_spdm_digest().is_err() {
+    if requester.send_receive_spdm_digest(None).is_err() {
         return;
     }
 
-    if requester.send_receive_spdm_certificate(0).is_err() {
+    if requester
+        .send_receive_spdm_certificate(Some(session_id), 0)
+        .is_err()
+    {
         return;
     }
 

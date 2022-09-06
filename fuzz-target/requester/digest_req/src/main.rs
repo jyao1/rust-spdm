@@ -43,7 +43,7 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
 
     requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-    let _ = requester.send_receive_spdm_digest().is_err();
+    let _ = requester.send_receive_spdm_digest(None).is_err();
 }
 
 fn main() {

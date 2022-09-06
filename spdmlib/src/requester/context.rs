@@ -188,10 +188,10 @@ mod tests_requester {
         let status = requester.init_connection().is_ok();
         assert!(status);
 
-        let status = requester.send_receive_spdm_digest().is_ok();
+        let status = requester.send_receive_spdm_digest(None).is_ok();
         assert!(status);
 
-        let status = requester.send_receive_spdm_certificate(0).is_ok();
+        let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
         assert!(status);
 
         let result = requester.start_session(

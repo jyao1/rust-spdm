@@ -40,9 +40,11 @@ fn intergration_client_server() {
 
     assert!(!requester_context.init_connection().is_err());
 
-    assert!(!requester_context.send_receive_spdm_digest().is_err());
+    assert!(!requester_context.send_receive_spdm_digest(None).is_err());
 
-    assert!(!requester_context.send_receive_spdm_certificate(0).is_err());
+    assert!(!requester_context
+        .send_receive_spdm_certificate(None, 0)
+        .is_err());
 
     let result = requester_context.start_session(
         false,
