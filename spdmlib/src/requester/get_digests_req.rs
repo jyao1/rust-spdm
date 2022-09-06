@@ -7,14 +7,23 @@ use crate::message::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_digest(&mut self) -> SpdmResult {
+    pub fn send_receive_spdm_digest(&mut self, session_id: Option<u32>) -> SpdmResult {
         info!("send spdm digest\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_digest(&mut send_buffer);
-        self.send_message(&send_buffer[..send_used])?;
+        if session_id.is_none() {
+            self.send_message(&send_buffer[..send_used])?;
+        } else {
+            self.send_secured_message(session_id.unwrap(), &send_buffer[..send_used], false)?;
+        }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_message(&mut receive_buffer, false)?;
+        let used = if session_id.is_none() {
+            self.receive_message(&mut receive_buffer, false)?
+        } else {
+            self.receive_secured_message(session_id.unwrap(), &mut receive_buffer, false)?
+        };
+
         self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }
 
@@ -126,7 +135,7 @@ mod tests_requester {
         );
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        let status = requester.send_receive_spdm_digest().is_ok();
+        let status = requester.send_receive_spdm_digest(None).is_ok();
         assert!(status);
     }
 }

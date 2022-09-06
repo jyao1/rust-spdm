@@ -58,13 +58,13 @@ fn run_spdm(spdm: Vec<i32>) {
                 }
             }
             4 => {
-                if requester.send_receive_spdm_digest().is_err() {
+                if requester.send_receive_spdm_digest(None).is_err() {
                     println!("{:?} 4, error in send_receive_spdm_digest", &spdm);
                     return;
                 }
             }
             5 => {
-                if requester.send_receive_spdm_certificate(0).is_err() {
+                if requester.send_receive_spdm_certificate(None, 0).is_err() {
                     println!("{:?} 5, error in send_receive_spdm_certificate", &spdm);
                     return;
                 }

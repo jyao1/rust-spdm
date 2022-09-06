@@ -170,11 +170,11 @@ fn test_spdm(
         return;
     }
 
-    if context.send_receive_spdm_digest().is_err() {
+    if context.send_receive_spdm_digest(None).is_err() {
         return;
     }
 
-    if context.send_receive_spdm_certificate(0).is_err() {
+    if context.send_receive_spdm_certificate(None, 0).is_err() {
         return;
     }
 
@@ -252,6 +252,17 @@ fn test_spdm(
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
             )
+            .is_err()
+        {
+            return;
+        }
+
+        if context.send_receive_spdm_digest(Some(session_id)).is_err() {
+            return;
+        }
+
+        if context
+            .send_receive_spdm_certificate(Some(session_id), 0)
             .is_err()
         {
             return;

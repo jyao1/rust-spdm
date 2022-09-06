@@ -150,7 +150,11 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
-    pub fn send_receive_spdm_certificate(&mut self, slot_id: u8) -> SpdmResult {
+    pub fn send_receive_spdm_certificate(
+        &mut self,
+        _session_id: Option<u32>,
+        slot_id: u8,
+    ) -> SpdmResult {
         let mut offset = 0u16;
         let mut length = config::MAX_SPDM_CERT_PORTION_LEN as u16;
         while length != 0 {
@@ -315,7 +319,7 @@ mod tests_requester {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        let status = requester.send_receive_spdm_certificate(0).is_ok();
+        let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
         assert!(status);
     }
 }

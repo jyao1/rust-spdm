@@ -53,7 +53,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        let _ = requester.send_receive_spdm_certificate(0).is_err();
+        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
         // error 151 lines
@@ -91,7 +91,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        let _ = requester.send_receive_spdm_certificate(0).is_err();
+        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
         // error 155 lines
@@ -135,7 +135,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         tmp.data_size += 1;
         requester.common.provision_info.peer_cert_chain_data = Some(tmp);
 
-        let _ = requester.send_receive_spdm_certificate(0).is_err();
+        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
         // error 167 lines
@@ -180,7 +180,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        let _ = requester.send_receive_spdm_certificate(0).is_err();
+        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
         let shared_buffer = SharedBuffer::new();
@@ -214,7 +214,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        let _ = requester.send_receive_spdm_certificate(0).is_err();
+        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
 }
 
