@@ -11,6 +11,7 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     fn send_receive_spdm_certificate_partial(
         &mut self,
+        session_id: Option<u32>,
         slot_id: u8,
         offset: u16,
         length: u16,
@@ -24,7 +25,7 @@ impl<'a> RequesterContext<'a> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_certificate_partial_response(
-            0,
+            session_id,
             slot_id,
             offset,
             &send_buffer[..send_used],
@@ -59,7 +60,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_certificate_partial_response(
         &mut self,
-        session_id: u32,
+        session_id: Option<u32>,
         slot_id: u8,
         offset: u16,
         send_buffer: &[u8],
@@ -124,7 +125,7 @@ impl<'a> RequesterContext<'a> {
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
                     let erm = self.spdm_handle_error_response_main(
-                        session_id,
+                        if let Some(sid) = session_id { sid } else { 0 },
                         receive_buffer,
                         SpdmRequestResponseCode::SpdmRequestGetCertificate,
                         SpdmRequestResponseCode::SpdmResponseCertificate,
@@ -152,13 +153,14 @@ impl<'a> RequesterContext<'a> {
 
     pub fn send_receive_spdm_certificate(
         &mut self,
-        _session_id: Option<u32>,
+        session_id: Option<u32>,
         slot_id: u8,
     ) -> SpdmResult {
         let mut offset = 0u16;
         let mut length = config::MAX_SPDM_CERT_PORTION_LEN as u16;
         while length != 0 {
-            let result = self.send_receive_spdm_certificate_partial(slot_id, offset, length);
+            let result =
+                self.send_receive_spdm_certificate_partial(session_id, slot_id, offset, length);
             match result {
                 Ok((portion_length, remainder_length)) => {
                     offset += portion_length;
