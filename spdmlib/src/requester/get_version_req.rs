@@ -91,7 +91,7 @@ impl<'a> RequesterContext<'a> {
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
                     let erm = self.spdm_handle_error_response_main(
-                        session_id,
+                        Some(session_id),
                         receive_buffer,
                         SpdmRequestResponseCode::SpdmRequestGetVersion,
                         SpdmRequestResponseCode::SpdmResponseVersion,

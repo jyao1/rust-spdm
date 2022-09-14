@@ -125,7 +125,7 @@ impl<'a> RequesterContext<'a> {
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
                     let erm = self.spdm_handle_error_response_main(
-                        if let Some(sid) = session_id { sid } else { 0 },
+                        session_id,
                         receive_buffer,
                         SpdmRequestResponseCode::SpdmRequestGetCertificate,
                         SpdmRequestResponseCode::SpdmResponseCertificate,

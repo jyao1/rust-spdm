@@ -13,7 +13,7 @@ use crate::time::sleep;
 impl<'a> RequesterContext<'a> {
     fn spdm_handle_response_not_ready(
         &mut self,
-        _session_id: u32,
+        _session_id: Option<u32>,
         response: &[u8],
         original_request_code: SpdmRequestResponseCode,
         expected_response_code: SpdmRequestResponseCode,
@@ -48,7 +48,7 @@ impl<'a> RequesterContext<'a> {
 
     fn spdm_handle_simple_error_response(
         &mut self,
-        session_id: u32,
+        session_id: Option<u32>,
         error_code: u8,
     ) -> SpdmResult<ReceivedMessage> {
         /* NOT_READY is treated as error here.
@@ -58,12 +58,14 @@ impl<'a> RequesterContext<'a> {
         } else if error_code == SpdmErrorCode::SpdmErrorBusy.get_u8() {
             spdm_result_err!(EBUSY)
         } else if error_code == SpdmErrorCode::SpdmErrorRequestResynch.get_u8() {
-            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                s
-            } else {
-                return spdm_result_err!(EFAULT);
-            };
-            session.set_session_state(SpdmSessionState::SpdmSessionNotStarted);
+            if let Some(sid) = session_id {
+                let session = if let Some(s) = self.common.get_session_via_id(sid) {
+                    s
+                } else {
+                    return spdm_result_err!(EFAULT);
+                };
+                session.set_session_state(SpdmSessionState::SpdmSessionNotStarted);
+            }
             spdm_result_err!(EDEV)
         } else {
             spdm_result_err!(EDEV)
@@ -72,7 +74,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn spdm_handle_error_response_main(
         &mut self,
-        session_id: u32,
+        session_id: Option<u32>,
         response: &[u8],
         original_request_code: SpdmRequestResponseCode,
         expected_response_code: SpdmRequestResponseCode,
@@ -103,13 +105,14 @@ impl<'a> RequesterContext<'a> {
             };
 
         if spdm_message_general_payload.param1 == SpdmErrorCode::SpdmErrorDecryptError.get_u8() {
-            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                s
-            } else {
-                return spdm_result_err!(EFAULT);
-            };
-            let _ = session.teardown(session_id);
-
+            if let Some(sid) = session_id {
+                let session = if let Some(s) = self.common.get_session_via_id(sid) {
+                    s
+                } else {
+                    return spdm_result_err!(EFAULT);
+                };
+                let _ = session.teardown(sid);
+            }
             spdm_result_err!(ESEC)
         } else if spdm_message_general_payload.param1
             == SpdmErrorCode::SpdmErrorResponseNotReady.get_u8()
