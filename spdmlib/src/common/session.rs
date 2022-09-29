@@ -350,7 +350,7 @@ impl SpdmSession {
             self.key_schedule.derive_export_master_secret(
                 spdm_version,
                 hash_algo,
-                self.handshake_secret.export_master_secret.as_ref(),
+                self.master_secret.master_secret.as_ref(),
             ) {
             ems
         } else {
