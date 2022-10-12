@@ -83,6 +83,9 @@ fn new_logger_from_env() -> SimpleLogger {
 fn main() {
     new_logger_from_env().init().unwrap();
 
+    #[cfg(feature = "crypto_mbedtls")]
+    spdm_emu::crypto::crypto_mbedtls_register_handles();
+
     register(SECRET_IMPL_INSTANCE.clone());
 
     let listener = TcpListener::bind("127.0.0.1:2323").expect("Couldn't bind to the server");

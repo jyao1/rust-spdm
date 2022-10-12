@@ -4,6 +4,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod crypto;
 pub mod crypto_callback;
 pub mod secret_impl_sample;
 pub mod socket_io_transport;

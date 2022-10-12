@@ -309,6 +309,9 @@ fn new_logger_from_env() -> SimpleLogger {
 fn main() {
     new_logger_from_env().init().unwrap();
 
+    #[cfg(feature = "crypto_mbedtls")]
+    spdm_emu::crypto::crypto_mbedtls_register_handles();
+
     let since_the_epoch = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .expect("Time went backwards");
