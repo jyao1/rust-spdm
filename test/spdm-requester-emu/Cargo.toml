@@ -7,10 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-spdm-emu = { path = "../spdm-emu" }
-spdmlib = { path = "../../spdmlib" }
+spdm-emu = { path = "../spdm-emu", default-features = false }
+spdmlib = { path = "../../spdmlib", default-features = false }
 codec = { path = "../../codec" }
 mctp_transport = { path = "../../mctp_transport" }
 pcidoe_transport = { path = "../../pcidoe_transport" }
 log = "0.4.13"
 simple_logger = "1.11.0"
+
+[features]
+default = ["spdm-emu/default"]
+crypto_mbedtls = ["spdm-emu/crypto_mbedtls"]
