@@ -1,0 +1,20 @@
+[package]
+name = "spdmlib_crypto_mbedtls"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+spdmlib = { path = "../spdmlib", default-features = false}
+
+[build-dependencies]
+cc = { version = "1.0.63", default-features = false }
+
+[dev-dependencies]
+ring = { git="https://github.com/jyao1/ring", branch="uefi_support" }
+log = { version = "0.4.13" }
+
+[features]
+default = []
+test_with_ring = ["spdmlib/spdm-ring"]
