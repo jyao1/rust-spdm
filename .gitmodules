@@ -1,0 +1,3 @@
+[submodule "spdmlib_crypto_mbedtls/mbedtls"]
+	path = spdmlib_crypto_mbedtls/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls.git
