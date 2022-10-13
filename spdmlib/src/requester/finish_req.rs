@@ -297,6 +297,26 @@ mod tests_requester {
         responder.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
+        let dhe_secret = SpdmDheFinalKeyStruct {
+            data_size: 48,
+            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+        };
+        let _ = responder.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret);
+        let _ = responder.common.session[0].generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
+        let _ = responder.common.session[0].generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
+
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
 
@@ -337,7 +357,25 @@ mod tests_requester {
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
-
+        let dhe_secret = SpdmDheFinalKeyStruct {
+            data_size: 48,
+            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+        };
+        let _ = requester.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret);
+        let _ = requester.common.session[0].generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
+        let _ = requester.common.session[0].generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
         // let _ = requester.send_receive_spdm_finish(4294901758);
         let status = requester.send_receive_spdm_finish(0, 4294901758).is_ok();
         assert!(status);

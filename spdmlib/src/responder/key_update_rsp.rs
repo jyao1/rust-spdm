@@ -111,6 +111,25 @@ mod tests_responder {
         );
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+        let dhe_secret = SpdmDheFinalKeyStruct {
+            data_size: 48,
+            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+        };
+        let _ = context.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret);
+        let _ = context.common.session[0].generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
+        let _ = context.common.session[0].generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
@@ -162,7 +181,25 @@ mod tests_responder {
         );
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
-
+        let dhe_secret = SpdmDheFinalKeyStruct {
+            data_size: 48,
+            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+        };
+        let _ = context.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret);
+        let _ = context.common.session[0].generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
+        let _ = context.common.session[0].generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 48,
+                data: Box::new([0; SPDM_MAX_HASH_SIZE]),
+            },
+        );
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
