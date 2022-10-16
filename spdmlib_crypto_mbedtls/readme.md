@@ -10,14 +10,14 @@ Tested mbedtls version is mbedtls-2.28.1
 
 ```
 # build mbedtls library
-pushd spdm_crypto_mbedtls/mbedtls
+pushd spdmlib_crypto_mbedtls/mbedtls
 cp ../include/mbedtls/config.h ./include/mbedtls/
 export CFLAGS="-I`pwd`/../include -nostdlibinc -isystem -ffunction-sections -fdata-sections -fPIE"
 make lib -j${nproc}
 popd
 
 # test rust spdm_crypto_mbedtls library
-pushd spdm_crypto_mbedtls
+pushd spdmlib_crypto_mbedtls
 cargo build
 cargo test
 popd
