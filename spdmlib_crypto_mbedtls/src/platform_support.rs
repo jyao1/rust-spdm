@@ -13,11 +13,13 @@ lazy_static! {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn strstr() {}
+pub unsafe extern "C" fn strstr() {
+    unimplemented!();
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn strchr() {
-    log::info!("strchr called\n");
+    unimplemented!();
 }
 
 #[no_mangle]
@@ -40,7 +42,6 @@ pub unsafe extern "C" fn free(ptr: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn strcmp(s1: *const c_char, s2: *const c_char) -> c_int {
-    log::info!("strcmp called\n");
     for i in 0.. {
         let s1_i = s1.offset(i);
         let s2_i = s2.offset(i);
@@ -55,5 +56,5 @@ pub unsafe extern "C" fn strcmp(s1: *const c_char, s2: *const c_char) -> c_int {
 
 #[no_mangle]
 pub extern "C" fn rand() -> u32 {
-    panic!("rand called")
+    unimplemented!()
 }
