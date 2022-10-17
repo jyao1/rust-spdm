@@ -7,7 +7,9 @@
 use spdmlib::crypto::SpdmAsymSign;
 
 use spdmlib::protocol::{
-    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, RSAPSS_2048_KEY_SIZE,
+    RSAPSS_3072_KEY_SIZE, RSAPSS_4096_KEY_SIZE, RSASSA_3072_KEY_SIZE, RSASSA_4096_KEY_SIZE,
+    SPDM_MAX_ASYM_KEY_SIZE,
 };
 
 use super::utils::get_test_key_directory;
@@ -130,11 +132,21 @@ fn sign_rsa_asym_algo(
     // openssl.exe genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537 -outform DER > private.der
 
     let crate_dir = get_test_key_directory();
-    let key_file_path = if super::USE_ECDSA {
-        crate_dir.join("test_key/EcP384/end_responder.key.p8")
-    } else {
-        crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+    let key_file_path = match key_len {
+        RSASSA_2048_KEY_SIZE | RSAPSS_2048_KEY_SIZE => {
+            crate_dir.join("test_key/Rsa2048/end_responder.key.der")
+        }
+        RSASSA_3072_KEY_SIZE | RSAPSS_3072_KEY_SIZE => {
+            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+        }
+        RSASSA_4096_KEY_SIZE | RSAPSS_4096_KEY_SIZE => {
+            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+        }
+        _ => {
+            panic!("RSA key len not supported")
+        }
     };
+
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 

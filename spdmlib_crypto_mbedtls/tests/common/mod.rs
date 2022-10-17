@@ -5,5 +5,4 @@
 pub mod crypto_callbacks;
 pub mod utils;
 
-pub const USE_ECDSA: bool = true;
 pub const USE_ECDH: bool = true;

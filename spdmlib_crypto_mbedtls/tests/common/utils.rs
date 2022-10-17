@@ -4,7 +4,7 @@
 
 #![allow(unused)]
 
-use super::{USE_ECDH, USE_ECDSA};
+use super::USE_ECDH;
 use spdmlib::common;
 use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::config;
@@ -39,11 +39,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         // | SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP
         req_ct_exponent: 0,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        base_asym_algo: if USE_ECDSA {
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
-        } else {
-            SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
-        },
+        base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
         base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
         dhe_algo: if USE_ECDH {
             SpdmDheAlgo::SECP_384_R1
@@ -64,23 +60,13 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     };
 
     let crate_dir = get_test_key_directory();
-    let ca_file_path = if USE_ECDSA {
-        crate_dir.join("test_key/EcP384/ca.cert.der")
-    } else {
-        crate_dir.join("test_key/Rsa3072/ca.cert.der")
-    };
+    let ca_file_path = crate_dir.join("test_key/EcP384/ca.cert.der");
+
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
-    let inter_file_path = if USE_ECDSA {
-        crate_dir.join("test_key/EcP384/inter.cert.der")
-    } else {
-        crate_dir.join("test_key/Rsa3072/inter.cert.der")
-    };
+    let inter_file_path = crate_dir.join("test_key/EcP384/inter.cert.der");
+
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
-    let leaf_file_path = if USE_ECDSA {
-        crate_dir.join("test_key/EcP384/end_responder.cert.der")
-    } else {
-        crate_dir.join("test_key/Rsa3072/end_responder.cert.der")
-    };
+    let leaf_file_path = crate_dir.join("test_key/EcP384/end_responder.cert.der");
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 
     let ca_len = ca_cert.len();
@@ -133,11 +119,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         rsp_ct_exponent: 0,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
         measurement_hash_algo: SpdmMeasurementHashAlgo::TPM_ALG_SHA_384,
-        base_asym_algo: if USE_ECDSA {
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
-        } else {
-            SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
-        },
+        base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
         base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
         dhe_algo: if USE_ECDH {
             SpdmDheAlgo::SECP_384_R1
@@ -160,24 +142,12 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     };
 
     let crate_dir = get_test_key_directory();
-    let ca_file_path = if USE_ECDSA {
-        crate_dir.join("test_key/EcP384/ca.cert.der")
-    } else {
-        crate_dir.join("test_key/Rsa3072/ca.cert.der")
-    };
+    let ca_file_path = crate_dir.join("test_key/EcP384/ca.cert.der");
     log::info!("{}", ca_file_path.display());
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
-    let inter_file_path = if USE_ECDSA {
-        crate_dir.join("test_key/EcP384/inter.cert.der")
-    } else {
-        crate_dir.join("test_key/Rsa3072/inter.cert.der")
-    };
+    let inter_file_path = crate_dir.join("test_key/EcP384/inter.cert.der");
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
-    let leaf_file_path = if USE_ECDSA {
-        crate_dir.join("test_key/EcP384/end_responder.cert.der")
-    } else {
-        crate_dir.join("test_key/Rsa3072/end_responder.cert.der")
-    };
+    let leaf_file_path = crate_dir.join("test_key/EcP384/end_responder.cert.der");
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 
     let ca_len = ca_cert.len();
