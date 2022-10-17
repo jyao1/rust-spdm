@@ -7,7 +7,9 @@
 use spdmlib::crypto::SpdmAsymSign;
 
 use spdmlib::protocol::{
-    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, RSAPSS_2048_KEY_SIZE,
+    RSAPSS_3072_KEY_SIZE, RSAPSS_4096_KEY_SIZE, RSASSA_2048_KEY_SIZE, RSASSA_3072_KEY_SIZE,
+    RSASSA_4096_KEY_SIZE, SPDM_MAX_ASYM_KEY_SIZE,
 };
 
 use super::utils::get_test_key_directory;
@@ -95,10 +97,12 @@ fn sign_ecdsa_asym_algo(
     // openssl.exe pkcs8 -in private.der -inform DER -topk8 -nocrypt -outform DER > private.p8
 
     let crate_dir = get_test_key_directory();
-    let key_file_path = if super::USE_ECDSA {
+    let key_file_path = if algorithm == &ring::signature::ECDSA_P256_SHA256_FIXED_SIGNING {
+        crate_dir.join("test_key/EcP256/end_responder.key.p8")
+    } else if algorithm == &ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING {
         crate_dir.join("test_key/EcP384/end_responder.key.p8")
     } else {
-        crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+        panic!("not support")
     };
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
@@ -128,10 +132,19 @@ fn sign_rsa_asym_algo(
     // openssl.exe genpkey -algorithm rsa -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:65537 -outform DER > private.der
 
     let crate_dir = get_test_key_directory();
-    let key_file_path = if super::USE_ECDSA {
-        crate_dir.join("test_key/EcP384/end_responder.key.p8")
-    } else {
-        crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+    let key_file_path = match key_len {
+        RSASSA_2048_KEY_SIZE | RSAPSS_2048_KEY_SIZE => {
+            crate_dir.join("test_key/Rsa2048/end_responder.key.der")
+        }
+        RSASSA_3072_KEY_SIZE | RSAPSS_3072_KEY_SIZE => {
+            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+        }
+        RSASSA_4096_KEY_SIZE | RSAPSS_4096_KEY_SIZE => {
+            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+        }
+        _ => {
+            panic!("RSA key len not supported")
+        }
     };
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
