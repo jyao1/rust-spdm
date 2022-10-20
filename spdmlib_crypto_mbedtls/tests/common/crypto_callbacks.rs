@@ -8,8 +8,8 @@ use spdmlib::crypto::SpdmAsymSign;
 
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, RSAPSS_2048_KEY_SIZE,
-    RSAPSS_3072_KEY_SIZE, RSAPSS_4096_KEY_SIZE, RSASSA_3072_KEY_SIZE, RSASSA_4096_KEY_SIZE,
-    SPDM_MAX_ASYM_KEY_SIZE,
+    RSAPSS_3072_KEY_SIZE, RSAPSS_4096_KEY_SIZE, RSASSA_2048_KEY_SIZE, RSASSA_3072_KEY_SIZE,
+    RSASSA_4096_KEY_SIZE, SPDM_MAX_ASYM_KEY_SIZE,
 };
 
 use super::utils::get_test_key_directory;
@@ -140,7 +140,7 @@ fn sign_rsa_asym_algo(
             crate_dir.join("test_key/Rsa3072/end_responder.key.der")
         }
         RSASSA_4096_KEY_SIZE | RSAPSS_4096_KEY_SIZE => {
-            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+            crate_dir.join("test_key/Rsa4096/end_responder.key.der")
         }
         _ => {
             panic!("RSA key len not supported")
