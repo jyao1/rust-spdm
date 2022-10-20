@@ -14,11 +14,11 @@ use core::ffi::c_int;
 
 const MBEDTLS_MD_SHA256: c_int = 6;
 const MBEDTLS_MD_SHA384: c_int = 7;
-use super::ffi::spdm_ecdsa_verify;
+use super::ffi::{spdm_pk_verify, spdm_rsa_pss_verify};
 
 fn asym_verify(
     base_hash_algo: SpdmBaseHashAlgo,
-    _base_asym_algo: SpdmBaseAsymAlgo,
+    base_asym_algo: SpdmBaseAsymAlgo,
     public_cert_der: &[u8],
     data: &[u8],
     signature: &SpdmSignatureStruct,
@@ -31,30 +31,72 @@ fn asym_verify(
         }
     };
 
+    let mut der_signature = [0u8; 66 * 2 + 8 + 1];
+
+    let signature = match base_asym_algo {
+        SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256
+        | SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => {
+            let der_sign_size = ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature);
+            &der_signature[0..der_sign_size]
+        }
+        SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => {
+            panic!("unsupported asym algo")
+        }
+        SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048
+        | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072
+        | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096
+        | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048
+        | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
+        | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096 => signature.as_ref(),
+        _ => {
+            panic!("unsupported asym algo");
+        }
+    };
+
     let (leaf_begin, leaf_end) =
         (super::cert_operation_impl::DEFAULT.get_cert_from_cert_chain_cb)(public_cert_der, -1)?;
     let leaf_cert_der = &public_cert_der[leaf_begin..leaf_end];
 
-    let mut der_signature = [0u8; 66 * 2 + 8 + 1];
-    let der_sign_size = ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature);
-
     let data_hash = (super::hash_impl::DEFAULT.hash_all_cb)(base_hash_algo, data).unwrap();
 
-    unsafe {
-        let ret = spdm_ecdsa_verify(
-            mbedtls_hash_algo,
-            leaf_cert_der.as_ptr(),
-            leaf_cert_der.len(),
-            data_hash.data.as_ptr(),
-            data_hash.data_size as usize,
-            der_signature.as_ptr(),
-            der_sign_size,
-        );
-        match ret {
-            0 => Ok(()),
-            _ => spdm_result_err!(EFAULT),
+    let ret = match base_asym_algo {
+        SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256
+        | SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
+        | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048
+        | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
+        | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096 => unsafe {
+            spdm_pk_verify(
+                mbedtls_hash_algo,
+                leaf_cert_der.as_ptr(),
+                leaf_cert_der.len(),
+                data_hash.data.as_ptr(),
+                data_hash.data_size as usize,
+                signature.as_ptr(),
+                signature.len(),
+            )
+        },
+        SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048
+        | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072
+        | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096 => unsafe {
+            spdm_rsa_pss_verify(
+                mbedtls_hash_algo,
+                leaf_cert_der.as_ptr(),
+                leaf_cert_der.len(),
+                data_hash.data.as_ptr(),
+                data_hash.data_size as usize,
+                signature.as_ptr(),
+                signature.len(),
+            )
+        },
+        _ => {
+            panic!("not support")
         }
-    }
+    };
+    let ret = match ret {
+        0 => Ok(()),
+        _ => spdm_result_err!(EFAULT),
+    };
+    ret
 }
 
 // add ASN.1 for the ECDSA binary signature
