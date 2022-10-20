@@ -65,7 +65,17 @@ extern "C" {
         data_out_size: *mut usize,
     ) -> c_int;
 
-    pub fn spdm_ecdsa_verify(
+    pub fn spdm_pk_verify(
+        md_type: c_int,
+        cert: *const c_uchar,
+        cert_size: usize,
+        data: *const c_uchar,
+        data_size: usize,
+        signature: *const c_uchar,
+        signature_size: usize,
+    ) -> c_int;
+
+    pub fn spdm_rsa_pss_verify(
         md_type: c_int,
         cert: *const c_uchar,
         cert_size: usize,
