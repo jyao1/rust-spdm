@@ -1,5 +1,7 @@
 # rust-spdm
 
+[![RUN CODE](https://github.com/jyao1/rust-spdm/actions/workflows/main.yml/badge.svg)](https://github.com/jyao1/rust-spdm/actions/workflows/main.yml)
+
 A rust version SPDM implementation.
 
 It is derived from https://github.com/DMTF/libspdm.
