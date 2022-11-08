@@ -4,10 +4,12 @@
 
 extern crate alloc;
 use alloc::vec;
+use alloc::vec::Vec;
 use core::convert::TryFrom;
 
 use crate::crypto::SpdmCertOperation;
 use crate::error::{spdm_result_err, SpdmResult};
+use ring::io::der;
 
 pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {
     get_cert_from_cert_chain_cb: get_cert_from_cert_chain,
@@ -54,13 +56,31 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
         &webpki::ECDSA_P384_SHA384,
     ];
 
-    let (ca_begin, ca_end) = get_cert_from_cert_chain(cert_chain, 0)?;
-    let ca = &cert_chain[ca_begin..ca_end];
-    // TBD: assume only one inter cert here.
-    let (inter_begin, inter_end) = get_cert_from_cert_chain(cert_chain, 1)?;
-    let inter = &cert_chain[inter_begin..inter_end];
-    let (ee_begin, ee_end) = get_cert_from_cert_chain(cert_chain, -1)?;
-    let ee = &cert_chain[ee_begin..ee_end];
+    let certs_der = untrusted::Input::from(cert_chain);
+    let reader = &mut untrusted::Reader::new(certs_der);
+
+    let mut certs = Vec::new();
+    loop {
+        let start = reader.mark();
+        match der::expect_tag_and_get_value(reader, der::Tag::Sequence) {
+            Ok(_) => {
+                let end = reader.mark();
+                let cert = reader
+                    .get_input_between_marks(start, end)
+                    .map_err(|_| spdm_err!(EINVAL))?;
+                certs.push(cert.as_slice_less_safe())
+            }
+            Err(_) => break,
+        }
+    }
+    let certs_len = certs.len();
+
+    let (ca, inters, ee): (&[u8], &[&[u8]], &[u8]) = match certs_len {
+        0 => return spdm_result_err!(EINVAL),
+        1 => return spdm_result_err!(EINVAL),
+        2 => (certs[0], &[], certs[1]),
+        n => (certs[0], &certs[1..(n - 1)], certs[n - 1]),
+    };
 
     let anchors = if let Ok(ta) = webpki::TrustAnchor::try_from_cert_der(ca) {
         vec![ta]
@@ -93,7 +113,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
             EKU_SPDM_RESPONDER_AUTH,
             ALL_SIGALGS,
             &anchors,
-            &[inter],
+            inters,
             time,
             0,
         )
@@ -151,5 +171,17 @@ mod tests {
 
         let status = verify_cert_chain(cert_chain).is_ok();
         assert!(status);
+    }
+
+    /// verfiy cert chain
+    #[test]
+    fn test_verify_cert_chain_case1() {
+        let bundle_certs_der =
+            &include_bytes!("../../../../test_key/EcP384/bundle_requester.certchain.der")[..];
+        assert!(verify_cert_chain(bundle_certs_der).is_ok());
+
+        let bundle_certs_der =
+            &include_bytes!("../../../../test_key/crypto_chains/bundle_cert.der")[..];
+        assert!(verify_cert_chain(bundle_certs_der).is_ok())
     }
 }
