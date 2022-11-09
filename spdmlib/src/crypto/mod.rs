@@ -417,3 +417,6 @@ mod tests {
         assert_eq!(state, true);
     }
 }
+
+#[cfg(all(test,))]
+mod crypto_tests;
