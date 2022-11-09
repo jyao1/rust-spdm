@@ -18,3 +18,8 @@ basicConstraints = CA:true
 keyUsage = cRLSign, keyCertSign, digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment, keyAgreement, keyCertSign, cRLSign
 subjectKeyIdentifier = hash
 extendedKeyUsage = critical, serverAuth, clientAuth
+
+[ v3_selfsigned ]
+subjectKeyIdentifier = hash
+subjectAltName = otherName:1.3.6.1.4.1.412.274.1;UTF8:ACME:WIDGET:1234567890
+extendedKeyUsage = critical, serverAuth, clientAuth, OCSPSigning

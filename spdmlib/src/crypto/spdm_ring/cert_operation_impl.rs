@@ -77,7 +77,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
 
     let (ca, inters, ee): (&[u8], &[&[u8]], &[u8]) = match certs_len {
         0 => return spdm_result_err!(EINVAL),
-        1 => return spdm_result_err!(EINVAL),
+        1 => (certs[0], &[], certs[0]),
         2 => (certs[0], &[], certs[1]),
         n => (certs[0], &certs[1..(n - 1)], certs[n - 1]),
     };
@@ -176,6 +176,14 @@ mod tests {
     /// verfiy cert chain
     #[test]
     fn test_verify_cert_chain_case1() {
+        let bundle_certs_der =
+            &include_bytes!("../../../../test_key/crypto_chains/ca_selfsigned.crt.der")[..];
+        assert!(verify_cert_chain(bundle_certs_der).is_ok());
+
+        let bundle_certs_der =
+            &include_bytes!("../../../../test_key/crypto_chains/bundle_two_level_cert.der")[..];
+        assert!(verify_cert_chain(bundle_certs_der).is_ok());
+
         let bundle_certs_der =
             &include_bytes!("../../../../test_key/EcP384/bundle_requester.certchain.der")[..];
         assert!(verify_cert_chain(bundle_certs_der).is_ok());
