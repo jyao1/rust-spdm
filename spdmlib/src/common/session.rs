@@ -124,6 +124,22 @@ impl SpdmSession {
         }
     }
 
+    pub fn set_request_direction_sequence_number(&mut self, seq: u64) {
+        self.application_secret.request_direction.sequence_number = seq;
+    }
+
+    pub fn get_request_direction_sequence_number(&self) -> u64 {
+        self.application_secret.request_direction.sequence_number
+    }
+
+    pub fn set_response_direction_sequence_number(&mut self, seq: u64) {
+        self.application_secret.response_direction.sequence_number = seq;
+    }
+
+    pub fn get_response_direction_sequence_number(&self) -> u64 {
+        self.application_secret.response_direction.sequence_number
+    }
+
     fn set_default(&mut self) {
         self.session_id = 0;
         self.use_psk = false;
