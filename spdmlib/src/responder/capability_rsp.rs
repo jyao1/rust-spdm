@@ -68,15 +68,6 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        let message_vca = &mut self.common.runtime_info.message_vca;
-        if message_vca
-            .append_message(&bytes[..reader.used()])
-            .is_none()
-        {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
-        }
-
         info!("send spdm capability\n");
 
         let response = SpdmMessage {
@@ -94,11 +85,6 @@ impl<'a> ResponderContext<'a> {
             ),
         };
         response.spdm_encode(&mut self.common, writer);
-        let message_vca = &mut self.common.runtime_info.message_vca;
-        if message_vca.append_message(writer.used_slice()).is_none() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
-        }
         self.common
             .runtime_info
             .message_a
