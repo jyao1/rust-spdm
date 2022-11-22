@@ -194,9 +194,9 @@ impl<'a> ResponderContext<'a> {
         let mut message = ManagedBuffer::default();
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            let message_vca = self.common.runtime_info.message_vca.clone();
+            let message_a = self.common.runtime_info.message_a.clone();
             message
-                .append_message(message_vca.as_ref())
+                .append_message(message_a.as_ref())
                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
         }
 
