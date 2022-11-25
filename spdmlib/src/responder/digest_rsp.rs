@@ -32,6 +32,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        #[cfg(not(feature = "hash-update"))]
         if self
             .common
             .runtime_info
@@ -42,6 +43,12 @@ impl<'a> ResponderContext<'a> {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
+
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(
+            self.common.runtime_info.message_m.as_mut().unwrap(),
+            &bytes[..reader.used()],
+        );
 
         let digest_size = self.common.negotiate_info.base_hash_sel.get_size();
 
@@ -77,10 +84,17 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - cert_chain_hash.data_size as usize)..used]
             .copy_from_slice(cert_chain_hash.as_ref());
 
+        #[cfg(not(feature = "hash-update"))]
         self.common
             .runtime_info
             .message_b
             .append_message(writer.used_slice());
+
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(
+            self.common.runtime_info.message_m.as_mut().unwrap(),
+            writer.used_slice(),
+        );
     }
 }
 
@@ -112,6 +126,8 @@ mod tests_responder {
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.runtime_info.message_m =
+            Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);

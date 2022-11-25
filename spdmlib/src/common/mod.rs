@@ -7,16 +7,18 @@ pub mod opaque;
 pub mod session;
 pub mod spdm_codec;
 
-use crate::protocol::*;
+use crate::{crypto, protocol::*};
 
 pub use opaque::*;
 pub use spdm_codec::SpdmCodec;
 
 use crate::config;
-use crate::crypto;
 use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use codec::Writer;
 use session::*;
+
+#[cfg(feature = "hash-update")]
+pub use crate::crypto::HashCtx;
 
 #[cfg(feature = "downcast")]
 use core::any::Any;
@@ -148,6 +150,7 @@ impl<'a> SpdmContext<'a> {
         self.get_session_via_id(0)
     }
 
+    #[cfg(not(feature = "hash-update"))]
     pub fn calc_req_transcript_data(
         &self,
         slot_id: u8,
@@ -198,6 +201,7 @@ impl<'a> SpdmContext<'a> {
         Ok(message)
     }
 
+    #[cfg(not(feature = "hash-update"))]
     pub fn calc_rsp_transcript_data(
         &mut self,
         use_psk: bool,
@@ -240,6 +244,7 @@ impl<'a> SpdmContext<'a> {
         Ok(message)
     }
 
+    #[cfg(not(feature = "hash-update"))]
     pub fn calc_req_transcript_hash(
         &self,
         slot_id: u8,
@@ -255,6 +260,7 @@ impl<'a> SpdmContext<'a> {
         Ok(transcript_hash)
     }
 
+    #[cfg(not(feature = "hash-update"))]
     pub fn calc_rsp_transcript_hash(
         &mut self,
         use_psk: bool,
@@ -267,6 +273,58 @@ impl<'a> SpdmContext<'a> {
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
         Ok(transcript_hash)
+    }
+
+    pub fn get_certchain_hash_rsp(&self, use_psk: bool) -> Option<SpdmDigestStruct> {
+        if !use_psk {
+            if self.provision_info.my_cert_chain.is_none() {
+                error!("my_cert_chain is not populated!\n");
+                return None;
+            }
+
+            let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref().unwrap();
+            let cert_chain_data = my_cert_chain_data.as_ref();
+            let cert_chain_hash =
+                crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
+                    .ok_or(None::<SpdmDigestStruct>);
+            if let Ok(hash) = cert_chain_hash {
+                Some(SpdmDigestStruct::from(hash.as_ref()))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn get_certchain_hash_req(&self, slot_id: u8, use_psk: bool) -> Option<SpdmDigestStruct> {
+        if !use_psk {
+            if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+                error!("peer_cert_chain is not populated!\n");
+                return None;
+            }
+
+            let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
+            let cert_chain_hash =
+                crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
+                    .ok_or(None::<SpdmDigestStruct>);
+
+            if let Ok(hash) = cert_chain_hash {
+                Some(SpdmDigestStruct::from(hash.as_ref()))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     pub fn encap(&mut self, send_buffer: &[u8], transport_buffer: &mut [u8]) -> SpdmResult<usize> {
@@ -429,6 +487,7 @@ impl Default for ManagedBuffer {
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg(not(feature = "hash-update"))]
 pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
@@ -436,6 +495,18 @@ pub struct SpdmRuntimeInfo {
     pub message_b: ManagedBuffer,
     pub message_c: ManagedBuffer,
     pub message_m: ManagedBuffer,
+    pub content_changed: u8, // used by responder, set when content changed and spdm version is 1.2.
+                             // used by requester, consume when measurement response report content changed.
+}
+
+#[derive(Clone, Default)]
+#[cfg(feature = "hash-update")]
+pub struct SpdmRuntimeInfo {
+    pub need_measurement_summary_hash: bool,
+    pub need_measurement_signature: bool,
+    pub message_a: ManagedBuffer,
+    pub message_m: Option<HashCtx>,              // for M1/M2
+    pub message_mes_no_session: Option<HashCtx>, // for out of session get measurement/measurement
     pub content_changed: u8, // used by responder, set when content changed and spdm version is 1.2.
                              // used by requester, consume when measurement response report content changed.
 }

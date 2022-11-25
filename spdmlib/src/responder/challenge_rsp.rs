@@ -44,6 +44,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        #[cfg(not(feature = "hash-update"))]
         if self
             .common
             .runtime_info
@@ -54,6 +55,12 @@ impl<'a> ResponderContext<'a> {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
+
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(
+            self.common.runtime_info.message_m.as_mut().unwrap(),
+            &bytes[..reader.used()],
+        );
 
         info!("send spdm challenge_auth\n");
 
@@ -100,12 +107,31 @@ impl<'a> ResponderContext<'a> {
         // generat signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
         let temp_used = used - base_asym_size;
+        #[cfg(not(feature = "hash-update"))]
         self.common
             .runtime_info
             .message_c
             .append_message(&writer.used_slice()[..temp_used]);
 
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(
+            self.common.runtime_info.message_m.as_mut().unwrap(),
+            &writer.used_slice()[..temp_used],
+        );
+        #[cfg(not(feature = "hash-update"))]
         let signature = self.generate_challenge_auth_signature();
+        #[cfg(feature = "hash-update")]
+        let message_m_clone = self
+            .common
+            .runtime_info
+            .message_m
+            .as_mut()
+            .cloned()
+            .unwrap();
+        #[cfg(feature = "hash-update")]
+        let signature = self.generate_challenge_auth_signature(
+            crypto::hash::hash_ctx_finalize(message_m_clone).unwrap(),
+        );
         if signature.is_err() {
             self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
             return;
@@ -115,6 +141,39 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - base_asym_size)..used].copy_from_slice(signature.as_ref());
     }
 
+    #[cfg(feature = "hash-update")]
+    pub fn generate_challenge_auth_signature(
+        &self,
+        message_hash: SpdmDigestStruct,
+    ) -> SpdmResult<SpdmSignatureStruct> {
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        let mut message = ManagedBuffer::default();
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            message.as_ref(),
+        )
+        .ok_or_else(|| spdm_err!(EFAULT))
+    }
+
+    #[cfg(not(feature = "hash-update"))]
     pub fn generate_challenge_auth_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = ManagedBuffer::default();
         message
@@ -193,6 +252,9 @@ mod tests_responder {
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
+        context.common.runtime_info.message_m =
+            Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
+
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
@@ -216,69 +278,72 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&challenge[0..1022]);
         context.handle_spdm_challenge(bytes);
 
-        let data = context.common.runtime_info.message_c.as_ref();
-        let u8_slice = &mut [0u8; 1024];
-        for (i, data) in data.iter().enumerate() {
-            u8_slice[i] = *data;
-        }
-
-        let mut message_header_slice = Reader::init(u8_slice);
-        let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
-        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
-        assert_eq!(
-            spdm_message_header.request_response_code,
-            SpdmRequestResponseCode::SpdmRequestChallenge
-        );
-
-        let spdm_struct_slice = &u8_slice[2..];
-        let mut reader = Reader::init(spdm_struct_slice);
-        let spdm_challenge_request_payload =
-            SpdmChallengeRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
-        assert_eq!(spdm_challenge_request_payload.slot_id, 100);
-        assert_eq!(
-            spdm_challenge_request_payload.measurement_summary_hash_type,
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
-        );
-        for i in 0..32 {
-            assert_eq!(spdm_challenge_request_payload.nonce.data[i], 100u8);
-        }
-
-        let spdm_message_slice = &u8_slice[36..];
-        let mut reader = Reader::init(spdm_message_slice);
-        let spdm_message: SpdmMessage =
-            SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
-        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
-        assert_eq!(
-            spdm_message.header.request_response_code,
-            SpdmRequestResponseCode::SpdmResponseChallengeAuth
-        );
-
-        let cert_chain_hash = crypto::hash::hash_all(
-            context.common.negotiate_info.base_hash_sel,
-            context
-                .common
-                .provision_info
-                .my_cert_chain
-                .unwrap()
-                .as_ref(),
-        )
-        .unwrap();
-
-        if let SpdmMessagePayload::SpdmChallengeAuthResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.slot_id, 0x0);
-            assert_eq!(payload.slot_mask, 0x1);
-            assert_eq!(
-                payload.challenge_auth_attribute,
-                SpdmChallengeAuthAttribute::empty()
-            );
-            assert_eq!(payload.measurement_summary_hash.data_size, 48);
-            assert_eq!(payload.opaque.data_size, 0);
-            assert_eq!(payload.signature.data_size, 96);
-            for i in 0..32 {
-                assert_eq!(payload.measurement_summary_hash.data[i], 0xaau8);
+        #[cfg(not(feature = "hash-update"))]
+        {
+            let data = context.common.runtime_info.message_c.as_ref();
+            let u8_slice = &mut [0u8; 1024];
+            for (i, data) in data.iter().enumerate() {
+                u8_slice[i] = *data;
             }
-            for (i, data) in cert_chain_hash.data.iter().enumerate() {
-                assert_eq!(payload.cert_chain_hash.data[i], *data);
+
+            let mut message_header_slice = Reader::init(u8_slice);
+            let spdm_message_header = SpdmMessageHeader::read(&mut message_header_slice).unwrap();
+            assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+            assert_eq!(
+                spdm_message_header.request_response_code,
+                SpdmRequestResponseCode::SpdmRequestChallenge
+            );
+
+            let spdm_struct_slice = &u8_slice[2..];
+            let mut reader = Reader::init(spdm_struct_slice);
+            let spdm_challenge_request_payload =
+                SpdmChallengeRequestPayload::spdm_read(&mut context.common, &mut reader).unwrap();
+            assert_eq!(spdm_challenge_request_payload.slot_id, 100);
+            assert_eq!(
+                spdm_challenge_request_payload.measurement_summary_hash_type,
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            );
+            for i in 0..32 {
+                assert_eq!(spdm_challenge_request_payload.nonce.data[i], 100u8);
+            }
+
+            let spdm_message_slice = &u8_slice[36..];
+            let mut reader = Reader::init(spdm_message_slice);
+            let spdm_message: SpdmMessage =
+                SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
+            assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
+            assert_eq!(
+                spdm_message.header.request_response_code,
+                SpdmRequestResponseCode::SpdmResponseChallengeAuth
+            );
+
+            let cert_chain_hash = crypto::hash::hash_all(
+                context.common.negotiate_info.base_hash_sel,
+                context
+                    .common
+                    .provision_info
+                    .my_cert_chain
+                    .unwrap()
+                    .as_ref(),
+            )
+            .unwrap();
+
+            if let SpdmMessagePayload::SpdmChallengeAuthResponse(payload) = &spdm_message.payload {
+                assert_eq!(payload.slot_id, 0x0);
+                assert_eq!(payload.slot_mask, 0x1);
+                assert_eq!(
+                    payload.challenge_auth_attribute,
+                    SpdmChallengeAuthAttribute::empty()
+                );
+                assert_eq!(payload.measurement_summary_hash.data_size, 48);
+                assert_eq!(payload.opaque.data_size, 0);
+                assert_eq!(payload.signature.data_size, 96);
+                for i in 0..32 {
+                    assert_eq!(payload.measurement_summary_hash.data[i], 0xaau8);
+                }
+                for (i, data) in cert_chain_hash.data.iter().enumerate() {
+                    assert_eq!(payload.cert_chain_hash.data[i], *data);
+                }
             }
         }
     }

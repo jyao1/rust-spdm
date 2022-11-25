@@ -110,7 +110,13 @@ impl<'a> RequesterContext<'a> {
                     if let Some(measurements) = measurements {
                         debug!("!!! measurements : {:02x?}\n", measurements);
 
-                        if message_header.version == SpdmVersion::SpdmVersion12 {
+                        #[cfg(feature = "hash-update")]
+                        let base_hash_sel = self.common.negotiate_info.base_hash_sel;
+                        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+                        #[cfg(feature = "hash-update")]
+                        let message_a = self.common.runtime_info.message_a.as_ref().to_owned();
+
+                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                             self.common.runtime_info.content_changed = measurements.content_changed;
                         }
 
@@ -131,16 +137,70 @@ impl<'a> RequesterContext<'a> {
                                     } else {
                                         return spdm_result_err!(EFAULT);
                                     };
+
+                                    #[cfg(feature = "hash-update")]
+                                    if session.runtime_info.message_m.is_none() {
+                                        session.runtime_info.message_m =
+                                            crypto::hash::hash_ctx_init(base_hash_sel);
+                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                            crypto::hash::hash_ctx_update(
+                                                session.runtime_info.message_m.as_mut().unwrap(),
+                                                message_a.as_ref(),
+                                            );
+                                        }
+                                    }
+
                                     &mut session.runtime_info.message_m
                                 }
-                                None => &mut self.common.runtime_info.message_m,
+                                None => {
+                                    #[cfg(feature = "hash-update")]
+                                    if self.common.runtime_info.message_mes_no_session.is_none() {
+                                        self.common.runtime_info.message_mes_no_session =
+                                            crypto::hash::hash_ctx_init(base_hash_sel);
+                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                            crypto::hash::hash_ctx_update(
+                                                self.common
+                                                    .runtime_info
+                                                    .message_mes_no_session
+                                                    .as_mut()
+                                                    .unwrap(),
+                                                message_a.as_ref(),
+                                            );
+                                        }
+                                    }
+                                    #[cfg(feature = "hash-update")]
+                                    {
+                                        &mut self.common.runtime_info.message_mes_no_session
+                                    }
+
+                                    #[cfg(not(feature = "hash-update"))]
+                                    {
+                                        &mut self.common.runtime_info.message_m
+                                    }
+                                }
                             };
-                            message_m
-                                .append_message(send_buffer)
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            message_m
-                                .append_message(&receive_buffer[..temp_used])
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            #[cfg(not(feature = "hash-update"))]
+                            {
+                                message_m
+                                    .append_message(send_buffer)
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                message_m
+                                    .append_message(&receive_buffer[..temp_used])
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            }
+
+                            #[cfg(feature = "hash-update")]
+                            {
+                                crypto::hash::hash_ctx_update(
+                                    message_m.as_mut().unwrap(),
+                                    send_buffer,
+                                );
+                                crypto::hash::hash_ctx_update(
+                                    message_m.as_mut().unwrap(),
+                                    &receive_buffer[..temp_used],
+                                );
+                            }
+
                             if self
                                 .verify_measurement_signature(
                                     slot_id,
@@ -163,9 +223,21 @@ impl<'a> RequesterContext<'a> {
                                     } else {
                                         return spdm_result_err!(EFAULT);
                                     };
+                                    #[cfg(not(feature = "hash-update"))]
                                     session.runtime_info.message_m.reset_message();
+                                    #[cfg(feature = "hash-update")]
+                                    {
+                                        session.runtime_info.message_m = None;
+                                    }
                                 }
-                                None => self.common.runtime_info.message_m.reset_message(),
+                                None => {
+                                    #[cfg(not(feature = "hash-update"))]
+                                    self.common.runtime_info.message_m.reset_message();
+                                    #[cfg(feature = "hash-update")]
+                                    {
+                                        self.common.runtime_info.message_mes_no_session = None;
+                                    }
+                                }
                             };
                         } else {
                             let message_m = match session_id {
@@ -177,16 +249,74 @@ impl<'a> RequesterContext<'a> {
                                     } else {
                                         return spdm_result_err!(EFAULT);
                                     };
+
+                                    #[cfg(feature = "hash-update")]
+                                    if session.runtime_info.message_m.is_none() {
+                                        session.runtime_info.message_m =
+                                            crypto::hash::hash_ctx_init(base_hash_sel);
+                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                            crypto::hash::hash_ctx_update(
+                                                session.runtime_info.message_m.as_mut().unwrap(),
+                                                message_a.as_ref(),
+                                            );
+                                        }
+                                    }
+
                                     &mut session.runtime_info.message_m
                                 }
-                                None => &mut self.common.runtime_info.message_m,
+                                None => {
+                                    #[cfg(feature = "hash-update")]
+                                    if self.common.runtime_info.message_mes_no_session.is_none() {
+                                        self.common.runtime_info.message_mes_no_session =
+                                            crypto::hash::hash_ctx_init(
+                                                self.common.negotiate_info.base_hash_sel,
+                                            );
+                                        if self.common.negotiate_info.spdm_version_sel
+                                            == SpdmVersion::SpdmVersion12
+                                        {
+                                            crypto::hash::hash_ctx_update(
+                                                self.common
+                                                    .runtime_info
+                                                    .message_m
+                                                    .as_mut()
+                                                    .unwrap(),
+                                                message_a.as_ref(),
+                                            );
+                                        }
+                                    }
+
+                                    #[cfg(not(feature = "hash-update"))]
+                                    {
+                                        &mut self.common.runtime_info.message_m
+                                    }
+
+                                    #[cfg(feature = "hash-update")]
+                                    {
+                                        &mut self.common.runtime_info.message_mes_no_session
+                                    }
+                                }
                             };
-                            message_m
-                                .append_message(send_buffer)
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            message_m
-                                .append_message(&receive_buffer[..used])
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            #[cfg(not(feature = "hash-update"))]
+                            {
+                                message_m
+                                    .append_message(send_buffer)
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                message_m
+                                    .append_message(&receive_buffer[..used])
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            }
+
+                            #[cfg(feature = "hash-update")]
+                            {
+                                crypto::hash::hash_ctx_update(
+                                    message_m.as_mut().unwrap(),
+                                    send_buffer,
+                                );
+                                crypto::hash::hash_ctx_update(
+                                    message_m.as_mut().unwrap(),
+                                    &receive_buffer[..used],
+                                );
+                            }
                         }
 
                         *spdm_measurement_record_structure = SpdmMeasurementRecordStructure {
@@ -261,6 +391,81 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
+    #[cfg(feature = "hash-update")]
+    pub fn verify_measurement_signature(
+        &mut self,
+        slot_id: u8,
+        session_id: Option<u32>,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
+        let message_hash = match session_id {
+            None => {
+                let ctx = self
+                    .common
+                    .runtime_info
+                    .message_mes_no_session
+                    .as_mut()
+                    .cloned()
+                    .unwrap();
+                crypto::hash::hash_ctx_finalize(ctx)
+            }
+            Some(session_id) => {
+                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return spdm_result_err!(EINVAL);
+                };
+                let ctx = session.runtime_info.message_m.as_mut().cloned().unwrap();
+                crypto::hash::hash_ctx_finalize(ctx)
+            }
+        };
+        assert!(message_hash.is_some());
+        let message_hash = message_hash.unwrap();
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
+
+        let mut message = ManagedBuffer::default();
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            cert_chain_data,
+            message.as_ref(),
+            signature,
+        )
+    }
+
+    #[cfg(not(feature = "hash-update"))]
     pub fn verify_measurement_signature(
         &mut self,
         slot_id: u8,
@@ -386,7 +591,9 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        #[cfg(not(feature = "hash-update"))]
         let message_m = &[0];
+        #[cfg(not(feature = "hash-update"))]
         responder
             .common
             .runtime_info

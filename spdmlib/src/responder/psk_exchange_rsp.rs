@@ -14,6 +14,7 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 extern crate alloc;
 use alloc::boxed::Box;
 
+#[cfg(not(feature = "hash-update"))]
 use crate::common::ManagedBuffer;
 
 impl<'a> ResponderContext<'a> {
@@ -91,6 +92,12 @@ impl<'a> ResponderContext<'a> {
             return spdm_result_err!(EFAULT);
         }
 
+        #[cfg(feature = "hash-update")]
+        let mut message_k =
+            crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel).unwrap();
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(&mut message_k, self.common.runtime_info.message_a.as_ref());
+
         info!("send spdm psk_exchange rsp\n");
 
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
@@ -126,24 +133,42 @@ impl<'a> ResponderContext<'a> {
         let used = writer.used();
 
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
+        let temp_used = used - base_hash_size;
 
+        #[cfg(not(feature = "hash-update"))]
         let mut message_k = ManagedBuffer::default();
-        if message_k.append_message(&bytes[..reader.used()]).is_none() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+        #[cfg(not(feature = "hash-update"))]
+        {
+            if message_k.append_message(&bytes[..reader.used()]).is_none() {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return spdm_result_err!(EFAULT);
+            }
+            if message_k
+                .append_message(&writer.used_slice()[..temp_used])
+                .is_none()
+            {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return spdm_result_err!(EFAULT);
+            }
         }
 
-        let temp_used = used - base_hash_size;
-        if message_k
-            .append_message(&writer.used_slice()[..temp_used])
-            .is_none()
+        #[cfg(feature = "hash-update")]
         {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            crypto::hash::hash_ctx_update(&mut message_k, &bytes[..reader.used()]);
+            crypto::hash::hash_ctx_update(&mut message_k, &writer.used_slice()[..temp_used]);
         }
 
         // create session - generate the handshake secret (including finished_key)
+        #[cfg(not(feature = "hash-update"))]
         let th1 = self.common.calc_rsp_transcript_hash(true, &message_k, None);
+        #[cfg(feature = "hash-update")]
+        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
+        #[cfg(feature = "hash-update")]
+        if th1.is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return spdm_result_err!(EFAULT);
+        }
+        #[cfg(not(feature = "hash-update"))]
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
@@ -183,27 +208,45 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
 
         // generate HMAC with finished_key
+        #[cfg(not(feature = "hash-update"))]
         let transcript_data = self.common.calc_rsp_transcript_data(true, &message_k, None);
+        #[cfg(not(feature = "hash-update"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
         }
+        #[cfg(not(feature = "hash-update"))]
         let transcript_data = transcript_data.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
+        #[cfg(not(feature = "hash-update"))]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
+        #[cfg(feature = "hash-update")]
+        let hmac = session.generate_hmac_with_response_finished_key(
+            crypto::hash::hash_ctx_finalize(message_k.clone())
+                .unwrap()
+                .as_ref(),
+        );
         if hmac.is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
         }
         let hmac = hmac.unwrap();
-        if message_k.append_message(hmac.as_ref()).is_none() {
-            let _ = session.teardown(session_id);
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+        #[cfg(not(feature = "hash-update"))]
+        {
+            if message_k.append_message(hmac.as_ref()).is_none() {
+                let _ = session.teardown(session_id);
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return spdm_result_err!(EFAULT);
+            }
+            session.runtime_info.message_k = message_k;
         }
-        session.runtime_info.message_k = message_k;
+        #[cfg(feature = "hash-update")]
+        {
+            crypto::hash::hash_ctx_update(&mut message_k, hmac.as_ref());
+            session.runtime_info.message_k = Some(message_k);
+        }
 
         // patch the message before send
         writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());

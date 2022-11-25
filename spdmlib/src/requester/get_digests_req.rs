@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+#[cfg(feature = "hash-update")]
+use crate::crypto;
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
@@ -56,13 +58,30 @@ impl<'a> RequesterContext<'a> {
                     if let Some(digests) = digests {
                         debug!("!!! digests : {:02x?}\n", digests);
 
-                        let message_b = &mut self.common.runtime_info.message_b;
-                        message_b
-                            .append_message(send_buffer)
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        message_b
-                            .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            let message_b = &mut self.common.runtime_info.message_b;
+                            message_b
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_b
+                                .append_message(&receive_buffer[..used])
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        }
+
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                send_buffer,
+                            );
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                &receive_buffer[..used],
+                            );
+                        }
+
+                        Ok(())
                     } else {
                         error!("!!! digests : fail !!!\n");
                         spdm_result_err!(EFAULT)
@@ -123,6 +142,9 @@ mod tests_requester {
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        responder.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
+        );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -134,6 +156,9 @@ mod tests_requester {
             req_provision_info,
         );
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        requester.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
+        );
 
         let status = requester.send_receive_spdm_digest(None).is_ok();
         assert!(status);

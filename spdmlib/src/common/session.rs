@@ -76,13 +76,22 @@ pub struct SpdmSessionTransportParam {
 }
 
 #[derive(Debug, Clone, Default)]
+#[cfg(not(feature = "hash-update"))]
 pub struct SpdmSessionRuntimeInfo {
     pub message_k: ManagedBuffer,
     pub message_f: ManagedBuffer,
     pub message_m: ManagedBuffer,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default)]
+#[cfg(feature = "hash-update")]
+pub struct SpdmSessionRuntimeInfo {
+    pub message_k: Option<HashCtx>,
+    pub message_f: Option<HashCtx>,
+    pub message_m: Option<HashCtx>,
+}
+
+#[derive(Clone)]
 pub struct SpdmSession {
     session_id: u32,
     use_psk: bool,
@@ -612,6 +621,7 @@ impl SpdmSession {
         Ok(())
     }
 
+    #[cfg(not(feature = "hash-update"))]
     pub fn generate_hmac_with_response_finished_key(
         &mut self,
         message: &[u8],
@@ -626,6 +636,20 @@ impl SpdmSession {
         .ok_or(spdm_err!(ESEC))
     }
 
+    #[cfg(feature = "hash-update")]
+    pub fn generate_hmac_with_response_finished_key(
+        &mut self,
+        message_hash: &[u8],
+    ) -> SpdmResult<SpdmDigestStruct> {
+        crypto::hmac::hmac(
+            self.crypto_param.base_hash_algo,
+            self.handshake_secret.response_finished_key.as_ref(),
+            message_hash,
+        )
+        .ok_or(spdm_err!(ESEC))
+    }
+
+    #[cfg(not(feature = "hash-update"))]
     pub fn generate_hmac_with_request_finished_key(
         &mut self,
         message: &[u8],
@@ -640,6 +664,20 @@ impl SpdmSession {
         .ok_or(spdm_err!(ESEC))
     }
 
+    #[cfg(feature = "hash-update")]
+    pub fn generate_hmac_with_request_finished_key(
+        &mut self,
+        message_hash: &[u8],
+    ) -> SpdmResult<SpdmDigestStruct> {
+        crypto::hmac::hmac(
+            self.crypto_param.base_hash_algo,
+            self.handshake_secret.request_finished_key.as_ref(),
+            message_hash,
+        )
+        .ok_or(spdm_err!(ESEC))
+    }
+
+    #[cfg(not(feature = "hash-update"))]
     pub fn verify_hmac_with_response_finished_key(
         &self,
         message: &[u8],
@@ -655,6 +693,21 @@ impl SpdmSession {
         )
     }
 
+    #[cfg(feature = "hash-update")]
+    pub fn verify_hmac_with_response_finished_key(
+        &self,
+        message_hash: &[u8],
+        hmac: &SpdmDigestStruct,
+    ) -> SpdmResult {
+        crypto::hmac::hmac_verify(
+            self.crypto_param.base_hash_algo,
+            self.handshake_secret.response_finished_key.as_ref(),
+            message_hash,
+            hmac,
+        )
+    }
+
+    #[cfg(not(feature = "hash-update"))]
     pub fn verify_hmac_with_request_finished_key(
         &self,
         message: &[u8],
@@ -666,6 +719,20 @@ impl SpdmSession {
             crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
                 .ok_or(spdm_err!(EINVAL))?
                 .as_ref(),
+            hmac,
+        )
+    }
+
+    #[cfg(feature = "hash-update")]
+    pub fn verify_hmac_with_request_finished_key(
+        &self,
+        message_hash: &[u8],
+        hmac: &SpdmDigestStruct,
+    ) -> SpdmResult {
+        crypto::hmac::hmac_verify(
+            self.crypto_param.base_hash_algo,
+            self.handshake_secret.request_finished_key.as_ref(),
+            message_hash,
             hmac,
         )
     }
@@ -1030,7 +1097,7 @@ mod tests_session {
         );
         session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
         session.transport_param.sequence_number_count = 1;
-        println!("session::{:?}", session);
+        println!("session.session_id::{:?}", session.session_id);
         let status = session
             .encode_msg(
                 &send_buffer,

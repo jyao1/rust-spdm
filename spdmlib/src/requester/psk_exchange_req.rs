@@ -13,6 +13,7 @@ use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
+#[cfg(not(feature = "hash-update"))]
 use crate::common::ManagedBuffer;
 
 const INITIAL_SESSION_ID: u16 = 0xFFFD;
@@ -128,23 +129,48 @@ impl<'a> RequesterContext<'a> {
 
                         let base_hash_size =
                             self.common.negotiate_info.base_hash_sel.get_size() as usize;
-
-                        let mut message_k = ManagedBuffer::default();
-                        message_k
-                            .append_message(send_buffer)
-                            .ok_or(spdm_err!(ENOMEM))?;
                         let temp_receive_used = receive_used - base_hash_size;
-                        message_k
-                            .append_message(&receive_buffer[..temp_receive_used])
-                            .ok_or(spdm_err!(ENOMEM))?;
+
+                        #[cfg(feature = "hash-update")]
+                        let mut message_k =
+                            crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel)
+                                .unwrap();
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                &mut message_k,
+                                self.common.runtime_info.message_a.as_ref(),
+                            );
+                            crypto::hash::hash_ctx_update(&mut message_k, send_buffer);
+                            crypto::hash::hash_ctx_update(
+                                &mut message_k,
+                                &receive_buffer[..temp_receive_used],
+                            );
+                        }
+
+                        #[cfg(not(feature = "hash-update"))]
+                        let mut message_k = ManagedBuffer::default();
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            message_k
+                                .append_message(send_buffer)
+                                .ok_or(spdm_err!(ENOMEM))?;
+
+                            message_k
+                                .append_message(&receive_buffer[..temp_receive_used])
+                                .ok_or(spdm_err!(ENOMEM))?;
+                        }
 
                         // create session - generate the handshake secret (including finished_key)
+                        #[cfg(not(feature = "hash-update"))]
                         let th1 = self.common.calc_req_transcript_hash(
                             INVALID_SLOT,
                             true,
                             &message_k,
                             None,
                         )?;
+                        #[cfg(feature = "hash-update")]
+                        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone()).unwrap();
                         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                         let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                         let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -192,6 +218,7 @@ impl<'a> RequesterContext<'a> {
                         session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
                         // verify HMAC with finished_key
+                        #[cfg(not(feature = "hash-update"))]
                         let transcript_data = self.common.calc_req_transcript_data(
                             INVALID_SLOT,
                             true,
@@ -204,7 +231,12 @@ impl<'a> RequesterContext<'a> {
                             .ok_or(spdm_err!(EINVAL))?;
                         if session
                             .verify_hmac_with_response_finished_key(
+                                #[cfg(not(feature = "hash-update"))]
                                 transcript_data.as_ref(),
+                                #[cfg(feature = "hash-update")]
+                                crypto::hash::hash_ctx_finalize(message_k.clone())
+                                    .unwrap()
+                                    .as_ref(),
                                 &psk_exchange_rsp.verify_data,
                             )
                             .is_err()
@@ -215,10 +247,21 @@ impl<'a> RequesterContext<'a> {
                         } else {
                             info!("verify_hmac_with_response_finished_key pass");
                         }
-                        message_k
-                            .append_message(psk_exchange_rsp.verify_data.as_ref())
-                            .ok_or(spdm_err!(ENOMEM))?;
-                        session.runtime_info.message_k = message_k;
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            message_k
+                                .append_message(psk_exchange_rsp.verify_data.as_ref())
+                                .ok_or(spdm_err!(ENOMEM))?;
+                            session.runtime_info.message_k = message_k;
+                        }
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                &mut message_k,
+                                psk_exchange_rsp.verify_data.as_ref(),
+                            );
+                            session.runtime_info.message_k = Some(message_k);
+                        }
 
                         session.set_session_state(
                             crate::common::session::SpdmSessionState::SpdmSessionHandshaking,

@@ -7,6 +7,8 @@ use crate::error::SpdmResult;
 extern crate alloc;
 use alloc::boxed::Box;
 
+use super::spdm_ring::hash_impl::HashCtx;
+
 use crate::protocol::{
     SpdmAeadAlgo, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo, SpdmDheExchangeStruct,
     SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmSignatureStruct,
@@ -15,6 +17,9 @@ use crate::protocol::{
 #[derive(Clone)]
 pub struct SpdmHash {
     pub hash_all_cb: fn(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct>,
+    pub hash_ctx_init_cb: fn(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx>,
+    pub hash_ctx_update_cb: fn(ctx: &mut HashCtx, data: &[u8]),
+    pub hash_ctx_finalize_cb: fn(ctx: HashCtx) -> Option<SpdmDigestStruct>,
 }
 
 #[derive(Clone)]
