@@ -91,13 +91,28 @@ impl<'a> RequesterContext<'a> {
                             self.common.negotiate_info.base_asym_sel.get_size() as usize;
                         let temp_used = used - base_asym_size;
 
-                        let message_c = &mut self.common.runtime_info.message_c;
-                        message_c
-                            .append_message(send_buffer)
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        message_c
-                            .append_message(&receive_buffer[..temp_used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            let message_c = &mut self.common.runtime_info.message_c;
+                            message_c
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_c
+                                .append_message(&receive_buffer[..temp_used])
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        }
+
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                send_buffer,
+                            );
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                &receive_buffer[..temp_used],
+                            );
+                        }
 
                         if self
                             .verify_challenge_auth_signature(slot_id, &challenge_auth.signature)
@@ -148,21 +163,45 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
+        #[cfg(not(feature = "hash-update"))]
         let mut message = ManagedBuffer::default();
-        message
-            .append_message(self.common.runtime_info.message_a.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
-        message
-            .append_message(self.common.runtime_info.message_b.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
-        message
-            .append_message(self.common.runtime_info.message_c.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+        #[cfg(not(feature = "hash-update"))]
+        {
+            message
+                .append_message(self.common.runtime_info.message_a.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(self.common.runtime_info.message_b.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(self.common.runtime_info.message_c.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
+        #[cfg(not(feature = "hash-update"))]
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
+        #[cfg(feature = "hash-update")]
+        let message_hash;
+        #[cfg(feature = "hash-update")]
+        {
+            let digest = crypto::hash::hash_ctx_finalize(
+                self.common
+                    .runtime_info
+                    .message_m
+                    .as_mut()
+                    .cloned()
+                    .unwrap(),
+            );
+            if let Some(digest) = digest {
+                message_hash = digest;
+            } else {
+                return spdm_result_err!(ESEC);
+            }
+        }
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
@@ -180,6 +219,9 @@ impl<'a> RequesterContext<'a> {
                 .unwrap()
                 .cert_chain
                 .data_size as usize)];
+
+        #[cfg(feature = "hash-update")]
+        let mut message = ManagedBuffer::default();
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
@@ -244,6 +286,10 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.runtime_info.need_measurement_summary_hash = true;
 
+        responder.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
+        );
+
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
 
@@ -273,6 +319,9 @@ mod tests_requester {
             .unwrap()
             .cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        requester.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
+        );
 
         let status = requester
             .send_receive_spdm_challenge(

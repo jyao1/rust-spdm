@@ -3,9 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+#[cfg(feature = "hash-update")]
+use crate::crypto;
 use crate::protocol::*;
 use crate::responder::*;
 
+#[cfg(not(feature = "hash-update"))]
 use crate::common::ManagedBuffer;
 use crate::message::*;
 extern crate alloc;
@@ -52,27 +55,48 @@ impl<'a> ResponderContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = read_used - base_hash_size;
 
+        #[cfg(not(feature = "hash-update"))]
         let mut message_f = ManagedBuffer::default();
+        #[cfg(not(feature = "hash-update"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             panic!("message_f add the message error");
         }
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
+        #[cfg(not(feature = "hash-update"))]
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
+        #[cfg(not(feature = "hash-update"))]
         let message_k = &session.runtime_info.message_k.clone();
-
+        #[cfg(not(feature = "hash-update"))]
         let transcript_data =
             &self
                 .common
                 .calc_rsp_transcript_data(false, message_k, Some(&message_f));
+        #[cfg(not(feature = "hash-update"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return false;
         }
+        #[cfg(not(feature = "hash-update"))]
         let transcript_data = transcript_data.as_ref().unwrap();
-        let session = self.common.get_session_via_id(session_id).unwrap().clone();
+
+        let session = self.common.get_session_via_id(session_id).unwrap();
+        #[cfg(feature = "hash-update")]
+        let mut message_f = session.runtime_info.message_k.as_mut().cloned();
+
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), &bytes[..temp_used]);
+
         if session
             .verify_hmac_with_request_finished_key(
+                #[cfg(not(feature = "hash-update"))]
                 transcript_data.as_ref(),
+                #[cfg(feature = "hash-update")]
+                crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
+                    .unwrap()
+                    .as_ref(),
                 &finish_req.verify_data,
             )
             .is_err()
@@ -84,14 +108,16 @@ impl<'a> ResponderContext<'a> {
             info!("verify_hmac_with_request_finished_key pass");
         }
 
-        drop(session);
-
+        #[cfg(not(feature = "hash-update"))]
         if message_f
             .append_message(finish_req.verify_data.as_ref())
             .is_none()
         {
             panic!("message_f add the message error");
         }
+
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), finish_req.verify_data.as_ref());
 
         let in_clear_text = self
             .common
@@ -129,6 +155,7 @@ impl<'a> ResponderContext<'a> {
         if in_clear_text {
             // generate HMAC with finished_key
             let temp_used = used - base_hash_size;
+            #[cfg(not(feature = "hash-update"))]
             if message_f
                 .append_message(&writer.used_slice()[..temp_used])
                 .is_none()
@@ -136,49 +163,80 @@ impl<'a> ResponderContext<'a> {
                 panic!("message_f add the message error");
             }
 
+            #[cfg(feature = "hash-update")]
+            crypto::hash::hash_ctx_update(
+                message_f.as_mut().unwrap(),
+                &writer.used_slice()[..temp_used],
+            );
+
+            #[cfg(not(feature = "hash-update"))]
             let transcript_data =
                 self.common
                     .calc_rsp_transcript_data(false, message_k, Some(&message_f));
+            #[cfg(not(feature = "hash-update"))]
             if transcript_data.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 let session = self.common.get_session_via_id(session_id).unwrap();
                 let _ = session.teardown(session_id);
                 return false;
             }
+            #[cfg(not(feature = "hash-update"))]
             let transcript_data = transcript_data.unwrap();
 
             let session = self.common.get_session_via_id(session_id).unwrap();
+            #[cfg(not(feature = "hash-update"))]
             let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
+            #[cfg(feature = "hash-update")]
+            let hmac = session.generate_hmac_with_response_finished_key(
+                crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
+                    .unwrap()
+                    .as_ref(),
+            );
             if hmac.is_err() {
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return false;
             }
             let hmac = hmac.unwrap();
+            #[cfg(not(feature = "hash-update"))]
             if message_f.append_message(hmac.as_ref()).is_none() {
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return false;
             }
-            session.runtime_info.message_f = message_f.clone();
+
+            #[cfg(feature = "hash-update")]
+            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
 
             // patch the message before send
             writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
         } else {
+            #[cfg(not(feature = "hash-update"))]
             if message_f.append_message(writer.used_slice()).is_none() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 let session = self.common.get_session_via_id(session_id).unwrap();
                 let _ = session.teardown(session_id);
                 return false;
             }
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            session.runtime_info.message_f = message_f.clone();
+            #[cfg(feature = "hash-update")]
+            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), writer.used_slice());
         }
 
         // generate the data secret
+        #[cfg(not(feature = "hash-update"))]
         let th2 = self
             .common
             .calc_rsp_transcript_hash(false, message_k, Some(&message_f));
+        #[cfg(feature = "hash-update")]
+        let th2 = crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap());
+        #[cfg(feature = "hash-update")]
+        if th2.is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            let session = self.common.get_session_via_id(session_id).unwrap();
+            let _ = session.teardown(session_id);
+            return false;
+        }
+        #[cfg(not(feature = "hash-update"))]
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             let session = self.common.get_session_via_id(session_id).unwrap();
@@ -192,6 +250,8 @@ impl<'a> ResponderContext<'a> {
         session
             .generate_data_secret(spdm_version_sel, &th2)
             .unwrap();
+
+        session.runtime_info.message_f = message_f;
 
         true
     }
@@ -208,6 +268,7 @@ mod tests_responder {
     use codec::{Codec, Writer};
 
     #[test]
+    #[cfg(not(feature = "hash-update"))]
     fn test_case0_handle_spdm_finish() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -310,6 +371,8 @@ mod tests_responder {
         );
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
+        context.common.session[0].runtime_info.message_k =
+            Some(crypto::hash::hash_ctx_init(context.common.negotiate_info.base_hash_sel).unwrap());
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);

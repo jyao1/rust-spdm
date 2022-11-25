@@ -189,6 +189,16 @@ impl<'a> ResponderContext<'a> {
             .runtime_info
             .message_a
             .append_message(writer.used_slice());
+
+        #[cfg(feature = "hash-update")]
+        {
+            self.common.runtime_info.message_m =
+                crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel);
+            crypto::hash::hash_ctx_update(
+                self.common.runtime_info.message_m.as_mut().unwrap(),
+                self.common.runtime_info.message_a.as_ref(),
+            );
+        }
     }
 }
 

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+#[cfg(feature = "hash-update")]
+use crate::crypto;
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::protocol::*;
@@ -124,6 +126,18 @@ impl<'a> RequesterContext<'a> {
                         message_a
                             .append_message(&receive_buffer[..used])
                             .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+
+                        #[cfg(feature = "hash-update")]
+                        {
+                            self.common.runtime_info.message_m = crypto::hash::hash_ctx_init(
+                                self.common.negotiate_info.base_hash_sel,
+                            );
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                message_a.as_ref(),
+                            );
+                        }
+
                         return Ok(());
                     }
                     error!("!!! algorithms : fail !!!\n");

@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+#[cfg(feature = "hash-update")]
+use crate::crypto;
 use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::protocol::*;
@@ -60,34 +62,62 @@ impl<'a> RequesterContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = send_used - base_hash_size;
 
-        let mut message_f = ManagedBuffer::default();
-        message_f
-            .append_message(&buf[..temp_used])
-            .ok_or(spdm_err!(ENOMEM))?;
+        #[cfg(not(feature = "hash-update"))]
+        {
+            let mut message_f = ManagedBuffer::default();
+            message_f
+                .append_message(&buf[..temp_used])
+                .ok_or(spdm_err!(ENOMEM))?;
 
-        let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
-            s
-        } else {
-            return spdm_result_err!(EFAULT);
-        };
-        let message_k = &session.runtime_info.message_k;
+            let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
+                s
+            } else {
+                return spdm_result_err!(EFAULT);
+            };
+            let message_k = &session.runtime_info.message_k;
 
-        let transcript_data =
-            self.common
-                .calc_req_transcript_data(slot_id, false, message_k, Some(&message_f))?;
-        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-            s
-        } else {
-            return spdm_result_err!(EFAULT);
-        };
-        let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
-        message_f
-            .append_message(hmac.as_ref())
-            .ok_or(spdm_err!(ENOMEM))?;
+            let transcript_data = self.common.calc_req_transcript_data(
+                slot_id,
+                false,
+                message_k,
+                Some(&message_f),
+            )?;
+            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                s
+            } else {
+                return spdm_result_err!(EFAULT);
+            };
 
-        // patch the message before send
-        buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
-        Ok((send_used, base_hash_size, message_f))
+            let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
+            message_f
+                .append_message(hmac.as_ref())
+                .ok_or(spdm_err!(ENOMEM))?;
+
+            // patch the message before send
+            buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
+            return Ok((send_used, base_hash_size, message_f));
+        }
+
+        #[cfg(feature = "hash-update")]
+        {
+            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                s
+            } else {
+                return spdm_result_err!(EFAULT);
+            };
+            let mut message_f = session.runtime_info.message_k.as_mut().cloned();
+            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), &buf[..temp_used]);
+            let hmac = session.generate_hmac_with_request_finished_key(
+                crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
+                    .unwrap()
+                    .as_ref(),
+            )?;
+            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
+            session.runtime_info.message_f = message_f;
+            // patch the message before send
+            buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
+            Ok((send_used, base_hash_size, ManagedBuffer::default()))
+        }
     }
 
     pub fn handle_spdm_finish_response(
@@ -95,7 +125,8 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         slot_id: u8,
         base_hash_size: usize,
-        mut message_f: ManagedBuffer,
+        #[cfg(not(feature = "hash-update"))] mut message_f: ManagedBuffer,
+        #[cfg(feature = "hash-update")] message_f: ManagedBuffer, // never use message_f for hash-update, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let in_clear_text = self
@@ -120,6 +151,7 @@ impl<'a> RequesterContext<'a> {
                         debug!("!!! finish rsp : {:02x?}\n", finish_rsp);
 
                         if in_clear_text {
+                            #[cfg(not(feature = "hash-update"))]
                             let session = if let Some(s) =
                                 self.common.get_immutable_session_via_id(session_id)
                             {
@@ -127,14 +159,17 @@ impl<'a> RequesterContext<'a> {
                             } else {
                                 return spdm_result_err!(EFAULT);
                             };
+                            #[cfg(not(feature = "hash-update"))]
                             let message_k = &session.runtime_info.message_k;
 
                             // verify HMAC with finished_key
                             let temp_used = receive_used - base_hash_size;
+                            #[cfg(not(feature = "hash-update"))]
                             message_f
                                 .append_message(&receive_buffer[..temp_used])
                                 .ok_or(spdm_err!(ENOMEM))?;
 
+                            #[cfg(not(feature = "hash-update"))]
                             let transcript_data = self.common.calc_req_transcript_data(
                                 slot_id,
                                 false,
@@ -148,9 +183,24 @@ impl<'a> RequesterContext<'a> {
                                 } else {
                                     return spdm_result_err!(EFAULT);
                                 };
+
+                            #[cfg(feature = "hash-update")]
+                            crypto::hash::hash_ctx_update(
+                                session.runtime_info.message_f.as_mut().unwrap(),
+                                &receive_buffer[..temp_used],
+                            );
+
+                            #[cfg(feature = "hash-update")]
+                            let ctx_cloned =
+                                session.runtime_info.message_f.as_mut().cloned().unwrap();
                             if session
                                 .verify_hmac_with_response_finished_key(
+                                    #[cfg(not(feature = "hash-update"))]
                                     transcript_data.as_ref(),
+                                    #[cfg(feature = "hash-update")]
+                                    crypto::hash::hash_ctx_finalize(ctx_cloned)
+                                        .unwrap()
+                                        .as_ref(),
                                     &finish_rsp.verify_data,
                                 )
                                 .is_err()
@@ -161,10 +211,19 @@ impl<'a> RequesterContext<'a> {
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
+                            #[cfg(not(feature = "hash-update"))]
                             message_f
                                 .append_message(finish_rsp.verify_data.as_ref())
                                 .ok_or(spdm_err!(ENOMEM))?;
-                            session.runtime_info.message_f = message_f.clone();
+                            #[cfg(not(feature = "hash-update"))]
+                            {
+                                session.runtime_info.message_f = message_f.clone();
+                            }
+                            #[cfg(feature = "hash-update")]
+                            crypto::hash::hash_ctx_update(
+                                session.runtime_info.message_f.as_mut().unwrap(),
+                                finish_rsp.verify_data.as_ref(),
+                            );
                         } else {
                             let session =
                                 if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -172,26 +231,51 @@ impl<'a> RequesterContext<'a> {
                                 } else {
                                     return spdm_result_err!(EFAULT);
                                 };
+                            #[cfg(not(feature = "hash-update"))]
                             message_f
                                 .append_message(&receive_buffer[..receive_used])
                                 .ok_or(spdm_err!(ENOMEM))?;
-                            session.runtime_info.message_f = message_f.clone();
+                            #[cfg(not(feature = "hash-update"))]
+                            {
+                                session.runtime_info.message_f = message_f.clone();
+                            }
+                            #[cfg(feature = "hash-update")]
+                            crypto::hash::hash_ctx_update(
+                                session.runtime_info.message_f.as_mut().unwrap(),
+                                &receive_buffer[..receive_used],
+                            );
                         }
 
+                        #[cfg(not(feature = "hash-update"))]
                         let session =
                             if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
                                 s
                             } else {
                                 return spdm_result_err!(EFAULT);
                             };
+                        #[cfg(not(feature = "hash-update"))]
                         let message_k = &session.runtime_info.message_k;
                         // generate the data secret
+                        #[cfg(not(feature = "hash-update"))]
                         let th2 = self.common.calc_req_transcript_hash(
                             slot_id,
                             false,
                             message_k,
                             Some(&message_f),
                         )?;
+
+                        #[cfg(feature = "hash-update")]
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
+
+                        #[cfg(feature = "hash-update")]
+                        let th2 = crypto::hash::hash_ctx_finalize(
+                            session.runtime_info.message_f.as_mut().cloned().unwrap(),
+                        )
+                        .unwrap();
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                         let session = if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -297,6 +381,10 @@ mod tests_requester {
         responder.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
+        responder.common.session[0].runtime_info.message_k = Some(
+            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
+        );
+
         let dhe_secret = SpdmDheFinalKeyStruct {
             data_size: 48,
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
@@ -357,6 +445,10 @@ mod tests_requester {
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+        requester.common.session[0].runtime_info.message_k = Some(
+            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
+        );
+
         let dhe_secret = SpdmDheFinalKeyStruct {
             data_size: 48,
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),

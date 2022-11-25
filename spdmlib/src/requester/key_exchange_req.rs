@@ -154,20 +154,58 @@ impl<'a> RequesterContext<'a> {
                             self.common.negotiate_info.base_asym_sel.get_size() as usize;
                         let base_hash_size =
                             self.common.negotiate_info.base_hash_sel.get_size() as usize;
-
-                        let mut message_k = ManagedBuffer::default();
-                        message_k
-                            .append_message(send_buffer)
-                            .ok_or(spdm_err!(ENOMEM))?;
                         let temp_receive_used = receive_used - base_asym_size - base_hash_size;
-                        message_k
-                            .append_message(&receive_buffer[..temp_receive_used])
-                            .ok_or(spdm_err!(ENOMEM))?;
+
+                        #[cfg(feature = "hash-update")]
+                        let cert_chain_hash;
+                        #[cfg(feature = "hash-update")]
+                        if let Some(hash) = self.common.get_certchain_hash_req(slot_id, false) {
+                            cert_chain_hash = hash;
+                        } else {
+                            panic!("get_certchain_hash_req failed!");
+                        }
+
+                        #[cfg(feature = "hash-update")]
+                        let mut message_k =
+                            crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel)
+                                .unwrap();
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                &mut message_k,
+                                self.common.runtime_info.message_a.as_ref(),
+                            );
+                            crypto::hash::hash_ctx_update(&mut message_k, cert_chain_hash.as_ref());
+                        }
+
+                        #[cfg(not(feature = "hash-update"))]
+                        let mut message_k = ManagedBuffer::default();
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            message_k
+                                .append_message(send_buffer)
+                                .ok_or(spdm_err!(ENOMEM))?;
+                            message_k
+                                .append_message(&receive_buffer[..temp_receive_used])
+                                .ok_or(spdm_err!(ENOMEM))?;
+                        }
+
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(&mut message_k, send_buffer);
+                            crypto::hash::hash_ctx_update(
+                                &mut message_k,
+                                &receive_buffer[..temp_receive_used],
+                            );
+                        }
 
                         if self
                             .verify_key_exchange_rsp_signature(
                                 slot_id,
+                                #[cfg(not(feature = "hash-update"))]
                                 &message_k,
+                                #[cfg(feature = "hash-update")]
+                                message_k.clone(),
                                 &key_exchange_rsp.signature,
                             )
                             .is_err()
@@ -177,14 +215,25 @@ impl<'a> RequesterContext<'a> {
                         } else {
                             info!("verify_key_exchange_rsp_signature pass");
                         }
+
+                        #[cfg(not(feature = "hash-update"))]
                         message_k
                             .append_message(key_exchange_rsp.signature.as_ref())
                             .ok_or(spdm_err!(ENOMEM))?;
 
+                        #[cfg(feature = "hash-update")]
+                        crypto::hash::hash_ctx_update(
+                            &mut message_k,
+                            key_exchange_rsp.signature.as_ref(),
+                        );
+
                         // create session - generate the handshake secret (including finished_key)
+                        #[cfg(not(feature = "hash-update"))]
                         let th1 = self
                             .common
                             .calc_req_transcript_hash(slot_id, false, &message_k, None)?;
+                        #[cfg(feature = "hash-update")]
+                        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone()).unwrap();
                         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                         let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                         let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -232,6 +281,7 @@ impl<'a> RequesterContext<'a> {
                         session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
                         // verify HMAC with finished_key
+                        #[cfg(not(feature = "hash-update"))]
                         let transcript_data = self
                             .common
                             .calc_req_transcript_data(slot_id, false, &message_k, None)?;
@@ -242,7 +292,12 @@ impl<'a> RequesterContext<'a> {
 
                         if session
                             .verify_hmac_with_response_finished_key(
+                                #[cfg(not(feature = "hash-update"))]
                                 transcript_data.as_ref(),
+                                #[cfg(feature = "hash-update")]
+                                crypto::hash::hash_ctx_finalize(message_k.clone())
+                                    .unwrap()
+                                    .as_ref(),
                                 &key_exchange_rsp.verify_data,
                             )
                             .is_err()
@@ -253,10 +308,23 @@ impl<'a> RequesterContext<'a> {
                         } else {
                             info!("verify_hmac_with_response_finished_key pass");
                         }
-                        message_k
-                            .append_message(key_exchange_rsp.verify_data.as_ref())
-                            .ok_or(spdm_err!(ENOMEM))?;
-                        session.runtime_info.message_k = message_k;
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            message_k
+                                .append_message(key_exchange_rsp.verify_data.as_ref())
+                                .ok_or(spdm_err!(ENOMEM))?;
+                            session.runtime_info.message_k = message_k;
+                        }
+
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                &mut message_k,
+                                key_exchange_rsp.verify_data.as_ref(),
+                            );
+
+                            session.runtime_info.message_k = Some(message_k);
+                        }
 
                         session.set_session_state(
                             crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
@@ -300,6 +368,59 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
+    #[cfg(feature = "hash-update")]
+    pub fn verify_key_exchange_rsp_signature(
+        &mut self,
+        slot_id: u8,
+        message_k: HashCtx,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
+        let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
+        debug!("message_hash - {:02x?}", message_hash.as_ref());
+
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return spdm_result_err!(EINVAL);
+        }
+
+        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .unwrap()
+            .cert_chain
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .unwrap()
+                .cert_chain
+                .data_size as usize)];
+
+        let mut message = ManagedBuffer::default();
+        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            message.reset_message();
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+            message
+                .append_message(message_hash.as_ref())
+                .ok_or_else(|| spdm_err!(ENOMEM))?;
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            cert_chain_data,
+            message.as_ref(),
+            signature,
+        )
+    }
+
+    #[cfg(not(feature = "hash-update"))]
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
@@ -396,11 +517,21 @@ mod tests_requester {
 
         responder.common.reset_runtime_info();
 
+        #[cfg(not(feature = "hash-update"))]
         responder
             .common
             .runtime_info
             .message_m
             .append_message(message_m);
+        #[cfg(feature = "hash-update")]
+        responder.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
+        );
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(
+            responder.common.runtime_info.message_m.as_mut().unwrap(),
+            message_m,
+        );
         responder.common.provision_info.my_cert_chain_data = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -421,11 +552,22 @@ mod tests_requester {
 
         requester.common.reset_runtime_info();
 
+        #[cfg(not(feature = "hash-update"))]
         requester
             .common
             .runtime_info
             .message_m
             .append_message(message_m);
+        #[cfg(feature = "hash-update")]
+        requester.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
+        );
+
+        #[cfg(feature = "hash-update")]
+        crypto::hash::hash_ctx_update(
+            requester.common.runtime_info.message_m.as_mut().unwrap(),
+            message_m,
+        );
         requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
         requester.common.peer_info.peer_cert_chain[0]
             .as_mut()

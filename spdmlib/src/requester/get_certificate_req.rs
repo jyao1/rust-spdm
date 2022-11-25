@@ -109,13 +109,28 @@ impl<'a> RequesterContext<'a> {
                             .cert_chain
                             .data_size = offset + certificate.portion_length;
 
-                        let message_b = &mut self.common.runtime_info.message_b;
-                        message_b
-                            .append_message(send_buffer)
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        message_b
-                            .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        #[cfg(not(feature = "hash-update"))]
+                        {
+                            let message_b = &mut self.common.runtime_info.message_b;
+                            message_b
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_b
+                                .append_message(&receive_buffer[..used])
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                        }
+
+                        #[cfg(feature = "hash-update")]
+                        {
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                send_buffer,
+                            );
+                            crypto::hash::hash_ctx_update(
+                                self.common.runtime_info.message_m.as_mut().unwrap(),
+                                &receive_buffer[..used],
+                            );
+                        }
 
                         Ok((certificate.portion_length, certificate.remainder_length))
                     } else {
@@ -306,6 +321,9 @@ mod tests_requester {
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
+        );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -320,6 +338,9 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        requester.common.runtime_info.message_m = Some(
+            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
+        );
 
         let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
         assert!(status);
