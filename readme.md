@@ -46,8 +46,7 @@ For OS build, unset env (CC and AR):
 set CC=
 set AR=
 ```
-
-For Non-std build, set env:
+For `no_std` builds, set the following environment variables:
 ```
 set AR_x86_64_unknown_uefi=llvm-ar
 set CC_x86_64_unknown_uefi=clang
@@ -63,10 +62,10 @@ cargo fmt
 cargo build
 ```
 
-### Build Non-std spdm
+### Build `no_std` spdm
 ```
 pushd spdmlib
-cargo xbuild --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
 ```
 
 ### Run emulator
