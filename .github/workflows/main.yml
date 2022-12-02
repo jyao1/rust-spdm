@@ -2,7 +2,7 @@
 
 name: RUN CODE
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
@@ -41,35 +41,29 @@ jobs:
           profile: minimal
           toolchain: nightly-2022-08-08
           override: true
-          components: rust-src  
+          components: rust-src
       - name: Cache
         uses: Swatinem/rust-cache@v1
 
-      - name: Run cargo install cargo-xbuild
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-xbuild  
-
-      - name: no std check
+      - name: no_std check
         env:
           CC: clang
           AR: llvm-ar
         run: |
           pushd spdmlib
-          cargo xbuild --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
-  
+          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+
       - name: cargo build
         run: |
           cargo build -p spdm-responder-emu &
           cargo build -p spdm-requester-emu
-      
+
       - name: cargo tests
         run: cargo test
-          
+
       - name: run responder and requester script
         run: |
-          cargo run -p spdm-responder-emu & 
+          cargo run -p spdm-responder-emu &
           cargo run -p spdm-requester-emu
   linux_build-run_fuzz:
     # The type of runner that the job will run on
@@ -83,11 +77,10 @@ jobs:
 
       - name: no std check
         run: |
-          cargo install cargo-xbuild
           rustup component add rust-src
           pushd spdmlib
-          cargo xbuild --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
- 
+          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+
       - name: cargo build
         run: |
           cargo build -p spdm-responder-emu -p spdm-requester-emu
@@ -97,9 +90,9 @@ jobs:
 
       - name: cargo tests
         run: cargo test
-          
+
       - name: run responder and requester script
         run: |
-          cargo run -p spdm-responder-emu & 
+          cargo run -p spdm-responder-emu &
           sleep 5
           cargo run -p spdm-requester-emu

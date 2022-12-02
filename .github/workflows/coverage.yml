@@ -2,7 +2,7 @@ name: Coverage
 on:
   push:
     # Pattern matched against refs/tags
-    tags:        
+    tags:
       - '**'           # Push events to every tag including hierarchical tags like v0.1.0/beta
 env:
   AS: nasm
@@ -73,10 +73,9 @@ jobs:
 
       - name: no std check
         run: |
-          cargo install cargo-xbuild
           rustup component add rust-src
           pushd spdmlib
-          cargo xbuild --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
 
       - name: set core_pattern for core
         run: |
@@ -106,7 +105,7 @@ jobs:
           LLVM_PROFILE_FILE: rust-spdm-%p%m.profraw
           RUSTFLAGS: -Zinstrument-coverage
         run: |
-          cargo run -p spdm-responder-emu & 
+          cargo run -p spdm-responder-emu &
           sleep 5
           cargo run -p spdm-requester-emu
       - name: Run tests and collect coverage
