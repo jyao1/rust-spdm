@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
+use crate::common::gen_array_clone;
 use crate::common::spdm_codec::*;
 use crate::config;
 use crate::protocol::*;
@@ -22,19 +23,30 @@ pub struct SpdmNegotiateAlgorithmsRequestPayload {
 }
 
 impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.alg_struct_count.encode(bytes); // param1
-        0u8.encode(bytes); // param1
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion10 {
+            0u8.encode(bytes); // param1
+        } else {
+            self.alg_struct_count.encode(bytes); // param1
+        }
+        0u8.encode(bytes); // param2
 
         let mut length: u16 = 32;
-        for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
-            length += 2 + algo.alg_fixed_count as u16;
+        if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
+                length += 2 + algo.alg_fixed_count as u16;
+            }
         }
+
         length.encode(bytes);
 
         self.measurement_specification.encode(bytes);
 
-        self.other_params_support.encode(bytes); //OtherParamsSupport
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            self.other_params_support.encode(bytes); //OtherParamsSupport
+        } else {
+            0u8.encode(bytes); // reserved
+        }
 
         self.base_asym_algo.encode(bytes);
         self.base_hash_algo.encode(bytes);
@@ -48,13 +60,15 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
 
         0u16.encode(bytes); // reserved3
 
-        for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
-            algo.encode(bytes);
+        if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
+                algo.encode(bytes);
+            }
         }
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmNegotiateAlgorithmsRequestPayload> {
         let alg_struct_count = u8::read(r)?; // param1
@@ -73,29 +87,33 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
         }
 
         let ext_asym_count = u8::read(r)?;
+        let ext_hash_count = u8::read(r)?;
+
+        u16::read(r)?; // reserved3
+
         for _ in 0..(ext_asym_count as usize) {
             SpdmExtAlgStruct::read(r)?;
         }
 
-        let ext_hash_count = u8::read(r)?;
         for _ in 0..(ext_hash_count as usize) {
             SpdmExtAlgStruct::read(r)?;
         }
 
-        u16::read(r)?; // reserved3
-
         let mut alg_struct =
             gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
-        for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
-            *algo = SpdmAlgStruct::read(r)?;
-        }
-
         //
         // check length
         //
         let mut calc_length: u16 = 32 + (4 * ext_asym_count as u16) + (4 * ext_hash_count as u16);
-        for alg in alg_struct.iter().take(alg_struct_count as usize) {
-            calc_length += 2 + alg.alg_fixed_count as u16 + (4 * alg.alg_ext_count as u16);
+
+        if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            if alg_struct_count as usize > config::MAX_SPDM_ALG_STRUCT_COUNT {
+                return None;
+            }
+            for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
+                *algo = SpdmAlgStruct::read(r)?;
+                calc_length += 2 + algo.alg_fixed_count as u16 + (4 * algo.alg_ext_count as u16);
+            }
         }
 
         if length != calc_length {
@@ -125,13 +143,15 @@ pub struct SpdmAlgorithmsResponsePayload {
 }
 
 impl SpdmCodec for SpdmAlgorithmsResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         self.alg_struct_count.encode(bytes); // param1
         0u8.encode(bytes); // param2
 
         let mut length: u16 = 36;
-        for alg in self.alg_struct.iter().take(self.alg_struct_count as usize) {
-            length += 2 + alg.alg_fixed_count as u16;
+        if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            for alg in self.alg_struct.iter().take(self.alg_struct_count as usize) {
+                length += 2 + alg.alg_fixed_count as u16;
+            }
         }
         length.encode(bytes);
 
@@ -152,13 +172,15 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 
         0u16.encode(bytes); // reserved3
 
-        for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
-            algo.encode(bytes);
+        if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
+                algo.encode(bytes);
+            }
         }
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmAlgorithmsResponsePayload> {
         let alg_struct_count = u8::read(r)?; // param1
@@ -179,26 +201,33 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
         }
 
         let ext_asym_count = u8::read(r)?;
+        let ext_hash_count = u8::read(r)?;
+        u16::read(r)?; // reserved3
+
         for _ in 0..(ext_asym_count as usize) {
             SpdmExtAlgStruct::read(r)?;
         }
 
-        let ext_hash_count = u8::read(r)?;
         for _ in 0..(ext_hash_count as usize) {
             SpdmExtAlgStruct::read(r)?;
         }
 
-        u16::read(r)?; // reserved3
-
         let mut alg_struct =
             gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
-        for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
-            *algo = SpdmAlgStruct::read(r)?;
-        }
-
         let mut calc_length: u16 = 36 + (4 * ext_asym_count as u16) + (4 * ext_hash_count as u16);
-        for algo in alg_struct.iter().take(alg_struct_count as usize) {
-            calc_length += 2 + algo.alg_fixed_count as u16 + (4 * algo.alg_ext_count as u16);
+        if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            if alg_struct_count as usize > config::MAX_SPDM_ALG_STRUCT_COUNT {
+                log::error!("alg_struct_count > MAX_SPDM_ALG_STRUCT_COUNT!\n");
+                return None;
+            }
+
+            for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
+                *algo = SpdmAlgStruct::read(r)?;
+            }
+
+            for algo in alg_struct.iter().take(alg_struct_count as usize) {
+                calc_length += 2 + algo.alg_fixed_count as u16 + (4 * algo.alg_ext_count as u16);
+            }
         }
 
         if length != calc_length {
@@ -352,7 +381,7 @@ mod tests {
         let spdm_negotiate_algorithms_request_payload =
             SpdmNegotiateAlgorithmsRequestPayload::spdm_read(&mut context, &mut reader);
         assert_eq!(spdm_negotiate_algorithms_request_payload.is_none(), true);
-        assert_eq!(10, reader.left());
+        assert_eq!(14, reader.left());
     }
     #[test]
     fn test_case0_spdm_algorithms_response_payload() {

@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
-use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::common::{self, SPDM_MAX_SLOT_NUMBER};
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use crate::protocol::{
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmRandomStruct,
     SpdmSignatureStruct,
@@ -29,6 +29,9 @@ pub struct SpdmKeyExchangeRequestPayload {
 
 impl SpdmCodec for SpdmKeyExchangeRequestPayload {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+        if self.slot_id != 0xFF && self.slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            panic!("slot id {:02X?} is not allowed", self.slot_id);
+        }
         self.measurement_summary_hash_type.encode(bytes); // param1
         self.slot_id.encode(bytes); // param2
         self.req_session_id.encode(bytes);
@@ -52,6 +55,10 @@ impl SpdmCodec for SpdmKeyExchangeRequestPayload {
     ) -> Option<SpdmKeyExchangeRequestPayload> {
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?; // param1
         let slot_id = u8::read(r)?; // param2
+        if slot_id != 0xFF && slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            log::error!("slot id {:02X?} is not allowed", slot_id);
+            return None;
+        }
         let req_session_id = u16::read(r)?;
         let session_policy = u8::read(r)?;
         u8::read(r)?;
@@ -113,6 +120,9 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
         0u8.encode(bytes); // param2
         self.rsp_session_id.encode(bytes);
         self.mut_auth_req.encode(bytes);
+        if self.req_slot_id != 0xFF && self.req_slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            panic!("slot id {:02X?} is not allowed", self.req_slot_id);
+        }
         self.req_slot_id.encode(bytes);
 
         self.random.encode(bytes);
@@ -135,6 +145,10 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
         let rsp_session_id = u16::read(r)?; // reserved
         let mut_auth_req = SpdmKeyExchangeMutAuthAttributes::read(r)?;
         let req_slot_id = u8::read(r)?;
+        if req_slot_id != 0xFF && req_slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            log::error!("slot id {:02X?} is not allowed", req_slot_id);
+            return None;
+        }
         let random = SpdmRandomStruct::read(r)?;
         let exchange = SpdmDheExchangeStruct::spdm_read(context, r)?;
         let measurement_summary_hash = if context.runtime_info.need_measurement_summary_hash {
@@ -188,6 +202,7 @@ mod tests {
         assert_eq!(3, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case0_spdm_key_exchange_request_payload() {
         let u8_slice = &mut [0u8; 680];
         let mut writer = Writer::init(u8_slice);
@@ -239,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn test_case0_spdm_key_exchange_response_payload() {
         let u8_slice = &mut [0u8; 1256];
         let mut writer = Writer::init(u8_slice);
@@ -320,6 +336,7 @@ mod tests {
         assert_eq!(0, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case1_spdm_key_exchange_response_payload() {
         let u8_slice = &mut [0u8; 1256];
         let mut writer = Writer::init(u8_slice);

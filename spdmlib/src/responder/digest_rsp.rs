@@ -8,7 +8,7 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
 extern crate alloc;
-use crate::protocol::gen_array_clone;
+use crate::common::gen_array_clone;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {

@@ -16,6 +16,8 @@ bitflags! {
         const KEY_UPD_CAP = 0b0100_0000_0000_0000;
         const HANDSHAKE_IN_THE_CLEAR_CAP = 0b1000_0000_0000_0000;
         const PUB_KEY_ID_CAP = 0b0000_0001_0000_0000_0000_0000;
+        const CHUNK_CAP = 0b0000_0010_0000_0000_0000_0000;
+        const SPDMLIB_SUPPORTED_CAP = Self::CERT_CAP.bits | Self::CHAL_CAP.bits | Self::ENCRYPT_CAP.bits | Self::MAC_CAP.bits | Self::KEY_EX_CAP.bits | Self::PSK_CAP.bits | Self::HBEAT_CAP.bits | Self::KEY_UPD_CAP.bits;
     }
 }
 
@@ -54,12 +56,11 @@ bitflags! {
         const HANDSHAKE_IN_THE_CLEAR_CAP = 0b1000_0000_0000_0000;
         const PUB_KEY_ID_CAP = 0b0000_0001_0000_0000_0000_0000;
         const CHUNK_CAP = 0b0000_0010_0000_0000_0000_0000;
-
-        // responder only
         const ALIAS_CERT_CAP = 0b0000_0100_0000_0000_0000_0000;
         const SET_CERT_CAP = 0b0000_1000_0000_0000_0000_0000;
         const CSR_CAP = 0b0001_0000_0000_0000_0000_0000;
         const CERT_INSTALL_RESET_CAP = 0b0010_0000_0000_0000_0000_0000;
+        const SPDMLIB_SUPPORTED_CAP = Self::CERT_CAP.bits | Self::CHAL_CAP.bits | Self::MEAS_CAP_MASK.bits | Self::MEAS_FRESH_CAP.bits | Self::ENCRYPT_CAP.bits | Self::MAC_CAP.bits | Self::KEY_EX_CAP.bits | Self::PSK_CAP.bits | Self::HBEAT_CAP.bits | Self::KEY_UPD_CAP.bits;
     }
 }
 

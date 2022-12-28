@@ -43,6 +43,12 @@ impl<'a> ResponderContext<'a> {
                     SpdmAlg::SpdmAlgoKeySchedule(v) => {
                         self.common.negotiate_info.key_schedule_sel = *v
                     }
+                    SpdmAlg::U16(_v) => {
+                        // unknown algorithm type
+                        error!("!!! negotiate_algorithms : unknown algorithm type !!!\n");
+                        self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                        return;
+                    }
                     SpdmAlg::SpdmAlgoUnknown(_v) => {}
                 }
             }
@@ -205,9 +211,8 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
-    use crate::common::opaque::*;
+    use crate::common::gen_array_clone;
     use crate::message::SpdmMessageHeader;
-    use crate::protocol::gen_array_clone;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};

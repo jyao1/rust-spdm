@@ -2,21 +2,17 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::config;
+use crate::{
+    common::{SpdmCodec, SpdmContext, SpdmVersion},
+    config,
+};
 use bytes::BytesMut;
-use codec::{enum_builder, Codec, Reader, Writer};
+use codec::{enum_builder, u24, Codec, Reader, Writer};
 use core::convert::From;
 extern crate alloc;
-use super::gen_array;
+use crate::common::gen_array;
 use alloc::boxed::Box;
 use zeroize::{Zeroize, ZeroizeOnDrop};
-
-pub const SHA256_DIGEST_SIZE: usize = 32;
-pub const SHA384_DIGEST_SIZE: usize = 48;
-pub const SHA512_DIGEST_SIZE: usize = 64;
-pub const SHA3_256_DIGEST_SIZE: usize = 32;
-pub const SHA3_384_DIGEST_SIZE: usize = 48;
-pub const SHA3_512_DIGEST_SIZE: usize = 64;
 
 pub const RSASSA_2048_KEY_SIZE: usize = 256;
 pub const RSASSA_3072_KEY_SIZE: usize = 384;
@@ -28,6 +24,9 @@ pub const RSAPSS_4096_KEY_SIZE: usize = 512;
 pub const ECDSA_ECC_NIST_P256_KEY_SIZE: usize = 32 * 2;
 pub const ECDSA_ECC_NIST_P384_KEY_SIZE: usize = 48 * 2;
 pub const ECDSA_ECC_NIST_P521_KEY_SIZE: usize = 66 * 2;
+pub const SM2_ECC_SM2_P256_KEY_SIZE: usize = 32 * 2;
+pub const EDDSA_ED25519_KEY_SIZE: usize = 32 * 2;
+pub const EDDSA_ED448_KEY_SIZE: usize = 57 * 2;
 
 pub const FFDHE_2048_KEY_SIZE: usize = 256;
 pub const FFDHE_3072_KEY_SIZE: usize = 384;
@@ -40,18 +39,30 @@ pub const SECP_521_R1_KEY_SIZE: usize = 66 * 2;
 pub const AEAD_AES_128_GCM_KEY_SIZE: usize = 16;
 pub const AEAD_AES_256_GCM_KEY_SIZE: usize = 32;
 pub const AEAD_CHACHA20_POLY1305_KEY_SIZE: usize = 32;
+pub const AEAD_SM4_GCM_KEY_SIZE: usize = 16;
 
 pub const AEAD_AES_128_GCM_BLOCK_SIZE: usize = 16;
 pub const AEAD_AES_256_GCM_BLOCK_SIZE: usize = 16;
 pub const AEAD_CHACHA20_POLY1305_BLOCK_SIZE: usize = 16;
+pub const AEAD_SM4_GCM_BLOCK_SIZE: usize = 16;
 
 pub const AEAD_AES_128_GCM_IV_SIZE: usize = 12;
 pub const AEAD_AES_256_GCM_IV_SIZE: usize = 12;
 pub const AEAD_CHACHA20_POLY1305_IV_SIZE: usize = 12;
+pub const AEAD_SM4_GCM_IV_SIZE: usize = 12;
 
 pub const AEAD_AES_128_GCM_TAG_SIZE: usize = 16;
 pub const AEAD_AES_256_GCM_TAG_SIZE: usize = 16;
 pub const AEAD_CHACHA20_POLY1305_TAG_SIZE: usize = 16;
+pub const AEAD_SM4_GCM_TAG_SIZE: usize = 16;
+
+pub const SHA256_DIGEST_SIZE: usize = 32;
+pub const SHA384_DIGEST_SIZE: usize = 48;
+pub const SHA512_DIGEST_SIZE: usize = 64;
+pub const SHA3_256_DIGEST_SIZE: usize = 32;
+pub const SHA3_384_DIGEST_SIZE: usize = 48;
+pub const SHA3_512_DIGEST_SIZE: usize = 64;
+pub const SM3_256_DIGEST_SIZE: usize = 32;
 
 pub const SPDM_NONCE_SIZE: usize = 32;
 pub const SPDM_RANDOM_SIZE: usize = 32;
@@ -60,6 +71,8 @@ pub const SPDM_MAX_ASYM_KEY_SIZE: usize = 512;
 pub const SPDM_MAX_DHE_KEY_SIZE: usize = 512;
 pub const SPDM_MAX_AEAD_KEY_SIZE: usize = 32;
 pub const SPDM_MAX_AEAD_IV_SIZE: usize = 12;
+
+pub const SPDM_MAX_SLOT_NUMBER: usize = 8;
 
 #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmDigestStruct {
@@ -72,6 +85,22 @@ impl Default for SpdmDigestStruct {
             data_size: 0,
             data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
         }
+    }
+}
+impl SpdmCodec for SpdmDigestStruct {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        assert_eq!(self.data_size, context.get_hash_size());
+        for d in self.data.iter().take(self.data_size as usize) {
+            d.encode(bytes);
+        }
+    }
+    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmDigestStruct> {
+        let data_size = context.get_hash_size();
+        let mut data = Box::new([0u8; SPDM_MAX_HASH_SIZE]);
+        for d in data.iter_mut().take(data_size as usize) {
+            *d = u8::read(r)?;
+        }
+        Some(SpdmDigestStruct { data_size, data })
     }
 }
 
@@ -140,6 +169,9 @@ bitflags! {
         const TPM_ALG_SHA3_256 = 0b0001_0000;
         const TPM_ALG_SHA3_384 = 0b0010_0000;
         const TPM_ALG_SHA3_512 = 0b0100_0000;
+        const SPDMLIB_SUPPORTED_MEAS_HASH = Self::TPM_ALG_SHA_256.bits()
+                                        | Self::TPM_ALG_SHA_384.bits()
+                                        | Self::TPM_ALG_SHA_512.bits();
     }
 }
 
@@ -162,6 +194,14 @@ impl SpdmMeasurementHashAlgo {
 impl Codec for SpdmMeasurementHashAlgo {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
+        if self.bits() | SpdmMeasurementHashAlgo::SPDMLIB_SUPPORTED_MEAS_HASH.bits()
+            != SpdmMeasurementHashAlgo::SPDMLIB_SUPPORTED_MEAS_HASH.bits()
+        {
+            log::warn!(
+                "Unsupported SpdmMeasurementHashAlgo is/are encoded: {:02X?}",
+                self
+            );
+        }
     }
 
     fn read(r: &mut Reader) -> Option<SpdmMeasurementHashAlgo> {
@@ -183,6 +223,18 @@ bitflags! {
         const TPM_ALG_RSAPSS_4096 = 0b0100_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P384 = 0b1000_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P521 = 0b0000_0001_0000_0000;
+        const TPM_ALG_SM2_ECC_SM2_P256 = 0b0000_0010_0000_0000;
+        const EDDSA_ED25519 = 0b0000_0100_0000_0000;
+        const EDDSA_ED448 = 0b0000_1000_0000_0000;
+        const SPDMLIB_SUPPORTED_ASYM = Self::TPM_ALG_ECDSA_ECC_NIST_P521.bits()
+                                    | Self::TPM_ALG_ECDSA_ECC_NIST_P384.bits()
+                                    | Self::TPM_ALG_ECDSA_ECC_NIST_P256.bits()
+                                    | Self::TPM_ALG_RSAPSS_4096.bits()
+                                    | Self::TPM_ALG_RSAPSS_3072.bits()
+                                    | Self::TPM_ALG_RSAPSS_2048.bits()
+                                    | Self::TPM_ALG_RSASSA_4096.bits()
+                                    | Self::TPM_ALG_RSASSA_3072.bits()
+                                    | Self::TPM_ALG_RSASSA_2048.bits();
     }
 }
 
@@ -218,6 +270,9 @@ impl SpdmBaseAsymAlgo {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256 => ECDSA_ECC_NIST_P256_KEY_SIZE as u16,
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => ECDSA_ECC_NIST_P384_KEY_SIZE as u16,
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => ECDSA_ECC_NIST_P521_KEY_SIZE as u16,
+            SpdmBaseAsymAlgo::TPM_ALG_SM2_ECC_SM2_P256 => SM2_ECC_SM2_P256_KEY_SIZE as u16,
+            SpdmBaseAsymAlgo::EDDSA_ED25519 => EDDSA_ED25519_KEY_SIZE as u16,
+            SpdmBaseAsymAlgo::EDDSA_ED448 => EDDSA_ED448_KEY_SIZE as u16,
             _ => {
                 panic!("invalid AsymAlgo");
             }
@@ -228,6 +283,11 @@ impl SpdmBaseAsymAlgo {
 impl Codec for SpdmBaseAsymAlgo {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
+        if self.bits() | SpdmBaseAsymAlgo::SPDMLIB_SUPPORTED_ASYM.bits()
+            != SpdmBaseAsymAlgo::SPDMLIB_SUPPORTED_ASYM.bits()
+        {
+            log::warn!("Unsupported SpdmBaseAsymAlgo is/are encoded: {:02X?}", self);
+        }
     }
 
     fn read(r: &mut Reader) -> Option<SpdmBaseAsymAlgo> {
@@ -246,6 +306,10 @@ bitflags! {
         const TPM_ALG_SHA3_256 = 0b0000_1000;
         const TPM_ALG_SHA3_384 = 0b0001_0000;
         const TPM_ALG_SHA3_512 = 0b0010_0000;
+        const TPM_ALG_SM3_256 = 0b0100_0000;
+        const SPDMLIB_SUPPORTED_HASH = Self::TPM_ALG_SHA_256.bits()
+                                    | Self::TPM_ALG_SHA_384.bits()
+                                    | Self::TPM_ALG_SHA_512.bits();
     }
 }
 
@@ -273,6 +337,7 @@ impl SpdmBaseHashAlgo {
             SpdmBaseHashAlgo::TPM_ALG_SHA3_384 => SHA3_384_DIGEST_SIZE as u16,
             SpdmBaseHashAlgo::TPM_ALG_SHA_512 => SHA512_DIGEST_SIZE as u16,
             SpdmBaseHashAlgo::TPM_ALG_SHA3_512 => SHA3_512_DIGEST_SIZE as u16,
+            SpdmBaseHashAlgo::TPM_ALG_SM3_256 => SM3_256_DIGEST_SIZE as u16,
             _ => {
                 panic!("invalid HashAlgo");
             }
@@ -283,6 +348,11 @@ impl SpdmBaseHashAlgo {
 impl Codec for SpdmBaseHashAlgo {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
+        if self.bits() | SpdmBaseHashAlgo::SPDMLIB_SUPPORTED_HASH.bits()
+            != SpdmBaseHashAlgo::SPDMLIB_SUPPORTED_HASH.bits()
+        {
+            log::warn!("Unsupported SpdmBaseHashAlgo is/are encoded: {:02X?}", self);
+        }
     }
 
     fn read(r: &mut Reader) -> Option<SpdmBaseHashAlgo> {
@@ -311,25 +381,23 @@ enum_builder! {
 #[derive(Debug, Clone, Default)]
 pub struct SpdmExtAlgStruct {
     pub registry_id: SpdmStandardId,
-    pub reserved: u8,
     pub algorithm_id: u16,
 }
 
 impl Codec for SpdmExtAlgStruct {
     fn encode(&self, bytes: &mut Writer) {
         self.registry_id.encode(bytes);
-        self.reserved.encode(bytes);
+        0u8.encode(bytes); // reserved
         self.algorithm_id.encode(bytes);
     }
 
     fn read(r: &mut Reader) -> Option<SpdmExtAlgStruct> {
         let registry_id = SpdmStandardId::read(r)?;
-        let reserved = u8::read(r)?;
+        u8::read(r)?; // reserved
         let algorithm_id = u16::read(r)?;
 
         Some(SpdmExtAlgStruct {
             registry_id,
-            reserved,
             algorithm_id,
         })
     }
@@ -344,6 +412,13 @@ bitflags! {
         const SECP_256_R1 = 0b0000_1000;
         const SECP_384_R1 = 0b0001_0000;
         const SECP_521_R1 = 0b0010_0000;
+        const SM2_P256 = 0b0100_0000;
+        const SPDMLIB_SUPPORTED_DHE = Self::FFDHE_2048.bits()
+                                    | Self::FFDHE_3072.bits()
+                                    | Self::FFDHE_4096.bits()
+                                    | Self::SECP_256_R1.bits()
+                                    | Self::SECP_384_R1.bits()
+                                    | Self::SECP_521_R1.bits();
     }
 }
 
@@ -373,6 +448,7 @@ impl SpdmDheAlgo {
             SpdmDheAlgo::SECP_256_R1 => SECP_256_R1_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_384_R1 => SECP_384_R1_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_521_R1 => SECP_521_R1_KEY_SIZE as u16,
+            SpdmDheAlgo::SM2_P256 => SM2_ECC_SM2_P256_KEY_SIZE as u16,
             _ => {
                 panic!("invalid DheAlgo");
             }
@@ -383,6 +459,11 @@ impl SpdmDheAlgo {
 impl Codec for SpdmDheAlgo {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
+        if self.bits() | SpdmDheAlgo::SPDMLIB_SUPPORTED_DHE.bits()
+            != SpdmDheAlgo::SPDMLIB_SUPPORTED_DHE.bits()
+        {
+            log::warn!("Unsupported SpdmDheAlgo is/are encoded: {:02X?}", self);
+        }
     }
 
     fn read(r: &mut Reader) -> Option<SpdmDheAlgo> {
@@ -398,6 +479,10 @@ bitflags! {
         const AES_128_GCM = 0b0000_0001;
         const AES_256_GCM = 0b0000_0010;
         const CHACHA20_POLY1305 = 0b0000_0100;
+        const AEAD_SM4_GCM = 0b0000_1000;
+        const SPDMLIB_SUPPORTED_AEAD = Self::AES_128_GCM.bits()
+                                    | Self::AES_256_GCM.bits()
+                                    | Self::CHACHA20_POLY1305.bits();
     }
 }
 
@@ -422,6 +507,7 @@ impl SpdmAeadAlgo {
             SpdmAeadAlgo::AES_128_GCM => AEAD_AES_128_GCM_KEY_SIZE as u16,
             SpdmAeadAlgo::AES_256_GCM => AEAD_AES_256_GCM_KEY_SIZE as u16,
             SpdmAeadAlgo::CHACHA20_POLY1305 => AEAD_CHACHA20_POLY1305_KEY_SIZE as u16,
+            SpdmAeadAlgo::AEAD_SM4_GCM => AEAD_SM4_GCM_KEY_SIZE as u16,
             _ => {
                 panic!("invalid AeadAlgo");
             }
@@ -432,6 +518,7 @@ impl SpdmAeadAlgo {
             SpdmAeadAlgo::AES_128_GCM => AEAD_AES_128_GCM_IV_SIZE as u16,
             SpdmAeadAlgo::AES_256_GCM => AEAD_AES_256_GCM_IV_SIZE as u16,
             SpdmAeadAlgo::CHACHA20_POLY1305 => AEAD_CHACHA20_POLY1305_IV_SIZE as u16,
+            SpdmAeadAlgo::AEAD_SM4_GCM => AEAD_SM4_GCM_IV_SIZE as u16,
             _ => {
                 panic!("invalid AeadAlgo");
             }
@@ -442,6 +529,7 @@ impl SpdmAeadAlgo {
             SpdmAeadAlgo::AES_128_GCM => AEAD_AES_128_GCM_TAG_SIZE as u16,
             SpdmAeadAlgo::AES_256_GCM => AEAD_AES_256_GCM_TAG_SIZE as u16,
             SpdmAeadAlgo::CHACHA20_POLY1305 => AEAD_CHACHA20_POLY1305_TAG_SIZE as u16,
+            SpdmAeadAlgo::AEAD_SM4_GCM => AEAD_SM4_GCM_TAG_SIZE as u16,
             _ => {
                 panic!("invalid AeadAlgo");
             }
@@ -452,6 +540,11 @@ impl SpdmAeadAlgo {
 impl Codec for SpdmAeadAlgo {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
+        if self.bits() | SpdmAeadAlgo::SPDMLIB_SUPPORTED_AEAD.bits()
+            != SpdmAeadAlgo::SPDMLIB_SUPPORTED_AEAD.bits()
+        {
+            log::warn!("Unsupported SpdmAeadAlgo is/are encoded: {:02X?}", self);
+        }
     }
 
     fn read(r: &mut Reader) -> Option<SpdmAeadAlgo> {
@@ -473,6 +566,18 @@ bitflags! {
         const TPM_ALG_RSAPSS_4096 = 0b0100_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P384 = 0b1000_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P521 = 0b0000_0001_0000_0000;
+        const TPM_ALG_SM2_ECC_SM2_P256 = 0b0000_0010_0000_0000;
+        const EDDSA_ED25519 = 0b0000_0100_0000_0000;
+        const EDDSA_ED448 = 0b0000_1000_0000_0000;
+        const SPDMLIB_SUPPORTED_REQ_ASYM = Self::TPM_ALG_ECDSA_ECC_NIST_P521.bits()
+                                        | Self::TPM_ALG_ECDSA_ECC_NIST_P384.bits()
+                                        | Self::TPM_ALG_ECDSA_ECC_NIST_P256.bits()
+                                        | Self::TPM_ALG_RSAPSS_4096.bits()
+                                        | Self::TPM_ALG_RSAPSS_3072.bits()
+                                        | Self::TPM_ALG_RSAPSS_2048.bits()
+                                        | Self::TPM_ALG_RSASSA_4096.bits()
+                                        | Self::TPM_ALG_RSASSA_3072.bits()
+                                        | Self::TPM_ALG_RSASSA_2048.bits();
     }
 }
 
@@ -508,6 +613,9 @@ impl SpdmReqAsymAlgo {
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256 => ECDSA_ECC_NIST_P256_KEY_SIZE as u16,
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => ECDSA_ECC_NIST_P384_KEY_SIZE as u16,
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => ECDSA_ECC_NIST_P521_KEY_SIZE as u16,
+            SpdmReqAsymAlgo::TPM_ALG_SM2_ECC_SM2_P256 => SM2_ECC_SM2_P256_KEY_SIZE as u16,
+            SpdmReqAsymAlgo::EDDSA_ED25519 => EDDSA_ED25519_KEY_SIZE as u16,
+            SpdmReqAsymAlgo::EDDSA_ED448 => EDDSA_ED448_KEY_SIZE as u16,
             _ => {
                 panic!("invalid ReqAsymAlgo");
             }
@@ -518,6 +626,11 @@ impl SpdmReqAsymAlgo {
 impl Codec for SpdmReqAsymAlgo {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
+        if self.bits() | SpdmReqAsymAlgo::SPDMLIB_SUPPORTED_REQ_ASYM.bits()
+            != SpdmReqAsymAlgo::SPDMLIB_SUPPORTED_REQ_ASYM.bits()
+        {
+            log::warn!("Unsupported SpdmReqAsymAlgo is/are encoded: {:02X?}", self);
+        }
     }
 
     fn read(r: &mut Reader) -> Option<SpdmReqAsymAlgo> {
@@ -587,12 +700,31 @@ pub enum SpdmAlg {
     SpdmAlgoAead(SpdmAeadAlgo),
     SpdmAlgoReqAsym(SpdmReqAsymAlgo),
     SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo),
+    U16(u16),
     // TBD: Need consider how to handle this SpdmAlgoUnknown
     SpdmAlgoUnknown(SpdmUnknownAlgo),
 }
 impl Default for SpdmAlg {
     fn default() -> SpdmAlg {
         SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo {})
+    }
+}
+
+impl Codec for SpdmAlg {
+    fn encode(&self, bytes: &mut Writer) {
+        match self {
+            SpdmAlg::SpdmAlgoDhe(dhe) => dhe.encode(bytes),
+            SpdmAlg::SpdmAlgoAead(aead) => aead.encode(bytes),
+            SpdmAlg::SpdmAlgoReqAsym(req_asym) => req_asym.encode(bytes),
+            SpdmAlg::SpdmAlgoKeySchedule(schedule) => schedule.encode(bytes),
+            SpdmAlg::U16(raw_value) => raw_value.encode(bytes),
+            SpdmAlg::SpdmAlgoUnknown(_) => panic!("Try encoding an unkown alg!"), // caller to ensure no unknown alg
+        }
+    }
+
+    fn read(r: &mut Reader) -> Option<Self> {
+        let raw_value = u16::read(r)?;
+        Some(SpdmAlg::U16(raw_value))
     }
 }
 
@@ -612,23 +744,7 @@ impl Codec for SpdmAlgStruct {
         alg_count.encode(bytes);
 
         if self.alg_fixed_count == 2 {
-            match &self.alg_supported {
-                SpdmAlg::SpdmAlgoDhe(alg_supported) => {
-                    alg_supported.encode(bytes);
-                }
-                SpdmAlg::SpdmAlgoAead(alg_supported) => {
-                    alg_supported.encode(bytes);
-                }
-                SpdmAlg::SpdmAlgoReqAsym(alg_supported) => {
-                    alg_supported.encode(bytes);
-                }
-                SpdmAlg::SpdmAlgoKeySchedule(alg_supported) => {
-                    alg_supported.encode(bytes);
-                }
-                SpdmAlg::SpdmAlgoUnknown(alg_supported) => {
-                    alg_supported.encode(bytes);
-                }
-            }
+            self.alg_supported.encode(bytes);
         }
     }
 
@@ -639,18 +755,22 @@ impl Codec for SpdmAlgStruct {
         let alg_ext_count = (alg_count & 0xF) as u8;
 
         let alg_supported = match alg_type {
-            SpdmAlgType::SpdmAlgTypeDHE => Some(SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::read(r)?)),
-            SpdmAlgType::SpdmAlgTypeAEAD => Some(SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::read(r)?)),
-            SpdmAlgType::SpdmAlgTypeReqAsym => {
-                Some(SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::read(r)?))
-            }
+            SpdmAlgType::SpdmAlgTypeDHE => SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::read(r)?),
+            SpdmAlgType::SpdmAlgTypeAEAD => SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::read(r)?),
+            SpdmAlgType::SpdmAlgTypeReqAsym => SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::read(r)?),
             SpdmAlgType::SpdmAlgTypeKeySchedule => {
-                Some(SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::read(r)?))
+                SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::read(r)?)
             }
-            _ => Some(SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo {})),
+            _ => {
+                let alg_raw = SpdmAlg::read(r)?;
+                log::error!(
+                    "Found unsupported algorithm type: {:02X?} and the Algorithm: {:02X?}",
+                    alg_type,
+                    alg_raw
+                );
+                return None;
+            }
         };
-
-        let alg_supported = alg_supported?;
 
         for _ in 0..(alg_ext_count as usize) {
             SpdmExtAlgStruct::read(r)?;
@@ -664,8 +784,6 @@ impl Codec for SpdmAlgStruct {
         })
     }
 }
-
-pub const SPDM_MAX_SLOT_NUMBER: usize = 8;
 
 enum_builder! {
     @U8
@@ -728,6 +846,22 @@ impl Default for SpdmSignatureStruct {
             data_size: 0,
             data: [0u8; SPDM_MAX_ASYM_KEY_SIZE],
         }
+    }
+}
+impl SpdmCodec for SpdmSignatureStruct {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        assert_eq!(self.data_size, context.get_asym_key_size());
+        for d in self.data.iter().take(self.data_size as usize) {
+            d.encode(bytes);
+        }
+    }
+    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmSignatureStruct> {
+        let data_size = context.get_asym_key_size();
+        let mut data = [0u8; SPDM_MAX_ASYM_KEY_SIZE];
+        for d in data.iter_mut().take(data_size as usize) {
+            *d = u8::read(r)?;
+        }
+        Some(SpdmSignatureStruct { data_size, data })
     }
 }
 
@@ -802,6 +936,41 @@ pub struct SpdmCertChain {
     pub root_hash: SpdmDigestStruct,
     pub cert_chain: SpdmCertChainData,
 }
+impl SpdmCodec for SpdmCertChain {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        let length = self.cert_chain.data_size as u16 + self.root_hash.data_size as u16 + 4_u16;
+        length.encode(bytes);
+        0u16.encode(bytes);
+
+        self.root_hash.spdm_encode(context, bytes);
+
+        for d in self
+            .cert_chain
+            .data
+            .iter()
+            .take(self.cert_chain.data_size as usize)
+        {
+            d.encode(bytes);
+        }
+    }
+    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmCertChain> {
+        let length = u16::read(r)?;
+        u16::read(r)?;
+        let root_hash = SpdmDigestStruct::spdm_read(context, r)?;
+        let data_size = length - 4 - root_hash.data_size as u16;
+        let mut cert_chain = SpdmCertChainData {
+            data_size,
+            ..Default::default()
+        };
+        for d in cert_chain.data.iter_mut().take(data_size as usize) {
+            *d = u8::read(r)?;
+        }
+        Some(SpdmCertChain {
+            root_hash,
+            cert_chain,
+        })
+    }
+}
 
 enum_builder! {
     @U8
@@ -844,6 +1013,127 @@ impl Default for SpdmDmtfMeasurementStructure {
         }
     }
 }
+impl SpdmCodec for SpdmDmtfMeasurementStructure {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        let type_value = self.r#type.get_u8();
+        let representation_value = self.representation.get_u8();
+        let final_value = type_value + representation_value;
+        final_value.encode(bytes);
+
+        if representation_value
+            == SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest.get_u8()
+            && self.value_size != context.negotiate_info.base_hash_sel.get_size()
+        {
+            panic!("invalid measurement value size!\n");
+        }
+
+        self.value_size.encode(bytes);
+        for v in self.value.iter().take(self.value_size as usize) {
+            v.encode(bytes);
+        }
+    }
+    fn spdm_read(
+        context: &mut SpdmContext,
+        r: &mut Reader,
+    ) -> Option<SpdmDmtfMeasurementStructure> {
+        let final_value = u8::read(r)?;
+        let type_value = final_value & 0x7f;
+        let representation_value = final_value & 0x80;
+        let representation = match representation_value {
+            0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+            0x80 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
+            val => {
+                log::error!(
+                    "get unknown SpdmDmtfMeasurementRepresentation: {:02X?}",
+                    val
+                );
+                return None;
+            }
+        };
+        let r#type = match type_value {
+            0 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+            1 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+            2 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig,
+            3 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig,
+            4 => {
+                if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion10 {
+                    log::error!("get unknow SpdmDmtfMeasurementType: {:02X?}", type_value);
+                    return None;
+                }
+                SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest
+            }
+            5 => {
+                if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion12 {
+                    log::error!("get unknow SpdmDmtfMeasurementType: {:02X?}", type_value);
+                    return None;
+                }
+                match representation {
+                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                        SpdmDmtfMeasurementType::SpdmDmtfMeasurementStructuredRepresentationMode
+                    }
+                    _ => {
+                        log::error!("get SpdmDmtfMeasurementStructuredRepresentationMode under SpdmDmtfMeasurementDigest!\n");
+                        return None;
+                    }
+                }
+            }
+            6 => {
+                if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion12 {
+                    log::error!("get unknow SpdmDmtfMeasurementType: {:02X?}", type_value);
+                    return None;
+                }
+                match representation {
+                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                        SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareVersionNumber
+                    }
+                    _ => {
+                        log::error!("get SpdmDmtfMeasurementMutableFirmwareVersionNumber under SpdmDmtfMeasurementDigest!\n");
+                        return None;
+                    }
+                }
+            }
+            7 => {
+                if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion12 {
+                    log::error!("get unknow SpdmDmtfMeasurementType: {:02X?}", type_value);
+                    return None;
+                }
+                match representation {
+                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                        SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareSecurityVersionNumber
+                    }
+                    _ =>  {
+                        log::error!("get SpdmDmtfMeasurementMutableFirmwareSecurityVersionNumber under SpdmDmtfMeasurementDigest!\n");
+                        return None;
+                    },
+                }
+            }
+            val => {
+                log::error!("get unknow SpdmDmtfMeasurementType: {:02X?}\n", val);
+                return None;
+            }
+        };
+
+        let value_size = u16::read(r)?;
+
+        if representation == SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+            && value_size != context.negotiate_info.measurement_hash_sel.get_size()
+        {
+            log::error!("value size don't match!: {:02X?}, type: {:02X?}, representation: {:02X?}, context.negotiate_info.measurement_hash_sel:{:02X?}", value_size, r#type, representation, context.negotiate_info.measurement_hash_sel);
+            return None;
+        }
+
+        let mut value = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        for v in value.iter_mut().take(value_size as usize) {
+            *v = u8::read(r)?;
+        }
+        Some(SpdmDmtfMeasurementStructure {
+            r#type,
+            representation,
+            value_size,
+            value,
+        })
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementBlockStructure {
@@ -851,6 +1141,29 @@ pub struct SpdmMeasurementBlockStructure {
     pub measurement_specification: SpdmMeasurementSpecification,
     pub measurement_size: u16,
     pub measurement: SpdmDmtfMeasurementStructure,
+}
+impl SpdmCodec for SpdmMeasurementBlockStructure {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        self.index.encode(bytes);
+        self.measurement_specification.encode(bytes);
+        self.measurement_size.encode(bytes);
+        self.measurement.spdm_encode(context, bytes);
+    }
+    fn spdm_read(
+        context: &mut SpdmContext,
+        r: &mut Reader,
+    ) -> Option<SpdmMeasurementBlockStructure> {
+        let index = u8::read(r)?;
+        let measurement_specification = SpdmMeasurementSpecification::read(r)?;
+        let measurement_size = u16::read(r)?;
+        let measurement = SpdmDmtfMeasurementStructure::spdm_read(context, r)?;
+        Some(SpdmMeasurementBlockStructure {
+            index,
+            measurement_specification,
+            measurement_size,
+            measurement,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -866,6 +1179,53 @@ impl Default for SpdmMeasurementRecordStructure {
         }
     }
 }
+impl SpdmCodec for SpdmMeasurementRecordStructure {
+    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+        self.number_of_blocks.encode(bytes);
+
+        let mut calc_length = 0u32;
+        for d in self.record.iter().take(self.number_of_blocks as usize) {
+            if d.measurement_size != d.measurement.value_size + 3 {
+                panic!();
+            }
+            calc_length += d.measurement_size as u32 + 4;
+        }
+        let record_length = u24::new(calc_length);
+        record_length.encode(bytes);
+
+        for d in self.record.iter().take(self.number_of_blocks as usize) {
+            d.spdm_encode(context, bytes);
+        }
+    }
+    fn spdm_read(
+        context: &mut SpdmContext,
+        r: &mut Reader,
+    ) -> Option<SpdmMeasurementRecordStructure> {
+        let number_of_blocks = u8::read(r)?;
+        let record_length = u24::read(r)?;
+
+        let mut record = gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT);
+        for d in record.iter_mut().take(number_of_blocks as usize) {
+            *d = SpdmMeasurementBlockStructure::spdm_read(context, r)?;
+        }
+
+        let mut calc_length = 0u32;
+        for d in record.iter().take(number_of_blocks as usize) {
+            if d.measurement_size != d.measurement.value_size.checked_add(3)? {
+                return None;
+            }
+            calc_length += d.measurement_size as u32 + 4;
+        }
+        if calc_length != record_length.get() {
+            return None;
+        }
+
+        Some(SpdmMeasurementRecordStructure {
+            number_of_blocks,
+            record,
+        })
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct SpdmDheExchangeStruct {
@@ -878,6 +1238,21 @@ impl Default for SpdmDheExchangeStruct {
             data_size: 0,
             data: [0u8; SPDM_MAX_DHE_KEY_SIZE],
         }
+    }
+}
+impl SpdmCodec for SpdmDheExchangeStruct {
+    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
+        for d in self.data.iter().take(self.data_size as usize) {
+            d.encode(bytes);
+        }
+    }
+    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmDheExchangeStruct> {
+        let data_size = context.get_dhe_key_size();
+        let mut data = [0u8; SPDM_MAX_DHE_KEY_SIZE];
+        for d in data.iter_mut().take(data_size as usize) {
+            *d = u8::read(r)?;
+        }
+        Some(SpdmDheExchangeStruct { data_size, data })
     }
 }
 
@@ -1096,7 +1471,6 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmExtAlgStruct {
             registry_id: SpdmStandardId::SpdmStandardIdDMTF,
-            reserved: 100,
             algorithm_id: 200,
         };
         value.encode(&mut writer);
@@ -1107,7 +1481,6 @@ mod tests {
             spdm_ext_alg_struct.registry_id,
             SpdmStandardId::SpdmStandardIdDMTF
         );
-        assert_eq!(spdm_ext_alg_struct.reserved, 100);
         assert_eq!(spdm_ext_alg_struct.algorithm_id, 200);
         assert_eq!(0, reader.left());
     }
@@ -1117,7 +1490,6 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmExtAlgStruct {
             registry_id: SpdmStandardId::SpdmStandardIdDMTF,
-            reserved: 100,
             algorithm_id: 200,
         };
         value.encode(&mut writer);
@@ -1276,6 +1648,7 @@ mod tests {
         value.encode(&mut writer);
     }
     #[test]
+    #[should_panic]
     fn test_case3_spdm_alg_struct() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);

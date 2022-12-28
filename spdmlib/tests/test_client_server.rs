@@ -49,6 +49,7 @@ fn intergration_client_server() {
     let result = requester_context.start_session(
         false,
         0,
+        0xFFFD,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );
     assert!(result.is_ok());

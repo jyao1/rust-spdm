@@ -6,7 +6,6 @@
 use crate::crypto;
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
-use crate::protocol::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
@@ -114,6 +113,10 @@ impl<'a> RequesterContext<'a> {
                                 }
                                 SpdmAlg::SpdmAlgoKeySchedule(v) => {
                                     self.common.negotiate_info.key_schedule_sel = *v
+                                }
+                                SpdmAlg::U16(_v) => {
+                                    // unknown algorithm type
+                                    return spdm_result_err!(EFAULT);
                                 }
                                 SpdmAlg::SpdmAlgoUnknown(_v) => {}
                             }

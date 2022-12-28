@@ -86,7 +86,7 @@ fn test_spdm(
         //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
         | SpdmRequestCapabilityFlags::KEY_EX_CAP
         | SpdmRequestCapabilityFlags::PSK_CAP
-        | SpdmRequestCapabilityFlags::ENCAP_CAP
+        //| SpdmRequestCapabilityFlags::ENCAP_CAP
         | SpdmRequestCapabilityFlags::HBEAT_CAP
         | SpdmRequestCapabilityFlags::KEY_UPD_CAP, // | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
         // | SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP
@@ -207,6 +207,7 @@ fn test_spdm(
     let result = context.start_session(
         false,
         0,
+        0xFFFD,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );
     if let Ok(session_id) = result {
@@ -278,6 +279,7 @@ fn test_spdm(
     let result = context.start_session(
         true,
         0,
+        0xFFFD,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );
     if let Ok(session_id) = result {

@@ -7,22 +7,20 @@ use crate::protocol::*;
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
-// SPDM 1.0
 pub mod algorithm;
 pub mod capability;
 pub mod certificate;
 pub mod challenge;
 pub mod digest;
+pub mod end_session;
 pub mod error;
+pub mod finish;
+pub mod heartbeat;
+pub mod key_exchange;
 pub mod measurement;
 pub mod vendor;
 pub mod version;
 
-// SPDM 1.1
-pub mod end_session;
-pub mod finish;
-pub mod heartbeat;
-pub mod key_exchange;
 pub mod key_update;
 pub mod psk_exchange;
 pub mod psk_finish;
@@ -42,10 +40,9 @@ pub use key_update::*;
 pub use measurement::*;
 pub use psk_exchange::*;
 pub use psk_finish::*;
-pub use version::*;
-// Add new SPDM command here.
 pub use respond_if_ready::*;
 pub use vendor::*;
+pub use version::*;
 
 enum_builder! {
     @U8
@@ -68,9 +65,14 @@ enum_builder! {
         SpdmResponsePskFinishRsp => 0x67,
         SpdmResponseHeartbeatAck => 0x68,
         SpdmResponseKeyUpdateAck => 0x69,
-//        SpdmResponseEncapsulatedRequest => 0x6A,
-//        SpdmResponseEncapsulatedResponseAck => 0x6B,
+        // SpdmResponseEncapsulatedRequest => 0x6A,
+        // SpdmResponseEncapsulatedResponseAck => 0x6B,
         SpdmResponseEndSessionAck => 0x6C,
+        // 1.2 response
+        // SpdmResponseChunkSendAck => 0x05,
+        // SpdmResponseChunkResponse => 0x06,
+        // SpdmResponseCSR => 0x6D,
+        // SpdmResponseSetCertificateRsp => 0x6E,
 
         // 1.0 rerquest
         SpdmRequestGetDigests => 0x81,
@@ -89,9 +91,14 @@ enum_builder! {
         SpdmRequestPskFinish => 0xE7,
         SpdmRequestHeartbeat => 0xE8,
         SpdmRequestKeyUpdate => 0xE9,
-//        SpdmRequestGetEncapsulatedRequest => 0xEA,
-//        SpdmRequestDeliverEncapsulatedResponse => 0xEB,
+        // SpdmRequestGetEncapsulatedRequest => 0xEA,
+        // SpdmRequestDeliverEncapsulatedResponse => 0xEB,
         SpdmRequestEndSession => 0xEC
+        // 1.2 request
+        // SpdmRequestChunkSend => 0x85,
+        // SpdmRequestChunkGet => 0x86,
+        // SpdmRequestGetCSR => 0xED,
+        // SpdmRequestSetCertificate => 0xEE
     }
 }
 
@@ -121,7 +128,6 @@ impl Codec for SpdmMessageHeader {
 pub struct SpdmMessageGeneralPayload {
     pub param1: u8,
     pub param2: u8,
-    //pub payload: [u8],
 }
 
 impl Codec for SpdmMessageGeneralPayload {
@@ -208,7 +214,6 @@ pub enum SpdmMessagePayload {
     SpdmEndSessionRequest(SpdmEndSessionRequestPayload),
     SpdmEndSessionResponse(SpdmEndSessionResponsePayload),
 
-    // Add new SPDM command here.
     SpdmErrorResponse(SpdmErrorResponsePayload),
     SpdmVendorDefinedRequest(SpdmVendorDefinedRequestPayload),
     SpdmVendorDefinedResponse(SpdmVendorDefinedResponsePayload),
@@ -495,7 +500,6 @@ impl SpdmCodec for SpdmMessage {
                 payload.spdm_encode(context, bytes);
             }
 
-            // Add new SPDM command here.
             SpdmMessagePayload::SpdmErrorResponse(payload) => {
                 payload.spdm_encode(context, bytes);
             }
@@ -520,6 +524,7 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::{
         SpdmConfigInfo, SpdmContext, SpdmOpaqueStruct, SpdmOpaqueSupport, SpdmProvisionInfo,
     };
@@ -610,6 +615,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case2_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -748,6 +754,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case5_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -778,6 +785,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case6_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -921,6 +929,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case9_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -962,6 +971,7 @@ mod tests {
                         data_size: 512,
                         data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
                     },
+                    spdm_measurement_operation: SpdmMeasurementOperation::SpdmMeasurementRequestAll,
                 },
             ),
         };
@@ -1025,6 +1035,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case10_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -1078,6 +1089,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case12_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -1176,6 +1188,7 @@ mod tests {
                     data_size: 64,
                     data: [100u8; MAX_SPDM_OPAQUE_SIZE],
                 },
+                session_policy: 0,
             }),
         };
         create_spdm_context!(context);
@@ -1421,6 +1434,7 @@ mod tests {
         new_spdm_message(value, context);
     }
     #[test]
+    #[should_panic]
     fn test_case22_spdm_message() {
         let value = SpdmMessage {
             header: SpdmMessageHeader {

@@ -15,12 +15,11 @@ use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmVersion};
 
-const INITIAL_SESSION_ID: u16 = 0xFFFE;
-
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_key_exchange(
         &mut self,
         slot_id: u8,
+        req_session_id: u16,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
@@ -29,6 +28,7 @@ impl<'a> RequesterContext<'a> {
         let (key_exchange_context, send_used) = self.encode_spdm_key_exchange(
             &mut send_buffer,
             slot_id,
+            req_session_id,
             measurement_summary_hash_type,
         )?;
         self.send_message(&send_buffer[..send_used])?;
@@ -37,8 +37,8 @@ impl<'a> RequesterContext<'a> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_key_exhcange_response(
-            0,
             slot_id,
+            req_session_id,
             &send_buffer[..send_used],
             &receive_buffer[..receive_used],
             measurement_summary_hash_type,
@@ -50,11 +50,10 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         buf: &mut [u8],
         slot_id: u8,
+        req_session_id: u16,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<(Box<dyn crypto::SpdmDheKeyExchange>, usize)> {
         let mut writer = Writer::init(buf);
-
-        let req_session_id = INITIAL_SESSION_ID;
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
         crypto::rand::get_random(&mut random)?;
@@ -73,21 +72,21 @@ impl<'a> RequesterContext<'a> {
             .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
         {
             opaque = SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                data_size: crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
                     .len() as u16,
                 ..Default::default()
             };
             opaque.data[..(opaque.data_size as usize)].copy_from_slice(
-                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1.as_ref(),
+                crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1.as_ref(),
             );
         } else {
             opaque = SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0
+                data_size: crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0
                     .len() as u16,
                 ..Default::default()
             };
             opaque.data[..(opaque.data_size as usize)].copy_from_slice(
-                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0.as_ref(),
+                crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0.as_ref(),
             );
         }
 
@@ -112,8 +111,8 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_key_exhcange_response(
         &mut self,
-        session_id: u32,
         slot_id: u8,
+        req_session_id: u16,
         send_buffer: &[u8],
         receive_buffer: &[u8],
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
@@ -258,8 +257,8 @@ impl<'a> RequesterContext<'a> {
                             secure_spdm_version_sel
                         );
 
-                        let session_id = ((INITIAL_SESSION_ID as u32) << 16)
-                            + key_exchange_rsp.rsp_session_id as u32;
+                        let session_id = ((key_exchange_rsp.rsp_session_id as u32) << 16)
+                            + req_session_id as u32;
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                         let session = self
                             .common
@@ -341,7 +340,7 @@ impl<'a> RequesterContext<'a> {
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
                     let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
+                        None,
                         receive_buffer,
                         SpdmRequestResponseCode::SpdmRequestKeyExchange,
                         SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
@@ -351,8 +350,8 @@ impl<'a> RequesterContext<'a> {
                             let receive_buffer = rm.receive_buffer;
                             let used = rm.used;
                             self.handle_spdm_key_exhcange_response(
-                                session_id,
                                 slot_id,
+                                req_session_id,
                                 send_buffer,
                                 &receive_buffer[..used],
                                 measurement_summary_hash_type,
@@ -577,7 +576,7 @@ mod tests_requester {
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
         let status = requester
-            .send_receive_spdm_key_exchange(0, measurement_summary_hash_type)
+            .send_receive_spdm_key_exchange(0, 0xFFFE, measurement_summary_hash_type)
             .is_ok();
         assert!(status);
     }

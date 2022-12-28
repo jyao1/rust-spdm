@@ -4,7 +4,6 @@
 
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
-use crate::protocol::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
@@ -118,6 +117,7 @@ mod tests_requester {
     use crate::{crypto, responder};
 
     #[test]
+    #[should_panic]
     fn test_case0_send_receive_spdm_capability() {
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();

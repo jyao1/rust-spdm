@@ -223,8 +223,9 @@ impl<'a> RequesterContext<'a> {
         #[cfg(feature = "hash-update")]
         let mut message = ManagedBuffer::default();
 
+        message.reset_message();
+
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or_else(|| spdm_err!(ENOMEM))?;
@@ -234,10 +235,11 @@ impl<'a> RequesterContext<'a> {
             message
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
                 .ok_or_else(|| spdm_err!(ENOMEM))?;
-            message
-                .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
         }
+
+        message
+            .append_message(message_hash.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
 
         crypto::asym_verify::verify(
             self.common.negotiate_info.base_hash_sel,

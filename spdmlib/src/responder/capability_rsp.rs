@@ -100,6 +100,7 @@ mod tests_responder {
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
     #[test]
+    #[should_panic]
     fn test_case0_handle_spdm_capability() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

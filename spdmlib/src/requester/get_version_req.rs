@@ -4,7 +4,6 @@
 
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
-use crate::protocol::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
@@ -49,23 +48,44 @@ impl<'a> RequesterContext<'a> {
 
                         let SpdmVersionResponsePayload {
                             version_number_entry_count,
-                            versions,
+                            mut versions,
                         } = version;
 
-                        self.common.negotiate_info.spdm_version_sel =
-                            versions[version_number_entry_count as usize - 1].version;
-
-                        for spdm_version_struct in
-                            versions.iter().take(version_number_entry_count as usize)
-                        {
-                            if spdm_version_struct.version
-                                == self.common.provision_info.default_version
-                            {
-                                self.common.negotiate_info.spdm_version_sel =
-                                    spdm_version_struct.version;
-                                break;
+                        versions[0..version_number_entry_count as usize].sort_by(|s1, s2| {
+                            if s2.version > s1.version {
+                                core::cmp::Ordering::Greater
+                            } else {
+                                core::cmp::Ordering::Less
                             }
-                        }
+                        });
+                        log::info!("versions: {:02X?}", versions);
+
+                        self.common.negotiate_info.spdm_version_sel = if versions
+                            [0..version_number_entry_count as usize]
+                            .iter()
+                            .map(|s| s.version)
+                            .any(|v| v == self.common.provision_info.default_version)
+                        {
+                            self.common.provision_info.default_version
+                        } else {
+                            let mut found_spdm_version = SpdmVersion::Unknown(0);
+                            for s in self.common.config_info.spdm_version {
+                                if versions[0..version_number_entry_count as usize]
+                                    .iter()
+                                    .map(|s| s.version)
+                                    .any(|v| v == s)
+                                {
+                                    found_spdm_version = s;
+                                    break;
+                                }
+                            }
+                            if let SpdmVersion::Unknown(0) = found_spdm_version {
+                                log::error!("can't find common versions to start communication\n");
+                                return spdm_result_err!(ERANGE);
+                            } else {
+                                found_spdm_version
+                            }
+                        };
 
                         // clear cache data
                         self.common.reset_runtime_info();

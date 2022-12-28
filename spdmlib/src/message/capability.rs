@@ -20,11 +20,19 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         0u8.encode(bytes); // param1
         0u8.encode(bytes); // param2
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion10 {
+            return;
+        }
 
         0u8.encode(bytes); // reserved
         self.ct_exponent.encode(bytes);
         0u16.encode(bytes); // reserved2
         self.flags.encode(bytes);
+        if (self.flags.bits() | SpdmRequestCapabilityFlags::SPDMLIB_SUPPORTED_CAP.bits())
+            != SpdmRequestCapabilityFlags::SPDMLIB_SUPPORTED_CAP.bits()
+        {
+            panic!("Some unsupported CAP(s) is/are used: {:02X?}\n", self.flags);
+        }
 
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             self.data_transfer_size.encode(bytes);
@@ -85,6 +93,11 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
         self.ct_exponent.encode(bytes);
         0u16.encode(bytes); // reserved2
         self.flags.encode(bytes);
+        if (self.flags.bits() | SpdmResponseCapabilityFlags::SPDMLIB_SUPPORTED_CAP.bits())
+            != SpdmResponseCapabilityFlags::SPDMLIB_SUPPORTED_CAP.bits()
+        {
+            panic!("Some unsupported CAP(s) is/are used: {:02X?}\n", self.flags);
+        }
 
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             self.data_transfer_size.encode(bytes);
@@ -249,6 +262,7 @@ mod tests {
         assert_eq!(2, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case1_spdm_get_capabilities_request_payload() {
         let u8_slice = &mut [0u8; 12];
         let mut writer = Writer::init(u8_slice);
@@ -288,6 +302,7 @@ mod tests {
         assert_eq!(2, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case0_spdm_capabilities_response_payload() {
         let u8_slice = &mut [0u8; 12];
         let mut writer = Writer::init(u8_slice);
@@ -313,6 +328,7 @@ mod tests {
         assert_eq!(2, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case1_spdm_capabilities_response_payload() {
         let u8_slice = &mut [0u8; 12];
         let mut writer = Writer::init(u8_slice);

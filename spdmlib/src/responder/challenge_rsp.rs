@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::crypto;
 use crate::error::{spdm_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use crate::protocol::*;
 use crate::responder::*;
 extern crate alloc;
@@ -104,7 +104,7 @@ impl<'a> ResponderContext<'a> {
         response.spdm_encode(&mut self.common, writer);
         let used = writer.used();
 
-        // generat signature
+        // generate signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
         let temp_used = used - base_asym_size;
         #[cfg(not(feature = "hash-update"))]
@@ -149,8 +149,9 @@ impl<'a> ResponderContext<'a> {
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         let mut message = ManagedBuffer::default();
+        message.reset_message();
+
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or_else(|| spdm_err!(ENOMEM))?;
@@ -160,10 +161,11 @@ impl<'a> ResponderContext<'a> {
             message
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
                 .ok_or_else(|| spdm_err!(ENOMEM))?;
-            message
-                .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
         }
+
+        message
+            .append_message(message_hash.as_ref())
+            .ok_or_else(|| spdm_err!(ENOMEM))?;
 
         crypto::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
@@ -226,6 +228,7 @@ mod tests_responder {
     use codec::{Codec, Writer};
 
     #[test]
+    #[should_panic]
     fn test_case0_handle_spdm_challenge() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

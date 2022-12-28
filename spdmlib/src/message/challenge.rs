@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::common::{self, SpdmVersion, SPDM_MAX_SLOT_NUMBER};
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmSignatureStruct,
 };
@@ -19,6 +19,9 @@ pub struct SpdmChallengeRequestPayload {
 
 impl SpdmCodec for SpdmChallengeRequestPayload {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+        if self.slot_id != 0xFF && self.slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            panic!("slot id {:02X?} is not allowed", self.slot_id);
+        }
         self.slot_id.encode(bytes); // param1
         self.measurement_summary_hash_type.encode(bytes); // param2
         self.nonce.encode(bytes);
@@ -29,6 +32,10 @@ impl SpdmCodec for SpdmChallengeRequestPayload {
         r: &mut Reader,
     ) -> Option<SpdmChallengeRequestPayload> {
         let slot_id = u8::read(r)?;
+        if slot_id != 0xFF && slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            log::error!("slot id {:02X?} is not allowed", slot_id);
+            return None;
+        }
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?;
         let nonce = SpdmNonceStruct::read(r)?;
 
@@ -61,7 +68,11 @@ pub struct SpdmChallengeAuthResponsePayload {
 
 impl SpdmCodec for SpdmChallengeAuthResponsePayload {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        let param1 = self.slot_id + self.challenge_auth_attribute.bits();
+        let param1 = if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+            self.slot_id + self.challenge_auth_attribute.bits()
+        } else {
+            self.slot_id
+        };
         param1.encode(bytes);
         self.slot_mask.encode(bytes); // param2
         self.cert_chain_hash.spdm_encode(context, bytes);
@@ -79,7 +90,9 @@ impl SpdmCodec for SpdmChallengeAuthResponsePayload {
     ) -> Option<SpdmChallengeAuthResponsePayload> {
         let param1 = u8::read(r)?;
         let slot_id = param1 & 0xF;
-        let challenge_auth_attribute = SpdmChallengeAuthAttribute::from_bits(param1 & 0xF0)?;
+        let challenge_auth_attribute = SpdmChallengeAuthAttribute::from_bits(
+            param1 & SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ.bits(),
+        )?;
         let slot_mask = u8::read(r)?; // param2
         let cert_chain_hash = SpdmDigestStruct::spdm_read(context, r)?;
         let nonce = SpdmNonceStruct::read(r)?;
@@ -117,6 +130,7 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
+    #[should_panic]
     fn test_case0_spdm_challenge_request_payload() {
         let u8_slice = &mut [0u8; 34];
         let mut writer = Writer::init(u8_slice);

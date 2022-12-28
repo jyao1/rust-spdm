@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
-use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::common::{self, SpdmVersion};
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
 };
@@ -14,15 +14,20 @@ use codec::{Codec, Reader, Writer};
 pub struct SpdmPskExchangeRequestPayload {
     pub measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     pub req_session_id: u16,
+    pub session_policy: u8,
     pub psk_hint: SpdmPskHintStruct,
     pub psk_context: SpdmPskContextStruct,
     pub opaque: SpdmOpaqueStruct,
 }
 
 impl SpdmCodec for SpdmPskExchangeRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         self.measurement_summary_hash_type.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            self.session_policy.encode(bytes); // param2
+        } else {
+            0u8.encode(bytes); // param2
+        }
         self.req_session_id.encode(bytes);
 
         self.psk_hint.data_size.encode(bytes);
@@ -55,7 +60,7 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
         r: &mut Reader,
     ) -> Option<SpdmPskExchangeRequestPayload> {
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?; // param1
-        u8::read(r)?; // param2
+        let session_policy = u8::read(r)?; // param2
         let req_session_id = u16::read(r)?;
 
         let mut psk_hint = SpdmPskHintStruct::default();
@@ -83,6 +88,7 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
         Some(SpdmPskExchangeRequestPayload {
             measurement_summary_hash_type,
             req_session_id,
+            session_policy,
             psk_hint,
             psk_context,
             opaque,
@@ -182,7 +188,6 @@ mod tests {
     use crate::common::*;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
     use crate::config::*;
-    use crate::protocol::*;
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
@@ -193,6 +198,7 @@ mod tests {
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             req_session_id: 100u16,
+            session_policy: 0,
             psk_hint: SpdmPskHintStruct {
                 data_size: 32,
                 data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
@@ -239,6 +245,7 @@ mod tests {
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             req_session_id: 100u16,
+            session_policy: 0,
             psk_hint: SpdmPskHintStruct {
                 data_size: 0,
                 data: [100u8; MAX_SPDM_PSK_HINT_SIZE],

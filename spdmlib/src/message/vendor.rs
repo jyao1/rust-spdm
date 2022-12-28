@@ -217,7 +217,7 @@ static VENDOR_DEFNIED: OnceCell<VendorDefinedStruct> = OnceCell::uninit();
 
 static VENDOR_DEFNIED_DEFAULT: VendorDefinedStruct = VendorDefinedStruct {
     vendor_defined_request_handler: |_vendor_defined_req_payload_struct: &VendorDefinedReqPayloadStruct|
-     -> SpdmResult<VendorDefinedRspPayloadStruct> { log::info!("not implement vendor defined struct!!!\n"); spdm_result_err!(EUNDEF) },
+     -> SpdmResult<VendorDefinedRspPayloadStruct> { log::error!("not implement vendor defined struct!!!\n"); spdm_result_err!(EUNDEF) },
 };
 
 pub fn register_vendor_defined_struct(context: VendorDefinedStruct) -> bool {

@@ -1,6 +1,7 @@
 mod common;
 
 use codec::{Reader, Writer};
+use spdmlib::common::gen_array_clone;
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
 use spdmlib::config::{
@@ -8,10 +9,10 @@ use spdmlib::config::{
     MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
 };
 use spdmlib::protocol::{
-    gen_array_clone, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData,
-    SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementStructure,
-    SpdmDmtfMeasurementType, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
-    SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,
+    SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
+    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmSignatureStruct,
+    SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
 };
 use spdmlib::protocol::{SpdmDmtfMeasurementRepresentation, SpdmMeasurementBlockStructure};
 

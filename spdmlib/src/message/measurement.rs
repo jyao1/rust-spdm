@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use crate::protocol::{SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmSignatureStruct};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
@@ -16,6 +16,9 @@ pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_MASK: u8 = 0b0011_0000;
 pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE: u8 = 0b0000_0000;
 pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE: u8 = 0b0001_0000;
 pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NO_CHANGE_VALUE: u8 = 0b0010_0000;
+
+pub const RESERVED_INDEX_START: u8 = 0xF0;
+pub const RESERVED_INDEX_END: u8 = 0xFC;
 
 bitflags! {
     #[derive(Default)]
@@ -55,36 +58,50 @@ pub struct SpdmGetMeasurementsRequestPayload {
 }
 
 impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         self.measurement_attributes.encode(bytes); // param1
+        if let SpdmMeasurementOperation::Unknown(x) = self.measurement_operation {
+            if (RESERVED_INDEX_START..=RESERVED_INDEX_END).contains(&x) {
+                panic!("Invalid Index\n");
+            }
+        }
         self.measurement_operation.encode(bytes); // param2
         if self
             .measurement_attributes
             .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
         {
             self.nonce.encode(bytes);
-            self.slot_id.encode(bytes);
+            if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10 {
+                self.slot_id.encode(bytes);
+            }
         }
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmGetMeasurementsRequestPayload> {
         let measurement_attributes = SpdmMeasurementeAttributes::read(r)?; // param1
         let measurement_operation = SpdmMeasurementOperation::read(r)?; // param2
+        if let SpdmMeasurementOperation::Unknown(x) = measurement_operation {
+            if (RESERVED_INDEX_START..=RESERVED_INDEX_END).contains(&x) {
+                log::error!("Invalid Index\n");
+                return None;
+            }
+        }
         let nonce =
             if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
                 SpdmNonceStruct::read(r)?
             } else {
                 SpdmNonceStruct::default()
             };
-        let slot_id =
-            if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
-                u8::read(r)?
-            } else {
-                0
-            };
+        let slot_id = if context.negotiate_info.spdm_version_sel != SpdmVersion::SpdmVersion10
+            && measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
+        {
+            u8::read(r)?
+        } else {
+            0
+        };
 
         Some(SpdmGetMeasurementsRequestPayload {
             measurement_attributes,
@@ -97,6 +114,7 @@ impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementsResponsePayload {
+    pub spdm_measurement_operation: SpdmMeasurementOperation,
     pub number_of_measurement: u8,
     pub content_changed: u8,
     pub slot_id: u8,
@@ -108,22 +126,30 @@ pub struct SpdmMeasurementsResponsePayload {
 
 impl SpdmCodec for SpdmMeasurementsResponsePayload {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        //When Param2 in the requested measurement operation is 0 , this
-        //parameter shall return the total number of measurement indices on
-        //the device. Otherwise, this field is reserved.
-        if self.number_of_measurement == 1 {
-            0_u8.encode(bytes); // param1
+        if self.spdm_measurement_operation
+            != SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+        {
+            0u8.encode(bytes); // param1
         } else {
             self.number_of_measurement.encode(bytes); // param1
         }
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
             && context.config_info.runtime_content_change_support
+        // param2
         {
-            (self.slot_id | self.content_changed).encode(bytes); // param2
+            (self.slot_id | self.content_changed).encode(bytes);
+        } else if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion11 {
+            self.slot_id.encode(bytes);
         } else {
-            self.slot_id.encode(bytes); // param 2
+            0u8.encode(bytes);
         }
-        self.measurement_record.spdm_encode(context, bytes);
+        if self.spdm_measurement_operation
+            == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+        {
+            0u32.encode(bytes); // NumberOfBlocks and MeasurementRecordLength
+        } else {
+            self.measurement_record.spdm_encode(context, bytes);
+        }
         self.nonce.encode(bytes);
         self.opaque.spdm_encode(context, bytes);
         if context.runtime_info.need_measurement_signature {
@@ -147,7 +173,15 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         } else {
             SpdmSignatureStruct::default()
         };
+        let spdm_measurement_operation = if number_of_measurement == 1 {
+            SpdmMeasurementOperation::Unknown(number_of_measurement) // requester should not use this value
+        } else if measurement_record.number_of_blocks == 0 {
+            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+        } else {
+            SpdmMeasurementOperation::SpdmMeasurementRequestAll
+        };
         Some(SpdmMeasurementsResponsePayload {
+            spdm_measurement_operation,
             number_of_measurement,
             content_changed,
             slot_id,
@@ -159,6 +193,37 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
     }
 }
 
+bitflags! {
+    #[derive(Default)]
+    pub struct OperationalMode: u32 {
+        const MANUFACTURING_MODE = 0b0000_0001;
+        const VALIDATION_MODE = 0b0000_0010;
+        const NORMAL_OPERATIONAL_MODE = 0b0000_0100;
+        const RECOVERY_MODE = 0b0000_1000;
+        const RETURN_MERCHANDISE_AUTHORIZATION_MODE = 0b0001_0000;
+        const DECOMMISSIONED_MODE = 0b0010_0000;
+    }
+}
+
+bitflags! {
+    #[derive(Default)]
+    pub struct DeviceMode: u32 {
+        const NON_INVASIVE_DEBUG_MODE = 0b0000_0001;
+        const INVASIVE_DEBUG_MODE = 0b0000_0010;
+        const NON_INVASIVE_DEBUG_MODE_ACTIVE_RESET_CYCLE = 0b0000_0100;
+        const INVASIVE_DEBUG_MODE_ACTIVE_RESET_CYCLE = 0b0000_1000;
+        const INVASIVE_DEBUG_MODE_ACTIVE_AT_LEAST_ONCE_SINCE_MANUFACTURING_MODE = 0b0001_0000;
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SpdmMeasurementsDeviceMode {
+    pub operational_mode_capabilties: OperationalMode,
+    pub operational_mode_state: OperationalMode,
+    pub device_mode_capabilties: DeviceMode,
+    pub device_mode_state: DeviceMode,
+}
+
 #[cfg(all(test,))]
 #[path = "mod_test.common.inc.rs"]
 mod testlib;
@@ -166,6 +231,7 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
     use crate::config::*;
     use crate::protocol::*;
@@ -255,10 +321,12 @@ mod tests {
         assert_eq!(46, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case0_spdm_measurements_response_payload() {
         let u8_slice = &mut [0u8; 1000];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementsResponsePayload {
+            spdm_measurement_operation: SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             number_of_measurement: 100u8,
             slot_id: 7u8,
             content_changed: MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE,

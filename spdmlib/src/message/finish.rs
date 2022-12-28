@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::common::{self, SPDM_MAX_SLOT_NUMBER};
 use crate::protocol::{
     SpdmDigestStruct, SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmSignatureStruct,
 };
@@ -39,6 +39,9 @@ pub struct SpdmFinishRequestPayload {
 impl SpdmCodec for SpdmFinishRequestPayload {
     fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
         self.finish_request_attributes.encode(bytes); // param1
+        if self.req_slot_id != 0xFF && self.req_slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            panic!("slot id {:02X?} is not allowed", self.req_slot_id);
+        }
         self.req_slot_id.encode(bytes); // param2
         if self
             .finish_request_attributes
@@ -55,6 +58,10 @@ impl SpdmCodec for SpdmFinishRequestPayload {
     ) -> Option<SpdmFinishRequestPayload> {
         let finish_request_attributes = SpdmFinishRequestAttributes::read(r)?; // param1
         let req_slot_id = u8::read(r)?; // param2
+        if req_slot_id != 0xFF && req_slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            log::error!("slot id {:02X?} is not allowed", req_slot_id);
+            return None;
+        }
         let mut signature = SpdmSignatureStruct::default();
         if finish_request_attributes.contains(SpdmFinishRequestAttributes::SIGNATURE_INCLUDED) {
             signature = SpdmSignatureStruct::spdm_read(context, r)?;
@@ -129,6 +136,7 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
+    #[should_panic]
     fn test_case0_spdm_finish_request_payload() {
         let u8_slice = &mut [0u8; 680];
         let mut writer = Writer::init(u8_slice);
@@ -170,6 +178,7 @@ mod tests {
         }
     }
     #[test]
+    #[should_panic]
     fn test_case1_spdm_finish_request_payload() {
         let u8_slice = &mut [0u8; 680];
         let mut writer = Writer::init(u8_slice);

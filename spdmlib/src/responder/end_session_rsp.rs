@@ -53,9 +53,10 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
-    use crate::protocol::gen_array_clone;
+    use crate::protocol::*;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};

@@ -348,7 +348,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        if self.responder.process_message(ST1).is_err() {
+        if self.responder.process_message(0xFFFE, ST1).is_err() {
             return spdm_result_err!(ENOMEM);
         }
         Ok(())

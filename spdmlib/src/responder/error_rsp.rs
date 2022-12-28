@@ -41,6 +41,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
+    use crate::protocol::*;
     use crate::testlib::*;
     use crate::{crypto, responder};
     #[test]

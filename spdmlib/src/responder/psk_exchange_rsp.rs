@@ -2,12 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::SpdmCodec;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use crate::protocol::*;
 use crate::responder::*;
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
@@ -18,15 +18,16 @@ use alloc::boxed::Box;
 use crate::common::ManagedBuffer;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_psk_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
+    pub fn handle_spdm_psk_exchange(&mut self, rsp_session_id: u16, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_psk_exchange_response(bytes, &mut writer)?;
+        self.write_spdm_psk_exchange_response(rsp_session_id, bytes, &mut writer)?;
         self.send_message(writer.used_slice())
     }
 
     pub fn write_spdm_psk_exchange_response(
         &mut self,
+        rsp_session_id: u16,
         bytes: &[u8],
         writer: &mut Writer,
     ) -> SpdmResult {
@@ -66,20 +67,20 @@ impl<'a> ResponderContext<'a> {
                             .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
                         {
                             return_opaque.data_size =
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
                                     .len() as u16;
                             return_opaque.data[..(return_opaque.data_size as usize)]
                                 .copy_from_slice(
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
                                     .as_ref(),
                             );
                         } else {
                             return_opaque.data_size =
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
                                     .len() as u16;
                             return_opaque.data[..(return_opaque.data_size as usize)]
                                 .copy_from_slice(
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
                                     .as_ref(),
                             );
                         }
@@ -102,8 +103,6 @@ impl<'a> ResponderContext<'a> {
 
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
         let _ = crypto::rand::get_random(&mut psk_context);
-
-        let rsp_session_id = 0xFFFD;
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {
@@ -269,6 +268,7 @@ mod tests_responder {
     use super::*;
     use crate::config::MAX_SPDM_PSK_HINT_SIZE;
     use crate::message::SpdmMessageHeader;
+    use crate::protocol::*;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
@@ -319,19 +319,20 @@ mod tests_responder {
                 data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                data_size: crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
                     .len() as u16,
                 data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
             },
+            session_policy: 0,
         };
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
-            &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
+            &crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
         );
         value.spdm_encode(&mut context.common, &mut writer);
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&challenge[0..1022]);
-        let _ = context.handle_spdm_psk_exchange(bytes);
+        let _ = context.handle_spdm_psk_exchange(0xFFFE, bytes);
     }
 }

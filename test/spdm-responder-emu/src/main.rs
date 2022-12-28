@@ -7,6 +7,11 @@
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use spdmlib::common::SpdmOpaqueSupport;
+use spdmlib::error::SpdmResult;
+use spdmlib::message::{
+    register_vendor_defined_struct, VendorDefinedReqPayloadStruct, VendorDefinedRspPayloadStruct,
+    VendorDefinedStruct,
+};
 
 use std::net::{TcpListener, TcpStream};
 use std::u32;
@@ -132,6 +137,16 @@ fn main() {
     }
 }
 
+pub fn vendor_defined_request_handler(
+    vdr: &VendorDefinedReqPayloadStruct,
+) -> SpdmResult<VendorDefinedRspPayloadStruct> {
+    log::info!("vendor defined request payload: {:02X?}", vdr);
+    Ok(VendorDefinedRspPayloadStruct {
+        rsp_length: vdr.req_length,
+        vendor_defined_rsp_payload: vdr.vendor_defined_req_payload,
+    })
+}
+
 fn handle_message(
     stream: &mut TcpStream,
     transport_encap: &mut dyn SpdmTransportEncap,
@@ -148,13 +163,13 @@ fn handle_message(
         rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
         | SpdmResponseCapabilityFlags::CHAL_CAP
         | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
+        //| SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
         | SpdmResponseCapabilityFlags::ENCRYPT_CAP
         | SpdmResponseCapabilityFlags::MAC_CAP
         //| SpdmResponseCapabilityFlags::MUT_AUTH_CAP
         | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
+        //| SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
+        //| SpdmResponseCapabilityFlags::ENCAP_CAP
         | SpdmResponseCapabilityFlags::HBEAT_CAP
         | SpdmResponseCapabilityFlags::KEY_UPD_CAP, // | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
         // | SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP
@@ -237,10 +252,17 @@ fn handle_message(
         config_info,
         provision_info,
     );
+
+    let vds = VendorDefinedStruct {
+        vendor_defined_request_handler,
+    };
+
+    register_vendor_defined_struct(vds);
+
     loop {
         // if failed, receieved message can't be processed. then the message will need caller to deal.
         // now caller need to deal with message in context.
-        let res = context.process_message(ST1);
+        let res = context.process_message(0xFFFE, ST1);
         match res {
             Ok(spdm_result) => {
                 if spdm_result {

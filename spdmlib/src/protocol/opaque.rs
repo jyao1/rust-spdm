@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use super::spdm_codec::SpdmCodec;
-use super::*;
+use crate::common::{spdm_codec::SpdmCodec, SpdmContext};
 use crate::config;
 use codec::{Codec, Reader, Writer};
 

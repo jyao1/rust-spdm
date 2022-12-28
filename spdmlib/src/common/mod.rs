@@ -2,14 +2,17 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-pub mod key_schedule;
-pub mod opaque;
 pub mod session;
 pub mod spdm_codec;
 
-use crate::{crypto, protocol::*};
+use crate::crypto;
+extern crate alloc;
+use alloc::vec::Vec;
 
-pub use opaque::*;
+use core::convert::TryInto;
+
+pub use crate::protocol::opaque::*;
+pub use crate::protocol::*;
 pub use spdm_codec::SpdmCodec;
 
 use crate::config;
@@ -32,6 +35,27 @@ pub const ST1: usize = 1_000_000;
 
 /// used as parameter to be slot_id when use_psk is true
 pub const INVALID_SLOT: u8 = 0xFF;
+
+// util function
+pub fn gen_array<T: Default, const N: usize>(count: usize) -> [T; N] {
+    let mut vec = Vec::new();
+    for _i in 0..count {
+        vec.push(T::default());
+    }
+    vec.try_into()
+        .unwrap_or_else(|_| panic!("gen_array error!"))
+}
+
+// util function
+pub fn gen_array_clone<T: Clone, const N: usize>(v: T, count: usize) -> [T; N] {
+    let mut vec = Vec::new();
+    for _i in 1..count {
+        vec.push(v.clone());
+    }
+    vec.push(v);
+    vec.try_into()
+        .unwrap_or_else(|_| panic!("gen_array_clone error!"))
+}
 
 pub trait SpdmDeviceIo {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult;

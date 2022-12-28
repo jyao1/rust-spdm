@@ -10,22 +10,23 @@ use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
 use crate::crypto;
 use crate::protocol::*;
 extern crate alloc;
-use crate::common::opaque::SpdmOpaqueStruct;
 #[cfg(feature = "hash-update")]
 use crate::crypto::HashCtx;
 use crate::message::*;
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
+    pub fn handle_spdm_key_exchange(&mut self, rsp_session_id: u16, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_key_exchange_response(bytes, &mut writer)?;
+        self.write_spdm_key_exchange_response(rsp_session_id, bytes, &mut writer)?;
         self.send_message(writer.used_slice())
     }
 
     pub fn write_spdm_key_exchange_response(
         &mut self,
+        rsp_session_id: u16,
         bytes: &[u8],
         writer: &mut Writer,
     ) -> SpdmResult {
@@ -74,20 +75,20 @@ impl<'a> ResponderContext<'a> {
                             .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
                         {
                             return_opaque.data_size =
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
                                     .len() as u16;
                             return_opaque.data[..(return_opaque.data_size as usize)]
                                 .copy_from_slice(
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
                                     .as_ref(),
                             );
                         } else {
                             return_opaque.data_size =
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
                                     .len() as u16;
                             return_opaque.data[..(return_opaque.data_size as usize)]
                                 .copy_from_slice(
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                crate::protocol::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
                                     .as_ref(),
                             );
                         }
@@ -123,8 +124,6 @@ impl<'a> ResponderContext<'a> {
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
         let _ = crypto::rand::get_random(&mut random);
-
-        let rsp_session_id = 0xFFFE;
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {
@@ -249,7 +248,7 @@ impl<'a> ResponderContext<'a> {
 
         let session = session.unwrap();
         let session_id =
-            ((key_exchange_req.unwrap().req_session_id as u32) << 16) + rsp_session_id as u32;
+            ((rsp_session_id as u32) << 16) + key_exchange_req.unwrap().req_session_id as u32;
         session.setup(session_id).unwrap();
         session.set_use_psk(false);
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
@@ -293,8 +292,8 @@ impl<'a> ResponderContext<'a> {
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return spdm_result_err!(EFAULT);
-                session.runtime_info.message_k = message_k;
             }
+            session.runtime_info.message_k = message_k;
         }
 
         #[cfg(feature = "hash-update")]
@@ -397,12 +396,6 @@ impl<'a> ResponderContext<'a> {
 
 #[cfg(all(test,))]
 mod tests_responder {
-    use super::*;
-    use crate::message::SpdmMessageHeader;
-    use crate::testlib::*;
-    use crate::{crypto, responder};
-    use bytes::BytesMut;
-    use codec::{Codec, Writer};
 
     #[test]
     #[cfg(not(feature = "hash-update"))]
@@ -457,13 +450,13 @@ mod tests_responder {
             },
             exchange: SpdmDheExchangeStruct::from(public_key),
             opaque: SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                data_size: crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
                     .len() as u16,
                 data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
             },
         };
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
-            &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
+            &crate::protocol::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
         );
         value.spdm_encode(&mut context.common, &mut writer);
 

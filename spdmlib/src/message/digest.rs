@@ -3,8 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
+use crate::common::gen_array_clone;
 use crate::common::spdm_codec::SpdmCodec;
-use crate::protocol::{gen_array_clone, SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
+use crate::protocol::{SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -47,7 +48,7 @@ impl SpdmCodec for SpdmDigestsResponsePayload {
         }
 
         if count != self.slot_count {
-            panic!();
+            panic!("slot_count and mask doesn't match!\n");
         }
 
         for digest in self.digests.iter().take(count as usize) {

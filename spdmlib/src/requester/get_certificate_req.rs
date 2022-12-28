@@ -5,7 +5,6 @@
 use crate::crypto;
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
-use crate::protocol::*;
 use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {

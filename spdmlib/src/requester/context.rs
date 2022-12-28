@@ -39,11 +39,15 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         use_psk: bool,
         slot_id: u8,
+        req_session_id: u16,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<u32> {
         if !use_psk {
-            let result =
-                self.send_receive_spdm_key_exchange(slot_id, measurement_summary_hash_type);
+            let result = self.send_receive_spdm_key_exchange(
+                slot_id,
+                req_session_id,
+                measurement_summary_hash_type,
+            );
             if let Ok(session_id) = result {
                 let result = self.send_receive_spdm_finish(slot_id, session_id);
                 if result.is_ok() {
@@ -55,7 +59,8 @@ impl<'a> RequesterContext<'a> {
                 spdm_result_err!(EIO)
             }
         } else {
-            let result = self.send_receive_spdm_psk_exchange(measurement_summary_hash_type);
+            let result =
+                self.send_receive_spdm_psk_exchange(req_session_id, measurement_summary_hash_type);
             if let Ok(session_id) = result {
                 let result = self.send_receive_spdm_psk_finish(session_id);
                 if result.is_ok() {
@@ -158,6 +163,7 @@ mod tests_requester {
     use codec::Writer;
 
     #[test]
+    #[should_panic]
     fn test_case0_start_session() {
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
@@ -197,6 +203,7 @@ mod tests_requester {
         let result = requester.start_session(
             false,
             0,
+            0xFFFE,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         );
         assert!(result.is_ok());
@@ -204,6 +211,7 @@ mod tests_requester {
         let result = requester.start_session(
             false,
             0,
+            0xFFFE,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         );
         assert!(result.is_ok());
@@ -211,6 +219,7 @@ mod tests_requester {
         let result = requester.start_session(
             true,
             0,
+            0xFFFE,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         );
         assert!(result.is_ok());

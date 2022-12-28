@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::common::{self, SPDM_MAX_SLOT_NUMBER};
 use crate::config;
 use codec::{Codec, Reader, Writer};
 
@@ -16,6 +16,9 @@ pub struct SpdmGetCertificateRequestPayload {
 
 impl SpdmCodec for SpdmGetCertificateRequestPayload {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+        if self.slot_id != 0xFF && self.slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            panic!("slot id {:02X?} is not allowed", self.slot_id);
+        }
         self.slot_id.encode(bytes); // param1
         0u8.encode(bytes); // param2
         self.offset.encode(bytes);
@@ -27,6 +30,10 @@ impl SpdmCodec for SpdmGetCertificateRequestPayload {
         r: &mut Reader,
     ) -> Option<SpdmGetCertificateRequestPayload> {
         let slot_id = u8::read(r)?; // param1
+        if slot_id != 0xFF && slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            log::error!("slot id {:02X?} is not allowed", slot_id);
+            return None;
+        }
         u8::read(r)?; // param2
         let offset = u16::read(r)?;
         let length = u16::read(r)?;
@@ -59,6 +66,9 @@ impl Default for SpdmCertificateResponsePayload {
 
 impl SpdmCodec for SpdmCertificateResponsePayload {
     fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+        if self.slot_id != 0xFF && self.slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            panic!("slot id {:02X?} is not allowed", self.slot_id);
+        }
         self.slot_id.encode(bytes); // param1
         0u8.encode(bytes); // param2
         self.portion_length.encode(bytes);
@@ -74,6 +84,10 @@ impl SpdmCodec for SpdmCertificateResponsePayload {
         r: &mut Reader,
     ) -> Option<SpdmCertificateResponsePayload> {
         let slot_id = u8::read(r)?; // param1
+        if slot_id != 0xFF && slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
+            log::error!("slot id {:02X?} is not allowed", slot_id);
+            return None;
+        }
         u8::read(r)?; // param2
         let portion_length = u16::read(r)?;
         let remainder_length = u16::read(r)?;
@@ -102,6 +116,7 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
+    #[should_panic]
     fn test_case0_spdm_get_capabilities_request_payload() {
         let u8_slice = &mut [0u8; 12];
         let mut writer = Writer::init(u8_slice);
@@ -123,6 +138,7 @@ mod tests {
         assert_eq!(6, reader.left());
     }
     #[test]
+    #[should_panic]
     fn test_case0_spdm_certificate_response_payload() {
         let u8_slice = &mut [0u8; 520];
         let mut writer = Writer::init(u8_slice);

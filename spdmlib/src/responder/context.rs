@@ -61,6 +61,7 @@ impl<'a> ResponderContext<'a> {
 
     pub fn process_message(
         &mut self,
+        init_rsp_session_id: u16,
         timeout: usize,
     ) -> Result<bool, (usize, [u8; config::DATA_TRANSFER_SIZE])> {
         let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
@@ -106,7 +107,7 @@ impl<'a> ResponderContext<'a> {
                         }
                     }
                 } else {
-                    Ok(self.dispatch_message(&receive_buffer[0..used]))
+                    Ok(self.dispatch_message(init_rsp_session_id, &receive_buffer[0..used]))
                 }
             }
             Err(used) => Err((used, receive_buffer)),
@@ -222,7 +223,7 @@ impl<'a> ResponderContext<'a> {
         let _ = self.send_secured_message(session_id, M_SECURE_SESSION_RESPONSE, true);
         true
     }
-    pub fn dispatch_message(&mut self, bytes: &[u8]) -> bool {
+    pub fn dispatch_message(&mut self, init_rsp_session_id: u16, bytes: &[u8]) -> bool {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
@@ -260,13 +261,19 @@ impl<'a> ResponderContext<'a> {
                 }
 
                 SpdmRequestResponseCode::SpdmRequestKeyExchange => {
-                    matches!(self.handle_spdm_key_exchange(bytes), Ok(_))
+                    matches!(
+                        self.handle_spdm_key_exchange(init_rsp_session_id, bytes),
+                        Ok(_)
+                    )
                 }
 
                 SpdmRequestResponseCode::SpdmRequestFinish => false,
 
                 SpdmRequestResponseCode::SpdmRequestPskExchange => {
-                    matches!(self.handle_spdm_psk_exchange(bytes), Ok(_))
+                    matches!(
+                        self.handle_spdm_psk_exchange(init_rsp_session_id, bytes),
+                        Ok(_)
+                    )
                 }
 
                 SpdmRequestResponseCode::SpdmRequestPskFinish => false,
@@ -303,11 +310,12 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::*;
     use crate::common::spdm_codec::SpdmCodec;
     use crate::common::ST1;
     use crate::message::SpdmMessageHeader;
-    use crate::protocol::gen_array_clone;
+    use crate::protocol::*;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::Writer;
@@ -461,7 +469,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let status = context.process_message(ST1).is_err();
+        let status = context.process_message(0xFFFE, ST1).is_err();
         assert!(status);
     }
     #[test]
@@ -533,7 +541,7 @@ mod tests_responder {
                 request_response_code: dispatc_data(i, true),
             };
             value.encode(&mut writer);
-            let status = context.dispatch_message(bytes);
+            let status = context.dispatch_message(0xFFFE, bytes);
             assert!(status);
         }
         for i in 0..21 {
@@ -544,7 +552,7 @@ mod tests_responder {
                 request_response_code: dispatc_data(i, false),
             };
             value.encode(&mut writer);
-            let status = context.dispatch_message(bytes);
+            let status = context.dispatch_message(0xFFFE, bytes);
             assert!(!status);
         }
     }

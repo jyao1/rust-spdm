@@ -260,9 +260,9 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
+    use crate::common::gen_array_clone;
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
-    use crate::protocol::gen_array_clone;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
@@ -340,6 +340,7 @@ mod tests_responder {
         context.handle_spdm_finish(4294901758, bytes);
     }
     #[test]
+    #[should_panic]
     fn test_case1_handle_spdm_finish() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

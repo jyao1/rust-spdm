@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::crypto;
@@ -10,6 +9,7 @@ use crate::crypto;
 use crate::error::spdm_result_err;
 use crate::error::{spdm_err, SpdmResult};
 use crate::message::*;
+use crate::protocol::opaque::SpdmOpaqueStruct;
 use crate::protocol::*;
 use crate::responder::*;
 use crate::secret::*;
@@ -84,21 +84,19 @@ impl<'a> ResponderContext<'a> {
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         let _ = crypto::rand::get_random(&mut nonce);
 
-        let real_measurement_block_count = spdm_measurement_collection(
-            spdm_version_sel,
-            measurement_specification_sel,
-            base_hash_sel,
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize,
-        )
-        .unwrap()
-        .number_of_blocks;
-
         let number_of_measurement: u8 = if get_measurements.measurement_operation
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll
             || get_measurements.measurement_operation
                 == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
         {
-            real_measurement_block_count
+            spdm_measurement_collection(
+                spdm_version_sel,
+                measurement_specification_sel,
+                base_hash_sel,
+                SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize,
+            )
+            .unwrap()
+            .number_of_blocks
         } else {
             1
         };
@@ -115,9 +113,6 @@ impl<'a> ResponderContext<'a> {
         } else if let SpdmMeasurementOperation::Unknown(index) =
             get_measurements.measurement_operation
         {
-            if index > real_measurement_block_count {
-                return;
-            }
             spdm_measurement_collection(
                 spdm_version_sel,
                 measurement_specification_sel,
@@ -143,6 +138,7 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmMeasurementsResponse(
                 SpdmMeasurementsResponsePayload {
+                    spdm_measurement_operation: get_measurements.measurement_operation,
                     number_of_measurement,
                     slot_id: get_measurements.slot_id,
                     content_changed,
