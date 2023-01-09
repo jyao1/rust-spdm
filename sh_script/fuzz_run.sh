@@ -2,6 +2,8 @@
 
 # pkill screen
 
+set -exo pipefail
+
 usage() {
     cat <<EOM
 Usage: $(basename "$0") [OPTION]...

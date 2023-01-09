@@ -49,11 +49,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         let message_m = &[0];
-        responder
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
+        responder.common.runtime_info.message_m.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -128,11 +124,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         let message_m = &[0];
-        responder
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
+        responder.common.runtime_info.message_m.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -207,11 +199,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         let message_m = &[0];
-        responder
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
+        responder.common.runtime_info.message_m.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -285,11 +273,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         let message_m = &[0];
-        responder
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
+        responder.common.runtime_info.message_m.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
