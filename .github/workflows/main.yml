@@ -85,6 +85,31 @@ jobs:
         run: |
           cargo build -p spdm-responder-emu -p spdm-requester-emu
 
+      - name: Install AFL (Linux)
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: afl
+        if: runner.os == 'Linux'
+
+      - name: Install Cargo-Fuzz (Linux)
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-fuzz
+        if: runner.os == 'Linux'
+
+      - name: set core_pattern for core
+        run: |
+          sudo su - root <<EOF
+          echo core >/proc/sys/kernel/core_pattern
+          pushd /sys/devices/system/cpu
+          echo performance | tee cpu*/cpufreq/scaling_governor
+          popd
+          exit
+          EOF
+        if: runner.os == 'Linux'
+
       - name: Build fuzz
         run: ./sh_script/fuzz_run.sh -b
 

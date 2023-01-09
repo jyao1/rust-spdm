@@ -162,7 +162,7 @@ impl<'a> RequesterContext<'a> {
                         if let Some(hash) = self.common.get_certchain_hash_req(slot_id, false) {
                             cert_chain_hash = hash;
                         } else {
-                            panic!("get_certchain_hash_req failed!");
+                            return spdm_result_err!(EFAULT);
                         }
 
                         #[cfg(feature = "hash-update")]
