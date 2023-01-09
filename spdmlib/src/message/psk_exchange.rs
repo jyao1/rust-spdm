@@ -5,6 +5,7 @@
 use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::config::MAX_SPDM_OPAQUE_SIZE;
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
 };
@@ -65,6 +66,9 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
         psk_hint.data_size = u16::read(r)?;
         psk_context.data_size = u16::read(r)?;
         opaque.data_size = u16::read(r)?;
+        if opaque.data_size > MAX_SPDM_OPAQUE_SIZE as u16 {
+            return None;
+        }
 
         for d in psk_hint.data.iter_mut().take(psk_hint.data_size as usize) {
             *d = u8::read(r)?;

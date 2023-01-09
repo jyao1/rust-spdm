@@ -422,6 +422,11 @@ impl SpdmCodec for SecuredMessageDMTFSupportedVersion {
             SecuredMessageGeneralOpaqueDataHeader::spdm_read(context, r)?;
         let mut opaque_element_dmtf_supported_version_list =
             [OpaqueElementDMTFSupportedVersion::default(); MAX_OPAQUE_LIST_ELEMENTS_COUNT];
+        if secured_message_general_opaque_data_header.total_elements
+            > MAX_OPAQUE_LIST_ELEMENTS_COUNT as u8
+        {
+            return None;
+        }
         for d in opaque_element_dmtf_supported_version_list
             .iter_mut()
             .take(secured_message_general_opaque_data_header.total_elements as usize)
@@ -461,6 +466,9 @@ impl SpdmCodec for SpdmOpaqueStruct {
     }
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
         let data_size = u16::read(r)?;
+        if data_size > config::MAX_SPDM_OPAQUE_SIZE as u16 {
+            return None;
+        }
         let mut data = [0u8; config::MAX_SPDM_OPAQUE_SIZE];
         for d in data.iter_mut().take(data_size as usize) {
             *d = u8::read(r)?;
