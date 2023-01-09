@@ -63,6 +63,11 @@ impl<'a> ResponderContext<'a> {
                 .opaque
                 .rsp_get_dmtf_supported_secure_spdm_version_list(&mut self.common)
             {
+                if secured_message_version_list.version_count
+                    > crate::common::opaque::MAX_SECURE_SPDM_VERSION_COUNT as u8
+                {
+                    return spdm_result_err!(EINVAL);
+                }
                 for index in 0..secured_message_version_list.version_count as usize {
                     if secured_message_version_list.versions_list[index].get_secure_spdm_version()
                         == self.common.config_info.secure_spdm_version
@@ -185,7 +190,7 @@ impl<'a> ResponderContext<'a> {
         if let Some(hash) = self.common.get_certchain_hash_rsp(false) {
             cert_chain_hash = hash;
         } else {
-            panic!("get_certchain_hash_req failed!");
+            return spdm_result_err!(EINVAL);
         }
 
         #[cfg(feature = "hash-update")]
