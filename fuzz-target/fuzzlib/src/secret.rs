@@ -117,7 +117,7 @@ fn spdm_measurement_collection_impl(
             digest_value10[..64].copy_from_slice(digest10.data.as_ref());
 
             Some(SpdmMeasurementRecordStructure {
-                number_of_blocks: config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT as u8,
+                number_of_blocks: 10,
                 record: [
                     SpdmMeasurementBlockStructure {
                         index: measurement_index as u8,
@@ -239,9 +239,10 @@ fn spdm_measurement_collection_impl(
                             value: digest_value10,
                         },
                     },
-                ],
+                ]
+                .to_vec(),
             })
-        } else if measurement_index > config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT {
+        } else if measurement_index > 10 {
             None
         } else {
             let mut firmware: [u8; 8] = [0; 8];
@@ -278,7 +279,8 @@ fn spdm_measurement_collection_impl(
                     SpdmMeasurementBlockStructure::default(),
                     SpdmMeasurementBlockStructure::default(),
                     SpdmMeasurementBlockStructure::default(),
-                ],
+                ]
+                .to_vec(),
             })
         }
     }

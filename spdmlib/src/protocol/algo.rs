@@ -7,8 +7,8 @@ use bytes::BytesMut;
 use codec::{enum_builder, Codec, Reader, Writer};
 use core::convert::From;
 extern crate alloc;
-use super::gen_array;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub const SHA256_DIGEST_SIZE: usize = 32;
@@ -853,18 +853,10 @@ pub struct SpdmMeasurementBlockStructure {
     pub measurement: SpdmDmtfMeasurementStructure,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementRecordStructure {
     pub number_of_blocks: u8,
-    pub record: [SpdmMeasurementBlockStructure; config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
-}
-impl Default for SpdmMeasurementRecordStructure {
-    fn default() -> SpdmMeasurementRecordStructure {
-        SpdmMeasurementRecordStructure {
-            number_of_blocks: 0,
-            record: gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT),
-        }
-    }
+    pub record: Vec<SpdmMeasurementBlockStructure>,
 }
 
 #[derive(Debug, Clone)]

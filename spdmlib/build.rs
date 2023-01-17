@@ -56,7 +56,6 @@ struct SpdmCertConfig {
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmMeasurementConfig {
     max_measurement_val_len: usize,
-    max_measurement_block_count: usize,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -108,7 +107,6 @@ pub const MAX_SPDM_MEASUREMENT_VALUE_LEN: usize = {meas_val_len};
 /// This is used in SpdmMeasurementsResponsePayload
 /// There could be multiple measurements in one measurement record.
 //pub const MAX_SPDM_MEASUREMENT_RECORD_LEN : usize = 0x400;
-pub const MAX_SPDM_MEASUREMENT_BLOCK_COUNT: usize = {meas_block_cnt};
 
 /// This is used in SpdmPskExchangeRequestPayload / SpdmPskExchangeResponsePayload
 /// It should be no smaller than negoatiated DIGEST SIZE.
@@ -175,7 +173,6 @@ fn main() {
         cert_chain_data_sz = spdm_config.cert_config.max_cert_chain_data_size,
         opaque_sz = spdm_config.max_opaque_size,
         meas_val_len = spdm_config.measurement_config.max_measurement_val_len,
-        meas_block_cnt = spdm_config.measurement_config.max_measurement_block_count,
         psk_ctx_sz = spdm_config.psk_config.max_psk_context_size,
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,

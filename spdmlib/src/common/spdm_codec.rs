@@ -5,7 +5,7 @@
 use crate::common::SpdmContext;
 use crate::config;
 use crate::protocol::{
-    gen_array, SpdmCertChain, SpdmCertChainData, SpdmDheExchangeStruct, SpdmDigestStruct,
+    SpdmCertChain, SpdmCertChainData, SpdmDheExchangeStruct, SpdmDigestStruct,
     SpdmDmtfMeasurementRepresentation, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
     SpdmMeasurementBlockStructure, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
     SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
@@ -14,6 +14,7 @@ use codec::{u24, Codec, Reader, Writer};
 use core::fmt::Debug;
 extern crate alloc;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 pub trait SpdmCodec: Debug + Sized {
     /// Encode yourself by appending onto `bytes`.
@@ -136,7 +137,10 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
         let number_of_blocks = u8::read(r)?;
         let record_length = u24::read(r)?;
 
-        let mut record = gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT);
+        let mut record = Vec::new();
+        for _ in 0..number_of_blocks {
+            record.push(SpdmMeasurementBlockStructure::default())
+        }
         for d in record.iter_mut().take(number_of_blocks as usize) {
             *d = SpdmMeasurementBlockStructure::spdm_read(context, r)?;
         }

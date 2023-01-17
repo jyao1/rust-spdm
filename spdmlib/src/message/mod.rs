@@ -935,7 +935,7 @@ mod tests {
                         MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE,
                     measurement_record: SpdmMeasurementRecordStructure {
                         number_of_blocks: 5,
-                        record: gen_array_clone(
+                        record: gen_array_clone::<SpdmMeasurementBlockStructure, 5>(
                             SpdmMeasurementBlockStructure {
                                 index: 100u8,
                                 measurement_specification: SpdmMeasurementSpecification::DMTF,
@@ -948,8 +948,8 @@ mod tests {
                                     value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
                                 },
                             },
-                            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-                        ),
+                            5,
+                        ).to_vec(),
                     },
                     nonce: SpdmNonceStruct {
                         data: [100u8; SPDM_NONCE_SIZE],

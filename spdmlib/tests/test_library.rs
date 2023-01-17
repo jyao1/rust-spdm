@@ -4,8 +4,7 @@ use codec::{Reader, Writer};
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
 use spdmlib::config::{
-    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-    MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
+    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
 };
 use spdmlib::protocol::{
     gen_array_clone, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData,
@@ -127,7 +126,7 @@ fn test_case0_spdm_measurement_record_structure() {
     SpdmMeasurementRecordStructure::default();
     let value = SpdmMeasurementRecordStructure {
         number_of_blocks: 5,
-        record: gen_array_clone(
+        record: gen_array_clone::<SpdmMeasurementBlockStructure, 5>(
             SpdmMeasurementBlockStructure {
                 index: 100u8,
                 measurement_specification: SpdmMeasurementSpecification::DMTF,
@@ -139,8 +138,9 @@ fn test_case0_spdm_measurement_record_structure() {
                     value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
                 },
             },
-            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-        ),
+            5,
+        )
+        .to_vec(),
     };
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -182,10 +182,11 @@ fn test_case1_spdm_measurement_record_structure() {
     let mut writer = Writer::init(u8_slice);
     let value = SpdmMeasurementRecordStructure {
         number_of_blocks: 5,
-        record: gen_array_clone(
+        record: gen_array_clone::<SpdmMeasurementBlockStructure, 5>(
             SpdmMeasurementBlockStructure::default(),
-            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-        ),
+            5,
+        )
+        .to_vec(),
     };
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

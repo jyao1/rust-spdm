@@ -13,8 +13,7 @@
     },
     "max_opaque_size": 64,
     "measurement_config": {
-        "max_measurement_val_len": 640,
-        "max_measurement_block_count": 10
+        "max_measurement_val_len": 640
     },
     "psk_config": {
         "max_psk_context_size": 64,
