@@ -29,7 +29,8 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
     context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-
+    context.common.runtime_info.message_m =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     context.handle_spdm_challenge(data);
 }
 fn main() {

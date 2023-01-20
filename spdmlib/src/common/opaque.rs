@@ -527,3 +527,9 @@ impl Codec for SpdmOpaqueSupport {
         SpdmOpaqueSupport::from_bits(bits)
     }
 }
+
+impl SpdmOpaqueSupport {
+    pub fn is_no_more_than_one_selected(&self) -> bool {
+        return self.bits() == 0 || (self.bits() & self.bits() - 1 == 0);
+    }
+}

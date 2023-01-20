@@ -52,6 +52,13 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
         context.handle_spdm_finish(4294901758, data);
@@ -84,6 +91,15 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.provision_info.my_cert_chain_data = None;
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
         context.handle_spdm_finish(4294901758, data);
@@ -116,6 +132,14 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
         context.handle_spdm_finish(4294901758, data);
@@ -151,6 +175,14 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
@@ -189,6 +221,14 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
 
         context
             .common
@@ -231,6 +271,14 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE - 103]);
         context.common.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 

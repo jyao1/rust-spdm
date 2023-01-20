@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
+use fuzzlib::{spdmlib::crypto, *};
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_digest(data: &[u8]) {
@@ -31,6 +31,8 @@ fn fuzz_handle_spdm_digest(data: &[u8]) {
         data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
     });
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+    context.common.runtime_info.message_m =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     context.handle_spdm_digest(data, None);
 }
 fn main() {

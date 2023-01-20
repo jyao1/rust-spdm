@@ -41,6 +41,14 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
 
+    let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+    dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+    responder.common.session[0]
+        .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+        .unwrap();
+    responder.common.session[0].runtime_info.message_k =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
         fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -67,6 +75,15 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
     requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+
+    let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+    dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+    requester.common.session[0]
+        .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+        .unwrap();
+    requester.common.session[0].runtime_info.message_k =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
     let _ = requester.send_receive_spdm_psk_finish(4294901758);
 }
 

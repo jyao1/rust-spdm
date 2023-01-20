@@ -30,6 +30,9 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
     });
     responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
+    responder.common.runtime_info.message_m =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
         fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -42,6 +45,9 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
     );
 
     requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+
+    requester.common.runtime_info.message_m =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
 
     let _ = requester.send_receive_spdm_digest(None).is_err();
 }

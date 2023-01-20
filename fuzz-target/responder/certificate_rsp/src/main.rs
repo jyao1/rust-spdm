@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
-// use crate::spdmlib::message::capability::*;
+use spdmlib::protocol::SpdmBaseHashAlgo;
 
 fn fuzz_handle_spdm_certificate(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -27,6 +27,10 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
     );
 
     context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+
+    context.common.runtime_info.message_m =
+        spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
     context.handle_spdm_certificate(data, None);
 }
 fn main() {

@@ -97,7 +97,13 @@ impl<'a> RequesterContext<'a> {
 
                         self.common.negotiate_info.measurement_hash_sel =
                             algorithms.measurement_hash_algo;
+                        if algorithms.base_hash_sel.bits() == 0 {
+                            return spdm_result_err!(EINVAL);
+                        }
                         self.common.negotiate_info.base_hash_sel = algorithms.base_hash_sel;
+                        if algorithms.base_asym_sel.bits() == 0 {
+                            return spdm_result_err!(EINVAL);
+                        }
                         self.common.negotiate_info.base_asym_sel = algorithms.base_asym_sel;
                         for alg in algorithms
                             .alg_struct

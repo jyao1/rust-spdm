@@ -158,7 +158,7 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmAlgorithmsResponsePayload> {
         let alg_struct_count = u8::read(r)?; // param1
@@ -166,13 +166,33 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 
         let length = u16::read(r)?;
 
-        let measurement_specification_sel = SpdmMeasurementSpecification::read(r)?;
+        let mut measurement_specification_sel = SpdmMeasurementSpecification::read(r)?;
+        if !measurement_specification_sel.is_no_more_than_one_selected() {
+            return None;
+        }
+        measurement_specification_sel.prioritize(context.config_info.measurement_specification);
 
         let other_params_selection = SpdmOpaqueSupport::read(r)?;
+        if !other_params_selection.is_no_more_than_one_selected() {
+            return None;
+        }
 
         let measurement_hash_algo = SpdmMeasurementHashAlgo::read(r)?;
-        let base_asym_sel = SpdmBaseAsymAlgo::read(r)?;
-        let base_hash_sel = SpdmBaseHashAlgo::read(r)?;
+        if !measurement_hash_algo.is_no_more_than_one_selected() {
+            return None;
+        }
+
+        let mut base_asym_sel = SpdmBaseAsymAlgo::read(r)?;
+        if !base_asym_sel.is_no_more_than_one_selected() {
+            return None;
+        }
+        base_asym_sel.prioritize(context.config_info.base_asym_algo);
+
+        let mut base_hash_sel = SpdmBaseHashAlgo::read(r)?;
+        if !base_hash_sel.is_no_more_than_one_selected() {
+            return None;
+        }
+        base_hash_sel.prioritize(context.config_info.base_hash_algo);
 
         for _i in 0..12 {
             u8::read(r)?; // reserved2

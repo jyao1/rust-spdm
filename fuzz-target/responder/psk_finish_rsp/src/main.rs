@@ -48,6 +48,14 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
         );
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
         context.handle_spdm_psk_finish(4294901758, data);
     }
 
@@ -79,6 +87,15 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             .message_a
             .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
         context.handle_spdm_psk_finish(4294901758, data);
     }
     {
@@ -104,6 +121,15 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+
         context.handle_spdm_psk_finish(4294901758, data);
     }
     {
@@ -130,6 +156,14 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+
+        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
+        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
+        context.common.session[0]
+            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
+            .unwrap();
+        context.common.session[0].runtime_info.message_k =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
 
         context.handle_spdm_psk_finish(4294901758, data);
     }
