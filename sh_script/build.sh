@@ -1,0 +1,111 @@
+#!/bin/bash
+
+set -euo pipefail
+
+usage() {
+    cat <<EOM
+Usage: $(basename "$0") [OPTION]...
+  -c Run check
+  -b Build target
+  -r Build and run tests
+  -h Show help info
+EOM
+}
+
+check() {
+    # Enable/Disable --all option for check/build
+    CHECK_ALL_CRATES=${CHECK_ALL_CRATES:-true}
+    if [[ ${CHECK_ALL_CRATES} == true ]]; then
+        CHECK_ALL_CRATES=--all
+    else
+        CHECK_ALL_CRATES=
+    fi
+    echo "Checking..."
+    set -x
+    cargo fmt ${CHECK_ALL_CRATES} -- --check
+    cargo check ${CHECK_ALL_CRATES}
+    cargo clippy ${CHECK_ALL_CRATES}
+    set +x
+}
+
+build() {
+    pushd spdmlib
+    echo "Building Rust-SPDM..."
+    cargo build
+
+    echo "Building Rust-SPDM in no std..."
+    cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+
+    echo "Building Rust-SPDM with no-default-features..."
+    cargo build --release --no-default-features
+
+    echo "Building Rust-SPDM without hash-update feature..."
+    cargo build --release --no-default-features --features=spdm-ring,std
+    popd
+
+    echo "Building spdm-requester-emu..."
+    cargo build -p spdm-requester-emu
+
+    echo "Building spdm-responder-emu..."
+    cargo build -p spdm-responder-emu
+
+    echo "Building tdisp..."
+    cargo build -p tdisp
+}
+
+run() {
+    echo "Running tests..."
+    cargo test
+
+    echo "Running requester and responder..."
+    cargo run -p spdm-responder-emu &
+    sleep 5
+    cargo run -p spdm-requester-emu
+}
+
+CHECK_OPTION=false
+BUILD_OPTION=false
+RUN_OPTION=false
+
+process_args() {
+    while getopts ":cbrfh" option; do
+        case "${option}" in
+        c)
+            CHECK_OPTION=true
+            ;;
+        b)
+            BUILD_OPTION=true
+            ;;
+        r)
+            RUN_OPTION=true
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Invalid option '-$OPTARG'"
+            usage
+            exit 1
+            ;;
+        esac
+    done
+}
+
+main() {
+    if [[ ${CHECK_OPTION} == true ]]; then
+        check
+        exit 0
+    fi
+    if [[ ${BUILD_OPTION} == true ]]; then
+        build
+        exit 0
+    fi
+    build
+    if [[ ${RUN_OPTION} == true ]]; then
+        run
+    fi
+}
+
+process_args "$@"
+main
