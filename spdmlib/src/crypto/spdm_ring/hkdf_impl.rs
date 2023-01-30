@@ -32,7 +32,7 @@ fn hkdf_expand(
     let res = pkr
         .expand(&[info], SpdmCryptoHkdfKeyLen::new(out_size))
         .and_then(|okm| {
-            let len = out_size as u16;
+            let len = out_size;
             ret.data_size = len;
             okm.fill(&mut ret.data[..len as usize])
         });

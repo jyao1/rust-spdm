@@ -636,7 +636,7 @@ impl Codec for SpdmAlgStruct {
         let alg_type = SpdmAlgType::read(r)?;
         let alg_count = u8::read(r)?;
         let alg_fixed_count = ((alg_count as u32 >> 4) & 0xF) as u8;
-        let alg_ext_count = (alg_count & 0xF) as u8;
+        let alg_ext_count = alg_count & 0xF;
 
         let alg_supported = match alg_type {
             SpdmAlgType::SpdmAlgTypeDHE => Some(SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::read(r)?)),

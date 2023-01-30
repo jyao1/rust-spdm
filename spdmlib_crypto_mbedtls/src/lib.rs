@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #![cfg_attr(not(test), no_std)]
-#![feature(core_ffi_c)]
 
 extern crate alloc;
 
@@ -22,6 +21,6 @@ pub mod rand_impl;
 mod platform_support;
 
 #[no_mangle]
-pub unsafe extern "C" fn mbedtls_param_failed() {
+pub extern "C" fn mbedtls_param_failed() {
     panic!("mbedtls_param_failed fail called")
 }

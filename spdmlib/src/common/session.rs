@@ -965,7 +965,7 @@ impl SpdmSession {
         //debug!("secure_buffer len - {}\n", secured_buffer.len());
 
         // secure buffer might be bigger for alignment
-        if secured_buffer.len() < length as usize + aad_size as usize {
+        if secured_buffer.len() < length as usize + aad_size {
             return spdm_result_err!(EINVAL);
         }
 

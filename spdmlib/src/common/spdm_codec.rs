@@ -77,7 +77,7 @@ impl SpdmCodec for SpdmSignatureStruct {
 }
 impl SpdmCodec for SpdmCertChain {
     fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        let length = self.cert_chain.data_size as u16 + self.root_hash.data_size as u16 + 4_u16;
+        let length = self.cert_chain.data_size + self.root_hash.data_size + 4_u16;
         length.encode(bytes);
         0u16.encode(bytes);
 
@@ -96,7 +96,7 @@ impl SpdmCodec for SpdmCertChain {
         let length = u16::read(r)?;
         u16::read(r)?;
         let root_hash = SpdmDigestStruct::spdm_read(context, r)?;
-        let data_size = length - 4 - root_hash.data_size as u16;
+        let data_size = length - 4 - root_hash.data_size;
         let mut cert_chain = SpdmCertChainData {
             data_size,
             ..Default::default()
