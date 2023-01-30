@@ -194,7 +194,7 @@ fn main() {
     .expect("Failed to generate configuration code from the template and JSON config");
 
     let dest_path = Path::new(SPDM_CONFIG_RS_OUT_DIR).join(SPDM_CONFIG_RS_OUT_FILE_NAME);
-    fs::write(&dest_path, to_generate).unwrap();
+    fs::write(dest_path, to_generate).unwrap();
 
     // Re-run the build script if the files at the given paths or envs have changed.
     println!("cargo:rerun-if-changed=build.rs");
