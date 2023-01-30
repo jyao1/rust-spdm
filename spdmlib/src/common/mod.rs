@@ -476,7 +476,7 @@ impl ManagedBuffer {
 
 impl AsRef<[u8]> for ManagedBuffer {
     fn as_ref(&self) -> &[u8] {
-        &self.1[0..(self.0 as usize)]
+        &self.1[0..self.0]
     }
 }
 

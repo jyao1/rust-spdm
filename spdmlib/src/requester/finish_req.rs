@@ -95,7 +95,7 @@ impl<'a> RequesterContext<'a> {
 
             // patch the message before send
             buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
-            return Ok((send_used, base_hash_size, message_f));
+            Ok((send_used, base_hash_size, message_f))
         }
 
         #[cfg(feature = "hash-update")]

@@ -43,7 +43,7 @@ fn encrypt(
     }
     let plain_text_size = plain_text.len();
 
-    if cipher_text.len() != plain_text_size as usize {
+    if cipher_text.len() != plain_text_size {
         panic!("cipher_text len invalid");
     }
 
@@ -108,7 +108,7 @@ fn decrypt(
     }
     let cipher_text_size = cipher_text.len();
 
-    if plain_text.len() != cipher_text_size as usize {
+    if plain_text.len() != cipher_text_size {
         panic!("plain_text len invalid");
     }
 

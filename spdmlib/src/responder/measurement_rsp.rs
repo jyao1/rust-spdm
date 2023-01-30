@@ -153,7 +153,7 @@ impl<'a> ResponderContext<'a> {
                         data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
                     },
                     signature: SpdmSignatureStruct {
-                        data_size: signature_size as u16,
+                        data_size: signature_size,
                         data: [0x60u8; SPDM_MAX_ASYM_KEY_SIZE],
                     },
                 },

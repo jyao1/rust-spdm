@@ -73,7 +73,8 @@ int spdm_rsa_pss_verify(
 {
     mbedtls_x509_crt crt;
     int ret;
-    signature_size;
+    // suppress "unused" 
+    (void)signature_size;
 
     mbedtls_x509_crt_init(&crt);
 

@@ -68,7 +68,7 @@ impl<'a> ResponderContext<'a> {
             length = my_cert_chain.data_size - offset;
         }
 
-        let portion_length = length as u16;
+        let portion_length = length;
         let remainder_length = my_cert_chain.data_size - (length + offset);
 
         let cert_chain_data =

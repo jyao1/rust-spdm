@@ -63,7 +63,7 @@ impl<'a> ResponderContext<'a> {
                 slot_count: 1u8,
                 digests: gen_array_clone(
                     SpdmDigestStruct {
-                        data_size: digest_size as u16,
+                        data_size: digest_size,
                         data: Box::new([0xffu8; SPDM_MAX_HASH_SIZE]),
                     },
                     SPDM_MAX_SLOT_NUMBER,
