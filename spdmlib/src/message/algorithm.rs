@@ -398,7 +398,11 @@ mod tests {
 
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
+        let mut config_info = SpdmConfigInfo::default();
+        config_info.measurement_specification = SpdmMeasurementSpecification::DMTF;
+        config_info.measurement_hash_algo = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
+        config_info.base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048;
+        config_info.base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
         let provision_info = SpdmProvisionInfo::default();
         let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 

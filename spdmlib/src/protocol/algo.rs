@@ -130,7 +130,7 @@ impl SpdmMeasurementSpecification {
     }
 
     pub fn is_no_more_than_one_selected(&self) -> bool {
-        return self.bits() == 0 || (self.bits() & self.bits() - 1 == 0);
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
     }
 }
 
@@ -166,7 +166,7 @@ impl SpdmMeasurementHashAlgo {
     /// return true if no more than one is selected
     /// return false if two or more is selected
     pub fn is_no_more_than_one_selected(&self) -> bool {
-        return self.bits() == 0 || (self.bits() & self.bits() - 1 == 0);
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
     }
 }
 impl Codec for SpdmMeasurementHashAlgo {
@@ -237,7 +237,7 @@ impl SpdmBaseAsymAlgo {
     /// return true if no more than one is selected
     /// return false if two or more is selected
     pub fn is_no_more_than_one_selected(&self) -> bool {
-        return self.bits() == 0 || (self.bits() & self.bits() - 1 == 0);
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
     }
 }
 
@@ -298,7 +298,7 @@ impl SpdmBaseHashAlgo {
     /// return true if no more than one is selected
     /// return false if two or more is selected
     pub fn is_no_more_than_one_selected(&self) -> bool {
-        return self.bits() == 0 || (self.bits() & self.bits() - 1 == 0);
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
     }
 }
 
