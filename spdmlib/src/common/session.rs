@@ -76,7 +76,7 @@ pub struct SpdmSessionTransportParam {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg(not(feature = "hash-update"))]
+#[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmSessionRuntimeInfo {
     pub message_k: ManagedBuffer,
     pub message_f: ManagedBuffer,
@@ -84,7 +84,7 @@ pub struct SpdmSessionRuntimeInfo {
 }
 
 #[derive(Clone, Default)]
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmSessionRuntimeInfo {
     pub message_k: Option<HashCtx>,
     pub message_f: Option<HashCtx>,
@@ -621,7 +621,7 @@ impl SpdmSession {
         Ok(())
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_hmac_with_response_finished_key(
         &mut self,
         message: &[u8],
@@ -636,7 +636,7 @@ impl SpdmSession {
         .ok_or(spdm_err!(ESEC))
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_hmac_with_response_finished_key(
         &mut self,
         message_hash: &[u8],
@@ -649,7 +649,7 @@ impl SpdmSession {
         .ok_or(spdm_err!(ESEC))
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_hmac_with_request_finished_key(
         &mut self,
         message: &[u8],
@@ -664,7 +664,7 @@ impl SpdmSession {
         .ok_or(spdm_err!(ESEC))
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_hmac_with_request_finished_key(
         &mut self,
         message_hash: &[u8],
@@ -677,7 +677,7 @@ impl SpdmSession {
         .ok_or(spdm_err!(ESEC))
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn verify_hmac_with_response_finished_key(
         &self,
         message: &[u8],
@@ -693,7 +693,7 @@ impl SpdmSession {
         )
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_hmac_with_response_finished_key(
         &self,
         message_hash: &[u8],
@@ -707,7 +707,7 @@ impl SpdmSession {
         )
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn verify_hmac_with_request_finished_key(
         &self,
         message: &[u8],
@@ -723,7 +723,7 @@ impl SpdmSession {
         )
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_hmac_with_request_finished_key(
         &self,
         message_hash: &[u8],

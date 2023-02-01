@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
@@ -50,22 +50,22 @@ impl<'a> RequesterContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = send_used - base_hash_size;
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let mut message_f = ManagedBuffer::default();
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         message_f
             .append_message(&buf[..temp_used])
             .ok_or(spdm_err!(ENOMEM))?;
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
             s
         } else {
             return spdm_result_err!(EFAULT);
         };
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let message_k = &session.runtime_info.message_k;
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = self.common.calc_req_transcript_data(
             INVALID_SLOT,
             true,
@@ -78,27 +78,27 @@ impl<'a> RequesterContext<'a> {
             return spdm_result_err!(EFAULT);
         };
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let mut message_f = session.runtime_info.message_k.as_mut().cloned();
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), &buf[..temp_used]);
 
         let hmac = session.generate_hmac_with_request_finished_key(
-            #[cfg(feature = "hash-update")]
+            #[cfg(feature = "hashed-transcript-data")]
             crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
                 .unwrap()
                 .as_ref(),
-            #[cfg(not(feature = "hash-update"))]
+            #[cfg(not(feature = "hashed-transcript-data"))]
             transcript_data.as_ref(),
         )?;
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         message_f
             .append_message(hmac.as_ref())
             .ok_or(spdm_err!(ENOMEM))?;
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         {
             crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
             session.runtime_info.message_f = message_f;
@@ -107,17 +107,17 @@ impl<'a> RequesterContext<'a> {
         // patch the message before send
         buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         return Ok((send_used, message_f));
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         Ok((send_used, ManagedBuffer::default()))
     }
 
     pub fn handle_spdm_psk_finish_response(
         &mut self,
         session_id: u32,
-        #[cfg(not(feature = "hash-update"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hash-update")] message_f: ManagedBuffer, // never use message_f for hash-update, use session.runtime_info.message_f
+        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
+        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
@@ -130,7 +130,7 @@ impl<'a> RequesterContext<'a> {
                     if let Some(psk_finish_rsp) = psk_finish_rsp {
                         debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             let session =
                                 if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -146,16 +146,16 @@ impl<'a> RequesterContext<'a> {
                             session.runtime_info.message_f = message_f;
                         }
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let session =
                             if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
                                 s
                             } else {
                                 return spdm_result_err!(EFAULT);
                             };
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let message_k = &session.runtime_info.message_k; // generate the data secret
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let th2 = self.common.calc_req_transcript_hash(
                             INVALID_SLOT,
                             true,
@@ -163,19 +163,19 @@ impl<'a> RequesterContext<'a> {
                             Some(&session.runtime_info.message_f),
                         )?;
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                             s
                         } else {
                             return spdm_result_err!(EFAULT);
                         };
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         crypto::hash::hash_ctx_update(
                             session.runtime_info.message_f.as_mut().unwrap(),
                             &receive_buffer[..receive_used],
                         );
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let th2 = crypto::hash::hash_ctx_finalize(
                             session.runtime_info.message_f.as_mut().cloned().unwrap(),
                         )

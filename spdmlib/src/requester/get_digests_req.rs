@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
@@ -58,7 +58,7 @@ impl<'a> RequesterContext<'a> {
                     if let Some(digests) = digests {
                         debug!("!!! digests : {:02x?}\n", digests);
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             let message_b = &mut self.common.runtime_info.message_b;
                             message_b
@@ -69,7 +69,7 @@ impl<'a> RequesterContext<'a> {
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         }
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 self.common.runtime_info.message_m.as_mut().unwrap(),

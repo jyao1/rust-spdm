@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
@@ -62,7 +62,7 @@ impl<'a> RequesterContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = send_used - base_hash_size;
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let mut message_f = ManagedBuffer::default();
             message_f
@@ -98,7 +98,7 @@ impl<'a> RequesterContext<'a> {
             Ok((send_used, base_hash_size, message_f))
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         {
             let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                 s
@@ -125,8 +125,8 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         slot_id: u8,
         base_hash_size: usize,
-        #[cfg(not(feature = "hash-update"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hash-update")] message_f: ManagedBuffer, // never use message_f for hash-update, use session.runtime_info.message_f
+        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
+        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let in_clear_text = self
@@ -151,7 +151,7 @@ impl<'a> RequesterContext<'a> {
                         debug!("!!! finish rsp : {:02x?}\n", finish_rsp);
 
                         if in_clear_text {
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             let session = if let Some(s) =
                                 self.common.get_immutable_session_via_id(session_id)
                             {
@@ -159,17 +159,17 @@ impl<'a> RequesterContext<'a> {
                             } else {
                                 return spdm_result_err!(EFAULT);
                             };
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             let message_k = &session.runtime_info.message_k;
 
                             // verify HMAC with finished_key
                             let temp_used = receive_used - base_hash_size;
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             message_f
                                 .append_message(&receive_buffer[..temp_used])
                                 .ok_or(spdm_err!(ENOMEM))?;
 
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self.common.calc_req_transcript_data(
                                 slot_id,
                                 false,
@@ -184,20 +184,20 @@ impl<'a> RequesterContext<'a> {
                                     return spdm_result_err!(EFAULT);
                                 };
 
-                            #[cfg(feature = "hash-update")]
+                            #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
                                 session.runtime_info.message_f.as_mut().unwrap(),
                                 &receive_buffer[..temp_used],
                             );
 
-                            #[cfg(feature = "hash-update")]
+                            #[cfg(feature = "hashed-transcript-data")]
                             let ctx_cloned =
                                 session.runtime_info.message_f.as_mut().cloned().unwrap();
                             if session
                                 .verify_hmac_with_response_finished_key(
-                                    #[cfg(not(feature = "hash-update"))]
+                                    #[cfg(not(feature = "hashed-transcript-data"))]
                                     transcript_data.as_ref(),
-                                    #[cfg(feature = "hash-update")]
+                                    #[cfg(feature = "hashed-transcript-data")]
                                     crypto::hash::hash_ctx_finalize(ctx_cloned)
                                         .unwrap()
                                         .as_ref(),
@@ -211,15 +211,15 @@ impl<'a> RequesterContext<'a> {
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             message_f
                                 .append_message(finish_rsp.verify_data.as_ref())
                                 .ok_or(spdm_err!(ENOMEM))?;
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             {
                                 session.runtime_info.message_f = message_f.clone();
                             }
-                            #[cfg(feature = "hash-update")]
+                            #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
                                 session.runtime_info.message_f.as_mut().unwrap(),
                                 finish_rsp.verify_data.as_ref(),
@@ -231,32 +231,32 @@ impl<'a> RequesterContext<'a> {
                                 } else {
                                     return spdm_result_err!(EFAULT);
                                 };
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             message_f
                                 .append_message(&receive_buffer[..receive_used])
                                 .ok_or(spdm_err!(ENOMEM))?;
-                            #[cfg(not(feature = "hash-update"))]
+                            #[cfg(not(feature = "hashed-transcript-data"))]
                             {
                                 session.runtime_info.message_f = message_f.clone();
                             }
-                            #[cfg(feature = "hash-update")]
+                            #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
                                 session.runtime_info.message_f.as_mut().unwrap(),
                                 &receive_buffer[..receive_used],
                             );
                         }
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let session =
                             if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
                                 s
                             } else {
                                 return spdm_result_err!(EFAULT);
                             };
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let message_k = &session.runtime_info.message_k;
                         // generate the data secret
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let th2 = self.common.calc_req_transcript_hash(
                             slot_id,
                             false,
@@ -264,14 +264,14 @@ impl<'a> RequesterContext<'a> {
                             Some(&message_f),
                         )?;
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                             s
                         } else {
                             return spdm_result_err!(EFAULT);
                         };
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let th2 = crypto::hash::hash_ctx_finalize(
                             session.runtime_info.message_f.as_mut().cloned().unwrap(),
                         )

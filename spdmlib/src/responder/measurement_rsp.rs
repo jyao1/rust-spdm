@@ -6,7 +6,7 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::crypto;
-#[cfg(not(feature = "hash-update"))]
+#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::spdm_result_err;
 use crate::error::{spdm_err, SpdmResult};
 use crate::message::*;
@@ -62,7 +62,7 @@ impl<'a> ResponderContext<'a> {
 
         let base_hash_sel = self.common.negotiate_info.base_hash_sel;
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let message_a = self.common.runtime_info.message_a.clone();
         let measurement_specification_sel =
             self.common.negotiate_info.measurement_specification_sel;
@@ -70,7 +70,7 @@ impl<'a> ResponderContext<'a> {
         let content_changed = self.common.runtime_info.content_changed;
         let base_asym_sel = self.common.negotiate_info.base_asym_sel;
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if self
             .append_message_m_response(session_id, &bytes[..reader.used()])
             .is_none()
@@ -163,7 +163,7 @@ impl<'a> ResponderContext<'a> {
         response.spdm_encode(&mut self.common, writer);
         let used = writer.used();
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let message_m = match session_id {
             Some(session_id) => {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -203,7 +203,7 @@ impl<'a> ResponderContext<'a> {
                 &mut self.common.runtime_info.message_mes_no_session
             }
         };
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), &bytes[..reader.used()]);
 
         // generat signature
@@ -213,10 +213,10 @@ impl<'a> ResponderContext<'a> {
         {
             let base_asym_size = base_asym_sel.get_size() as usize;
             let temp_used = used - base_asym_size;
-            #[cfg(not(feature = "hash-update"))]
+            #[cfg(not(feature = "hashed-transcript-data"))]
             self.append_message_m_response(session_id, &writer.used_slice()[..temp_used]);
 
-            #[cfg(feature = "hash-update")]
+            #[cfg(feature = "hashed-transcript-data")]
             crypto::hash::hash_ctx_update(
                 message_m.as_mut().unwrap(),
                 &writer.used_slice()[..temp_used],
@@ -231,7 +231,7 @@ impl<'a> ResponderContext<'a> {
             // patch the message before send
             writer.mut_used_slice()[(used - base_asym_size)..used]
                 .copy_from_slice(signature.as_ref());
-            #[cfg(not(feature = "hash-update"))]
+            #[cfg(not(feature = "hashed-transcript-data"))]
             match session_id {
                 Some(session_id) => {
                     self.common
@@ -245,7 +245,7 @@ impl<'a> ResponderContext<'a> {
                     self.common.runtime_info.message_m.reset_message();
                 }
             }
-            #[cfg(feature = "hash-update")]
+            #[cfg(feature = "hashed-transcript-data")]
             match session_id {
                 Some(session_id) => {
                     self.common
@@ -259,9 +259,9 @@ impl<'a> ResponderContext<'a> {
                 }
             }
         } else {
-            #[cfg(not(feature = "hash-update"))]
+            #[cfg(not(feature = "hashed-transcript-data"))]
             self.append_message_m_response(session_id, writer.used_slice());
-            #[cfg(feature = "hash-update")]
+            #[cfg(feature = "hashed-transcript-data")]
             match session_id {
                 Some(_) => {
                     crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), writer.used_slice());
@@ -275,7 +275,7 @@ impl<'a> ResponderContext<'a> {
             }
         }
     }
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn append_message_m_response(
         &mut self,
         session_id: Option<u32>,
@@ -296,7 +296,7 @@ impl<'a> ResponderContext<'a> {
     ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = ManagedBuffer::default();
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             let message_a = self.common.runtime_info.message_a.clone();
             message
@@ -304,7 +304,7 @@ impl<'a> ResponderContext<'a> {
                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
         }
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         match session_id {
             None => {
                 message
@@ -324,12 +324,12 @@ impl<'a> ResponderContext<'a> {
         }
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let message_hash = match session_id {
             Some(session_id) => crypto::hash::hash_ctx_finalize(
                 self.common
@@ -437,7 +437,7 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
         context.handle_spdm_measurement(None, bytes);
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let data = context.common.runtime_info.message_m.as_ref();
             let u8_slice = &mut [0u8; 2048];
@@ -574,7 +574,7 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
         context.handle_spdm_measurement(None, bytes);
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let data = context.common.runtime_info.message_m.as_ref();
             let u8_slice = &mut [0u8; 2048];

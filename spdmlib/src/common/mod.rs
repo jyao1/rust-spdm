@@ -17,7 +17,7 @@ use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use codec::Writer;
 use session::*;
 
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 pub use crate::crypto::HashCtx;
 
 #[cfg(feature = "downcast")]
@@ -150,7 +150,7 @@ impl<'a> SpdmContext<'a> {
         self.get_session_via_id(0)
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,
         slot_id: u8,
@@ -201,7 +201,7 @@ impl<'a> SpdmContext<'a> {
         Ok(message)
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_rsp_transcript_data(
         &mut self,
         use_psk: bool,
@@ -244,7 +244,7 @@ impl<'a> SpdmContext<'a> {
         Ok(message)
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_hash(
         &self,
         slot_id: u8,
@@ -260,7 +260,7 @@ impl<'a> SpdmContext<'a> {
         Ok(transcript_hash)
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_rsp_transcript_hash(
         &mut self,
         use_psk: bool,
@@ -487,7 +487,7 @@ impl Default for ManagedBuffer {
 }
 
 #[derive(Debug, Clone, Default)]
-#[cfg(not(feature = "hash-update"))]
+#[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
@@ -500,7 +500,7 @@ pub struct SpdmRuntimeInfo {
 }
 
 #[derive(Clone, Default)]
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,

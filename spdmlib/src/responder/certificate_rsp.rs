@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::message::*;
 use crate::responder::*;
@@ -30,7 +30,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if self
             .common
             .runtime_info
@@ -42,7 +42,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             self.common.runtime_info.message_m.as_mut().unwrap(),
             &bytes[..reader.used()],
@@ -91,12 +91,12 @@ impl<'a> ResponderContext<'a> {
         };
         response.spdm_encode(&mut self.common, writer);
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         self.common
             .runtime_info
             .message_b
             .append_message(writer.used_slice());
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             self.common.runtime_info.message_m.as_mut().unwrap(),
             writer.used_slice(),
@@ -154,7 +154,7 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&capabilities[0..1022]);
         context.handle_spdm_certificate(bytes, None);
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let data = context.common.runtime_info.message_b.as_ref();
             let u8_slice = &mut [0u8; 2048];

@@ -11,7 +11,7 @@ use crate::crypto;
 use crate::protocol::*;
 extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 use crate::crypto::HashCtx;
 use crate::message::*;
 use alloc::boxed::Box;
@@ -167,9 +167,9 @@ impl<'a> ResponderContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = used - base_asym_size - base_hash_size;
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let mut message_k = ManagedBuffer::default();
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
@@ -184,19 +184,19 @@ impl<'a> ResponderContext<'a> {
             }
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let cert_chain_hash;
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         if let Some(hash) = self.common.get_certchain_hash_rsp(false) {
             cert_chain_hash = hash;
         } else {
             return spdm_result_err!(EINVAL);
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let mut message_k =
             crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel).unwrap();
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         {
             crypto::hash::hash_ctx_update(
                 &mut message_k,
@@ -206,31 +206,31 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(&mut message_k, &bytes[..reader.used()]);
             crypto::hash::hash_ctx_update(&mut message_k, &writer.used_slice()[..temp_used]);
         }
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_key_exchange_rsp_signature(&message_k);
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let signature = self.generate_key_exchange_rsp_signature(message_k.clone());
         if signature.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
         }
         let signature = signature.unwrap();
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if message_k.append_message(signature.as_ref()).is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
         }
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(&mut message_k, signature.as_ref());
 
         // create session - generate the handshake secret (including finished_key)
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let th1 = self
             .common
             .calc_rsp_transcript_hash(false, &message_k, None);
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
@@ -265,22 +265,22 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
 
         // generate HMAC with finished_key
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = self
             .common
             .calc_rsp_transcript_data(false, &message_k, None);
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
         }
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let hmac = session.generate_hmac_with_response_finished_key(
             crypto::hash::hash_ctx_finalize(message_k.clone())
                 .unwrap()
@@ -292,7 +292,7 @@ impl<'a> ResponderContext<'a> {
             return spdm_result_err!(EFAULT);
         }
         let hmac = hmac.unwrap();
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             if message_k.append_message(hmac.as_ref()).is_none() {
                 let _ = session.teardown(session_id);
@@ -301,7 +301,7 @@ impl<'a> ResponderContext<'a> {
             }
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         {
             crypto::hash::hash_ctx_update(&mut message_k, hmac.as_ref());
 
@@ -326,7 +326,7 @@ impl<'a> ResponderContext<'a> {
         Ok(())
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
         message_k: HashCtx,
@@ -359,7 +359,7 @@ impl<'a> ResponderContext<'a> {
         .ok_or_else(|| spdm_err!(EFAULT))
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
         message_k: &ManagedBuffer,
@@ -409,7 +409,7 @@ mod tests_responder {
     use codec::{Codec, Writer};
 
     #[test]
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     fn test_case0_handle_spdm_key_exchange() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
