@@ -109,7 +109,7 @@ impl<'a> RequesterContext<'a> {
                             .cert_chain
                             .data_size = offset + certificate.portion_length;
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             let message_b = &mut self.common.runtime_info.message_b;
                             message_b
@@ -120,7 +120,7 @@ impl<'a> RequesterContext<'a> {
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         }
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 self.common.runtime_info.message_m.as_mut().unwrap(),

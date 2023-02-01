@@ -44,7 +44,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if self
             .common
             .runtime_info
@@ -56,7 +56,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             self.common.runtime_info.message_m.as_mut().unwrap(),
             &bytes[..reader.used()],
@@ -107,20 +107,20 @@ impl<'a> ResponderContext<'a> {
         // generat signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
         let temp_used = used - base_asym_size;
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         self.common
             .runtime_info
             .message_c
             .append_message(&writer.used_slice()[..temp_used]);
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             self.common.runtime_info.message_m.as_mut().unwrap(),
             &writer.used_slice()[..temp_used],
         );
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_challenge_auth_signature();
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let message_m_clone = self
             .common
             .runtime_info
@@ -128,7 +128,7 @@ impl<'a> ResponderContext<'a> {
             .as_mut()
             .cloned()
             .unwrap();
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let signature = self.generate_challenge_auth_signature(
             crypto::hash::hash_ctx_finalize(message_m_clone).unwrap(),
         );
@@ -141,7 +141,7 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - base_asym_size)..used].copy_from_slice(signature.as_ref());
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_challenge_auth_signature(
         &self,
         message_hash: SpdmDigestStruct,
@@ -173,7 +173,7 @@ impl<'a> ResponderContext<'a> {
         .ok_or_else(|| spdm_err!(EFAULT))
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_challenge_auth_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = ManagedBuffer::default();
         message
@@ -278,7 +278,7 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&challenge[0..1022]);
         context.handle_spdm_challenge(bytes);
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let data = context.common.runtime_info.message_c.as_ref();
             let u8_slice = &mut [0u8; 1024];

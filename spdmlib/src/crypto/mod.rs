@@ -12,7 +12,7 @@ pub use crypto_callbacks::{
     SpdmDheKeyExchange, SpdmHash, SpdmHkdf, SpdmHmac,
 };
 
-#[cfg(feature = "hash-update")]
+#[cfg(feature = "hashed-transcript-data")]
 pub type HashCtx = spdm_ring::hash_impl::HashCtx;
 
 use conquer_once::spin::OnceCell;
@@ -28,7 +28,7 @@ static CRYPTO_HKDF: OnceCell<SpdmHkdf> = OnceCell::uninit();
 static CRYPTO_RAND: OnceCell<SpdmCryptoRandom> = OnceCell::uninit();
 
 pub mod hash {
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     use super::HashCtx;
     use super::CRYPTO_HASH;
     use crate::crypto::SpdmHash;
@@ -55,7 +55,7 @@ pub mod hash {
             .hash_all_cb)(base_hash_algo, data)
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx> {
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
@@ -63,7 +63,7 @@ pub mod hash {
             .hash_ctx_init_cb)(base_hash_algo)
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) {
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
@@ -71,7 +71,7 @@ pub mod hash {
             .hash_ctx_update_cb)(ctx, data)
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn hash_ctx_finalize(ctx: HashCtx) -> Option<SpdmDigestStruct> {
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())

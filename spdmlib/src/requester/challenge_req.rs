@@ -91,7 +91,7 @@ impl<'a> RequesterContext<'a> {
                             self.common.negotiate_info.base_asym_sel.get_size() as usize;
                         let temp_used = used - base_asym_size;
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             let message_c = &mut self.common.runtime_info.message_c;
                             message_c
@@ -102,7 +102,7 @@ impl<'a> RequesterContext<'a> {
                                 .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                         }
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 self.common.runtime_info.message_m.as_mut().unwrap(),
@@ -163,9 +163,9 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let mut message = ManagedBuffer::default();
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         {
             message
                 .append_message(self.common.runtime_info.message_a.as_ref())
@@ -180,13 +180,13 @@ impl<'a> RequesterContext<'a> {
 
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or_else(|| spdm_err!(EFAULT))?;
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let message_hash;
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         {
             let digest = crypto::hash::hash_ctx_finalize(
                 self.common
@@ -220,7 +220,7 @@ impl<'a> RequesterContext<'a> {
                 .cert_chain
                 .data_size as usize)];
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         let mut message = ManagedBuffer::default();
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {

@@ -32,7 +32,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         if self
             .common
             .runtime_info
@@ -44,7 +44,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             self.common.runtime_info.message_m.as_mut().unwrap(),
             &bytes[..reader.used()],
@@ -84,13 +84,13 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - cert_chain_hash.data_size as usize)..used]
             .copy_from_slice(cert_chain_hash.as_ref());
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         self.common
             .runtime_info
             .message_b
             .append_message(writer.used_slice());
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             self.common.runtime_info.message_m.as_mut().unwrap(),
             writer.used_slice(),

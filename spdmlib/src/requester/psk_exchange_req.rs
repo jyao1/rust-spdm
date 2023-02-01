@@ -13,7 +13,7 @@ use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "hash-update"))]
+#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::common::ManagedBuffer;
 
 const INITIAL_SESSION_ID: u16 = 0xFFFD;
@@ -131,11 +131,11 @@ impl<'a> RequesterContext<'a> {
                             self.common.negotiate_info.base_hash_sel.get_size() as usize;
                         let temp_receive_used = receive_used - base_hash_size;
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let mut message_k =
                             crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel)
                                 .unwrap();
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 &mut message_k,
@@ -148,9 +148,9 @@ impl<'a> RequesterContext<'a> {
                             );
                         }
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let mut message_k = ManagedBuffer::default();
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             message_k
                                 .append_message(send_buffer)
@@ -162,14 +162,14 @@ impl<'a> RequesterContext<'a> {
                         }
 
                         // create session - generate the handshake secret (including finished_key)
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let th1 = self.common.calc_req_transcript_hash(
                             INVALID_SLOT,
                             true,
                             &message_k,
                             None,
                         )?;
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let th1 = crypto::hash::hash_ctx_finalize(message_k.clone()).unwrap();
                         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                         let base_hash_algo = self.common.negotiate_info.base_hash_sel;
@@ -218,7 +218,7 @@ impl<'a> RequesterContext<'a> {
                         session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
                         // verify HMAC with finished_key
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let transcript_data = self.common.calc_req_transcript_data(
                             INVALID_SLOT,
                             true,
@@ -231,9 +231,9 @@ impl<'a> RequesterContext<'a> {
                             .ok_or(spdm_err!(EINVAL))?;
                         if session
                             .verify_hmac_with_response_finished_key(
-                                #[cfg(not(feature = "hash-update"))]
+                                #[cfg(not(feature = "hashed-transcript-data"))]
                                 transcript_data.as_ref(),
-                                #[cfg(feature = "hash-update")]
+                                #[cfg(feature = "hashed-transcript-data")]
                                 crypto::hash::hash_ctx_finalize(message_k.clone())
                                     .unwrap()
                                     .as_ref(),
@@ -247,14 +247,14 @@ impl<'a> RequesterContext<'a> {
                         } else {
                             info!("verify_hmac_with_response_finished_key pass");
                         }
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             message_k
                                 .append_message(psk_exchange_rsp.verify_data.as_ref())
                                 .ok_or(spdm_err!(ENOMEM))?;
                             session.runtime_info.message_k = message_k;
                         }
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 &mut message_k,

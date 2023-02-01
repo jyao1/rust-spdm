@@ -156,20 +156,20 @@ impl<'a> RequesterContext<'a> {
                             self.common.negotiate_info.base_hash_sel.get_size() as usize;
                         let temp_receive_used = receive_used - base_asym_size - base_hash_size;
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let cert_chain_hash;
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         if let Some(hash) = self.common.get_certchain_hash_req(slot_id, false) {
                             cert_chain_hash = hash;
                         } else {
                             return spdm_result_err!(EFAULT);
                         }
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let mut message_k =
                             crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel)
                                 .unwrap();
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 &mut message_k,
@@ -178,9 +178,9 @@ impl<'a> RequesterContext<'a> {
                             crypto::hash::hash_ctx_update(&mut message_k, cert_chain_hash.as_ref());
                         }
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let mut message_k = ManagedBuffer::default();
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             message_k
                                 .append_message(send_buffer)
@@ -190,7 +190,7 @@ impl<'a> RequesterContext<'a> {
                                 .ok_or(spdm_err!(ENOMEM))?;
                         }
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(&mut message_k, send_buffer);
                             crypto::hash::hash_ctx_update(
@@ -202,9 +202,9 @@ impl<'a> RequesterContext<'a> {
                         if self
                             .verify_key_exchange_rsp_signature(
                                 slot_id,
-                                #[cfg(not(feature = "hash-update"))]
+                                #[cfg(not(feature = "hashed-transcript-data"))]
                                 &message_k,
-                                #[cfg(feature = "hash-update")]
+                                #[cfg(feature = "hashed-transcript-data")]
                                 message_k.clone(),
                                 &key_exchange_rsp.signature,
                             )
@@ -216,23 +216,23 @@ impl<'a> RequesterContext<'a> {
                             info!("verify_key_exchange_rsp_signature pass");
                         }
 
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         message_k
                             .append_message(key_exchange_rsp.signature.as_ref())
                             .ok_or(spdm_err!(ENOMEM))?;
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         crypto::hash::hash_ctx_update(
                             &mut message_k,
                             key_exchange_rsp.signature.as_ref(),
                         );
 
                         // create session - generate the handshake secret (including finished_key)
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let th1 = self
                             .common
                             .calc_req_transcript_hash(slot_id, false, &message_k, None)?;
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         let th1 = crypto::hash::hash_ctx_finalize(message_k.clone()).unwrap();
                         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                         let base_hash_algo = self.common.negotiate_info.base_hash_sel;
@@ -281,7 +281,7 @@ impl<'a> RequesterContext<'a> {
                         session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
                         // verify HMAC with finished_key
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         let transcript_data = self
                             .common
                             .calc_req_transcript_data(slot_id, false, &message_k, None)?;
@@ -292,9 +292,9 @@ impl<'a> RequesterContext<'a> {
 
                         if session
                             .verify_hmac_with_response_finished_key(
-                                #[cfg(not(feature = "hash-update"))]
+                                #[cfg(not(feature = "hashed-transcript-data"))]
                                 transcript_data.as_ref(),
-                                #[cfg(feature = "hash-update")]
+                                #[cfg(feature = "hashed-transcript-data")]
                                 crypto::hash::hash_ctx_finalize(message_k.clone())
                                     .unwrap()
                                     .as_ref(),
@@ -308,7 +308,7 @@ impl<'a> RequesterContext<'a> {
                         } else {
                             info!("verify_hmac_with_response_finished_key pass");
                         }
-                        #[cfg(not(feature = "hash-update"))]
+                        #[cfg(not(feature = "hashed-transcript-data"))]
                         {
                             message_k
                                 .append_message(key_exchange_rsp.verify_data.as_ref())
@@ -316,7 +316,7 @@ impl<'a> RequesterContext<'a> {
                             session.runtime_info.message_k = message_k;
                         }
 
-                        #[cfg(feature = "hash-update")]
+                        #[cfg(feature = "hashed-transcript-data")]
                         {
                             crypto::hash::hash_ctx_update(
                                 &mut message_k,
@@ -368,7 +368,7 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
-    #[cfg(feature = "hash-update")]
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
@@ -420,7 +420,7 @@ impl<'a> RequesterContext<'a> {
         )
     }
 
-    #[cfg(not(feature = "hash-update"))]
+    #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
@@ -517,17 +517,17 @@ mod tests_requester {
 
         responder.common.reset_runtime_info();
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         responder
             .common
             .runtime_info
             .message_m
             .append_message(message_m);
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.message_m = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             responder.common.runtime_info.message_m.as_mut().unwrap(),
             message_m,
@@ -552,18 +552,18 @@ mod tests_requester {
 
         requester.common.reset_runtime_info();
 
-        #[cfg(not(feature = "hash-update"))]
+        #[cfg(not(feature = "hashed-transcript-data"))]
         requester
             .common
             .runtime_info
             .message_m
             .append_message(message_m);
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         requester.common.runtime_info.message_m = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
             requester.common.runtime_info.message_m.as_mut().unwrap(),
             message_m,

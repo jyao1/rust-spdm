@@ -22,5 +22,5 @@ bytes = { version = "1", default-features = false }
 spdmlib_crypto_mbedtls = { path = "../../spdmlib_crypto_mbedtls", optional = true }
 
 [features]
-default = ["spdmlib/std", "spdmlib/spdm-ring", "spdmlib/hash-update"]
+default = ["spdmlib/std", "spdmlib/spdm-ring", "spdmlib/hashed-transcript-data"]
 crypto_mbedtls = ["spdmlib_crypto_mbedtls"]

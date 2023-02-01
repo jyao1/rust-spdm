@@ -190,7 +190,7 @@ impl<'a> ResponderContext<'a> {
             .message_a
             .append_message(writer.used_slice());
 
-        #[cfg(feature = "hash-update")]
+        #[cfg(feature = "hashed-transcript-data")]
         {
             self.common.runtime_info.message_m =
                 crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel);
