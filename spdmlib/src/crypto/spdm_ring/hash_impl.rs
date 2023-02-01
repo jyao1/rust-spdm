@@ -5,12 +5,16 @@
 use crate::crypto::SpdmHash;
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
+#[cfg(feature = "hash-update")]
 pub type HashCtx = ring::digest::Context;
 
 pub static DEFAULT: SpdmHash = SpdmHash {
     hash_all_cb: hash_all,
+    #[cfg(feature = "hash-update")]
     hash_ctx_init_cb: hash_ctx_init,
+    #[cfg(feature = "hash-update")]
     hash_ctx_update_cb: hash_ctx_update,
+    #[cfg(feature = "hash-update")]
     hash_ctx_finalize_cb: hash_ctx_finalize,
 };
 
@@ -25,6 +29,7 @@ fn hash_all(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestS
     Some(SpdmDigestStruct::from(digest_value.as_ref()))
 }
 
+#[cfg(feature = "hash-update")]
 fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx> {
     let algorithm = match base_hash_algo {
         SpdmBaseHashAlgo::TPM_ALG_SHA_256 => &ring::digest::SHA256,
@@ -35,10 +40,12 @@ fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx> {
     Some(HashCtx::new(algorithm))
 }
 
+#[cfg(feature = "hash-update")]
 fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) {
     ctx.update(data)
 }
 
+#[cfg(feature = "hash-update")]
 fn hash_ctx_finalize(ctx: HashCtx) -> Option<SpdmDigestStruct> {
     let digest_value = ctx.finish();
     Some(SpdmDigestStruct::from(digest_value.as_ref()))
