@@ -114,7 +114,7 @@ impl<'a> RequesterContext<'a> {
                         let base_hash_sel = self.common.negotiate_info.base_hash_sel;
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                         #[cfg(feature = "hash-update")]
-                        let message_a = self.common.runtime_info.message_a.as_ref().to_owned();
+                        let message_a = self.common.runtime_info.message_a.clone();
 
                         if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                             self.common.runtime_info.content_changed = measurements.content_changed;
