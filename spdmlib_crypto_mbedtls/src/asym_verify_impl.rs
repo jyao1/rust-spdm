@@ -92,11 +92,10 @@ fn asym_verify(
             panic!("not support")
         }
     };
-    let ret = match ret {
+    match ret {
         0 => Ok(()),
         _ => spdm_result_err!(EFAULT),
-    };
-    ret
+    }
 }
 
 // add ASN.1 for the ECDSA binary signature
