@@ -2,7 +2,7 @@
 
 # pkill screen
 
-set -exo pipefail
+set -eo pipefail
 
 usage() {
     cat <<EOM
@@ -15,6 +15,8 @@ EOM
     exit 0
 }
 
+EACH_FUZZ_TIMEOUT=${EACH_FUZZ_TIMEOUT:-10}
+FUZZ_HASH_TRANSCRIPT_DATA_FEATURE=${FUZZ_HASH_TRANSCRIPT_DATA_FEATURE:-true}
 coverage_type=""
 
 process_args() {
@@ -24,11 +26,12 @@ process_args() {
         b) build_only="true" ;;
         n) fuzz_target_name=${OPTARG} ;;
         h) usage ;;
+        *) ;;
         esac
     done
 }
 
-process_args $@
+process_args "$@"
 
 if [[ ! $PWD =~ rust-spdm$ ]]; then
     pushd ..
@@ -47,16 +50,16 @@ for i in fuzz-target/out/*; do
         break
     fi
 
-    if [[ "$(ls -A $i/default/crashes)" != "" ]]; then
+    if [[ "$(ls -A "$i"/default/crashes)" != "" ]]; then
         echo -e "\033[31m There are some crashes \033[0m"
         echo -e "\033[31m Path in fuzz-target/out/$i/default/crashes \033[0m"
         exit
     fi
 done
 
-if [ ! ${build_only} ]; then
-    if [ "core" != $(cat /proc/sys/kernel/core_pattern) ]; then
-        if [ $(id -u) -ne 0 ]; then
+if [ ! "${build_only}" ]; then
+    if [ "core" != "$(cat /proc/sys/kernel/core_pattern)" ]; then
+        if [ "$(id -u)" -ne 0 ]; then
             sudo su - root <<EOF
         echo core >/proc/sys/kernel/core_pattern;
         pushd /sys/devices/system/cpu;
@@ -107,11 +110,9 @@ cmds=(
 )
 
 buildpackage=''
-for i in ${cmds[@]}; do
+for i in "${cmds[@]}"; do
     buildpackage="-p $i $buildpackage"
 done
-
-echo "cargo afl build --features fuzz $buildpackage"
 
 if [[ $coverage_type == "Scoverage" ]]; then
     echo "$coverage_type"
@@ -126,35 +127,60 @@ if [[ $coverage_type == "Gcoverage" ]]; then
     export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort"
 fi
 
-if [[ $fuzz_target_name ]]; then
-    cargo afl build --features fuzz -p $fuzz_target_name
+if [ "${FUZZ_HASH_TRANSCRIPT_DATA_FEATURE}" == "true" ]; then
+    FUZZ_NO_DEFAULT_FEATURES=
 else
-    cargo afl build --features fuzz $buildpackage
+    FUZZ_NO_DEFAULT_FEATURES="--no-default-features"
 fi
 
-if [ ! ${build_only} ]; then
+if [[ $fuzz_target_name ]]; then
+    set -x
+    cargo afl build --features fuzz ${FUZZ_NO_DEFAULT_FEATURES} -p "$fuzz_target_name"
+    set +x
+else
+    set -x
+    cargo afl build --features fuzz ${FUZZ_NO_DEFAULT_FEATURES} $buildpackage
+    set -x
+fi
+
+run_fuzz_target() {
+    fuzz_target_name=$1
+    fuzz_target_out_dir="${CARGO_TARGET_DIR:-target}"/fuzz-target/out/${fuzz_target_name}
+    mkdir -p "$fuzz_target_out_dir"
+
+    set -x
+    cargo afl fuzz -V "${EACH_FUZZ_TIMEOUT}" -i fuzz-target/in/"${fuzz_target_name}" -o "$fuzz_target_out_dir" "${CARGO_TARGET_DIR:-target}"/debug/"${fuzz_target_name}"
+    set +x
+
+    # Test for crash
+    if [ -z "$(ls -A "$fuzz_target_out_dir"/default/crashes)" ]; then
+        echo "fuzzing ${fuzz_target_name} test PASS in ${EACH_FUZZ_TIMEOUT} seconds..."
+    else
+        echo "fuzzing ${fuzz_target_name} test FAILED in ${EACH_FUZZ_TIMEOUT} seconds..."
+        exit 1
+    fi
+}
+
+if [ ! "${build_only}" ]; then
     if [[ $fuzz_target_name ]]; then
-        timeout 10 cargo afl fuzz -i fuzz-target/in/${fuzz_target_name} -o fuzz-target/out/${fuzz_target_name} target/debug/${fuzz_target_name}
+        run_fuzz_target "$fuzz_target_name"
     else
         for ((i = 0; i < ${#cmds[*]}; i++)); do
-            # echo ${cmds[$i]}
-            # screen -ls | grep ${cmds[$i]}
-            # if [[ $? -ne 0 ]]
-            # then
-            # screen -dmS ${cmds[$i]}
-            # fi
-            # screen -x -S ${cmds[$i]} -p 0 -X stuff "cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}"
-            # screen -x -S ${cmds[$i]} -p 0 -X stuff $'\n'
-            # sleep 3600
-            # screen -S ${cmds[$i]} -X quit
-            # sleep 5
-            timeout 10 cargo afl fuzz -i fuzz-target/in/${cmds[$i]} -o fuzz-target/out/${cmds[$i]} target/debug/${cmds[$i]}
+            run_fuzz_target "${cmds[$i]}"
         done
+        echo "All fuzzing tests PASS"
     fi
 fi
 
 if [[ $coverage_type == "Scoverage" || $coverage_type == "Gcoverage" ]]; then
-    grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/fuzz_coverage/
+    set -x
+    grcov --branch --guess-directory-when-missing --ignore-not-existing --llvm \
+        --output-type html \
+        --binary-path "${CARGO_TARGET_DIR:-target}"/debug/ \
+        --source-dir ./ \
+        --output-path "${CARGO_TARGET_DIR:-target}"/debug/fuzz_coverage \
+        "$(find . -name "*.profraw")"
+    set +x
     unset RUSTFLAGS
     unset LLVM_PROFILE_FILE
     unset CARGO_INCREMENTAL
