@@ -43,10 +43,7 @@ pub fn fuzz_total_requesters() {
         return;
     }
 
-    if requester
-        .send_receive_spdm_certificate(Some(session_id), 0)
-        .is_err()
-    {
+    if requester.send_receive_spdm_certificate(None, 0).is_err() {
         return;
     }
 
