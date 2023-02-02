@@ -719,6 +719,11 @@ mod tests {
         };
         create_spdm_context!(context);
 
+        context.config_info.measurement_specification = SpdmMeasurementSpecification::DMTF;
+        context.config_info.measurement_hash_algo = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
+        context.config_info.base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048;
+        context.config_info.base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
             spdm_message.header.request_response_code,
