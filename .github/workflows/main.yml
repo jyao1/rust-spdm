@@ -6,9 +6,9 @@ name: RUN CODE
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -16,10 +16,12 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  windows_build-dont_run_fuzz:
+  build:
+    strategy:
+      matrix:
+        runs-on: [windows-latest, ubuntu-latest]
     # The type of runner that the job will run on
-#     runs-on: ubuntu-latest
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runs-on }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -34,6 +36,8 @@ jobs:
 
       - name: Checkout sources
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -41,83 +45,17 @@ jobs:
           profile: minimal
           toolchain: nightly-2022-08-08
           override: true
-          components: rust-src
+          components: rust-src, rustfmt, clippy
       - name: Cache
         uses: Swatinem/rust-cache@v1
 
-      - name: no_std check
+      - name: Build and Run test
+        shell: bash
         env:
-          CC: clang
-          AR: llvm-ar
+          CC_x86_64_unknown_none: clang
+          AR_x86_64_unknown_none: llvm-ar
+          CC_x86_64_unknown_uefi: clang
+          AR_x86_64_unknown_uefi: llvm-ar
         run: |
-          pushd spdmlib
-          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
-
-      - name: cargo build
-        run: |
-          cargo build -p spdm-responder-emu &
-          cargo build -p spdm-requester-emu
-
-      - name: cargo tests
-        run: cargo test
-
-      - name: run responder and requester script
-        run: |
-          cargo run -p spdm-responder-emu &
-          cargo run -p spdm-requester-emu
-  linux_build-run_fuzz:
-    # The type of runner that the job will run on
-#     runs-on: ubuntu-latest
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      - uses: ilammy/setup-nasm@v1
-      - uses: actions/checkout@v2
-
-      - name: no std check
-        run: |
-          rustup component add rust-src
-          pushd spdmlib
-          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
-
-      - name: cargo build
-        run: |
-          cargo build -p spdm-responder-emu -p spdm-requester-emu
-
-      - name: Install AFL (Linux)
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: afl
-        if: runner.os == 'Linux'
-
-      - name: Install Cargo-Fuzz (Linux)
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: cargo-fuzz
-        if: runner.os == 'Linux'
-
-      - name: set core_pattern for core
-        run: |
-          sudo su - root <<EOF
-          echo core >/proc/sys/kernel/core_pattern
-          pushd /sys/devices/system/cpu
-          echo performance | tee cpu*/cpufreq/scaling_governor
-          popd
-          exit
-          EOF
-        if: runner.os == 'Linux'
-
-      - name: Build fuzz
-        run: ./sh_script/fuzz_run.sh -b
-
-      - name: cargo tests
-        run: cargo test
-
-      - name: run responder and requester script
-        run: |
-          cargo run -p spdm-responder-emu &
-          sleep 5
-          cargo run -p spdm-requester-emu
+          ./sh_script/build.sh -c
+          ./sh_script/build.sh -r
