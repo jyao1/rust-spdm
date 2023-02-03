@@ -1,0 +1,71 @@
+name: FUZZING CODE
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: [master]
+
+  workflow_dispatch:
+
+jobs:
+  fuzzing_test:
+    strategy:
+      matrix:
+        fuzz_hash_transcript_data_feature: [true, false]
+
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: ilammy/setup-nasm@v1
+
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2022-08-08
+          override: true
+          components: rust-src, rustfmt, clippy
+      - name: Cache
+        uses: Swatinem/rust-cache@v1
+
+      - name: Check code
+        run: |
+          ./sh_script/build.sh -c
+
+      - name: Install AFL (Linux)
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: afl
+        if: runner.os == 'Linux'
+
+      - name: Install Cargo-Fuzz (Linux)
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: cargo-fuzz
+        if: runner.os == 'Linux'
+
+      - name: set core_pattern for core
+        run: |
+          sudo su - root <<EOF
+          echo core >/proc/sys/kernel/core_pattern
+          pushd /sys/devices/system/cpu
+          echo performance | tee cpu*/cpufreq/scaling_governor
+          popd
+          exit
+          EOF
+        if: runner.os == 'Linux'
+
+      - name: Run fuzz
+        env:
+          FUZZ_HASH_TRANSCRIPT_DATA_FEATURE: ${{ matrix.fuzz_hash_transcript_data_feature }}
+        run: |
+          ./sh_script/fuzz_run.sh
