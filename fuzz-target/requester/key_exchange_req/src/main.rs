@@ -41,6 +41,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
+        #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.message_m.is_some();
         // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
@@ -63,6 +64,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         requester.common.reset_runtime_info();
 
+        #[cfg(feature = "hashed-transcript-data")]
         requester.common.runtime_info.message_m.is_some();
         // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
@@ -102,6 +104,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
+        #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.message_m.is_some();
         // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
@@ -124,6 +127,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         requester.common.reset_runtime_info();
 
+        #[cfg(feature = "hashed-transcript-data")]
         requester.common.runtime_info.message_m.is_some();
         // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
