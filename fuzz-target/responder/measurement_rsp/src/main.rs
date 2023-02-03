@@ -32,6 +32,12 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
     context.common.negotiate_info.measurement_specification_sel =
         SpdmMeasurementSpecification::DMTF;
 
+    #[cfg(feature = "hashed-transcript-data")]
+    {
+        context.common.runtime_info.message_m =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+    }
+
     context.handle_spdm_measurement(None, data);
 }
 fn main() {

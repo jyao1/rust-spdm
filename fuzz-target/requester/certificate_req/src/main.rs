@@ -38,6 +38,12 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            responder.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
+
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -53,6 +59,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            requester.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -76,6 +87,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            responder.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -91,6 +107,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            requester.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -113,6 +134,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            responder.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -135,6 +161,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         tmp.data_size += 1;
         requester.common.provision_info.peer_cert_chain_data = Some(tmp);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            requester.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -158,6 +189,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            responder.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         // digest_rsp
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -180,6 +216,12 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            requester.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -201,6 +243,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            responder.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -214,6 +261,12 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            requester.common.runtime_info.message_m =
+                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
 }

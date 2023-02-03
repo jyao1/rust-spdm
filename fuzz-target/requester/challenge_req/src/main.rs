@@ -34,6 +34,11 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     responder.common.runtime_info.need_measurement_summary_hash = true;
 
+    #[cfg(feature = "hashed-transcript-data")]
+    {
+        responder.common.runtime_info.message_m =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+    }
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
         fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -57,7 +62,11 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     requester.common.runtime_info.need_measurement_summary_hash = true;
 
-    // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+    #[cfg(feature = "hashed-transcript-data")]
+    {
+        requester.common.runtime_info.message_m =
+            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+    }
 
     let _ = requester
         .send_receive_spdm_challenge(
