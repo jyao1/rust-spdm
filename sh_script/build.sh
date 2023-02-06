@@ -67,13 +67,16 @@ build() {
 }
 
 run() {
+    RUN_REQUESTER_FEATURES=${RUN_REQUESTER_FEATURES:-spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data}
+    RUN_RESPONDER_FEATURES=${RUN_RESPONDER_FEATURES:-spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data}
+
     echo "Running tests..."
     cargo test
 
     echo "Running requester and responder..."
-    echo_command cargo run -p spdm-responder-emu &
+    echo_command cargo run -p spdm-responder-emu --no-default-features --features="$RUN_REQUESTER_FEATURES" &
     sleep 5
-    echo_command cargo run -p spdm-requester-emu
+    echo_command cargo run -p spdm-requester-emu --no-default-features --features="$RUN_RESPONDER_FEATURES"
 }
 
 CHECK_OPTION=false
