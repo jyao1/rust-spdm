@@ -19,7 +19,21 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [windows-latest, ubuntu-latest]
+        runs-on: [ubuntu-latest]
+        run_requester_features:
+          [
+            "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data",
+            "spdmlib/spdm-ring,spdmlib/std",
+          ]
+        run_responder_features:
+          [
+            "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data",
+            "spdmlib/spdm-ring,spdmlib/std",
+          ]
+        include:
+          - runs-on: windows-latest
+            run_requester_features: "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data"
+            run_responder_features: "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data"
     # The type of runner that the job will run on
     runs-on: ${{ matrix.runs-on }}
 
@@ -58,4 +72,16 @@ jobs:
           AR_x86_64_unknown_uefi: llvm-ar
         run: |
           ./sh_script/build.sh -c
+          ./sh_script/build.sh
+
+      - name: Requester-Responder test
+        shell: bash
+        env:
+          CC_x86_64_unknown_none: clang
+          AR_x86_64_unknown_none: llvm-ar
+          CC_x86_64_unknown_uefi: clang
+          AR_x86_64_unknown_uefi: llvm-ar
+          RUN_REQUESTER_FEATURES: ${{ matrix.run_requester_features }}
+          RUN_RESPONDER_FEATURES: ${{ matrix.run_responder_features }}
+        run: |
           ./sh_script/build.sh -r
