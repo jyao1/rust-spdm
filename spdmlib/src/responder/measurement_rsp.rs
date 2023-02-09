@@ -116,6 +116,7 @@ impl<'a> ResponderContext<'a> {
             get_measurements.measurement_operation
         {
             if index > real_measurement_block_count {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return;
             }
             spdm_measurement_collection(

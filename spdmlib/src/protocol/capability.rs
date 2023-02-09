@@ -16,6 +16,7 @@ bitflags! {
         const KEY_UPD_CAP = 0b0100_0000_0000_0000;
         const HANDSHAKE_IN_THE_CLEAR_CAP = 0b1000_0000_0000_0000;
         const PUB_KEY_ID_CAP = 0b0000_0001_0000_0000_0000_0000;
+        const CHUNK_CAP = 0b0000_0010_0000_0000_0000_0000;
     }
 }
 
