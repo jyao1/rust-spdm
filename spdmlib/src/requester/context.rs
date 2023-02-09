@@ -70,8 +70,7 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn end_session(&mut self, session_id: u32) -> SpdmResult {
-        let _result = self.send_receive_spdm_end_session(session_id);
-        Ok(())
+        self.send_receive_spdm_end_session(session_id)
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
