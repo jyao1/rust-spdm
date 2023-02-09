@@ -134,6 +134,24 @@ impl<'a> SpdmContext<'a> {
         self.runtime_info = SpdmRuntimeInfo::default();
     }
 
+    pub fn reset_negotiate_info(&mut self) {
+        self.negotiate_info = SpdmNegotiateInfo::default();
+    }
+
+    pub fn reset_peer_info(&mut self) {
+        self.peer_info = SpdmPeerInfo::default();
+    }
+
+    pub fn reset_context(&mut self) {
+        self.reset_runtime_info();
+        self.reset_negotiate_info();
+        self.reset_peer_info();
+
+        for s in &mut self.session {
+            s.set_default();
+        }
+    }
+
     pub fn get_immutable_session_via_id(&self, session_id: u32) -> Option<&SpdmSession> {
         self.session
             .iter()

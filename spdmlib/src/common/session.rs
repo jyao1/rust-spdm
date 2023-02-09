@@ -129,7 +129,7 @@ impl SpdmSession {
             runtime_info: SpdmSessionRuntimeInfo::default(),
             key_schedule: SpdmKeySchedule::new(),
             heartbeat_period: 0,
-            secure_spdm_version_sel: DMTF_SECURE_SPDM_VERSION_11,
+            secure_spdm_version_sel: config::SECURE_SPDM_VERSION,
         }
     }
 
@@ -149,7 +149,7 @@ impl SpdmSession {
         self.application_secret.response_direction.sequence_number
     }
 
-    fn set_default(&mut self) {
+    pub fn set_default(&mut self) {
         self.session_id = 0;
         self.use_psk = false;
         self.session_state = SpdmSessionState::default();
@@ -157,6 +157,12 @@ impl SpdmSession {
         self.master_secret = SpdmSessionMasterSecret::default();
         self.handshake_secret = SpdmSessionHandshakeSecret::default();
         self.application_secret = SpdmSessionAppliationSecret::default();
+        self.application_secret_backup = SpdmSessionAppliationSecret::default();
+        self.transport_param = SpdmSessionTransportParam::default();
+        self.runtime_info = SpdmSessionRuntimeInfo::default();
+        self.key_schedule = SpdmKeySchedule::default();
+        self.heartbeat_period = 0;
+        self.secure_spdm_version_sel = config::SECURE_SPDM_VERSION;
     }
 
     pub fn get_session_id(&self) -> u32 {
