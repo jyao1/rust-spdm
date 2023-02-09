@@ -83,6 +83,7 @@ impl<'a> ResponderContext<'a> {
         let transcript_data = transcript_data.as_ref().unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
+
         #[cfg(feature = "hashed-transcript-data")]
         let mut message_f = session.runtime_info.message_k.as_mut().cloned();
 
@@ -203,6 +204,8 @@ impl<'a> ResponderContext<'a> {
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return false;
+            } else {
+                session.runtime_info.message_f = message_f.clone();
             }
 
             #[cfg(feature = "hashed-transcript-data")]
@@ -217,6 +220,9 @@ impl<'a> ResponderContext<'a> {
                 let session = self.common.get_session_via_id(session_id).unwrap();
                 let _ = session.teardown(session_id);
                 return false;
+            } else {
+                let session = self.common.get_session_via_id(session_id).unwrap();
+                session.runtime_info.message_f = message_f.clone();
             }
             #[cfg(feature = "hashed-transcript-data")]
             crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), writer.used_slice());
@@ -251,7 +257,10 @@ impl<'a> ResponderContext<'a> {
             .generate_data_secret(spdm_version_sel, &th2)
             .unwrap();
 
-        session.runtime_info.message_f = message_f;
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            session.runtime_info.message_f = message_f;
+        }
 
         true
     }
