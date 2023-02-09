@@ -167,15 +167,15 @@ fn test_spdm(
     );
 
     if context.init_connection().is_err() {
-        return;
+        panic!("init_connection failed!");
     }
 
     if context.send_receive_spdm_digest(None).is_err() {
-        return;
+        panic!("send_receive_spdm_digest failed!");
     }
 
     if context.send_receive_spdm_certificate(None, 0).is_err() {
-        return;
+        panic!("send_receive_spdm_certificate failed!");
     }
 
     if context
@@ -185,7 +185,7 @@ fn test_spdm(
         )
         .is_err()
     {
-        return;
+        panic!("send_receive_spdm_challenge failed!");
     }
 
     let mut total_number: u8 = 0;
@@ -201,7 +201,7 @@ fn test_spdm(
         )
         .is_err()
     {
-        return;
+        panic!("send_receive_spdm_measurement failed!");
     }
 
     let result = context.start_session(
@@ -233,14 +233,14 @@ fn test_spdm(
         );
 
         if context.send_receive_spdm_heartbeat(session_id).is_err() {
-            return;
+            panic!("send_receive_spdm_heartbeat failed");
         }
 
         if context
             .send_receive_spdm_key_update(session_id, SpdmKeyUpdateOperation::SpdmUpdateAllKeys)
             .is_err()
         {
-            return;
+            panic!("send_receive_spdm_key_update failed");
         }
 
         if context
@@ -254,25 +254,25 @@ fn test_spdm(
             )
             .is_err()
         {
-            return;
+            panic!("send_receive_spdm_measurement failed");
         }
 
         if context.send_receive_spdm_digest(Some(session_id)).is_err() {
-            return;
+            panic!("send_receive_spdm_digest failed");
         }
 
         if context
             .send_receive_spdm_certificate(Some(session_id), 0)
             .is_err()
         {
-            return;
+            panic!("send_receive_spdm_certificate failed");
         }
 
         if context.end_session(session_id).is_err() {
-            return;
+            panic!("end_session failed");
         }
     } else {
-        info!("\nSession session_id not got\n");
+        panic!("\nSession session_id not got\n");
     }
 
     let result = context.start_session(
@@ -282,10 +282,10 @@ fn test_spdm(
     );
     if let Ok(session_id) = result {
         if context.end_session(session_id).is_err() {
-            info!("\nSession session_id is err\n");
+            panic!("\nSession session_id is err\n");
         }
     } else {
-        info!("\nSession session_id not got\n");
+        panic!("\nSession session_id not got\n");
     }
 }
 
