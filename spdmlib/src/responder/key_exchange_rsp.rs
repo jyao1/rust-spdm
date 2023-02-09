@@ -299,6 +299,8 @@ impl<'a> ResponderContext<'a> {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return spdm_result_err!(EFAULT);
             }
+
+            session.runtime_info.message_k = message_k;
         }
 
         #[cfg(feature = "hashed-transcript-data")]
