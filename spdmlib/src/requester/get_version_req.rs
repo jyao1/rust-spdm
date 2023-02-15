@@ -49,21 +49,44 @@ impl<'a> RequesterContext<'a> {
 
                         let SpdmVersionResponsePayload {
                             version_number_entry_count,
-                            versions,
+                            mut versions,
                         } = version;
 
-                        self.common.negotiate_info.spdm_version_sel =
-                            versions[version_number_entry_count as usize - 1].version;
+                        versions
+                            .sort_unstable_by(|a, b| b.version.get_u8().cmp(&a.version.get_u8()));
+
+                        self.common.negotiate_info.spdm_version_sel = SpdmVersion::Unknown(0);
 
                         for spdm_version_struct in
                             versions.iter().take(version_number_entry_count as usize)
                         {
                             if spdm_version_struct.version
                                 == self.common.provision_info.default_version
+                                || self
+                                    .common
+                                    .config_info
+                                    .spdm_version
+                                    .contains(&spdm_version_struct.version)
                             {
                                 self.common.negotiate_info.spdm_version_sel =
                                     spdm_version_struct.version;
                                 break;
+                            }
+                        }
+
+                        match self.common.negotiate_info.spdm_version_sel {
+                            SpdmVersion::Unknown(_) => {
+                                debug!(
+                                    "Version negotiation failed! with given version list: {:?}",
+                                    versions
+                                );
+                                return spdm_result_err!(EFAULT);
+                            }
+                            _ => {
+                                debug!(
+                                    "Version negotiated: {:?}",
+                                    self.common.negotiate_info.spdm_version_sel
+                                );
                             }
                         }
 
