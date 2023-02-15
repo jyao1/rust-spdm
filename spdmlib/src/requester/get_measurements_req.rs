@@ -101,269 +101,268 @@ impl<'a> RequesterContext<'a> {
         }
 
         let mut reader = Reader::init(receive_buffer);
-        match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseMeasurements => {
-                    let measurements =
-                        SpdmMeasurementsResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let used = reader.used();
-                    if let Some(measurements) = measurements {
-                        debug!("!!! measurements : {:02x?}\n", measurements);
+        let message_header = SpdmMessageHeader::read(&mut reader).ok_or(spdm_err!(EIO))?;
 
-                        #[cfg(feature = "hashed-transcript-data")]
-                        let base_hash_sel = self.common.negotiate_info.base_hash_sel;
-                        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                        #[cfg(feature = "hashed-transcript-data")]
-                        let message_a = self.common.runtime_info.message_a.clone();
+        match message_header.request_response_code {
+            SpdmRequestResponseCode::SpdmResponseMeasurements => self
+                .deal_spdm_response_measurement(
+                    session_id,
+                    slot_id,
+                    measurement_attributes,
+                    measurement_operation,
+                    spdm_measurement_record_structure,
+                    send_buffer,
+                    receive_buffer,
+                    reader,
+                ),
+            SpdmRequestResponseCode::SpdmResponseError => {
+                let erm = self.spdm_handle_error_response_main(
+                    session_id,
+                    receive_buffer,
+                    SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+                    SpdmRequestResponseCode::SpdmResponseMeasurements,
+                );
+                match erm {
+                    Ok(rm) => {
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_measurement_record_response(
+                            session_id,
+                            slot_id,
+                            measurement_attributes,
+                            measurement_operation,
+                            spdm_measurement_record_structure,
+                            send_buffer,
+                            &receive_buffer[..used],
+                        )
+                    }
+                    _ => spdm_result_err!(EINVAL),
+                }
+            }
+            _ => spdm_result_err!(EINVAL),
+        }
+    }
 
-                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                            self.common.runtime_info.content_changed = measurements.content_changed;
-                        }
+    #[allow(clippy::too_many_arguments)]
+    fn deal_spdm_response_measurement(
+        &mut self,
+        session_id: Option<u32>,
+        slot_id: u8,
+        measurement_attributes: SpdmMeasurementeAttributes,
+        measurement_operation: SpdmMeasurementOperation,
+        spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
+        send_buffer: &[u8],
+        receive_buffer: &[u8],
+        mut reader: Reader,
+    ) -> SpdmResult<u8> {
+        let measurements =
+            SpdmMeasurementsResponsePayload::spdm_read(&mut self.common, &mut reader);
+        let used = reader.used();
+        if let Some(measurements) = measurements {
+            debug!("!!! measurements : {:02x?}\n", measurements);
 
-                        // verify signature
-                        if measurement_attributes
-                            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
-                        {
-                            let base_asym_size =
-                                self.common.negotiate_info.base_asym_sel.get_size() as usize;
-                            let temp_used = used - base_asym_size;
+            #[cfg(feature = "hashed-transcript-data")]
+            let base_hash_sel = self.common.negotiate_info.base_hash_sel;
+            let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+            #[cfg(feature = "hashed-transcript-data")]
+            let message_a = self.common.runtime_info.message_a.clone();
 
-                            let message_m = match session_id {
-                                Some(session_id) => {
-                                    let session = if let Some(s) =
-                                        self.common.get_session_via_id(session_id)
-                                    {
-                                        s
-                                    } else {
-                                        return spdm_result_err!(EFAULT);
-                                    };
+            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                self.common.runtime_info.content_changed = measurements.content_changed;
+            }
 
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    if session.runtime_info.message_m.is_none() {
-                                        session.runtime_info.message_m =
-                                            crypto::hash::hash_ctx_init(base_hash_sel);
-                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                                            crypto::hash::hash_ctx_update(
-                                                session.runtime_info.message_m.as_mut().unwrap(),
-                                                message_a.as_ref(),
-                                            );
-                                        }
-                                    }
+            // verify signature
+            if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
+                let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
+                let temp_used = used - base_asym_size;
 
-                                    &mut session.runtime_info.message_m
-                                }
-                                None => {
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    if self.common.runtime_info.message_mes_no_session.is_none() {
-                                        self.common.runtime_info.message_mes_no_session =
-                                            crypto::hash::hash_ctx_init(base_hash_sel);
-                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                                            crypto::hash::hash_ctx_update(
-                                                self.common
-                                                    .runtime_info
-                                                    .message_mes_no_session
-                                                    .as_mut()
-                                                    .unwrap(),
-                                                message_a.as_ref(),
-                                            );
-                                        }
-                                    }
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    {
-                                        &mut self.common.runtime_info.message_mes_no_session
-                                    }
-
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    {
-                                        &mut self.common.runtime_info.message_m
-                                    }
-                                }
-                            };
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                message_m
-                                    .append_message(send_buffer)
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                                message_m
-                                    .append_message(&receive_buffer[..temp_used])
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            }
-
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                crypto::hash::hash_ctx_update(
-                                    message_m.as_mut().unwrap(),
-                                    send_buffer,
-                                );
-                                crypto::hash::hash_ctx_update(
-                                    message_m.as_mut().unwrap(),
-                                    &receive_buffer[..temp_used],
-                                );
-                            }
-
-                            if self
-                                .verify_measurement_signature(
-                                    slot_id,
-                                    session_id,
-                                    &measurements.signature,
-                                )
-                                .is_err()
-                            {
-                                error!("verify_measurement_signature fail");
-                                return spdm_result_err!(EFAULT);
-                            } else {
-                                info!("verify_measurement_signature pass");
-                            }
-                            match session_id {
-                                Some(session_id) => {
-                                    let session = if let Some(s) =
-                                        self.common.get_session_via_id(session_id)
-                                    {
-                                        s
-                                    } else {
-                                        return spdm_result_err!(EFAULT);
-                                    };
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    session.runtime_info.message_m.reset_message();
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    {
-                                        session.runtime_info.message_m = None;
-                                    }
-                                }
-                                None => {
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    self.common.runtime_info.message_m.reset_message();
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    {
-                                        self.common.runtime_info.message_mes_no_session = None;
-                                    }
-                                }
-                            };
+                let message_m = match session_id {
+                    Some(session_id) => {
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
                         } else {
-                            let message_m = match session_id {
-                                Some(session_id) => {
-                                    let session = if let Some(s) =
-                                        self.common.get_session_via_id(session_id)
-                                    {
-                                        s
-                                    } else {
-                                        return spdm_result_err!(EFAULT);
-                                    };
-
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    if session.runtime_info.message_m.is_none() {
-                                        session.runtime_info.message_m =
-                                            crypto::hash::hash_ctx_init(base_hash_sel);
-                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                                            crypto::hash::hash_ctx_update(
-                                                session.runtime_info.message_m.as_mut().unwrap(),
-                                                message_a.as_ref(),
-                                            );
-                                        }
-                                    }
-
-                                    &mut session.runtime_info.message_m
-                                }
-                                None => {
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    if self.common.runtime_info.message_mes_no_session.is_none() {
-                                        self.common.runtime_info.message_mes_no_session =
-                                            crypto::hash::hash_ctx_init(
-                                                self.common.negotiate_info.base_hash_sel,
-                                            );
-                                        if self.common.negotiate_info.spdm_version_sel
-                                            == SpdmVersion::SpdmVersion12
-                                        {
-                                            crypto::hash::hash_ctx_update(
-                                                self.common
-                                                    .runtime_info
-                                                    .message_m
-                                                    .as_mut()
-                                                    .unwrap(),
-                                                message_a.as_ref(),
-                                            );
-                                        }
-                                    }
-
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    {
-                                        &mut self.common.runtime_info.message_m
-                                    }
-
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    {
-                                        &mut self.common.runtime_info.message_mes_no_session
-                                    }
-                                }
-                            };
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                message_m
-                                    .append_message(send_buffer)
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                                message_m
-                                    .append_message(&receive_buffer[..used])
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            }
-
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                crypto::hash::hash_ctx_update(
-                                    message_m.as_mut().unwrap(),
-                                    send_buffer,
-                                );
-                                crypto::hash::hash_ctx_update(
-                                    message_m.as_mut().unwrap(),
-                                    &receive_buffer[..used],
-                                );
-                            }
-                        }
-
-                        *spdm_measurement_record_structure = SpdmMeasurementRecordStructure {
-                            ..measurements.measurement_record
+                            return spdm_result_err!(EFAULT);
                         };
 
-                        match measurement_operation {
-                            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber => {
-                                Ok(measurements.number_of_measurement)
+                        #[cfg(feature = "hashed-transcript-data")]
+                        if session.runtime_info.message_m.is_none() {
+                            session.runtime_info.message_m =
+                                crypto::hash::hash_ctx_init(base_hash_sel);
+                            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                crypto::hash::hash_ctx_update(
+                                    session.runtime_info.message_m.as_mut().unwrap(),
+                                    message_a.as_ref(),
+                                );
                             }
-                            SpdmMeasurementOperation::SpdmMeasurementRequestAll => {
-                                Ok(measurements.measurement_record.number_of_blocks)
-                            }
-                            _ => Ok(measurements.measurement_record.number_of_blocks),
                         }
-                    } else {
-                        error!("!!! measurements : fail !!!\n");
-                        spdm_result_err!(EFAULT)
+
+                        &mut session.runtime_info.message_m
                     }
+                    None => {
+                        #[cfg(feature = "hashed-transcript-data")]
+                        if self.common.runtime_info.message_mes_no_session.is_none() {
+                            self.common.runtime_info.message_mes_no_session =
+                                crypto::hash::hash_ctx_init(base_hash_sel);
+                            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                crypto::hash::hash_ctx_update(
+                                    self.common
+                                        .runtime_info
+                                        .message_mes_no_session
+                                        .as_mut()
+                                        .unwrap(),
+                                    message_a.as_ref(),
+                                );
+                            }
+                        }
+                        #[cfg(feature = "hashed-transcript-data")]
+                        {
+                            &mut self.common.runtime_info.message_mes_no_session
+                        }
+
+                        #[cfg(not(feature = "hashed-transcript-data"))]
+                        {
+                            &mut self.common.runtime_info.message_m
+                        }
+                    }
+                };
+                #[cfg(not(feature = "hashed-transcript-data"))]
+                {
+                    message_m
+                        .append_message(send_buffer)
+                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                    message_m
+                        .append_message(&receive_buffer[..temp_used])
+                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
                 }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        session_id,
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestGetMeasurements,
-                        SpdmRequestResponseCode::SpdmResponseMeasurements,
+
+                #[cfg(feature = "hashed-transcript-data")]
+                {
+                    crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), send_buffer);
+                    crypto::hash::hash_ctx_update(
+                        message_m.as_mut().unwrap(),
+                        &receive_buffer[..temp_used],
                     );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_measurement_record_response(
-                                session_id,
-                                slot_id,
-                                measurement_attributes,
-                                measurement_operation,
-                                spdm_measurement_record_structure,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
-                        }
-                        _ => spdm_result_err!(EINVAL),
-                    }
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
-            None => spdm_result_err!(EIO),
+
+                if self
+                    .verify_measurement_signature(slot_id, session_id, &measurements.signature)
+                    .is_err()
+                {
+                    error!("verify_measurement_signature fail");
+                    return spdm_result_err!(EFAULT);
+                } else {
+                    info!("verify_measurement_signature pass");
+                }
+                match session_id {
+                    Some(session_id) => {
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
+                        #[cfg(not(feature = "hashed-transcript-data"))]
+                        session.runtime_info.message_m.reset_message();
+                        #[cfg(feature = "hashed-transcript-data")]
+                        {
+                            session.runtime_info.message_m = None;
+                        }
+                    }
+                    None => {
+                        #[cfg(not(feature = "hashed-transcript-data"))]
+                        self.common.runtime_info.message_m.reset_message();
+                        #[cfg(feature = "hashed-transcript-data")]
+                        {
+                            self.common.runtime_info.message_mes_no_session = None;
+                        }
+                    }
+                };
+            } else {
+                let message_m = match session_id {
+                    Some(session_id) => {
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
+
+                        #[cfg(feature = "hashed-transcript-data")]
+                        if session.runtime_info.message_m.is_none() {
+                            session.runtime_info.message_m =
+                                crypto::hash::hash_ctx_init(base_hash_sel);
+                            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                crypto::hash::hash_ctx_update(
+                                    session.runtime_info.message_m.as_mut().unwrap(),
+                                    message_a.as_ref(),
+                                );
+                            }
+                        }
+
+                        &mut session.runtime_info.message_m
+                    }
+                    None => {
+                        #[cfg(feature = "hashed-transcript-data")]
+                        if self.common.runtime_info.message_mes_no_session.is_none() {
+                            self.common.runtime_info.message_mes_no_session =
+                                crypto::hash::hash_ctx_init(
+                                    self.common.negotiate_info.base_hash_sel,
+                                );
+                            if self.common.negotiate_info.spdm_version_sel
+                                == SpdmVersion::SpdmVersion12
+                            {
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    message_a.as_ref(),
+                                );
+                            }
+                        }
+
+                        #[cfg(not(feature = "hashed-transcript-data"))]
+                        {
+                            &mut self.common.runtime_info.message_m
+                        }
+
+                        #[cfg(feature = "hashed-transcript-data")]
+                        {
+                            &mut self.common.runtime_info.message_mes_no_session
+                        }
+                    }
+                };
+                #[cfg(not(feature = "hashed-transcript-data"))]
+                {
+                    message_m
+                        .append_message(send_buffer)
+                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                    message_m
+                        .append_message(&receive_buffer[..used])
+                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                }
+
+                #[cfg(feature = "hashed-transcript-data")]
+                {
+                    crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), send_buffer);
+                    crypto::hash::hash_ctx_update(
+                        message_m.as_mut().unwrap(),
+                        &receive_buffer[..used],
+                    );
+                }
+            }
+
+            *spdm_measurement_record_structure = SpdmMeasurementRecordStructure {
+                ..measurements.measurement_record
+            };
+
+            match measurement_operation {
+                SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber => {
+                    Ok(measurements.number_of_measurement)
+                }
+                SpdmMeasurementOperation::SpdmMeasurementRequestAll => {
+                    Ok(measurements.measurement_record.number_of_blocks)
+                }
+                _ => Ok(measurements.measurement_record.number_of_blocks),
+            }
+        } else {
+            error!("!!! measurements : fail !!!\n");
+            spdm_result_err!(EFAULT)
         }
     }
 
