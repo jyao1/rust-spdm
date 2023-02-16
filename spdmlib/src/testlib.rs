@@ -66,7 +66,15 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
             | SpdmResponseCapabilityFlags::ENCAP_CAP
             | SpdmResponseCapabilityFlags::HBEAT_CAP
             | SpdmResponseCapabilityFlags::KEY_UPD_CAP,
+        req_capabilities: SpdmRequestCapabilityFlags::CERT_CAP
+            | SpdmRequestCapabilityFlags::ENCRYPT_CAP
+            | SpdmRequestCapabilityFlags::MAC_CAP
+            | SpdmRequestCapabilityFlags::KEY_EX_CAP
+            | SpdmRequestCapabilityFlags::ENCAP_CAP
+            | SpdmRequestCapabilityFlags::HBEAT_CAP
+            | SpdmRequestCapabilityFlags::KEY_UPD_CAP,
         rsp_ct_exponent: 0,
+        req_ct_exponent: 0,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
         measurement_hash_algo: SpdmMeasurementHashAlgo::TPM_ALG_SHA_384,
         base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
@@ -77,6 +85,8 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
+        data_transfer_size: 0x1200,
+        max_spdm_msg_size: 0x1200,
         ..Default::default()
     };
 
