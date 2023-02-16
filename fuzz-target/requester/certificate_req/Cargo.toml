@@ -10,7 +10,7 @@ edition = "2018"
 fuzzlib = { path = "../../fuzzlib", default-features = false }
 log = "0.4.13"
 simple_logger = "1.11.0"
-afl = {version = "*", optional = true }
+afl = { version = "=0.12.12", optional = true }
 
 [features]
 default = ["hashed-transcript-data"]

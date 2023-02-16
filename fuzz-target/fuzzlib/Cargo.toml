@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-afl = "*"
+afl = "=0.12.12"
 spdm-emu = { path = "../../test/spdm-emu", default-features = false }
 spdmlib = { path = "../../spdmlib", default-features = false, features=["spdm-ring"] }
 codec = { path = "../../codec" }
