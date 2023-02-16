@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 fuzzlib = { path = "../../fuzzlib", default-features = false }
 rand = "0.8.4"
-afl = { version = "*", optional = true }
+afl = { version = "=0.12.12", optional = true }
 
 [features]
 default = ["hashed-transcript-data"]
