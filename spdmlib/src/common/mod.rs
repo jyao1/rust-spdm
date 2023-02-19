@@ -524,9 +524,8 @@ pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
     pub message_a: ManagedBuffer,
-    pub message_m: Option<HashCtx>,              // for M1/M2
+    pub message_m: Option<HashCtx>, // for M1/M2
     pub message_l: Option<HashCtx>, // for measurement signature L1/L2. DSP0274: MEASUREMENTS signature generation
-    pub message_mes_no_session: Option<HashCtx>, // for out of session get measurement/measurement
     pub content_changed: u8, // used by responder, set when content changed and spdm version is 1.2.
                              // used by requester, consume when measurement response report content changed.
 }
