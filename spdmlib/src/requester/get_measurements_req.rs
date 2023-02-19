@@ -165,11 +165,7 @@ impl<'a> RequesterContext<'a> {
 
         debug!("!!! measurements : {:02x?}\n", measurements);
 
-        #[cfg(feature = "hashed-transcript-data")]
-        let base_hash_sel = self.common.negotiate_info.base_hash_sel;
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-        #[cfg(feature = "hashed-transcript-data")]
-        let message_a = self.common.runtime_info.message_a.clone();
 
         if spdm_version_sel == SpdmVersion::SpdmVersion12 {
             self.common.runtime_info.content_changed = measurements.content_changed;
@@ -177,65 +173,14 @@ impl<'a> RequesterContext<'a> {
 
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
 
+        self.init_message_l(session_id)?;
+
         // verify signature
         if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
             let temp_used = used - base_asym_size;
 
-            let message_l = match session_id {
-                Some(session_id) => {
-                    let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                        s
-                    } else {
-                        return spdm_result_err!(EFAULT);
-                    };
-
-                    #[cfg(feature = "hashed-transcript-data")]
-                    if session.runtime_info.message_l.is_none() {
-                        session.runtime_info.message_l = crypto::hash::hash_ctx_init(base_hash_sel);
-                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                            crypto::hash::hash_ctx_update(
-                                session.runtime_info.message_l.as_mut().unwrap(),
-                                message_a.as_ref(),
-                            );
-                        }
-                    }
-
-                    &mut session.runtime_info.message_l
-                }
-                None => {
-                    #[cfg(feature = "hashed-transcript-data")]
-                    if self.common.runtime_info.message_l.is_none() {
-                        self.common.runtime_info.message_l =
-                            crypto::hash::hash_ctx_init(base_hash_sel);
-                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_l.as_mut().unwrap(),
-                                message_a.as_ref(),
-                            );
-                        }
-                    }
-
-                    &mut self.common.runtime_info.message_l
-                }
-            };
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            {
-                message_l
-                    .append_message(send_buffer)
-                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                message_l
-                    .append_message(&receive_buffer[..temp_used])
-                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-            }
-
-            #[cfg(feature = "hashed-transcript-data")]
-            {
-                crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), send_buffer);
-                crypto::hash::hash_ctx_update(
-                    message_l.as_mut().unwrap(),
-                    &receive_buffer[..temp_used],
-                );
-            }
+            self.update_message_l(session_id, send_buffer)?;
+            self.update_message_l(session_id, &receive_buffer[..temp_used])?;
 
             if self
                 .verify_measurement_signature(slot_id, session_id, &measurements.signature)
@@ -246,91 +191,11 @@ impl<'a> RequesterContext<'a> {
             } else {
                 info!("verify_measurement_signature pass");
             }
-            match session_id {
-                Some(session_id) => {
-                    let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                        s
-                    } else {
-                        return spdm_result_err!(EFAULT);
-                    };
-                    #[cfg(not(feature = "hashed-transcript-data"))]
-                    session.runtime_info.message_l.reset_message();
-                    #[cfg(feature = "hashed-transcript-data")]
-                    {
-                        session.runtime_info.message_l = None;
-                    }
-                }
-                None => {
-                    #[cfg(not(feature = "hashed-transcript-data"))]
-                    self.common.runtime_info.message_l.reset_message();
-                    #[cfg(feature = "hashed-transcript-data")]
-                    {
-                        self.common.runtime_info.message_l = None;
-                    }
-                }
-            };
+
+            self.reset_message_l(session_id)?;
         } else {
-            let message_l = match session_id {
-                Some(session_id) => {
-                    let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                        s
-                    } else {
-                        return spdm_result_err!(EFAULT);
-                    };
-
-                    #[cfg(feature = "hashed-transcript-data")]
-                    if session.runtime_info.message_l.is_none() {
-                        session.runtime_info.message_l = crypto::hash::hash_ctx_init(base_hash_sel);
-                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                            crypto::hash::hash_ctx_update(
-                                session.runtime_info.message_l.as_mut().unwrap(),
-                                message_a.as_ref(),
-                            );
-                        }
-                    }
-
-                    &mut session.runtime_info.message_l
-                }
-                None => {
-                    #[cfg(feature = "hashed-transcript-data")]
-                    if self.common.runtime_info.message_l.is_none() {
-                        self.common.runtime_info.message_l =
-                            crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel);
-                        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
-                        {
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_l.as_mut().unwrap(),
-                                message_a.as_ref(),
-                            );
-                        }
-                    }
-
-                    #[cfg(not(feature = "hashed-transcript-data"))]
-                    {
-                        &mut self.common.runtime_info.message_l
-                    }
-
-                    #[cfg(feature = "hashed-transcript-data")]
-                    {
-                        &mut self.common.runtime_info.message_l
-                    }
-                }
-            };
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            {
-                message_l
-                    .append_message(send_buffer)
-                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                message_l
-                    .append_message(&receive_buffer[..used])
-                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-            }
-
-            #[cfg(feature = "hashed-transcript-data")]
-            {
-                crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), send_buffer);
-                crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), &receive_buffer[..used]);
-            }
+            self.update_message_l(session_id, send_buffer)?;
+            self.update_message_l(session_id, &receive_buffer[..used])?;
         }
 
         *spdm_measurement_record_structure = SpdmMeasurementRecordStructure {
@@ -372,34 +237,20 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
-    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_measurement_signature(
         &mut self,
         slot_id: u8,
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let message_hash = match session_id {
-            None => {
-                let ctx = self
-                    .common
-                    .runtime_info
-                    .message_l
-                    .as_mut()
-                    .cloned()
-                    .unwrap();
-                crypto::hash::hash_ctx_finalize(ctx)
-            }
-            Some(session_id) => {
-                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                    s
-                } else {
-                    return spdm_result_err!(EINVAL);
-                };
-                let ctx = session.runtime_info.message_l.as_mut().cloned().unwrap();
-                crypto::hash::hash_ctx_finalize(ctx)
-            }
-        };
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        let base_hash_sel = self.common.negotiate_info.base_hash_sel;
+        let message_l = self.get_message_l(session_id)?;
+        #[cfg(feature = "hashed-transcript-data")]
+        let message_hash = crypto::hash::hash_ctx_finalize(message_l.as_mut().cloned().unwrap());
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        let message_hash = crypto::hash::hash_all(base_hash_sel, message_l.as_ref());
+
         assert!(message_hash.is_some());
         let message_hash = message_hash.unwrap();
         debug!("message_hash - {:02x?}", message_hash.as_ref());
@@ -446,87 +297,98 @@ impl<'a> RequesterContext<'a> {
         )
     }
 
-    #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn verify_measurement_signature(
+    #[cfg(feature = "hashed-transcript-data")]
+    fn get_message_l(
         &mut self,
-        slot_id: u8,
         session_id: Option<u32>,
-        signature: &SpdmSignatureStruct,
-    ) -> SpdmResult {
-        let mut message = ManagedBuffer::default();
+    ) -> SpdmResult<&mut Option<crypto::HashCtx>> {
+        let message_l = if let Some(session_id) = session_id {
+            let session = self
+                .common
+                .get_session_via_id(session_id)
+                .ok_or(spdm_err!(EFAULT))?;
+            &mut session.runtime_info.message_l
+        } else {
+            &mut self.common.runtime_info.message_l
+        };
+        Ok(message_l)
+    }
 
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            let message_a = self.common.runtime_info.message_a.clone();
-            message
+    #[cfg(not(feature = "hashed-transcript-data"))]
+    fn get_message_l(&mut self, session_id: Option<u32>) -> SpdmResult<&mut ManagedBuffer> {
+        let message_l = if let Some(session_id) = session_id {
+            let session = self
+                .common
+                .get_session_via_id(session_id)
+                .ok_or(spdm_err!(EFAULT))?;
+            &mut session.runtime_info.message_l
+        } else {
+            &mut self.common.runtime_info.message_l
+        };
+        Ok(message_l)
+    }
+
+    /// This function will concatenate VCA.
+    fn init_message_l(&mut self, session_id: Option<u32>) -> SpdmResult {
+        #[cfg(feature = "hashed-transcript-data")]
+        let base_hash_sel = self.common.negotiate_info.base_hash_sel;
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+        let message_a = self.common.runtime_info.message_a.clone();
+        let message_l = self.get_message_l(session_id)?;
+
+        #[cfg(feature = "hashed-transcript-data")]
+        let first_run = {
+            if message_l.is_none() {
+                *message_l = crypto::hash::hash_ctx_init(base_hash_sel);
+                true
+            } else {
+                false
+            }
+        };
+
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        let first_run = message_l.as_ref().is_empty();
+
+        if first_run && spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            #[cfg(feature = "hashed-transcript-data")]
+            {
+                crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), message_a.as_ref());
+                return Ok(());
+            }
+            #[cfg(not(feature = "hashed-transcript-data"))]
+            return message_l
                 .append_message(message_a.as_ref())
-                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()));
         }
+        Ok(())
 
-        match session_id {
-            None => {
-                message
-                    .append_message(self.common.runtime_info.message_l.as_ref())
-                    .ok_or_else(|| spdm_err!(ENOMEM))?;
-            }
-            Some(session_id) => {
-                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                    s
-                } else {
-                    return spdm_result_err!(EINVAL);
-                };
-                message
-                    .append_message(session.runtime_info.message_l.as_ref())
-                    .ok_or_else(|| spdm_err!(ENOMEM))?;
-            }
+        // Next run Do nothing
+    }
+
+    fn update_message_l(&mut self, session_id: Option<u32>, data: &[u8]) -> SpdmResult {
+        let message_l = self.get_message_l(session_id)?;
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), data);
+            Ok(())
         }
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        message_l
+            .append_message(data)
+            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
+    }
 
-        // we dont need create message hash for verify
-        // we just print message hash for debug purpose
-        debug!("message_m - {:02x?}", message.as_ref());
-        let message_hash =
-            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+    fn reset_message_l(&mut self, session_id: Option<u32>) -> SpdmResult {
+        let message_l = self.get_message_l(session_id)?;
 
-        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
-            error!("peer_cert_chain is not populated!\n");
-            return spdm_result_err!(EINVAL);
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            *message_l = None;
         }
-
-        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
-            .as_ref()
-            .unwrap()
-            .cert_chain
-            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
-            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .unwrap()
-                .cert_chain
-                .data_size as usize)];
-
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            message.reset_message();
-            message
-                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
-            message
-                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
-            message
-                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
-            message
-                .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
-        }
-
-        crypto::asym_verify::verify(
-            self.common.negotiate_info.base_hash_sel,
-            self.common.negotiate_info.base_asym_sel,
-            cert_chain_data,
-            message.as_ref(),
-            signature,
-        )
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        message_l.reset_message();
+        Ok(())
     }
 }
 
