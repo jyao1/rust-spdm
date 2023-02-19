@@ -12,6 +12,12 @@ Usage: $(basename "$0") [OPTION]...
 EOM
 }
 
+trap cleanup exit
+
+cleanup() {
+    kill -9 $(ps aux | grep spdm-responder | grep emu | awk '{print $2}') || true
+}
+
 echo_command() {
     set -x
     "$@"
