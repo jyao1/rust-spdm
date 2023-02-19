@@ -81,6 +81,7 @@ pub struct SpdmSessionRuntimeInfo {
     pub message_k: ManagedBuffer,
     pub message_f: ManagedBuffer,
     pub message_m: ManagedBuffer,
+    pub message_l: ManagedBuffer,
 }
 
 #[derive(Clone, Default)]
@@ -89,6 +90,7 @@ pub struct SpdmSessionRuntimeInfo {
     pub message_k: Option<HashCtx>,
     pub message_f: Option<HashCtx>,
     pub message_m: Option<HashCtx>,
+    pub message_l: Option<HashCtx>,
 }
 
 #[derive(Clone)]

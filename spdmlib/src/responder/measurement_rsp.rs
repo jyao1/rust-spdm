@@ -72,7 +72,7 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         if self
-            .append_message_m_response(session_id, &bytes[..reader.used()])
+            .append_message_l_response(session_id, &bytes[..reader.used()])
             .is_none()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
@@ -165,7 +165,7 @@ impl<'a> ResponderContext<'a> {
         let used = writer.used();
 
         #[cfg(feature = "hashed-transcript-data")]
-        let message_m = match session_id {
+        let message_l = match session_id {
             Some(session_id) => {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                     s
@@ -173,39 +173,34 @@ impl<'a> ResponderContext<'a> {
                     panic!("invalid session id");
                 };
 
-                if session.runtime_info.message_m.is_none() {
-                    session.runtime_info.message_m = crypto::hash::hash_ctx_init(base_hash_sel);
+                if session.runtime_info.message_l.is_none() {
+                    session.runtime_info.message_l = crypto::hash::hash_ctx_init(base_hash_sel);
                     if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                         crypto::hash::hash_ctx_update(
-                            session.runtime_info.message_m.as_mut().unwrap(),
+                            session.runtime_info.message_l.as_mut().unwrap(),
                             message_a.as_ref(),
                         );
                     }
                 }
 
-                &mut session.runtime_info.message_m
+                &mut session.runtime_info.message_l
             }
             None => {
-                if self.common.runtime_info.message_mes_no_session.is_none() {
-                    self.common.runtime_info.message_mes_no_session =
-                        crypto::hash::hash_ctx_init(base_hash_sel);
+                if self.common.runtime_info.message_l.is_none() {
+                    self.common.runtime_info.message_l = crypto::hash::hash_ctx_init(base_hash_sel);
                     if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                         crypto::hash::hash_ctx_update(
-                            self.common
-                                .runtime_info
-                                .message_mes_no_session
-                                .as_mut()
-                                .unwrap(),
+                            self.common.runtime_info.message_l.as_mut().unwrap(),
                             message_a.as_ref(),
                         );
                     }
                 }
 
-                &mut self.common.runtime_info.message_mes_no_session
+                &mut self.common.runtime_info.message_l
             }
         };
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), &bytes[..reader.used()]);
+        crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), &bytes[..reader.used()]);
 
         // generat signature
         if get_measurements
@@ -215,11 +210,11 @@ impl<'a> ResponderContext<'a> {
             let base_asym_size = base_asym_sel.get_size() as usize;
             let temp_used = used - base_asym_size;
             #[cfg(not(feature = "hashed-transcript-data"))]
-            self.append_message_m_response(session_id, &writer.used_slice()[..temp_used]);
+            self.append_message_l_response(session_id, &writer.used_slice()[..temp_used]);
 
             #[cfg(feature = "hashed-transcript-data")]
             crypto::hash::hash_ctx_update(
-                message_m.as_mut().unwrap(),
+                message_l.as_mut().unwrap(),
                 &writer.used_slice()[..temp_used],
             );
 
@@ -239,11 +234,11 @@ impl<'a> ResponderContext<'a> {
                         .get_session_via_id(session_id)
                         .unwrap()
                         .runtime_info
-                        .message_m
+                        .message_l
                         .reset_message();
                 }
                 None => {
-                    self.common.runtime_info.message_m.reset_message();
+                    self.common.runtime_info.message_l.reset_message();
                 }
             }
             #[cfg(feature = "hashed-transcript-data")]
@@ -253,23 +248,23 @@ impl<'a> ResponderContext<'a> {
                         .get_session_via_id(session_id)
                         .unwrap()
                         .runtime_info
-                        .message_m = None;
+                        .message_l = None;
                 }
                 None => {
-                    self.common.runtime_info.message_mes_no_session = None;
+                    self.common.runtime_info.message_l = None;
                 }
             }
         } else {
             #[cfg(not(feature = "hashed-transcript-data"))]
-            self.append_message_m_response(session_id, writer.used_slice());
+            self.append_message_l_response(session_id, writer.used_slice());
             #[cfg(feature = "hashed-transcript-data")]
             match session_id {
                 Some(_) => {
-                    crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), writer.used_slice());
+                    crypto::hash::hash_ctx_update(message_l.as_mut().unwrap(), writer.used_slice());
                 }
                 None => {
                     crypto::hash::hash_ctx_update(
-                        self.common.runtime_info.message_m.as_mut().unwrap(),
+                        self.common.runtime_info.message_l.as_mut().unwrap(),
                         writer.used_slice(),
                     );
                 }
@@ -277,16 +272,16 @@ impl<'a> ResponderContext<'a> {
         }
     }
     #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn append_message_m_response(
+    pub fn append_message_l_response(
         &mut self,
         session_id: Option<u32>,
         bytes: &[u8],
     ) -> Option<usize> {
         match session_id {
-            None => self.common.runtime_info.message_m.append_message(bytes),
+            None => self.common.runtime_info.message_l.append_message(bytes),
             Some(session_id) => {
                 let session = self.common.get_session_via_id(session_id).unwrap();
-                session.runtime_info.message_m.append_message(bytes)
+                session.runtime_info.message_l.append_message(bytes)
             }
         }
     }
@@ -309,7 +304,7 @@ impl<'a> ResponderContext<'a> {
         match session_id {
             None => {
                 message
-                    .append_message(self.common.runtime_info.message_m.as_ref())
+                    .append_message(self.common.runtime_info.message_l.as_ref())
                     .ok_or_else(|| spdm_err!(ENOMEM))?;
             }
             Some(session_id) => {
@@ -319,7 +314,7 @@ impl<'a> ResponderContext<'a> {
                     return spdm_result_err!(EINVAL);
                 };
                 message
-                    .append_message(session.runtime_info.message_m.as_ref())
+                    .append_message(session.runtime_info.message_l.as_ref())
                     .ok_or_else(|| spdm_err!(ENOMEM))?;
             }
         }
@@ -337,7 +332,7 @@ impl<'a> ResponderContext<'a> {
                     .get_session_via_id(session_id)
                     .unwrap()
                     .runtime_info
-                    .message_m
+                    .message_l
                     .as_mut()
                     .cloned()
                     .unwrap(),
@@ -346,7 +341,7 @@ impl<'a> ResponderContext<'a> {
             None => crypto::hash::hash_ctx_finalize(
                 self.common
                     .runtime_info
-                    .message_mes_no_session
+                    .message_l
                     .as_mut()
                     .cloned()
                     .unwrap(),
@@ -440,7 +435,7 @@ mod tests_responder {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
-            let data = context.common.runtime_info.message_m.as_ref();
+            let data = context.common.runtime_info.message_l.as_ref();
             let u8_slice = &mut [0u8; 2048];
             for (i, data) in data.iter().enumerate() {
                 u8_slice[i] = *data;
@@ -577,7 +572,7 @@ mod tests_responder {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
-            let data = context.common.runtime_info.message_m.as_ref();
+            let data = context.common.runtime_info.message_l.as_ref();
             let u8_slice = &mut [0u8; 2048];
             for (i, data) in data.iter().enumerate() {
                 u8_slice[i] = *data;
