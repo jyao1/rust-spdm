@@ -70,59 +70,64 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => {
-                    let key_update_rsp =
-                        SpdmKeyUpdateResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                    let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                        s
-                    } else {
-                        return spdm_result_err!(EFAULT);
-                    };
-                    if let Some(key_update_rsp) = key_update_rsp {
-                        debug!("!!! key_update rsp : {:02x?}\n", key_update_rsp);
-                        session.activate_data_secret_update(
-                            spdm_version_sel,
-                            update_requester,
-                            update_responder,
-                            true,
-                        )?;
-                        Ok(())
-                    } else {
-                        error!("!!! key_update : fail !!!\n");
-                        session.activate_data_secret_update(
-                            spdm_version_sel,
-                            update_requester,
-                            update_responder,
-                            false,
-                        )?;
-                        spdm_result_err!(EFAULT)
-                    }
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
                 }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestKeyUpdate,
-                        SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_key_update_op_response(
-                                session_id,
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => {
+                        let key_update_rsp =
+                            SpdmKeyUpdateResponsePayload::spdm_read(&mut self.common, &mut reader);
+                        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                            s
+                        } else {
+                            return spdm_result_err!(EFAULT);
+                        };
+                        if let Some(key_update_rsp) = key_update_rsp {
+                            debug!("!!! key_update rsp : {:02x?}\n", key_update_rsp);
+                            session.activate_data_secret_update(
+                                spdm_version_sel,
                                 update_requester,
                                 update_responder,
-                                &receive_buffer[..used],
-                            )
+                                true,
+                            )?;
+                            Ok(())
+                        } else {
+                            error!("!!! key_update : fail !!!\n");
+                            session.activate_data_secret_update(
+                                spdm_version_sel,
+                                update_requester,
+                                update_responder,
+                                false,
+                            )?;
+                            spdm_result_err!(EFAULT)
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+                            SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_key_update_op_response(
+                                    session_id,
+                                    update_requester,
+                                    update_responder,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
+                        }
+                    }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

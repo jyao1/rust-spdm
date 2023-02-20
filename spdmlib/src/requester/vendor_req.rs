@@ -48,37 +48,44 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => {
-                    match SpdmVendorDefinedResponsePayload::spdm_read(&mut self.common, &mut reader)
-                    {
-                        Some(spdm_vendor_defined_response_payload) => {
-                            Ok(spdm_vendor_defined_response_payload.rsp_payload)
-                        }
-                        None => spdm_result_err!(EFAULT),
-                    }
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
                 }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
-                        SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_vendor_defined_respond(
-                                session_id,
-                                &receive_buffer[..used],
-                            )
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => {
+                        match SpdmVendorDefinedResponsePayload::spdm_read(
+                            &mut self.common,
+                            &mut reader,
+                        ) {
+                            Some(spdm_vendor_defined_response_payload) => {
+                                Ok(spdm_vendor_defined_response_payload.rsp_payload)
+                            }
+                            None => spdm_result_err!(EFAULT),
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
+                            SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_vendor_defined_respond(
+                                    session_id,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
+                        }
+                    }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

@@ -50,65 +50,70 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseDigests => {
-                    let digests =
-                        SpdmDigestsResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let used = reader.used();
-                    if let Some(digests) = digests {
-                        debug!("!!! digests : {:02x?}\n", digests);
-
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        {
-                            let message_b = &mut self.common.runtime_info.message_b;
-                            message_b
-                                .append_message(send_buffer)
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            message_b
-                                .append_message(&receive_buffer[..used])
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        }
-
-                        #[cfg(feature = "hashed-transcript-data")]
-                        {
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                send_buffer,
-                            );
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                &receive_buffer[..used],
-                            );
-                        }
-
-                        Ok(())
-                    } else {
-                        error!("!!! digests : fail !!!\n");
-                        spdm_result_err!(EFAULT)
-                    }
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
                 }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestGetDigests,
-                        SpdmRequestResponseCode::SpdmResponseDigests,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_digest_response(
-                                session_id,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseDigests => {
+                        let digests =
+                            SpdmDigestsResponsePayload::spdm_read(&mut self.common, &mut reader);
+                        let used = reader.used();
+                        if let Some(digests) = digests {
+                            debug!("!!! digests : {:02x?}\n", digests);
+
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            {
+                                let message_b = &mut self.common.runtime_info.message_b;
+                                message_b
+                                    .append_message(send_buffer)
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                message_b
+                                    .append_message(&receive_buffer[..used])
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            }
+
+                            #[cfg(feature = "hashed-transcript-data")]
+                            {
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    send_buffer,
+                                );
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    &receive_buffer[..used],
+                                );
+                            }
+
+                            Ok(())
+                        } else {
+                            error!("!!! digests : fail !!!\n");
+                            spdm_result_err!(EFAULT)
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestGetDigests,
+                            SpdmRequestResponseCode::SpdmResponseDigests,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_digest_response(
+                                    session_id,
+                                    send_buffer,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
+                        }
+                    }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }
