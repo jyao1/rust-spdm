@@ -46,66 +46,75 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseCapabilities => {
-                    let capabilities =
-                        SpdmCapabilitiesResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let used = reader.used();
-                    if let Some(capabilities) = capabilities {
-                        debug!("!!! capabilities : {:02x?}\n", capabilities);
-                        self.common.negotiate_info.req_ct_exponent_sel =
-                            self.common.config_info.req_ct_exponent;
-                        self.common.negotiate_info.req_capabilities_sel =
-                            self.common.config_info.req_capabilities;
-                        self.common.negotiate_info.rsp_ct_exponent_sel = capabilities.ct_exponent;
-                        self.common.negotiate_info.rsp_capabilities_sel = capabilities.flags;
-
-                        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
-                        {
-                            self.common.negotiate_info.req_data_transfer_size_sel =
-                                self.common.config_info.data_transfer_size;
-                            self.common.negotiate_info.req_max_spdm_msg_size_sel =
-                                self.common.config_info.max_spdm_msg_size;
-                            self.common.negotiate_info.rsp_data_transfer_size_sel =
-                                capabilities.data_transfer_size;
-                            self.common.negotiate_info.rsp_max_spdm_msg_size_sel =
-                                capabilities.max_spdm_msg_size;
-                        }
-
-                        let message_a = &mut self.common.runtime_info.message_a;
-                        message_a
-                            .append_message(send_buffer)
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        message_a
-                            .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
-                    } else {
-                        error!("!!! capabilities : fail !!!\n");
-                        spdm_result_err!(EFAULT)
-                    }
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
                 }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestGetCapabilities,
-                        SpdmRequestResponseCode::SpdmResponseCapabilities,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_capability_response(
-                                session_id,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseCapabilities => {
+                        let capabilities = SpdmCapabilitiesResponsePayload::spdm_read(
+                            &mut self.common,
+                            &mut reader,
+                        );
+                        let used = reader.used();
+                        if let Some(capabilities) = capabilities {
+                            debug!("!!! capabilities : {:02x?}\n", capabilities);
+                            self.common.negotiate_info.req_ct_exponent_sel =
+                                self.common.config_info.req_ct_exponent;
+                            self.common.negotiate_info.req_capabilities_sel =
+                                self.common.config_info.req_capabilities;
+                            self.common.negotiate_info.rsp_ct_exponent_sel =
+                                capabilities.ct_exponent;
+                            self.common.negotiate_info.rsp_capabilities_sel = capabilities.flags;
+
+                            if self.common.negotiate_info.spdm_version_sel
+                                == SpdmVersion::SpdmVersion12
+                            {
+                                self.common.negotiate_info.req_data_transfer_size_sel =
+                                    self.common.config_info.data_transfer_size;
+                                self.common.negotiate_info.req_max_spdm_msg_size_sel =
+                                    self.common.config_info.max_spdm_msg_size;
+                                self.common.negotiate_info.rsp_data_transfer_size_sel =
+                                    capabilities.data_transfer_size;
+                                self.common.negotiate_info.rsp_max_spdm_msg_size_sel =
+                                    capabilities.max_spdm_msg_size;
+                            }
+
+                            let message_a = &mut self.common.runtime_info.message_a;
+                            message_a
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_a
+                                .append_message(&receive_buffer[..used])
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
+                        } else {
+                            error!("!!! capabilities : fail !!!\n");
+                            spdm_result_err!(EFAULT)
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+                            SpdmRequestResponseCode::SpdmResponseCapabilities,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_capability_response(
+                                    session_id,
+                                    send_buffer,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
+                        }
+                    }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

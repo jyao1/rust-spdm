@@ -68,100 +68,109 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<(u16, u16)> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseCertificate => {
-                    let certificate =
-                        SpdmCertificateResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let used = reader.used();
-                    if let Some(certificate) = certificate {
-                        debug!("!!! certificate : {:02x?}\n", certificate);
-                        if certificate.portion_length as usize > config::MAX_SPDM_CERT_PORTION_LEN
-                            || (offset + certificate.portion_length) as usize
-                                > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
-                        {
-                            return spdm_result_err!(ENOMEM);
-                        }
-                        if certificate.slot_id != slot_id {
-                            error!("slot id is not match between requester and responder!\n");
-                            return spdm_result_err!(EINVAL);
-                        }
-                        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
-                            if offset != 0 {
-                                error!("offset invalid!\n");
-                                return spdm_result_err!(EIO);
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
+                }
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseCertificate => {
+                        let certificate = SpdmCertificateResponsePayload::spdm_read(
+                            &mut self.common,
+                            &mut reader,
+                        );
+                        let used = reader.used();
+                        if let Some(certificate) = certificate {
+                            debug!("!!! certificate : {:02x?}\n", certificate);
+                            if certificate.portion_length as usize
+                                > config::MAX_SPDM_CERT_PORTION_LEN
+                                || (offset + certificate.portion_length) as usize
+                                    > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
+                            {
+                                return spdm_result_err!(ENOMEM);
                             }
-                            self.common.peer_info.peer_cert_chain[slot_id as usize] =
-                                Some(SpdmCertChain::default());
+                            if certificate.slot_id != slot_id {
+                                error!("slot id is not match between requester and responder!\n");
+                                return spdm_result_err!(EINVAL);
+                            }
+                            if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+                                if offset != 0 {
+                                    error!("offset invalid!\n");
+                                    return spdm_result_err!(EIO);
+                                }
+                                self.common.peer_info.peer_cert_chain[slot_id as usize] =
+                                    Some(SpdmCertChain::default());
+                            }
+                            self.common.peer_info.peer_cert_chain[slot_id as usize]
+                                .as_mut()
+                                .unwrap()
+                                .cert_chain
+                                .data[(offset as usize)
+                                ..(offset as usize + certificate.portion_length as usize)]
+                                .copy_from_slice(
+                                    &certificate.cert_chain
+                                        [0..(certificate.portion_length as usize)],
+                                );
+
+                            self.common.peer_info.peer_cert_chain[slot_id as usize]
+                                .as_mut()
+                                .unwrap()
+                                .cert_chain
+                                .data_size = offset + certificate.portion_length;
+
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            {
+                                let message_b = &mut self.common.runtime_info.message_b;
+                                message_b
+                                    .append_message(send_buffer)
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                message_b
+                                    .append_message(&receive_buffer[..used])
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            }
+
+                            #[cfg(feature = "hashed-transcript-data")]
+                            {
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    send_buffer,
+                                );
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    &receive_buffer[..used],
+                                );
+                            }
+
+                            Ok((certificate.portion_length, certificate.remainder_length))
+                        } else {
+                            error!("!!! certificate : fail !!!\n");
+                            spdm_result_err!(EFAULT)
                         }
-                        self.common.peer_info.peer_cert_chain[slot_id as usize]
-                            .as_mut()
-                            .unwrap()
-                            .cert_chain
-                            .data[(offset as usize)
-                            ..(offset as usize + certificate.portion_length as usize)]
-                            .copy_from_slice(
-                                &certificate.cert_chain[0..(certificate.portion_length as usize)],
-                            );
-
-                        self.common.peer_info.peer_cert_chain[slot_id as usize]
-                            .as_mut()
-                            .unwrap()
-                            .cert_chain
-                            .data_size = offset + certificate.portion_length;
-
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        {
-                            let message_b = &mut self.common.runtime_info.message_b;
-                            message_b
-                                .append_message(send_buffer)
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            message_b
-                                .append_message(&receive_buffer[..used])
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        }
-
-                        #[cfg(feature = "hashed-transcript-data")]
-                        {
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                send_buffer,
-                            );
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                &receive_buffer[..used],
-                            );
-                        }
-
-                        Ok((certificate.portion_length, certificate.remainder_length))
-                    } else {
-                        error!("!!! certificate : fail !!!\n");
-                        spdm_result_err!(EFAULT)
                     }
-                }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        session_id,
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestGetCertificate,
-                        SpdmRequestResponseCode::SpdmResponseCertificate,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_certificate_partial_response(
-                                session_id,
-                                slot_id,
-                                offset,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            session_id,
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestGetCertificate,
+                            SpdmRequestResponseCode::SpdmResponseCertificate,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_certificate_partial_response(
+                                    session_id,
+                                    slot_id,
+                                    offset,
+                                    send_buffer,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

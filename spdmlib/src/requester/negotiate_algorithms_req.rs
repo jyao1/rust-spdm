@@ -81,96 +81,103 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseAlgorithms => {
-                    let algorithms =
-                        SpdmAlgorithmsResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let used = reader.used();
-                    if let Some(algorithms) = algorithms {
-                        debug!("!!! algorithms : {:02x?}\n", algorithms);
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
+                }
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseAlgorithms => {
+                        let algorithms =
+                            SpdmAlgorithmsResponsePayload::spdm_read(&mut self.common, &mut reader);
+                        let used = reader.used();
+                        if let Some(algorithms) = algorithms {
+                            debug!("!!! algorithms : {:02x?}\n", algorithms);
 
-                        self.common.negotiate_info.measurement_specification_sel =
-                            algorithms.measurement_specification_sel;
+                            self.common.negotiate_info.measurement_specification_sel =
+                                algorithms.measurement_specification_sel;
 
-                        self.common.negotiate_info.opaque_data_support =
-                            algorithms.other_params_selection;
+                            self.common.negotiate_info.opaque_data_support =
+                                algorithms.other_params_selection;
 
-                        self.common.negotiate_info.measurement_hash_sel =
-                            algorithms.measurement_hash_algo;
-                        if algorithms.base_hash_sel.bits() == 0 {
-                            return spdm_result_err!(EINVAL);
-                        }
-                        self.common.negotiate_info.base_hash_sel = algorithms.base_hash_sel;
-                        if algorithms.base_asym_sel.bits() == 0 {
-                            return spdm_result_err!(EINVAL);
-                        }
-                        self.common.negotiate_info.base_asym_sel = algorithms.base_asym_sel;
-                        for alg in algorithms
-                            .alg_struct
-                            .iter()
-                            .take(algorithms.alg_struct_count as usize)
-                        {
-                            match &alg.alg_supported {
-                                SpdmAlg::SpdmAlgoDhe(v) => self.common.negotiate_info.dhe_sel = *v,
-                                SpdmAlg::SpdmAlgoAead(v) => {
-                                    self.common.negotiate_info.aead_sel = *v
-                                }
-                                SpdmAlg::SpdmAlgoReqAsym(v) => {
-                                    self.common.negotiate_info.req_asym_sel = *v
-                                }
-                                SpdmAlg::SpdmAlgoKeySchedule(v) => {
-                                    self.common.negotiate_info.key_schedule_sel = *v
-                                }
-                                SpdmAlg::SpdmAlgoUnknown(_v) => {}
+                            self.common.negotiate_info.measurement_hash_sel =
+                                algorithms.measurement_hash_algo;
+                            if algorithms.base_hash_sel.bits() == 0 {
+                                return spdm_result_err!(EINVAL);
                             }
+                            self.common.negotiate_info.base_hash_sel = algorithms.base_hash_sel;
+                            if algorithms.base_asym_sel.bits() == 0 {
+                                return spdm_result_err!(EINVAL);
+                            }
+                            self.common.negotiate_info.base_asym_sel = algorithms.base_asym_sel;
+                            for alg in algorithms
+                                .alg_struct
+                                .iter()
+                                .take(algorithms.alg_struct_count as usize)
+                            {
+                                match &alg.alg_supported {
+                                    SpdmAlg::SpdmAlgoDhe(v) => {
+                                        self.common.negotiate_info.dhe_sel = *v
+                                    }
+                                    SpdmAlg::SpdmAlgoAead(v) => {
+                                        self.common.negotiate_info.aead_sel = *v
+                                    }
+                                    SpdmAlg::SpdmAlgoReqAsym(v) => {
+                                        self.common.negotiate_info.req_asym_sel = *v
+                                    }
+                                    SpdmAlg::SpdmAlgoKeySchedule(v) => {
+                                        self.common.negotiate_info.key_schedule_sel = *v
+                                    }
+                                    SpdmAlg::SpdmAlgoUnknown(_v) => {}
+                                }
+                            }
+
+                            let message_a = &mut self.common.runtime_info.message_a;
+                            message_a
+                                .append_message(send_buffer)
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            message_a
+                                .append_message(&receive_buffer[..used])
+                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+
+                            #[cfg(feature = "hashed-transcript-data")]
+                            {
+                                self.common.runtime_info.message_m = crypto::hash::hash_ctx_init(
+                                    self.common.negotiate_info.base_hash_sel,
+                                );
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    message_a.as_ref(),
+                                );
+                            }
+
+                            return Ok(());
                         }
-
-                        let message_a = &mut self.common.runtime_info.message_a;
-                        message_a
-                            .append_message(send_buffer)
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        message_a
-                            .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-
-                        #[cfg(feature = "hashed-transcript-data")]
-                        {
-                            self.common.runtime_info.message_m = crypto::hash::hash_ctx_init(
-                                self.common.negotiate_info.base_hash_sel,
-                            );
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                message_a.as_ref(),
-                            );
-                        }
-
-                        return Ok(());
+                        error!("!!! algorithms : fail !!!\n");
+                        spdm_result_err!(EFAULT)
                     }
-                    error!("!!! algorithms : fail !!!\n");
-                    spdm_result_err!(EFAULT)
-                }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
-                        SpdmRequestResponseCode::SpdmResponseAlgorithms,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_algorithm_response(
-                                session_id,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+                            SpdmRequestResponseCode::SpdmResponseAlgorithms,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_algorithm_response(
+                                    session_id,
+                                    send_buffer,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

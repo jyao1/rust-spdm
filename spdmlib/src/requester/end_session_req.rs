@@ -41,47 +41,53 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseEndSessionAck => {
-                    let end_session_rsp =
-                        SpdmEndSessionResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    if let Some(end_session_rsp) = end_session_rsp {
-                        debug!("!!! end_session rsp : {:02x?}\n", end_session_rsp);
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
+                }
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseEndSessionAck => {
+                        let end_session_rsp =
+                            SpdmEndSessionResponsePayload::spdm_read(&mut self.common, &mut reader);
+                        if let Some(end_session_rsp) = end_session_rsp {
+                            debug!("!!! end_session rsp : {:02x?}\n", end_session_rsp);
 
-                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                            s
+                            let session =
+                                if let Some(s) = self.common.get_session_via_id(session_id) {
+                                    s
+                                } else {
+                                    return spdm_result_err!(EFAULT);
+                                };
+                            session.teardown(session_id)?;
+
+                            Ok(())
                         } else {
-                            return spdm_result_err!(EFAULT);
-                        };
-                        session.teardown(session_id)?;
-
-                        Ok(())
-                    } else {
-                        error!("!!! end_session : fail !!!\n");
-                        spdm_result_err!(EFAULT)
-                    }
-                }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestEndSession,
-                        SpdmRequestResponseCode::SpdmResponseEndSessionAck,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_end_session_response(
-                                session_id,
-                                &receive_buffer[..used],
-                            )
+                            error!("!!! end_session : fail !!!\n");
+                            spdm_result_err!(EFAULT)
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestEndSession,
+                            SpdmRequestResponseCode::SpdmResponseEndSessionAck,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_end_session_response(
+                                    session_id,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
+                        }
+                    }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

@@ -78,82 +78,89 @@ impl<'a> RequesterContext<'a> {
 
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponseChallengeAuth => {
-                    let challenge_auth =
-                        SpdmChallengeAuthResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let used = reader.used();
-                    if let Some(challenge_auth) = challenge_auth {
-                        debug!("!!! challenge_auth : {:02x?}\n", challenge_auth);
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
+                }
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponseChallengeAuth => {
+                        let challenge_auth = SpdmChallengeAuthResponsePayload::spdm_read(
+                            &mut self.common,
+                            &mut reader,
+                        );
+                        let used = reader.used();
+                        if let Some(challenge_auth) = challenge_auth {
+                            debug!("!!! challenge_auth : {:02x?}\n", challenge_auth);
 
-                        // verify signature
-                        let base_asym_size =
-                            self.common.negotiate_info.base_asym_sel.get_size() as usize;
-                        let temp_used = used - base_asym_size;
+                            // verify signature
+                            let base_asym_size =
+                                self.common.negotiate_info.base_asym_sel.get_size() as usize;
+                            let temp_used = used - base_asym_size;
 
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        {
-                            let message_c = &mut self.common.runtime_info.message_c;
-                            message_c
-                                .append_message(send_buffer)
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                            message_c
-                                .append_message(&receive_buffer[..temp_used])
-                                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                        }
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            {
+                                let message_c = &mut self.common.runtime_info.message_c;
+                                message_c
+                                    .append_message(send_buffer)
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                message_c
+                                    .append_message(&receive_buffer[..temp_used])
+                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            }
 
-                        #[cfg(feature = "hashed-transcript-data")]
-                        {
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                send_buffer,
-                            );
-                            crypto::hash::hash_ctx_update(
-                                self.common.runtime_info.message_m.as_mut().unwrap(),
-                                &receive_buffer[..temp_used],
-                            );
-                        }
+                            #[cfg(feature = "hashed-transcript-data")]
+                            {
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    send_buffer,
+                                );
+                                crypto::hash::hash_ctx_update(
+                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    &receive_buffer[..temp_used],
+                                );
+                            }
 
-                        if self
-                            .verify_challenge_auth_signature(slot_id, &challenge_auth.signature)
-                            .is_err()
-                        {
-                            error!("verify_challenge_auth_signature fail");
-                            return spdm_result_err!(EFAULT);
+                            if self
+                                .verify_challenge_auth_signature(slot_id, &challenge_auth.signature)
+                                .is_err()
+                            {
+                                error!("verify_challenge_auth_signature fail");
+                                return spdm_result_err!(EFAULT);
+                            } else {
+                                info!("verify_challenge_auth_signature pass");
+                            }
+
+                            Ok(())
                         } else {
-                            info!("verify_challenge_auth_signature pass");
+                            error!("!!! challenge_auth : fail !!!\n");
+                            spdm_result_err!(EFAULT)
                         }
-
-                        Ok(())
-                    } else {
-                        error!("!!! challenge_auth : fail !!!\n");
-                        spdm_result_err!(EFAULT)
                     }
-                }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestChallenge,
-                        SpdmRequestResponseCode::SpdmResponseChallengeAuth,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_challenge_response(
-                                session_id,
-                                slot_id,
-                                measurement_summary_hash_type,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestChallenge,
+                            SpdmRequestResponseCode::SpdmResponseChallengeAuth,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_challenge_response(
+                                    session_id,
+                                    slot_id,
+                                    measurement_summary_hash_type,
+                                    send_buffer,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }

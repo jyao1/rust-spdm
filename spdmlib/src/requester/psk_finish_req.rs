@@ -122,104 +122,112 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmResponsePskFinishRsp => {
-                    let psk_finish_rsp =
-                        SpdmPskFinishResponsePayload::spdm_read(&mut self.common, &mut reader);
-                    let receive_used = reader.used();
-                    if let Some(psk_finish_rsp) = psk_finish_rsp {
-                        debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
-                        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        {
+            Some(message_header) => {
+                if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                    return spdm_result_err!(EFAULT);
+                }
+                match message_header.request_response_code {
+                    SpdmRequestResponseCode::SpdmResponsePskFinishRsp => {
+                        let psk_finish_rsp =
+                            SpdmPskFinishResponsePayload::spdm_read(&mut self.common, &mut reader);
+                        let receive_used = reader.used();
+                        if let Some(psk_finish_rsp) = psk_finish_rsp {
+                            debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
+                            let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            {
+                                let session =
+                                    if let Some(s) = self.common.get_session_via_id(session_id) {
+                                        s
+                                    } else {
+                                        return spdm_result_err!(EFAULT);
+                                    };
+
+                                message_f
+                                    .append_message(&receive_buffer[..receive_used])
+                                    .ok_or(spdm_err!(ENOMEM))?;
+
+                                session.runtime_info.message_f = message_f;
+                            }
+
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            let session = if let Some(s) =
+                                self.common.get_immutable_session_via_id(session_id)
+                            {
+                                s
+                            } else {
+                                return spdm_result_err!(EFAULT);
+                            };
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            let message_k = &session.runtime_info.message_k; // generate the data secret
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            let th2 = self.common.calc_req_transcript_hash(
+                                INVALID_SLOT,
+                                true,
+                                message_k,
+                                Some(&session.runtime_info.message_f),
+                            )?;
+
+                            #[cfg(feature = "hashed-transcript-data")]
                             let session =
                                 if let Some(s) = self.common.get_session_via_id(session_id) {
                                     s
                                 } else {
                                     return spdm_result_err!(EFAULT);
                                 };
+                            #[cfg(feature = "hashed-transcript-data")]
+                            crypto::hash::hash_ctx_update(
+                                session.runtime_info.message_f.as_mut().unwrap(),
+                                &receive_buffer[..receive_used],
+                            );
 
-                            message_f
-                                .append_message(&receive_buffer[..receive_used])
-                                .ok_or(spdm_err!(ENOMEM))?;
-
-                            session.runtime_info.message_f = message_f;
-                        }
-
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        let session =
-                            if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
-                                s
-                            } else {
-                                return spdm_result_err!(EFAULT);
-                            };
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        let message_k = &session.runtime_info.message_k; // generate the data secret
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        let th2 = self.common.calc_req_transcript_hash(
-                            INVALID_SLOT,
-                            true,
-                            message_k,
-                            Some(&session.runtime_info.message_f),
-                        )?;
-
-                        #[cfg(feature = "hashed-transcript-data")]
-                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                            s
-                        } else {
-                            return spdm_result_err!(EFAULT);
-                        };
-                        #[cfg(feature = "hashed-transcript-data")]
-                        crypto::hash::hash_ctx_update(
-                            session.runtime_info.message_f.as_mut().unwrap(),
-                            &receive_buffer[..receive_used],
-                        );
-
-                        #[cfg(feature = "hashed-transcript-data")]
-                        let th2 = crypto::hash::hash_ctx_finalize(
-                            session.runtime_info.message_f.as_mut().cloned().unwrap(),
-                        )
-                        .unwrap();
-
-                        debug!("!!! th2 : {:02x?}\n", th2.as_ref());
-                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                            s
-                        } else {
-                            return spdm_result_err!(EFAULT);
-                        };
-                        session.generate_data_secret(spdm_version_sel, &th2)?;
-                        session.set_session_state(
-                            crate::common::session::SpdmSessionState::SpdmSessionEstablished,
-                        );
-
-                        Ok(())
-                    } else {
-                        error!("!!! psk_finish : fail !!!\n");
-                        spdm_result_err!(EFAULT)
-                    }
-                }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestPskFinish,
-                        SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_psk_finish_response(
-                                session_id,
-                                message_f,
-                                &receive_buffer[..used],
+                            #[cfg(feature = "hashed-transcript-data")]
+                            let th2 = crypto::hash::hash_ctx_finalize(
+                                session.runtime_info.message_f.as_mut().cloned().unwrap(),
                             )
+                            .unwrap();
+
+                            debug!("!!! th2 : {:02x?}\n", th2.as_ref());
+                            let session =
+                                if let Some(s) = self.common.get_session_via_id(session_id) {
+                                    s
+                                } else {
+                                    return spdm_result_err!(EFAULT);
+                                };
+                            session.generate_data_secret(spdm_version_sel, &th2)?;
+                            session.set_session_state(
+                                crate::common::session::SpdmSessionState::SpdmSessionEstablished,
+                            );
+
+                            Ok(())
+                        } else {
+                            error!("!!! psk_finish : fail !!!\n");
+                            spdm_result_err!(EFAULT)
                         }
-                        _ => spdm_result_err!(EINVAL),
                     }
+                    SpdmRequestResponseCode::SpdmResponseError => {
+                        let erm = self.spdm_handle_error_response_main(
+                            Some(session_id),
+                            receive_buffer,
+                            SpdmRequestResponseCode::SpdmRequestPskFinish,
+                            SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
+                        );
+                        match erm {
+                            Ok(rm) => {
+                                let receive_buffer = rm.receive_buffer;
+                                let used = rm.used;
+                                self.handle_spdm_psk_finish_response(
+                                    session_id,
+                                    message_f,
+                                    &receive_buffer[..used],
+                                )
+                            }
+                            _ => spdm_result_err!(EINVAL),
+                        }
+                    }
+                    _ => spdm_result_err!(EINVAL),
                 }
-                _ => spdm_result_err!(EINVAL),
-            },
+            }
             None => spdm_result_err!(EIO),
         }
     }
@@ -260,6 +268,7 @@ mod tests_requester {
             rsp_provision_info,
         );
 
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -285,7 +294,7 @@ mod tests_requester {
             data_size: 48,
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
         };
-        let _ = responder.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret);
+        let _ = responder.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion11, dhe_secret);
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
 
@@ -296,6 +305,7 @@ mod tests_requester {
             req_provision_info,
         );
 
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -321,7 +331,7 @@ mod tests_requester {
             data_size: 48,
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
         };
-        let _ = requester.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret);
+        let _ = requester.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion11, dhe_secret);
         let status = requester.send_receive_spdm_psk_finish(4294901758).is_ok();
         assert!(status);
     }
