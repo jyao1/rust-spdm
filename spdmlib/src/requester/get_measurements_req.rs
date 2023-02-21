@@ -83,6 +83,34 @@ impl<'a> RequesterContext<'a> {
         Ok(writer.used())
     }
 
+    pub fn reset_message_m(&mut self, session_id: Option<u32>) -> SpdmResult {
+        match session_id {
+            Some(session_id) => {
+                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                    s
+                } else {
+                    log::error!("can't find session via session id!");
+                    return spdm_result_err!(EFAULT);
+                };
+                #[cfg(not(feature = "hashed-transcript-data"))]
+                session.runtime_info.message_m.reset_message();
+                #[cfg(feature = "hashed-transcript-data")]
+                {
+                    session.runtime_info.message_m = None;
+                }
+            }
+            None => {
+                #[cfg(not(feature = "hashed-transcript-data"))]
+                self.common.runtime_info.message_m.reset_message();
+                #[cfg(feature = "hashed-transcript-data")]
+                {
+                    self.common.runtime_info.message_mes_no_session = None;
+                }
+            }
+        };
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn handle_spdm_measurement_record_response(
         &mut self,
@@ -222,35 +250,12 @@ impl<'a> RequesterContext<'a> {
                                     .is_err()
                                 {
                                     error!("verify_measurement_signature fail");
+                                    let _ = self.reset_message_m(session_id);
                                     return spdm_result_err!(EFAULT);
                                 } else {
+                                    let _ = self.reset_message_m(session_id);
                                     info!("verify_measurement_signature pass");
                                 }
-                                match session_id {
-                                    Some(session_id) => {
-                                        let session = if let Some(s) =
-                                            self.common.get_session_via_id(session_id)
-                                        {
-                                            s
-                                        } else {
-                                            return spdm_result_err!(EFAULT);
-                                        };
-                                        #[cfg(not(feature = "hashed-transcript-data"))]
-                                        session.runtime_info.message_m.reset_message();
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        {
-                                            session.runtime_info.message_m = None;
-                                        }
-                                    }
-                                    None => {
-                                        #[cfg(not(feature = "hashed-transcript-data"))]
-                                        self.common.runtime_info.message_m.reset_message();
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        {
-                                            self.common.runtime_info.message_mes_no_session = None;
-                                        }
-                                    }
-                                };
                             } else {
                                 let message_m = match session_id {
                                     Some(session_id) => {
