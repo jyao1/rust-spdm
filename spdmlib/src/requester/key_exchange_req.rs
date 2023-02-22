@@ -536,12 +536,17 @@ mod tests_requester {
             .message_m
             .append_message(message_m);
         #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.message_m = Some(
+        responder.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            responder.common.runtime_info.message_m.as_mut().unwrap(),
+            responder
+                .common
+                .runtime_info
+                .digest_context_m1m2
+                .as_mut()
+                .unwrap(),
             message_m,
         );
         responder.common.provision_info.my_cert_chain_data = Some(REQ_CERT_CHAIN_DATA);
@@ -571,13 +576,18 @@ mod tests_requester {
             .message_m
             .append_message(message_m);
         #[cfg(feature = "hashed-transcript-data")]
-        requester.common.runtime_info.message_m = Some(
+        requester.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            requester.common.runtime_info.message_m.as_mut().unwrap(),
+            requester
+                .common
+                .runtime_info
+                .digest_context_m1m2
+                .as_mut()
+                .unwrap(),
             message_m,
         );
         requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());

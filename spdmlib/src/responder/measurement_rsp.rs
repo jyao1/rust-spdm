@@ -186,14 +186,14 @@ impl<'a> ResponderContext<'a> {
                 &mut session.runtime_info.message_m
             }
             None => {
-                if self.common.runtime_info.message_mes_no_session.is_none() {
-                    self.common.runtime_info.message_mes_no_session =
+                if self.common.runtime_info.digest_context_l1l2.is_none() {
+                    self.common.runtime_info.digest_context_l1l2 =
                         crypto::hash::hash_ctx_init(base_hash_sel);
                     if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                         crypto::hash::hash_ctx_update(
                             self.common
                                 .runtime_info
-                                .message_mes_no_session
+                                .digest_context_l1l2
                                 .as_mut()
                                 .unwrap(),
                             message_a.as_ref(),
@@ -201,7 +201,7 @@ impl<'a> ResponderContext<'a> {
                     }
                 }
 
-                &mut self.common.runtime_info.message_mes_no_session
+                &mut self.common.runtime_info.digest_context_l1l2
             }
         };
         #[cfg(feature = "hashed-transcript-data")]
@@ -256,7 +256,7 @@ impl<'a> ResponderContext<'a> {
                         .message_m = None;
                 }
                 None => {
-                    self.common.runtime_info.message_mes_no_session = None;
+                    self.common.runtime_info.digest_context_l1l2 = None;
                 }
             }
         } else {
@@ -269,7 +269,11 @@ impl<'a> ResponderContext<'a> {
                 }
                 None => {
                     crypto::hash::hash_ctx_update(
-                        self.common.runtime_info.message_m.as_mut().unwrap(),
+                        self.common
+                            .runtime_info
+                            .digest_context_l1l2
+                            .as_mut()
+                            .unwrap(),
                         writer.used_slice(),
                     );
                 }
@@ -346,7 +350,7 @@ impl<'a> ResponderContext<'a> {
             None => crypto::hash::hash_ctx_finalize(
                 self.common
                     .runtime_info
-                    .message_mes_no_session
+                    .digest_context_l1l2
                     .as_mut()
                     .cloned()
                     .unwrap(),
