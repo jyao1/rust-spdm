@@ -58,7 +58,11 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            self.common.runtime_info.message_m.as_mut().unwrap(),
+            self.common
+                .runtime_info
+                .digest_context_m1m2
+                .as_mut()
+                .unwrap(),
             &bytes[..reader.used()],
         );
 
@@ -115,22 +119,26 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            self.common.runtime_info.message_m.as_mut().unwrap(),
+            self.common
+                .runtime_info
+                .digest_context_m1m2
+                .as_mut()
+                .unwrap(),
             &writer.used_slice()[..temp_used],
         );
         #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_challenge_auth_signature();
         #[cfg(feature = "hashed-transcript-data")]
-        let message_m_clone = self
+        let digest_context_m1m2_clone = self
             .common
             .runtime_info
-            .message_m
+            .digest_context_m1m2
             .as_mut()
             .cloned()
             .unwrap();
         #[cfg(feature = "hashed-transcript-data")]
         let signature = self.generate_challenge_auth_signature(
-            crypto::hash::hash_ctx_finalize(message_m_clone).unwrap(),
+            crypto::hash::hash_ctx_finalize(digest_context_m1m2_clone).unwrap(),
         );
         if signature.is_err() {
             self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
@@ -252,7 +260,7 @@ mod tests_responder {
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
-        context.common.runtime_info.message_m =
+        context.common.runtime_info.digest_context_m1m2 =
             Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
 
         let spdm_message_header = &mut [0u8; 1024];

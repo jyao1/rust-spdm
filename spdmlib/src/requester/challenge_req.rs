@@ -111,11 +111,19 @@ impl<'a> RequesterContext<'a> {
                             #[cfg(feature = "hashed-transcript-data")]
                             {
                                 crypto::hash::hash_ctx_update(
-                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    self.common
+                                        .runtime_info
+                                        .digest_context_m1m2
+                                        .as_mut()
+                                        .unwrap(),
                                     send_buffer,
                                 );
                                 crypto::hash::hash_ctx_update(
-                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    self.common
+                                        .runtime_info
+                                        .digest_context_m1m2
+                                        .as_mut()
+                                        .unwrap(),
                                     &receive_buffer[..temp_used],
                                 );
                             }
@@ -198,7 +206,7 @@ impl<'a> RequesterContext<'a> {
             let digest = crypto::hash::hash_ctx_finalize(
                 self.common
                     .runtime_info
-                    .message_m
+                    .digest_context_m1m2
                     .as_mut()
                     .cloned()
                     .unwrap(),
@@ -293,7 +301,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.runtime_info.need_measurement_summary_hash = true;
 
-        responder.common.runtime_info.message_m = Some(
+        responder.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
@@ -326,7 +334,7 @@ mod tests_requester {
             .unwrap()
             .cert_chain = REQ_CERT_CHAIN_DATA;
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
-        requester.common.runtime_info.message_m = Some(
+        requester.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 

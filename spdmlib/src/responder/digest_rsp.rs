@@ -51,7 +51,11 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            self.common.runtime_info.message_m.as_mut().unwrap(),
+            self.common
+                .runtime_info
+                .digest_context_m1m2
+                .as_mut()
+                .unwrap(),
             &bytes[..reader.used()],
         );
 
@@ -97,7 +101,11 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            self.common.runtime_info.message_m.as_mut().unwrap(),
+            self.common
+                .runtime_info
+                .digest_context_m1m2
+                .as_mut()
+                .unwrap(),
             writer.used_slice(),
         );
     }
@@ -131,7 +139,7 @@ mod tests_responder {
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.runtime_info.message_m =
+        context.common.runtime_info.digest_context_m1m2 =
             Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
 
         let spdm_message_header = &mut [0u8; 1024];

@@ -141,11 +141,16 @@ impl<'a> RequesterContext<'a> {
 
                             #[cfg(feature = "hashed-transcript-data")]
                             {
-                                self.common.runtime_info.message_m = crypto::hash::hash_ctx_init(
-                                    self.common.negotiate_info.base_hash_sel,
-                                );
+                                self.common.runtime_info.digest_context_m1m2 =
+                                    crypto::hash::hash_ctx_init(
+                                        self.common.negotiate_info.base_hash_sel,
+                                    );
                                 crypto::hash::hash_ctx_update(
-                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    self.common
+                                        .runtime_info
+                                        .digest_context_m1m2
+                                        .as_mut()
+                                        .unwrap(),
                                     message_a.as_ref(),
                                 );
                             }

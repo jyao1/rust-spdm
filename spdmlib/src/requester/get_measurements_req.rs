@@ -83,7 +83,7 @@ impl<'a> RequesterContext<'a> {
         Ok(writer.used())
     }
 
-    pub fn reset_message_m(&mut self, session_id: Option<u32>) -> SpdmResult {
+    pub fn reset_l1l2(&mut self, session_id: Option<u32>) -> SpdmResult {
         match session_id {
             Some(session_id) => {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -104,7 +104,7 @@ impl<'a> RequesterContext<'a> {
                 self.common.runtime_info.message_m.reset_message();
                 #[cfg(feature = "hashed-transcript-data")]
                 {
-                    self.common.runtime_info.message_mes_no_session = None;
+                    self.common.runtime_info.digest_context_l1l2 = None;
                 }
             }
         };
@@ -193,15 +193,14 @@ impl<'a> RequesterContext<'a> {
                                     }
                                     None => {
                                         #[cfg(feature = "hashed-transcript-data")]
-                                        if self.common.runtime_info.message_mes_no_session.is_none()
-                                        {
-                                            self.common.runtime_info.message_mes_no_session =
+                                        if self.common.runtime_info.digest_context_l1l2.is_none() {
+                                            self.common.runtime_info.digest_context_l1l2 =
                                                 crypto::hash::hash_ctx_init(base_hash_sel);
                                             if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                                                 crypto::hash::hash_ctx_update(
                                                     self.common
                                                         .runtime_info
-                                                        .message_mes_no_session
+                                                        .digest_context_l1l2
                                                         .as_mut()
                                                         .unwrap(),
                                                     message_a.as_ref(),
@@ -210,7 +209,7 @@ impl<'a> RequesterContext<'a> {
                                         }
                                         #[cfg(feature = "hashed-transcript-data")]
                                         {
-                                            &mut self.common.runtime_info.message_mes_no_session
+                                            &mut self.common.runtime_info.digest_context_l1l2
                                         }
 
                                         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -250,10 +249,10 @@ impl<'a> RequesterContext<'a> {
                                     .is_err()
                                 {
                                     error!("verify_measurement_signature fail");
-                                    let _ = self.reset_message_m(session_id);
+                                    let _ = self.reset_l1l2(session_id);
                                     return spdm_result_err!(EFAULT);
                                 } else {
-                                    let _ = self.reset_message_m(session_id);
+                                    let _ = self.reset_l1l2(session_id);
                                     info!("verify_measurement_signature pass");
                                 }
                             } else {
@@ -287,9 +286,8 @@ impl<'a> RequesterContext<'a> {
                                     }
                                     None => {
                                         #[cfg(feature = "hashed-transcript-data")]
-                                        if self.common.runtime_info.message_mes_no_session.is_none()
-                                        {
-                                            self.common.runtime_info.message_mes_no_session =
+                                        if self.common.runtime_info.digest_context_l1l2.is_none() {
+                                            self.common.runtime_info.digest_context_l1l2 =
                                                 crypto::hash::hash_ctx_init(
                                                     self.common.negotiate_info.base_hash_sel,
                                                 );
@@ -299,7 +297,7 @@ impl<'a> RequesterContext<'a> {
                                                 crypto::hash::hash_ctx_update(
                                                     self.common
                                                         .runtime_info
-                                                        .message_m
+                                                        .digest_context_l1l2
                                                         .as_mut()
                                                         .unwrap(),
                                                     message_a.as_ref(),
@@ -314,7 +312,7 @@ impl<'a> RequesterContext<'a> {
 
                                         #[cfg(feature = "hashed-transcript-data")]
                                         {
-                                            &mut self.common.runtime_info.message_mes_no_session
+                                            &mut self.common.runtime_info.digest_context_l1l2
                                         }
                                     }
                                 };
@@ -426,7 +424,7 @@ impl<'a> RequesterContext<'a> {
                 let ctx = self
                     .common
                     .runtime_info
-                    .message_mes_no_session
+                    .digest_context_l1l2
                     .as_mut()
                     .cloned()
                     .unwrap();

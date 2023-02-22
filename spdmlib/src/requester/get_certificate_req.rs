@@ -131,11 +131,19 @@ impl<'a> RequesterContext<'a> {
                             #[cfg(feature = "hashed-transcript-data")]
                             {
                                 crypto::hash::hash_ctx_update(
-                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    self.common
+                                        .runtime_info
+                                        .digest_context_m1m2
+                                        .as_mut()
+                                        .unwrap(),
                                     send_buffer,
                                 );
                                 crypto::hash::hash_ctx_update(
-                                    self.common.runtime_info.message_m.as_mut().unwrap(),
+                                    self.common
+                                        .runtime_info
+                                        .digest_context_m1m2
+                                        .as_mut()
+                                        .unwrap(),
                                     &receive_buffer[..used],
                                 );
                             }
@@ -330,7 +338,7 @@ mod tests_requester {
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
-        responder.common.runtime_info.message_m = Some(
+        responder.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
@@ -347,7 +355,7 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.runtime_info.message_m = Some(
+        requester.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
