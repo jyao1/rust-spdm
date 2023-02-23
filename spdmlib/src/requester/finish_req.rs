@@ -113,7 +113,7 @@ impl<'a> RequesterContext<'a> {
                     .as_ref(),
             )?;
             crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
-            session.runtime_info.message_f = message_f;
+            session.runtime_info.digest_context_th = message_f;
             // patch the message before send
             buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
             Ok((send_used, base_hash_size, ManagedBuffer::default()))
@@ -186,13 +186,17 @@ impl<'a> RequesterContext<'a> {
 
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.message_f.as_mut().unwrap(),
+                                session.runtime_info.digest_context_th.as_mut().unwrap(),
                                 &receive_buffer[..temp_used],
                             );
 
                             #[cfg(feature = "hashed-transcript-data")]
-                            let ctx_cloned =
-                                session.runtime_info.message_f.as_mut().cloned().unwrap();
+                            let ctx_cloned = session
+                                .runtime_info
+                                .digest_context_th
+                                .as_mut()
+                                .cloned()
+                                .unwrap();
                             if session
                                 .verify_hmac_with_response_finished_key(
                                     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -221,7 +225,7 @@ impl<'a> RequesterContext<'a> {
                             }
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.message_f.as_mut().unwrap(),
+                                session.runtime_info.digest_context_th.as_mut().unwrap(),
                                 finish_rsp.verify_data.as_ref(),
                             );
                         } else {
@@ -241,7 +245,7 @@ impl<'a> RequesterContext<'a> {
                             }
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.message_f.as_mut().unwrap(),
+                                session.runtime_info.digest_context_th.as_mut().unwrap(),
                                 &receive_buffer[..receive_used],
                             );
                         }
@@ -273,7 +277,12 @@ impl<'a> RequesterContext<'a> {
 
                         #[cfg(feature = "hashed-transcript-data")]
                         let th2 = crypto::hash::hash_ctx_finalize(
-                            session.runtime_info.message_f.as_mut().cloned().unwrap(),
+                            session
+                                .runtime_info
+                                .digest_context_th
+                                .as_mut()
+                                .cloned()
+                                .unwrap(),
                         )
                         .unwrap();
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());

@@ -40,7 +40,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            responder.common.runtime_info.message_m =
+            responder.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
@@ -61,7 +61,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            requester.common.runtime_info.message_m =
+            requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
@@ -89,7 +89,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            responder.common.runtime_info.message_m =
+            responder.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -109,7 +109,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            requester.common.runtime_info.message_m =
+            requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
@@ -136,7 +136,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            responder.common.runtime_info.message_m =
+            responder.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -163,7 +163,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            requester.common.runtime_info.message_m =
+            requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
@@ -191,7 +191,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            responder.common.runtime_info.message_m =
+            responder.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         // digest_rsp
@@ -219,7 +219,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            requester.common.runtime_info.message_m =
+            requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
@@ -245,7 +245,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            responder.common.runtime_info.message_m =
+            responder.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -264,7 +264,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            requester.common.runtime_info.message_m =
+            requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();

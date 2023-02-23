@@ -33,7 +33,7 @@ fn fuzz_handle_spdm_digest(data: &[u8]) {
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     #[cfg(feature = "hashed-transcript-data")]
     {
-        context.common.runtime_info.message_m =
+        context.common.runtime_info.digest_context_m1m2 =
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
     context.handle_spdm_digest(data, None);

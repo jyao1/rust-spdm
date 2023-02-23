@@ -259,7 +259,7 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            session.runtime_info.message_f = message_f;
+            session.runtime_info.digest_context_th = message_f;
         }
 
         true
