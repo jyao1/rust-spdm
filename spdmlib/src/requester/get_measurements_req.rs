@@ -96,7 +96,7 @@ impl<'a> RequesterContext<'a> {
                 session.runtime_info.message_m.reset_message();
                 #[cfg(feature = "hashed-transcript-data")]
                 {
-                    session.runtime_info.message_m = None;
+                    session.runtime_info.digest_context_l1l2 = None;
                 }
             }
             None => {
@@ -174,14 +174,14 @@ impl<'a> RequesterContext<'a> {
                                         };
 
                                         #[cfg(feature = "hashed-transcript-data")]
-                                        if session.runtime_info.message_m.is_none() {
-                                            session.runtime_info.message_m =
+                                        if session.runtime_info.digest_context_l1l2.is_none() {
+                                            session.runtime_info.digest_context_l1l2 =
                                                 crypto::hash::hash_ctx_init(base_hash_sel);
                                             if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                                                 crypto::hash::hash_ctx_update(
                                                     session
                                                         .runtime_info
-                                                        .message_m
+                                                        .digest_context_l1l2
                                                         .as_mut()
                                                         .unwrap(),
                                                     message_a.as_ref(),
@@ -189,7 +189,15 @@ impl<'a> RequesterContext<'a> {
                                             }
                                         }
 
-                                        &mut session.runtime_info.message_m
+                                        #[cfg(feature = "hashed-transcript-data")]
+                                        {
+                                            &mut session.runtime_info.digest_context_l1l2
+                                        }
+
+                                        #[cfg(not(feature = "hashed-transcript-data"))]
+                                        {
+                                            &mut session.runtime_info.message_m
+                                        }
                                     }
                                     None => {
                                         #[cfg(feature = "hashed-transcript-data")]
@@ -267,14 +275,14 @@ impl<'a> RequesterContext<'a> {
                                         };
 
                                         #[cfg(feature = "hashed-transcript-data")]
-                                        if session.runtime_info.message_m.is_none() {
-                                            session.runtime_info.message_m =
+                                        if session.runtime_info.digest_context_l1l2.is_none() {
+                                            session.runtime_info.digest_context_l1l2 =
                                                 crypto::hash::hash_ctx_init(base_hash_sel);
                                             if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                                                 crypto::hash::hash_ctx_update(
                                                     session
                                                         .runtime_info
-                                                        .message_m
+                                                        .digest_context_l1l2
                                                         .as_mut()
                                                         .unwrap(),
                                                     message_a.as_ref(),
@@ -282,7 +290,15 @@ impl<'a> RequesterContext<'a> {
                                             }
                                         }
 
-                                        &mut session.runtime_info.message_m
+                                        #[cfg(feature = "hashed-transcript-data")]
+                                        {
+                                            &mut session.runtime_info.digest_context_l1l2
+                                        }
+
+                                        #[cfg(not(feature = "hashed-transcript-data"))]
+                                        {
+                                            &mut session.runtime_info.message_m
+                                        }
                                     }
                                     None => {
                                         #[cfg(feature = "hashed-transcript-data")]
@@ -436,7 +452,12 @@ impl<'a> RequesterContext<'a> {
                 } else {
                     return spdm_result_err!(EINVAL);
                 };
-                let ctx = session.runtime_info.message_m.as_mut().cloned().unwrap();
+                let ctx = session
+                    .runtime_info
+                    .digest_context_l1l2
+                    .as_mut()
+                    .cloned()
+                    .unwrap();
                 crypto::hash::hash_ctx_finalize(ctx)
             }
         };

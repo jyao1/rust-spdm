@@ -173,17 +173,18 @@ impl<'a> ResponderContext<'a> {
                     panic!("invalid session id");
                 };
 
-                if session.runtime_info.message_m.is_none() {
-                    session.runtime_info.message_m = crypto::hash::hash_ctx_init(base_hash_sel);
+                if session.runtime_info.digest_context_l1l2.is_none() {
+                    session.runtime_info.digest_context_l1l2 =
+                        crypto::hash::hash_ctx_init(base_hash_sel);
                     if spdm_version_sel == SpdmVersion::SpdmVersion12 {
                         crypto::hash::hash_ctx_update(
-                            session.runtime_info.message_m.as_mut().unwrap(),
+                            session.runtime_info.digest_context_l1l2.as_mut().unwrap(),
                             message_a.as_ref(),
                         );
                     }
                 }
 
-                &mut session.runtime_info.message_m
+                &mut session.runtime_info.digest_context_l1l2
             }
             None => {
                 if self.common.runtime_info.digest_context_l1l2.is_none() {
@@ -253,7 +254,7 @@ impl<'a> ResponderContext<'a> {
                         .get_session_via_id(session_id)
                         .unwrap()
                         .runtime_info
-                        .message_m = None;
+                        .digest_context_l1l2 = None;
                 }
                 None => {
                     self.common.runtime_info.digest_context_l1l2 = None;
@@ -341,7 +342,7 @@ impl<'a> ResponderContext<'a> {
                     .get_session_via_id(session_id)
                     .unwrap()
                     .runtime_info
-                    .message_m
+                    .digest_context_l1l2
                     .as_mut()
                     .cloned()
                     .unwrap(),

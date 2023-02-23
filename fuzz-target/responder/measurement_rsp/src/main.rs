@@ -34,7 +34,7 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
 
     #[cfg(feature = "hashed-transcript-data")]
     {
-        context.common.runtime_info.message_m =
+        context.common.runtime_info.digest_context_m1m2 =
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
 

@@ -157,7 +157,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         {
             th2 = crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap());
-            session.runtime_info.message_f = message_f;
+            session.runtime_info.digest_context_th = message_f;
         }
 
         let th2 = th2.unwrap();

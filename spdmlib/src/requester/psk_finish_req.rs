@@ -101,7 +101,7 @@ impl<'a> RequesterContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         {
             crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
-            session.runtime_info.message_f = message_f;
+            session.runtime_info.digest_context_th = message_f;
         }
 
         // patch the message before send
@@ -177,13 +177,18 @@ impl<'a> RequesterContext<'a> {
                                 };
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.message_f.as_mut().unwrap(),
+                                session.runtime_info.digest_context_th.as_mut().unwrap(),
                                 &receive_buffer[..receive_used],
                             );
 
                             #[cfg(feature = "hashed-transcript-data")]
                             let th2 = crypto::hash::hash_ctx_finalize(
-                                session.runtime_info.message_f.as_mut().cloned().unwrap(),
+                                session
+                                    .runtime_info
+                                    .digest_context_th
+                                    .as_mut()
+                                    .cloned()
+                                    .unwrap(),
                             )
                             .unwrap();
 
