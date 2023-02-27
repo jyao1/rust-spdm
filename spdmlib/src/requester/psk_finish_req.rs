@@ -79,16 +79,22 @@ impl<'a> RequesterContext<'a> {
         };
 
         #[cfg(feature = "hashed-transcript-data")]
-        let mut message_f = session.runtime_info.message_k.as_mut().cloned();
-
+        crypto::hash::hash_ctx_update(
+            session.runtime_info.digest_context_th.as_mut().unwrap(),
+            &buf[..temp_used],
+        );
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), &buf[..temp_used]);
-
+        let message_hash = crypto::hash::hash_ctx_finalize(
+            session
+                .runtime_info
+                .digest_context_th
+                .as_mut()
+                .cloned()
+                .unwrap(),
+        );
         let hmac = session.generate_hmac_with_request_finished_key(
             #[cfg(feature = "hashed-transcript-data")]
-            crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
-                .unwrap()
-                .as_ref(),
+            message_hash.unwrap().as_ref(),
             #[cfg(not(feature = "hashed-transcript-data"))]
             transcript_data.as_ref(),
         )?;
@@ -100,8 +106,10 @@ impl<'a> RequesterContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
-            session.runtime_info.digest_context_th = message_f;
+            crypto::hash::hash_ctx_update(
+                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                hmac.as_ref(),
+            );
         }
 
         // patch the message before send
@@ -291,7 +299,7 @@ mod tests_requester {
         );
         responder.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
-        responder.common.session[0].runtime_info.message_k = Some(
+        responder.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
@@ -328,7 +336,7 @@ mod tests_requester {
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
-        requester.common.session[0].runtime_info.message_k = Some(
+        requester.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 

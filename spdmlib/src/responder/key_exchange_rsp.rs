@@ -194,22 +194,25 @@ impl<'a> ResponderContext<'a> {
         }
 
         #[cfg(feature = "hashed-transcript-data")]
-        let mut message_k =
+        let mut digest_context_th =
             crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel).unwrap();
         #[cfg(feature = "hashed-transcript-data")]
         {
             crypto::hash::hash_ctx_update(
-                &mut message_k,
+                &mut digest_context_th,
                 self.common.runtime_info.message_a.as_ref(),
             );
-            crypto::hash::hash_ctx_update(&mut message_k, cert_chain_hash.as_ref());
-            crypto::hash::hash_ctx_update(&mut message_k, &bytes[..reader.used()]);
-            crypto::hash::hash_ctx_update(&mut message_k, &writer.used_slice()[..temp_used]);
+            crypto::hash::hash_ctx_update(&mut digest_context_th, cert_chain_hash.as_ref());
+            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]);
+            crypto::hash::hash_ctx_update(
+                &mut digest_context_th,
+                &writer.used_slice()[..temp_used],
+            );
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_key_exchange_rsp_signature(&message_k);
         #[cfg(feature = "hashed-transcript-data")]
-        let signature = self.generate_key_exchange_rsp_signature(message_k.clone());
+        let signature = self.generate_key_exchange_rsp_signature(digest_context_th.clone());
         if signature.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return spdm_result_err!(EFAULT);
@@ -221,7 +224,7 @@ impl<'a> ResponderContext<'a> {
             return spdm_result_err!(EFAULT);
         }
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(&mut message_k, signature.as_ref());
+        crypto::hash::hash_ctx_update(&mut digest_context_th, signature.as_ref());
 
         // create session - generate the handshake secret (including finished_key)
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -229,7 +232,7 @@ impl<'a> ResponderContext<'a> {
             .common
             .calc_rsp_transcript_hash(false, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
-        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
+        let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone());
         #[cfg(not(feature = "hashed-transcript-data"))]
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
@@ -282,7 +285,7 @@ impl<'a> ResponderContext<'a> {
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
         #[cfg(feature = "hashed-transcript-data")]
         let hmac = session.generate_hmac_with_response_finished_key(
-            crypto::hash::hash_ctx_finalize(message_k.clone())
+            crypto::hash::hash_ctx_finalize(digest_context_th.clone())
                 .unwrap()
                 .as_ref(),
         );
@@ -305,9 +308,9 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(&mut message_k, hmac.as_ref());
+            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref());
 
-            session.runtime_info.message_k = Some(message_k);
+            session.runtime_info.digest_context_th = Some(digest_context_th);
         }
 
         // patch the message before send

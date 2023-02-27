@@ -105,15 +105,24 @@ impl<'a> RequesterContext<'a> {
             } else {
                 return spdm_result_err!(EFAULT);
             };
-            let mut message_f = session.runtime_info.message_k.as_mut().cloned();
-            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), &buf[..temp_used]);
-            let hmac = session.generate_hmac_with_request_finished_key(
-                crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
-                    .unwrap()
-                    .as_ref(),
-            )?;
-            crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), hmac.as_ref());
-            session.runtime_info.digest_context_th = message_f;
+            crypto::hash::hash_ctx_update(
+                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                &buf[..temp_used],
+            );
+            let message_hash = crypto::hash::hash_ctx_finalize(
+                session
+                    .runtime_info
+                    .digest_context_th
+                    .as_mut()
+                    .cloned()
+                    .unwrap(),
+            );
+            let hmac =
+                session.generate_hmac_with_request_finished_key(message_hash.unwrap().as_ref())?;
+            crypto::hash::hash_ctx_update(
+                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                hmac.as_ref(),
+            );
             // patch the message before send
             buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
             Ok((send_used, base_hash_size, ManagedBuffer::default()))
@@ -390,7 +399,7 @@ mod tests_requester {
         responder.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        responder.common.session[0].runtime_info.message_k = Some(
+        responder.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
@@ -454,7 +463,7 @@ mod tests_requester {
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
-        requester.common.session[0].runtime_info.message_k = Some(
+        requester.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
