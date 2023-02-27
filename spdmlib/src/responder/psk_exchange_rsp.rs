@@ -98,10 +98,13 @@ impl<'a> ResponderContext<'a> {
         }
 
         #[cfg(feature = "hashed-transcript-data")]
-        let mut message_k =
+        let mut digest_context_th =
             crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel).unwrap();
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(&mut message_k, self.common.runtime_info.message_a.as_ref());
+        crypto::hash::hash_ctx_update(
+            &mut digest_context_th,
+            self.common.runtime_info.message_a.as_ref(),
+        );
 
         info!("send spdm psk_exchange rsp\n");
 
@@ -159,15 +162,18 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(&mut message_k, &bytes[..reader.used()]);
-            crypto::hash::hash_ctx_update(&mut message_k, &writer.used_slice()[..temp_used]);
+            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]);
+            crypto::hash::hash_ctx_update(
+                &mut digest_context_th,
+                &writer.used_slice()[..temp_used],
+            );
         }
 
         // create session - generate the handshake secret (including finished_key)
         #[cfg(not(feature = "hashed-transcript-data"))]
         let th1 = self.common.calc_rsp_transcript_hash(true, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
-        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
+        let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone());
         #[cfg(feature = "hashed-transcript-data")]
         if th1.is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
@@ -228,7 +234,7 @@ impl<'a> ResponderContext<'a> {
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
         #[cfg(feature = "hashed-transcript-data")]
         let hmac = session.generate_hmac_with_response_finished_key(
-            crypto::hash::hash_ctx_finalize(message_k.clone())
+            crypto::hash::hash_ctx_finalize(digest_context_th.clone())
                 .unwrap()
                 .as_ref(),
         );
@@ -249,8 +255,8 @@ impl<'a> ResponderContext<'a> {
         }
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(&mut message_k, hmac.as_ref());
-            session.runtime_info.message_k = Some(message_k);
+            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref());
+            session.runtime_info.digest_context_th = Some(digest_context_th);
         }
 
         // patch the message before send

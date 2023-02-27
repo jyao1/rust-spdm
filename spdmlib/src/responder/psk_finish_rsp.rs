@@ -63,10 +63,10 @@ impl<'a> ResponderContext<'a> {
         let session = self.common.get_session_via_id(session_id).unwrap();
 
         #[cfg(feature = "hashed-transcript-data")]
-        let mut message_f = session.runtime_info.message_k.as_mut().cloned();
-
-        #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), &bytes[..temp_used]);
+        crypto::hash::hash_ctx_update(
+            session.runtime_info.digest_context_th.as_mut().unwrap(),
+            &bytes[..temp_used],
+        );
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         let message_k = &session.runtime_info.message_k.clone();
@@ -82,6 +82,17 @@ impl<'a> ResponderContext<'a> {
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
+
+        #[cfg(feature = "hashed-transcript-data")]
+        let message_hash = crypto::hash::hash_ctx_finalize(
+            session
+                .runtime_info
+                .digest_context_th
+                .as_mut()
+                .cloned()
+                .unwrap(),
+        );
+
         let session = self
             .common
             .get_immutable_session_via_id(session_id)
@@ -91,9 +102,7 @@ impl<'a> ResponderContext<'a> {
                 #[cfg(not(feature = "hashed-transcript-data"))]
                 transcript_data.as_ref(),
                 #[cfg(feature = "hashed-transcript-data")]
-                crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap())
-                    .unwrap()
-                    .as_ref(),
+                message_hash.unwrap().as_ref(),
                 &psk_finish_req.verify_data,
             )
             .is_err()
@@ -113,8 +122,11 @@ impl<'a> ResponderContext<'a> {
         }
 
         #[cfg(feature = "hashed-transcript-data")]
+        let session = self.common.get_session_via_id(session_id).unwrap();
+
+        #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            message_f.as_mut().unwrap(),
+            session.runtime_info.digest_context_th.as_mut().unwrap(),
             psk_finish_req.verify_data.as_ref(),
         );
 
@@ -130,13 +142,19 @@ impl<'a> ResponderContext<'a> {
 
         response.spdm_encode(&mut self.common, writer);
 
+        #[cfg(feature = "hashed-transcript-data")]
+        let session = self.common.get_session_via_id(session_id).unwrap();
+
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(writer.used_slice()).is_none() {
             panic!("message_f add the message error");
         }
 
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(message_f.as_mut().unwrap(), writer.used_slice());
+        crypto::hash::hash_ctx_update(
+            session.runtime_info.digest_context_th.as_mut().unwrap(),
+            writer.used_slice(),
+        );
 
         let session = self.common.get_session_via_id(session_id).unwrap();
         // generate the data secret
@@ -156,8 +174,14 @@ impl<'a> ResponderContext<'a> {
         }
         #[cfg(feature = "hashed-transcript-data")]
         {
-            th2 = crypto::hash::hash_ctx_finalize(message_f.as_mut().cloned().unwrap());
-            session.runtime_info.digest_context_th = message_f;
+            th2 = crypto::hash::hash_ctx_finalize(
+                session
+                    .runtime_info
+                    .digest_context_th
+                    .as_mut()
+                    .cloned()
+                    .unwrap(),
+            );
         }
 
         let th2 = th2.unwrap();

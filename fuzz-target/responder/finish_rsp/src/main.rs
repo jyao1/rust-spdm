@@ -59,7 +59,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             context.common.session[0]
                 .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
                 .unwrap();
-            context.common.session[0].runtime_info.message_k =
+            context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
@@ -103,7 +103,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             context.common.session[0]
                 .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
                 .unwrap();
-            context.common.session[0].runtime_info.message_k =
+            context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
@@ -147,7 +147,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             context.common.session[0]
                 .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
                 .unwrap();
-            context.common.session[0].runtime_info.message_k =
+            context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
@@ -192,7 +192,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             context.common.session[0]
                 .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
                 .unwrap();
-            context.common.session[0].runtime_info.message_k =
+            context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
@@ -241,7 +241,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             context.common.session[0]
                 .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
                 .unwrap();
-            context.common.session[0].runtime_info.message_k =
+            context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
@@ -294,7 +294,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             context.common.session[0]
                 .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
                 .unwrap();
-            context.common.session[0].runtime_info.message_k =
+            context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 

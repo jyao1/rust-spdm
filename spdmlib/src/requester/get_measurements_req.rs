@@ -155,99 +155,126 @@ impl<'a> RequesterContext<'a> {
                                     measurements.content_changed;
                             }
 
+                            let base_asym_size =
+                                self.common.negotiate_info.base_asym_sel.get_size() as usize;
+                            let temp_used = used - base_asym_size;
+
+                            match session_id {
+                                Some(session_id) => {
+                                    let session = if let Some(s) =
+                                        self.common.get_session_via_id(session_id)
+                                    {
+                                        s
+                                    } else {
+                                        return spdm_result_err!(EFAULT);
+                                    };
+
+                                    #[cfg(feature = "hashed-transcript-data")]
+                                    if session.runtime_info.digest_context_l1l2.is_none() {
+                                        session.runtime_info.digest_context_l1l2 =
+                                            crypto::hash::hash_ctx_init(base_hash_sel);
+                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                            crypto::hash::hash_ctx_update(
+                                                session
+                                                    .runtime_info
+                                                    .digest_context_l1l2
+                                                    .as_mut()
+                                                    .unwrap(),
+                                                message_a.as_ref(),
+                                            );
+                                        }
+                                    }
+
+                                    #[cfg(feature = "hashed-transcript-data")]
+                                    {
+                                        crypto::hash::hash_ctx_update(
+                                            session
+                                                .runtime_info
+                                                .digest_context_l1l2
+                                                .as_mut()
+                                                .unwrap(),
+                                            send_buffer,
+                                        );
+                                        crypto::hash::hash_ctx_update(
+                                            session
+                                                .runtime_info
+                                                .digest_context_l1l2
+                                                .as_mut()
+                                                .unwrap(),
+                                            &receive_buffer[..temp_used],
+                                        );
+                                    }
+
+                                    #[cfg(not(feature = "hashed-transcript-data"))]
+                                    {
+                                        session
+                                            .runtime_info
+                                            .message_m
+                                            .append_message(send_buffer)
+                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                        session
+                                            .runtime_info
+                                            .message_m
+                                            .append_message(&receive_buffer[..temp_used])
+                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    }
+                                }
+                                None => {
+                                    #[cfg(feature = "hashed-transcript-data")]
+                                    if self.common.runtime_info.digest_context_l1l2.is_none() {
+                                        self.common.runtime_info.digest_context_l1l2 =
+                                            crypto::hash::hash_ctx_init(base_hash_sel);
+                                        if spdm_version_sel == SpdmVersion::SpdmVersion12 {
+                                            crypto::hash::hash_ctx_update(
+                                                self.common
+                                                    .runtime_info
+                                                    .digest_context_l1l2
+                                                    .as_mut()
+                                                    .unwrap(),
+                                                message_a.as_ref(),
+                                            );
+                                        }
+                                    }
+                                    #[cfg(feature = "hashed-transcript-data")]
+                                    {
+                                        crypto::hash::hash_ctx_update(
+                                            self.common
+                                                .runtime_info
+                                                .digest_context_l1l2
+                                                .as_mut()
+                                                .unwrap(),
+                                            send_buffer,
+                                        );
+                                        crypto::hash::hash_ctx_update(
+                                            self.common
+                                                .runtime_info
+                                                .digest_context_l1l2
+                                                .as_mut()
+                                                .unwrap(),
+                                            &receive_buffer[..temp_used],
+                                        );
+                                    }
+
+                                    #[cfg(not(feature = "hashed-transcript-data"))]
+                                    {
+                                        self.common
+                                            .runtime_info
+                                            .message_m
+                                            .append_message(send_buffer)
+                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                        self.common
+                                            .runtime_info
+                                            .message_m
+                                            .append_message(&receive_buffer[..temp_used])
+                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    }
+                                }
+                            }
+
                             // verify signature
                             if measurement_attributes
                                 .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
                             {
-                                let base_asym_size =
-                                    self.common.negotiate_info.base_asym_sel.get_size() as usize;
-                                let temp_used = used - base_asym_size;
-
-                                let message_m = match session_id {
-                                    Some(session_id) => {
-                                        let session = if let Some(s) =
-                                            self.common.get_session_via_id(session_id)
-                                        {
-                                            s
-                                        } else {
-                                            return spdm_result_err!(EFAULT);
-                                        };
-
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        if session.runtime_info.digest_context_l1l2.is_none() {
-                                            session.runtime_info.digest_context_l1l2 =
-                                                crypto::hash::hash_ctx_init(base_hash_sel);
-                                            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                                                crypto::hash::hash_ctx_update(
-                                                    session
-                                                        .runtime_info
-                                                        .digest_context_l1l2
-                                                        .as_mut()
-                                                        .unwrap(),
-                                                    message_a.as_ref(),
-                                                );
-                                            }
-                                        }
-
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        {
-                                            &mut session.runtime_info.digest_context_l1l2
-                                        }
-
-                                        #[cfg(not(feature = "hashed-transcript-data"))]
-                                        {
-                                            &mut session.runtime_info.message_m
-                                        }
-                                    }
-                                    None => {
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        if self.common.runtime_info.digest_context_l1l2.is_none() {
-                                            self.common.runtime_info.digest_context_l1l2 =
-                                                crypto::hash::hash_ctx_init(base_hash_sel);
-                                            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                                                crypto::hash::hash_ctx_update(
-                                                    self.common
-                                                        .runtime_info
-                                                        .digest_context_l1l2
-                                                        .as_mut()
-                                                        .unwrap(),
-                                                    message_a.as_ref(),
-                                                );
-                                            }
-                                        }
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        {
-                                            &mut self.common.runtime_info.digest_context_l1l2
-                                        }
-
-                                        #[cfg(not(feature = "hashed-transcript-data"))]
-                                        {
-                                            &mut self.common.runtime_info.message_m
-                                        }
-                                    }
-                                };
-                                #[cfg(not(feature = "hashed-transcript-data"))]
-                                {
-                                    message_m
-                                        .append_message(send_buffer)
-                                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                                    message_m
-                                        .append_message(&receive_buffer[..temp_used])
-                                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                                }
-
-                                #[cfg(feature = "hashed-transcript-data")]
-                                {
-                                    crypto::hash::hash_ctx_update(
-                                        message_m.as_mut().unwrap(),
-                                        send_buffer,
-                                    );
-                                    crypto::hash::hash_ctx_update(
-                                        message_m.as_mut().unwrap(),
-                                        &receive_buffer[..temp_used],
-                                    );
-                                }
-
                                 if self
                                     .verify_measurement_signature(
                                         slot_id,
@@ -262,96 +289,6 @@ impl<'a> RequesterContext<'a> {
                                 } else {
                                     let _ = self.reset_l1l2(session_id);
                                     info!("verify_measurement_signature pass");
-                                }
-                            } else {
-                                let message_m = match session_id {
-                                    Some(session_id) => {
-                                        let session = if let Some(s) =
-                                            self.common.get_session_via_id(session_id)
-                                        {
-                                            s
-                                        } else {
-                                            return spdm_result_err!(EFAULT);
-                                        };
-
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        if session.runtime_info.digest_context_l1l2.is_none() {
-                                            session.runtime_info.digest_context_l1l2 =
-                                                crypto::hash::hash_ctx_init(base_hash_sel);
-                                            if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                                                crypto::hash::hash_ctx_update(
-                                                    session
-                                                        .runtime_info
-                                                        .digest_context_l1l2
-                                                        .as_mut()
-                                                        .unwrap(),
-                                                    message_a.as_ref(),
-                                                );
-                                            }
-                                        }
-
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        {
-                                            &mut session.runtime_info.digest_context_l1l2
-                                        }
-
-                                        #[cfg(not(feature = "hashed-transcript-data"))]
-                                        {
-                                            &mut session.runtime_info.message_m
-                                        }
-                                    }
-                                    None => {
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        if self.common.runtime_info.digest_context_l1l2.is_none() {
-                                            self.common.runtime_info.digest_context_l1l2 =
-                                                crypto::hash::hash_ctx_init(
-                                                    self.common.negotiate_info.base_hash_sel,
-                                                );
-                                            if self.common.negotiate_info.spdm_version_sel
-                                                == SpdmVersion::SpdmVersion12
-                                            {
-                                                crypto::hash::hash_ctx_update(
-                                                    self.common
-                                                        .runtime_info
-                                                        .digest_context_l1l2
-                                                        .as_mut()
-                                                        .unwrap(),
-                                                    message_a.as_ref(),
-                                                );
-                                            }
-                                        }
-
-                                        #[cfg(not(feature = "hashed-transcript-data"))]
-                                        {
-                                            &mut self.common.runtime_info.message_m
-                                        }
-
-                                        #[cfg(feature = "hashed-transcript-data")]
-                                        {
-                                            &mut self.common.runtime_info.digest_context_l1l2
-                                        }
-                                    }
-                                };
-                                #[cfg(not(feature = "hashed-transcript-data"))]
-                                {
-                                    message_m
-                                        .append_message(send_buffer)
-                                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                                    message_m
-                                        .append_message(&receive_buffer[..used])
-                                        .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
-                                }
-
-                                #[cfg(feature = "hashed-transcript-data")]
-                                {
-                                    crypto::hash::hash_ctx_update(
-                                        message_m.as_mut().unwrap(),
-                                        send_buffer,
-                                    );
-                                    crypto::hash::hash_ctx_update(
-                                        message_m.as_mut().unwrap(),
-                                        &receive_buffer[..used],
-                                    );
                                 }
                             }
 
