@@ -53,7 +53,7 @@ impl<'a> ResponderContext<'a> {
 
         if get_measurements
             .measurement_attributes
-            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
+            .contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED)
         {
             self.common.runtime_info.need_measurement_signature = true;
         } else {
@@ -211,7 +211,7 @@ impl<'a> ResponderContext<'a> {
         // generat signature
         if get_measurements
             .measurement_attributes
-            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
+            .contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED)
         {
             let base_asym_size = base_asym_sel.get_size() as usize;
             let temp_used = used - base_asym_size;
@@ -425,7 +425,7 @@ mod tests_responder {
         let measurements_struct = &mut [0u8; 1024];
         let mut writer = Writer::init(measurements_struct);
         let value = SpdmGetMeasurementsRequestPayload {
-            measurement_attributes: SpdmMeasurementeAttributes::empty(),
+            measurement_attributes: SpdmMeasurementAttributes::empty(),
             measurement_operation: SpdmMeasurementOperation::Unknown(5),
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -466,7 +466,7 @@ mod tests_responder {
                     .unwrap();
             assert_eq!(
                 get_measurements.measurement_attributes,
-                SpdmMeasurementeAttributes::empty()
+                SpdmMeasurementAttributes::empty()
             );
             assert_eq!(
                 get_measurements.measurement_operation,
@@ -562,7 +562,7 @@ mod tests_responder {
         let measurements_struct = &mut [0u8; 1024];
         let mut writer = Writer::init(measurements_struct);
         let value = SpdmGetMeasurementsRequestPayload {
-            measurement_attributes: SpdmMeasurementeAttributes::empty(),
+            measurement_attributes: SpdmMeasurementAttributes::empty(),
             measurement_operation: SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -603,7 +603,7 @@ mod tests_responder {
                     .unwrap();
             assert_eq!(
                 get_measurements.measurement_attributes,
-                SpdmMeasurementeAttributes::empty()
+                SpdmMeasurementAttributes::empty()
             );
             assert_eq!(
                 get_measurements.measurement_operation,

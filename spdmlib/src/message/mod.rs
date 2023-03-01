@@ -893,7 +893,7 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmGetMeasurementsRequest(
                 SpdmGetMeasurementsRequestPayload {
-                    measurement_attributes: SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                    measurement_attributes: SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
                     measurement_operation:
                         SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                     nonce: SpdmNonceStruct {
@@ -913,7 +913,7 @@ mod tests {
         if let SpdmMessagePayload::SpdmGetMeasurementsRequest(payload) = &spdm_message.payload {
             assert_eq!(
                 payload.measurement_attributes,
-                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED
+                SpdmMeasurementAttributes::SIGNATURE_REQUESTED
             );
             assert_eq!(
                 payload.measurement_operation,

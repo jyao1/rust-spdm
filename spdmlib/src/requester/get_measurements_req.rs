@@ -12,7 +12,7 @@ impl<'a> RequesterContext<'a> {
     fn send_receive_spdm_measurement_record(
         &mut self,
         session_id: Option<u32>,
-        measurement_attributes: SpdmMeasurementeAttributes,
+        measurement_attributes: SpdmMeasurementAttributes,
         measurement_operation: SpdmMeasurementOperation,
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
         slot_id: u8,
@@ -56,7 +56,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn encode_spdm_measurement_record(
         &mut self,
-        measurement_attributes: SpdmMeasurementeAttributes,
+        measurement_attributes: SpdmMeasurementAttributes,
         measurement_operation: SpdmMeasurementOperation,
         slot_id: u8,
         buf: &mut [u8],
@@ -116,13 +116,13 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
-        measurement_attributes: SpdmMeasurementeAttributes,
+        measurement_attributes: SpdmMeasurementAttributes,
         measurement_operation: SpdmMeasurementOperation,
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult<u8> {
-        if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
+        if measurement_attributes.contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED) {
             self.common.runtime_info.need_measurement_signature = true;
         } else {
             self.common.runtime_info.need_measurement_signature = false;
@@ -273,7 +273,7 @@ impl<'a> RequesterContext<'a> {
 
                             // verify signature
                             if measurement_attributes
-                                .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
+                                .contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED)
                             {
                                 if self
                                     .verify_measurement_signature(
@@ -345,7 +345,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
-        spdm_measuremente_attributes: SpdmMeasurementeAttributes,
+        spdm_measuremente_attributes: SpdmMeasurementAttributes,
         measurement_operation: SpdmMeasurementOperation,
         out_total_number: &mut u8, // out, total number when measurement_operation = SpdmMeasurementQueryTotalNumber
         //      number of blocks got measured.
@@ -619,7 +619,7 @@ mod tests_requester {
             .send_receive_spdm_measurement(
                 None,
                 0,
-                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
@@ -632,7 +632,7 @@ mod tests_requester {
             .send_receive_spdm_measurement(
                 None,
                 0,
-                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
@@ -645,7 +645,7 @@ mod tests_requester {
             .send_receive_spdm_measurement(
                 None,
                 0,
-                SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
