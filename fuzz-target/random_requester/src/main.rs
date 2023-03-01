@@ -89,7 +89,7 @@ fn run_spdm(spdm: Vec<i32>) {
                     .send_receive_spdm_measurement(
                         None,
                         0,
-                        SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+                        SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
                         SpdmMeasurementOperation::SpdmMeasurementRequestAll,
                         &mut total_number,
                         &mut spdm_measurement_record_structure,

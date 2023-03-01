@@ -19,21 +19,21 @@ pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NO_CHANGE_VALUE: u8 = 0b0
 
 bitflags! {
     #[derive(Default)]
-    pub struct SpdmMeasurementeAttributes: u8 {
+    pub struct SpdmMeasurementAttributes: u8 {
         const SIGNATURE_REQUESTED = 0b00000001;
         const RAW_BIT_STREAM_REQUESTED = 0b0000_0010;
     }
 }
 
-impl Codec for SpdmMeasurementeAttributes {
+impl Codec for SpdmMeasurementAttributes {
     fn encode(&self, bytes: &mut Writer) {
         self.bits().encode(bytes);
     }
 
-    fn read(r: &mut Reader) -> Option<SpdmMeasurementeAttributes> {
+    fn read(r: &mut Reader) -> Option<SpdmMeasurementAttributes> {
         let bits = u8::read(r)?;
 
-        SpdmMeasurementeAttributes::from_bits(bits)
+        SpdmMeasurementAttributes::from_bits(bits)
     }
 }
 
@@ -48,7 +48,7 @@ enum_builder! {
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmGetMeasurementsRequestPayload {
-    pub measurement_attributes: SpdmMeasurementeAttributes,
+    pub measurement_attributes: SpdmMeasurementAttributes,
     pub measurement_operation: SpdmMeasurementOperation,
     pub nonce: SpdmNonceStruct,
     pub slot_id: u8,
@@ -60,7 +60,7 @@ impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
         self.measurement_operation.encode(bytes); // param2
         if self
             .measurement_attributes
-            .contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED)
+            .contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED)
         {
             self.nonce.encode(bytes);
             self.slot_id.encode(bytes);
@@ -71,16 +71,16 @@ impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
         _context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmGetMeasurementsRequestPayload> {
-        let measurement_attributes = SpdmMeasurementeAttributes::read(r)?; // param1
+        let measurement_attributes = SpdmMeasurementAttributes::read(r)?; // param1
         let measurement_operation = SpdmMeasurementOperation::read(r)?; // param2
         let nonce =
-            if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
+            if measurement_attributes.contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED) {
                 SpdmNonceStruct::read(r)?
             } else {
                 SpdmNonceStruct::default()
             };
         let slot_id =
-            if measurement_attributes.contains(SpdmMeasurementeAttributes::SIGNATURE_REQUESTED) {
+            if measurement_attributes.contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED) {
                 u8::read(r)?
             } else {
                 0
@@ -175,14 +175,14 @@ mod tests {
     fn test_case0_spdm_spdm_measuremente_attributes() {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmMeasurementeAttributes::SIGNATURE_REQUESTED;
+        let value = SpdmMeasurementAttributes::SIGNATURE_REQUESTED;
         value.encode(&mut writer);
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
-            SpdmMeasurementeAttributes::read(&mut reader).unwrap(),
-            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED
+            SpdmMeasurementAttributes::read(&mut reader).unwrap(),
+            SpdmMeasurementAttributes::SIGNATURE_REQUESTED
         );
         assert_eq!(3, reader.left());
     }
@@ -191,7 +191,7 @@ mod tests {
         let u8_slice = &mut [0u8; 48];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetMeasurementsRequestPayload {
-            measurement_attributes: SpdmMeasurementeAttributes::SIGNATURE_REQUESTED,
+            measurement_attributes: SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
             measurement_operation: SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -208,7 +208,7 @@ mod tests {
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(
             get_measurements.measurement_attributes,
-            SpdmMeasurementeAttributes::SIGNATURE_REQUESTED
+            SpdmMeasurementAttributes::SIGNATURE_REQUESTED
         );
         assert_eq!(
             get_measurements.measurement_operation,
@@ -225,7 +225,7 @@ mod tests {
         let u8_slice = &mut [0u8; 48];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetMeasurementsRequestPayload {
-            measurement_attributes: SpdmMeasurementeAttributes::empty(),
+            measurement_attributes: SpdmMeasurementAttributes::empty(),
             measurement_operation: SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -242,7 +242,7 @@ mod tests {
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(
             get_measurements.measurement_attributes,
-            SpdmMeasurementeAttributes::empty()
+            SpdmMeasurementAttributes::empty()
         );
         assert_eq!(
             get_measurements.measurement_operation,
