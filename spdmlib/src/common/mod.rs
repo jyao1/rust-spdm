@@ -504,6 +504,15 @@ impl Default for ManagedBuffer {
     }
 }
 
+bitflags! {
+    #[derive(Default)]
+    pub struct SpdmMeasurementContentChanged: u8 {
+        const NOT_SUPPORTED = 0b0000_0000;
+        const DETECTED_CHANGE = 0b0001_0000;
+        const NO_CHANGE = 0b0010_0000;
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmRuntimeInfo {
@@ -513,8 +522,8 @@ pub struct SpdmRuntimeInfo {
     pub message_b: ManagedBuffer,
     pub message_c: ManagedBuffer,
     pub message_m: ManagedBuffer,
-    pub content_changed: u8, // used by responder, set when content changed and spdm version is 1.2.
-                             // used by requester, consume when measurement response report content changed.
+    pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.
+                                                        // used by requester, consume when measurement response report content changed.
 }
 
 #[derive(Clone, Default)]
@@ -525,8 +534,8 @@ pub struct SpdmRuntimeInfo {
     pub message_a: ManagedBuffer,
     pub digest_context_m1m2: Option<HashCtx>, // for M1/M2
     pub digest_context_l1l2: Option<HashCtx>, // for out of session get measurement/measurement
-    pub content_changed: u8, // used by responder, set when content changed and spdm version is 1.2.
-                             // used by requester, consume when measurement response report content changed.
+    pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.
+                                                        // used by requester, consume when measurement response report content changed.
 }
 
 #[derive(Default, Clone)]
