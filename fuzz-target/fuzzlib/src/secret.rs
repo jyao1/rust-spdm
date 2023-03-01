@@ -4,6 +4,7 @@
 
 #![allow(dead_code)]
 #![allow(unused_variables)]
+use crate::codec::*;
 use spdmlib::config;
 use spdmlib::crypto::hash;
 use spdmlib::message::*;
@@ -40,7 +41,7 @@ fn spdm_measurement_collection_impl(
         {
             let mut dummy_spdm_measurement_record_structure =
                 SpdmMeasurementRecordStructure::default();
-            dummy_spdm_measurement_record_structure.number_of_blocks = 5;
+            dummy_spdm_measurement_record_structure.number_of_blocks = 10;
             Some(dummy_spdm_measurement_record_structure)
         } else if measurement_index
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll.get_u8() as usize
@@ -116,132 +117,30 @@ fn spdm_measurement_collection_impl(
             digest_value9[..64].copy_from_slice(digest9.data.as_ref());
             digest_value10[..64].copy_from_slice(digest10.data.as_ref());
 
+            let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+                index: measurement_index as u8,
+                measurement_specification,
+                measurement_size: digest1.data_size + 3,
+                measurement: SpdmDmtfMeasurementStructure {
+                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                    representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                    value_size: digest1.data_size,
+                    value: digest_value1,
+                },
+            };
+
+            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut writer = Writer::init(&mut measurement_record_data);
+            for i in 0..10 {
+                spdm_measurement_block_structure.encode(&mut writer);
+            }
+
             Some(SpdmMeasurementRecordStructure {
-                number_of_blocks: config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT as u8,
-                record: [
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest1.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest1.data_size,
-                            value: digest_value1,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest2.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest2.data_size,
-                            value: digest_value2,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest3.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest3.data_size,
-                            value: digest_value3,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest4.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest4.data_size,
-                            value: digest_value4,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest5.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest5.data_size,
-                            value: digest_value5,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest6.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest6.data_size,
-                            value: digest_value6,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest7.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest7.data_size,
-                            value: digest_value7,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest8.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest8.data_size,
-                            value: digest_value8,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest9.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest9.data_size,
-                            value: digest_value9,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest10.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest10.data_size,
-                            value: digest_value10,
-                        },
-                    },
-                ],
+                number_of_blocks: 10,
+                measurement_record_length: u24::new(writer.used() as u32),
+                measurement_record_data,
             })
-        } else if measurement_index > config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT {
+        } else if measurement_index > 10 {
             None
         } else {
             let mut firmware: [u8; 8] = [0; 8];
@@ -251,34 +150,30 @@ fn spdm_measurement_collection_impl(
 
             let mut digest_value: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
                 [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            digest_value[SPDM_MAX_HASH_SIZE * measurement_index
-                ..SPDM_MAX_HASH_SIZE * (measurement_index + 1)]
+            digest_value[(measurement_index) * SPDM_MAX_HASH_SIZE
+                ..(measurement_index + 1) * SPDM_MAX_HASH_SIZE]
                 .copy_from_slice(digest.data.as_ref());
+
+            let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+                index: measurement_index as u8,
+                measurement_specification,
+                measurement_size: digest.data_size + 3,
+                measurement: SpdmDmtfMeasurementStructure {
+                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+                    representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                    value_size: digest.data_size,
+                    value: digest_value,
+                },
+            };
+
+            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut writer = Writer::init(&mut measurement_record_data);
+            spdm_measurement_block_structure.encode(&mut writer);
+
             Some(SpdmMeasurementRecordStructure {
                 number_of_blocks: 1,
-                record: [
-                    SpdmMeasurementBlockStructure {
-                        index: measurement_index as u8,
-                        measurement_specification,
-                        measurement_size: digest.data_size + 3,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: digest.data_size,
-                            value: digest_value,
-                        },
-                    },
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                    SpdmMeasurementBlockStructure::default(),
-                ],
+                measurement_record_length: u24::new(writer.used() as u32),
+                measurement_record_data,
             })
         }
     }

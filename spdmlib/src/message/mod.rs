@@ -525,6 +525,7 @@ mod tests {
         SpdmConfigInfo, SpdmContext, SpdmOpaqueStruct, SpdmOpaqueSupport, SpdmProvisionInfo,
     };
     use crate::config::{self, *};
+    use codec::u24;
     use testlib::{create_spdm_context, new_spdm_message, DeviceIO, TransportEncap};
 
     #[test]
@@ -928,6 +929,24 @@ mod tests {
     }
     #[test]
     fn test_case9_spdm_message() {
+        let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+            index: 100u8,
+            measurement_specification: SpdmMeasurementSpecification::DMTF,
+            measurement_size: 67u16,
+            measurement: SpdmDmtfMeasurementStructure {
+                r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                value_size: 64u16,
+                value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            },
+        };
+
+        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut writer = Writer::init(&mut measurement_record_data);
+        for i in 0..5 {
+            spdm_measurement_block_structure.encode(&mut writer);
+        }
+
         let value = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
@@ -940,21 +959,8 @@ mod tests {
                     content_changed: SpdmMeasurementContentChanged::NOT_SUPPORTED,
                     measurement_record: SpdmMeasurementRecordStructure {
                         number_of_blocks: 5,
-                        record: gen_array_clone(
-                            SpdmMeasurementBlockStructure {
-                                index: 100u8,
-                                measurement_specification: SpdmMeasurementSpecification::DMTF,
-                                measurement_size: 67u16,
-                                measurement: SpdmDmtfMeasurementStructure {
-                                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                                    representation:
-                                        SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                                    value_size: 64u16,
-                                    value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                                },
-                            },
-                            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-                        ),
+                        measurement_record_length: u24::new(writer.used() as u32),
+                        measurement_record_data,
                     },
                     nonce: SpdmNonceStruct {
                         data: [100u8; SPDM_NONCE_SIZE],
@@ -988,34 +994,6 @@ mod tests {
                 SpdmMeasurementContentChanged::NOT_SUPPORTED
             );
             assert_eq!(payload.measurement_record.number_of_blocks, 5);
-            for i in 0..5 {
-                assert_eq!(payload.measurement_record.record[i].index, 100);
-                assert_eq!(
-                    payload.measurement_record.record[i].measurement_specification,
-                    SpdmMeasurementSpecification::DMTF
-                );
-                assert_eq!(payload.measurement_record.record[i].measurement_size, 67);
-                assert_eq!(
-                    payload.measurement_record.record[i].measurement.r#type,
-                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
-                );
-                assert_eq!(
-                    payload.measurement_record.record[i]
-                        .measurement
-                        .representation,
-                    SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
-                );
-                assert_eq!(
-                    payload.measurement_record.record[i].measurement.value_size,
-                    64
-                );
-                for j in 0..64 {
-                    assert_eq!(
-                        payload.measurement_record.record[i].measurement.value[j],
-                        100
-                    );
-                }
-            }
             for i in 0..32 {
                 assert_eq!(payload.nonce.data[i], 100);
             }

@@ -4,10 +4,9 @@
 
 use crate::config;
 use bytes::BytesMut;
-use codec::{enum_builder, Codec, Reader, Writer};
+use codec::{enum_builder, u24, Codec, Reader, Writer};
 use core::convert::From;
 extern crate alloc;
-use super::gen_array;
 use alloc::boxed::Box;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -866,6 +865,71 @@ impl Default for SpdmDmtfMeasurementStructure {
         }
     }
 }
+impl Codec for SpdmDmtfMeasurementStructure {
+    fn encode(&self, bytes: &mut Writer) {
+        let type_value = self.r#type.get_u8();
+        let representation_value = self.representation.get_u8();
+        let final_value = type_value + representation_value;
+        final_value.encode(bytes);
+
+        // TBD: Check measurement_hash
+
+        self.value_size.encode(bytes);
+        for v in self.value.iter().take(self.value_size as usize) {
+            v.encode(bytes);
+        }
+    }
+    fn read(r: &mut Reader) -> Option<SpdmDmtfMeasurementStructure> {
+        let final_value = u8::read(r)?;
+        let type_value = final_value & 0x7f;
+        let representation_value = final_value & 0x80;
+        let representation = match representation_value {
+            0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+            0x80 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
+            val => SpdmDmtfMeasurementRepresentation::Unknown(val),
+        };
+        let r#type = match type_value {
+            0 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+            1 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmware,
+            2 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementHardwareConfig,
+            3 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementFirmwareConfig,
+            4 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementManifest,
+            5 => match representation {
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementStructuredRepresentationMode
+                }
+                _ => SpdmDmtfMeasurementType::Unknown(5),
+            },
+            6 => match representation {
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareVersionNumber
+                }
+                _ => SpdmDmtfMeasurementType::Unknown(6),
+            },
+            7 => match representation {
+                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
+                    SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareSecurityVersionNumber
+                }
+                _ => SpdmDmtfMeasurementType::Unknown(7),
+            },
+            val => SpdmDmtfMeasurementType::Unknown(val),
+        };
+
+        // TBD: Check measurement_hash
+
+        let value_size = u16::read(r)?;
+        let mut value = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        for v in value.iter_mut().take(value_size as usize) {
+            *v = u8::read(r)?;
+        }
+        Some(SpdmDmtfMeasurementStructure {
+            r#type,
+            representation,
+            value_size,
+            value,
+        })
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementBlockStructure {
@@ -874,17 +938,39 @@ pub struct SpdmMeasurementBlockStructure {
     pub measurement_size: u16,
     pub measurement: SpdmDmtfMeasurementStructure,
 }
+impl Codec for SpdmMeasurementBlockStructure {
+    fn encode(&self, bytes: &mut Writer) {
+        self.index.encode(bytes);
+        self.measurement_specification.encode(bytes);
+        self.measurement_size.encode(bytes);
+        self.measurement.encode(bytes);
+    }
+    fn read(r: &mut Reader) -> Option<SpdmMeasurementBlockStructure> {
+        let index = u8::read(r)?;
+        let measurement_specification = SpdmMeasurementSpecification::read(r)?;
+        let measurement_size = u16::read(r)?;
+        let measurement = SpdmDmtfMeasurementStructure::read(r)?;
+        Some(SpdmMeasurementBlockStructure {
+            index,
+            measurement_specification,
+            measurement_size,
+            measurement,
+        })
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct SpdmMeasurementRecordStructure {
     pub number_of_blocks: u8,
-    pub record: [SpdmMeasurementBlockStructure; config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT],
+    pub measurement_record_length: u24,
+    pub measurement_record_data: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
 }
 impl Default for SpdmMeasurementRecordStructure {
     fn default() -> SpdmMeasurementRecordStructure {
         SpdmMeasurementRecordStructure {
             number_of_blocks: 0,
-            record: gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT),
+            measurement_record_length: u24::new(0),
+            measurement_record_data: [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
         }
     }
 }
