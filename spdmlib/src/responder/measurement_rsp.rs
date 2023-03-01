@@ -5,6 +5,7 @@
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
+use crate::common::SpdmMeasurementContentChanged;
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::spdm_result_err;
@@ -134,7 +135,7 @@ impl<'a> ResponderContext<'a> {
             if runtime_content_change_support && spdm_version_sel == SpdmVersion::SpdmVersion12 {
                 content_changed
             } else {
-                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
+                SpdmMeasurementContentChanged::NOT_SUPPORTED
             };
 
         let response = SpdmMessage {

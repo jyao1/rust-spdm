@@ -9,13 +9,12 @@ use crate::protocol::{SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmSigna
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
+use crate::common::SpdmMeasurementContentChanged;
+
 use super::SpdmVersion;
 
 pub const MEASUREMENT_RESPONDER_PARAM2_SLOT_ID_MASK: u8 = 0b0000_1111;
 pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_MASK: u8 = 0b0011_0000;
-pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE: u8 = 0b0000_0000;
-pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_DETECTED_CHANGE_VALUE: u8 = 0b0001_0000;
-pub const MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NO_CHANGE_VALUE: u8 = 0b0010_0000;
 
 bitflags! {
     #[derive(Default)]
@@ -98,7 +97,7 @@ impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
 #[derive(Debug, Clone, Default)]
 pub struct SpdmMeasurementsResponsePayload {
     pub number_of_measurement: u8,
-    pub content_changed: u8,
+    pub content_changed: SpdmMeasurementContentChanged,
     pub slot_id: u8,
     pub measurement_record: SpdmMeasurementRecordStructure,
     pub nonce: SpdmNonceStruct,
@@ -119,7 +118,7 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
             && context.config_info.runtime_content_change_support
         {
-            (self.slot_id | self.content_changed).encode(bytes); // param2
+            (self.slot_id | self.content_changed.bits()).encode(bytes); // param2
         } else {
             self.slot_id.encode(bytes); // param 2
         }
@@ -139,6 +138,7 @@ impl SpdmCodec for SpdmMeasurementsResponsePayload {
         let param2 = u8::read(r)?; // param2
         let slot_id = param2 & MEASUREMENT_RESPONDER_PARAM2_SLOT_ID_MASK; // Bit [3:0]
         let content_changed = param2 & MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_MASK; // Bit [5:4]
+        let content_changed = SpdmMeasurementContentChanged::from_bits(content_changed)?;
         let measurement_record = SpdmMeasurementRecordStructure::spdm_read(context, r)?;
         let nonce = SpdmNonceStruct::read(r)?;
         let opaque = SpdmOpaqueStruct::spdm_read(context, r)?;
@@ -261,7 +261,7 @@ mod tests {
         let value = SpdmMeasurementsResponsePayload {
             number_of_measurement: 100u8,
             slot_id: 7u8,
-            content_changed: MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE,
+            content_changed: SpdmMeasurementContentChanged::NOT_SUPPORTED,
             measurement_record: SpdmMeasurementRecordStructure {
                 number_of_blocks: 5,
                 record: gen_array_clone(
@@ -308,7 +308,7 @@ mod tests {
         assert_eq!(measurements_response.slot_id, 7);
         assert_eq!(
             measurements_response.content_changed,
-            MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
+            SpdmMeasurementContentChanged::NOT_SUPPORTED
         );
 
         assert_eq!(measurements_response.measurement_record.number_of_blocks, 5);

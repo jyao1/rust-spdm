@@ -520,6 +520,7 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
+    use crate::common::SpdmMeasurementContentChanged;
     use crate::common::{
         SpdmConfigInfo, SpdmContext, SpdmOpaqueStruct, SpdmOpaqueSupport, SpdmProvisionInfo,
     };
@@ -936,8 +937,7 @@ mod tests {
                 SpdmMeasurementsResponsePayload {
                     number_of_measurement: 100u8,
                     slot_id: 7u8,
-                    content_changed:
-                        MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE,
+                    content_changed: SpdmMeasurementContentChanged::NOT_SUPPORTED,
                     measurement_record: SpdmMeasurementRecordStructure {
                         number_of_blocks: 5,
                         record: gen_array_clone(
@@ -985,7 +985,7 @@ mod tests {
             assert_eq!(payload.slot_id, 7);
             assert_eq!(
                 payload.content_changed,
-                MEASUREMENT_RESPONDER_PARAM2_CONTENT_CHANGED_NOT_SUPPORTED_VALUE
+                SpdmMeasurementContentChanged::NOT_SUPPORTED
             );
             assert_eq!(payload.measurement_record.number_of_blocks, 5);
             for i in 0..5 {
