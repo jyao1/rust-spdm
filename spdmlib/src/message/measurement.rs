@@ -167,8 +167,9 @@ mod testlib;
 mod tests {
     use super::*;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
-    use crate::config::*;
+    use crate::config::{self, *};
     use crate::protocol::*;
+    use codec::u24;
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
@@ -256,29 +257,35 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_measurements_response_payload() {
+        create_spdm_context!(context);
+
         let u8_slice = &mut [0u8; 1000];
         let mut writer = Writer::init(u8_slice);
+        let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+            index: 100u8,
+            measurement_specification: SpdmMeasurementSpecification::DMTF,
+            measurement_size: 67u16,
+            measurement: SpdmDmtfMeasurementStructure {
+                r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+                representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+                value_size: 64u16,
+                value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            },
+        };
+        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
+        for i in 0..5 {
+            spdm_measurement_block_structure
+                .spdm_encode(&mut context, &mut measurement_record_data_writer);
+        }
         let value = SpdmMeasurementsResponsePayload {
             number_of_measurement: 100u8,
             slot_id: 7u8,
             content_changed: SpdmMeasurementContentChanged::NOT_SUPPORTED,
             measurement_record: SpdmMeasurementRecordStructure {
                 number_of_blocks: 5,
-                record: gen_array_clone(
-                    SpdmMeasurementBlockStructure {
-                        index: 100u8,
-                        measurement_specification: SpdmMeasurementSpecification::DMTF,
-                        measurement_size: 67u16,
-                        measurement: SpdmDmtfMeasurementStructure {
-                            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                            representation:
-                                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                            value_size: 64u16,
-                            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                        },
-                    },
-                    MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-                ),
+                measurement_record_length: u24::new(measurement_record_data_writer.used() as u32),
+                measurement_record_data,
             },
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
@@ -292,8 +299,6 @@ mod tests {
                 data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
-
-        create_spdm_context!(context);
 
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
@@ -312,46 +317,6 @@ mod tests {
         );
 
         assert_eq!(measurements_response.measurement_record.number_of_blocks, 5);
-        for i in 0..5 {
-            assert_eq!(
-                measurements_response.measurement_record.record[i].index,
-                100
-            );
-            assert_eq!(
-                measurements_response.measurement_record.record[i].measurement_specification,
-                SpdmMeasurementSpecification::DMTF
-            );
-            assert_eq!(
-                measurements_response.measurement_record.record[i].measurement_size,
-                67
-            );
-            assert_eq!(
-                measurements_response.measurement_record.record[i]
-                    .measurement
-                    .r#type,
-                SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
-            );
-            assert_eq!(
-                measurements_response.measurement_record.record[i]
-                    .measurement
-                    .representation,
-                SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
-            );
-            assert_eq!(
-                measurements_response.measurement_record.record[i]
-                    .measurement
-                    .value_size,
-                64
-            );
-            for j in 0..64 {
-                assert_eq!(
-                    measurements_response.measurement_record.record[i]
-                        .measurement
-                        .value[j],
-                    100
-                );
-            }
-        }
         for i in 0..32 {
             assert_eq!(measurements_response.nonce.data[i], 100);
         }

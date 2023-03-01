@@ -5,7 +5,7 @@
 use crate::common::SpdmContext;
 use crate::config;
 use crate::protocol::{
-    gen_array, SpdmCertChain, SpdmCertChainData, SpdmDheExchangeStruct, SpdmDigestStruct,
+    SpdmCertChain, SpdmCertChainData, SpdmDheExchangeStruct, SpdmDigestStruct,
     SpdmDmtfMeasurementRepresentation, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
     SpdmMeasurementBlockStructure, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
     SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
@@ -112,49 +112,38 @@ impl SpdmCodec for SpdmCertChain {
 }
 
 impl SpdmCodec for SpdmMeasurementRecordStructure {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
         self.number_of_blocks.encode(bytes);
+        self.measurement_record_length.encode(bytes);
 
-        let mut calc_length = 0u32;
-        for d in self.record.iter().take(self.number_of_blocks as usize) {
-            if d.measurement_size != d.measurement.value_size + 3 {
-                panic!();
-            }
-            calc_length += d.measurement_size as u32 + 4;
-        }
-        let record_length = u24::new(calc_length);
-        record_length.encode(bytes);
-
-        for d in self.record.iter().take(self.number_of_blocks as usize) {
-            d.spdm_encode(context, bytes);
+        for d in self
+            .measurement_record_data
+            .iter()
+            .take(self.measurement_record_length.get() as usize)
+        {
+            d.encode(bytes);
         }
     }
+
     fn spdm_read(
-        context: &mut SpdmContext,
+        _context: &mut SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmMeasurementRecordStructure> {
         let number_of_blocks = u8::read(r)?;
-        let record_length = u24::read(r)?;
+        let measurement_record_length = u24::read(r)?;
 
-        let mut record = gen_array(config::MAX_SPDM_MEASUREMENT_BLOCK_COUNT);
-        for d in record.iter_mut().take(number_of_blocks as usize) {
-            *d = SpdmMeasurementBlockStructure::spdm_read(context, r)?;
-        }
-
-        let mut calc_length = 0u32;
-        for d in record.iter().take(number_of_blocks as usize) {
-            if d.measurement_size != d.measurement.value_size.checked_add(3)? {
-                return None;
-            }
-            calc_length += d.measurement_size as u32 + 4;
-        }
-        if calc_length != record_length.get() {
-            return None;
+        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        for d in measurement_record_data
+            .iter_mut()
+            .take(measurement_record_length.get() as usize)
+        {
+            *d = u8::read(r)?;
         }
 
         Some(SpdmMeasurementRecordStructure {
             number_of_blocks,
-            record,
+            measurement_record_length,
+            measurement_record_data,
         })
     }
 }

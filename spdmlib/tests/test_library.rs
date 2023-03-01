@@ -1,17 +1,17 @@
 mod common;
 
+use codec::{u24, Codec};
 use codec::{Reader, Writer};
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
 use spdmlib::config::{
-    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-    MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
+    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
 };
 use spdmlib::protocol::{
-    gen_array_clone, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData,
-    SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementStructure,
-    SpdmDmtfMeasurementType, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
-    SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,
+    SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
+    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmSignatureStruct,
+    SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
 };
 use spdmlib::protocol::{SpdmDmtfMeasurementRepresentation, SpdmMeasurementBlockStructure};
 
@@ -124,23 +124,28 @@ fn test_case0_spdm_cert_chain() {
 fn test_case0_spdm_measurement_record_structure() {
     let u8_slice = &mut [0u8; 512];
     let mut writer = Writer::init(u8_slice);
-    SpdmMeasurementRecordStructure::default();
+    let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+        index: 100u8,
+        measurement_specification: SpdmMeasurementSpecification::DMTF,
+        measurement_size: 67u16,
+        measurement: SpdmDmtfMeasurementStructure {
+            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+            representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+            value_size: 64u16,
+            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+        },
+    };
+    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
+
+    for _i in 0..5 {
+        spdm_measurement_block_structure.encode(&mut measurement_record_data_writer);
+    }
+
     let value = SpdmMeasurementRecordStructure {
         number_of_blocks: 5,
-        record: gen_array_clone(
-            SpdmMeasurementBlockStructure {
-                index: 100u8,
-                measurement_specification: SpdmMeasurementSpecification::DMTF,
-                measurement_size: 67u16,
-                measurement: SpdmDmtfMeasurementStructure {
-                    r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
-                    representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                    value_size: 64u16,
-                    value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
-                },
-            },
-            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-        ),
+        measurement_record_length: u24::new(measurement_record_data_writer.used() as u32),
+        measurement_record_data,
     };
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -153,39 +158,34 @@ fn test_case0_spdm_measurement_record_structure() {
     let measurement_record =
         SpdmMeasurementRecordStructure::spdm_read(&mut context, &mut reader).unwrap();
     assert_eq!(measurement_record.number_of_blocks, 5);
-    for i in 0..5 {
-        assert_eq!(measurement_record.record[i].index, 100);
-        assert_eq!(
-            measurement_record.record[i].measurement_specification,
-            SpdmMeasurementSpecification::DMTF
-        );
-        assert_eq!(measurement_record.record[i].measurement_size, 67);
-        assert_eq!(
-            measurement_record.record[i].measurement.r#type,
-            SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
-        );
-        assert_eq!(
-            measurement_record.record[i].measurement.representation,
-            SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
-        );
-        assert_eq!(measurement_record.record[i].measurement.value_size, 64);
-        for j in 0..64 {
-            assert_eq!(measurement_record.record[i].measurement.value[j], 100);
-        }
-    }
 }
 
 #[test]
-#[should_panic]
 fn test_case1_spdm_measurement_record_structure() {
     let u8_slice = &mut [0u8; 512];
     let mut writer = Writer::init(u8_slice);
+    let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+        index: 100u8,
+        measurement_specification: SpdmMeasurementSpecification::DMTF,
+        measurement_size: 67u16,
+        measurement: SpdmDmtfMeasurementStructure {
+            r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
+            representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
+            value_size: 64u16,
+            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+        },
+    };
+    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
+
+    for _i in 0..5 {
+        spdm_measurement_block_structure.encode(&mut measurement_record_data_writer);
+    }
+
     let value = SpdmMeasurementRecordStructure {
         number_of_blocks: 5,
-        record: gen_array_clone(
-            SpdmMeasurementBlockStructure::default(),
-            MAX_SPDM_MEASUREMENT_BLOCK_COUNT,
-        ),
+        measurement_record_length: u24::new(measurement_record_data_writer.used() as u32),
+        measurement_record_data,
     };
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
