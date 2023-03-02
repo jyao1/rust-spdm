@@ -7,6 +7,9 @@
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use spdmlib::common::SpdmOpaqueSupport;
+use spdmlib::error::SpdmResult;
+use spdmlib::message::VendorDefinedStruct;
+use spdmlib::message::vendor::{VendorDefinedReqPayloadStruct, VendorDefinedRspPayloadStruct};
 
 use std::net::{TcpListener, TcpStream};
 use std::u32;
@@ -132,6 +135,11 @@ fn main() {
     }
 }
 
+fn vendor_defined_request_handler(vdrp: &VendorDefinedReqPayloadStruct) -> SpdmResult<VendorDefinedRspPayloadStruct> {
+    // echo the received vendor_defined_payload
+    Ok(VendorDefinedRspPayloadStruct{ rsp_length: vdrp.req_length, vendor_defined_rsp_payload: vdrp.vendor_defined_req_payload})
+}
+
 fn handle_message(
     stream: &mut TcpStream,
     transport_encap: &mut dyn SpdmTransportEncap,
@@ -229,6 +237,11 @@ fn handle_message(
         peer_cert_chain_root_hash: None,
         default_version: SpdmVersion::SpdmVersion12,
     };
+
+    let vendor_defined_struct = VendorDefinedStruct{
+        vendor_defined_request_handler: vendor_defined_request_handler
+    };
+    spdmlib::message::vendor::register_vendor_defined_struct(vendor_defined_struct);
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
     let mut context = responder::ResponderContext::new(

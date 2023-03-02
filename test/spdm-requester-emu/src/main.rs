@@ -280,7 +280,36 @@ fn test_spdm(
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );
+
     if let Ok(session_id) = result {
+        const MESSAGE : [u8; 5] = [b'h',b'e',b'l',b'l',b'o'];
+
+        let mut vdrp = vendor::VendorDefinedReqPayloadStruct {
+            req_length: 0,
+            vendor_defined_req_payload: [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+        };
+        vdrp.req_length = MESSAGE.len() as u16;
+        vdrp.vendor_defined_req_payload[0..MESSAGE.len()]
+            .copy_from_slice(&MESSAGE[..]);
+        let mut vendor_id_struct = VendorIDStruct {
+            len: 2,
+            vendor_id: [0u8; 128],
+        };
+        vendor_id_struct.vendor_id[0] = 0x01; // identify PCISIG
+
+        info!("Send vendor_defined_req     {0} : {1:02X?}", vdrp.req_length, &vdrp.vendor_defined_req_payload[..vdrp.req_length as usize]);
+
+        let result = context.send_spdm_vendor_defined_request(
+            session_id,
+            RegistryOrStandardsBodyID::PCISIG,vendor_id_struct.clone(),
+            vdrp);
+        match result {
+            Ok(vrsp) => {
+                info!("Received vendor_defined_rsp {0} : {1:02X?}", vrsp.rsp_length, &vrsp.vendor_defined_rsp_payload[..vrsp.rsp_length as usize]);
+            },
+            Err(_) => panic!("Send vendor_defined_request failed.\n"),
+        }
+
         if context.end_session(session_id).is_err() {
             panic!("\nSession session_id is err\n");
         }
