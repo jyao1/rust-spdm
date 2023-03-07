@@ -12,22 +12,18 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
+    let transport_encap: &mut dyn SpdmTransportEncap = if USE_PCIDOE {
+        pcidoe_transport_encap
+    } else {
+        mctp_transport_encap
+    };
+
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
         // algorithm_rsp
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -38,23 +34,14 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
 
         context.common.reset_runtime_info();
 
-        let _ = context.handle_spdm_key_exchange(data);
+        let _ = context.handle_spdm_key_exchange(data, transport_encap, &mut socket_io_transport);
     }
 
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info1,
-            provision_info1,
-        );
+        let mut context = responder::ResponderContext::new(config_info1, provision_info1);
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -72,23 +59,14 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.common.session[2].setup(4294901758).unwrap();
         context.common.session[3].setup(4294901758).unwrap();
 
-        let _ = context.handle_spdm_key_exchange(data);
+        let _ = context.handle_spdm_key_exchange(data, transport_encap, &mut socket_io_transport);
     }
 
     {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info2,
-            provision_info2,
-        );
+        let mut context = responder::ResponderContext::new(config_info2, provision_info2);
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -100,7 +78,7 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.common.provision_info.my_cert_chain_data = None;
         context.common.reset_runtime_info();
 
-        let _ = context.handle_spdm_key_exchange(data);
+        let _ = context.handle_spdm_key_exchange(data, transport_encap, &mut socket_io_transport);
     }
 }
 fn main() {

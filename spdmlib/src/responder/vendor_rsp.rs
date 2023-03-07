@@ -3,12 +3,20 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::error::SpdmResult;
 use crate::message::*;
 use crate::responder::*;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_vendor_defined_request(&mut self, session_id: u32, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_vendor_defined_request(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
         let vendor_defined_request_payload =
@@ -37,7 +45,13 @@ impl<'a> ResponderContext<'a> {
         };
         response.spdm_encode(&mut self.common, &mut writer);
         let used = writer.used();
-        let _ = self.send_secured_message(session_id, &send_buffer[..used], true);
+        let _ = self.send_secured_message(
+            session_id,
+            &send_buffer[..used],
+            true,
+            transport_encap,
+            device_io,
+        );
     }
 
     pub fn respond_to_vendor_defined_request<F>(
@@ -68,12 +82,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         let req = VendorDefinedReqPayloadStruct {
             req_length: 0,

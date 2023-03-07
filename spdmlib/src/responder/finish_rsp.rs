@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::protocol::*;
@@ -14,19 +16,31 @@ use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_finish(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self.write_spdm_finish_response(session_id, bytes, &mut writer) {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+            let _ = self.send_secured_message(
+                session_id,
+                writer.used_slice(),
+                false,
+                transport_encap,
+                device_io,
+            );
             // change state after message is sent.
             let session = self.common.get_session_via_id(session_id).unwrap();
             session.set_session_state(
                 crate::common::session::SpdmSessionState::SpdmSessionEstablished,
             );
         } else {
-            let _ = self.send_message(writer.used_slice());
+            let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
         }
     }
 
@@ -388,12 +402,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crypto::hmac::register(HMAC_TEST.clone());
@@ -454,6 +463,11 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&finish_slic[0..1022]);
-        context.handle_spdm_finish(4294901758, bytes);
+        context.handle_spdm_finish(
+            4294901758,
+            bytes,
+            pcidoe_transport_encap,
+            &mut socket_io_transport,
+        );
     }
 }

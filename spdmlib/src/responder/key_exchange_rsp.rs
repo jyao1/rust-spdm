@@ -5,8 +5,8 @@
 use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::responder::*;
 
-use crate::common::SpdmCodec;
 use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
+use crate::common::{SpdmCodec, SpdmDeviceIo, SpdmTransportEncap};
 use crate::crypto;
 use crate::protocol::*;
 extern crate alloc;
@@ -16,18 +16,24 @@ use crate::crypto::HashCtx;
 use crate::message::*;
 use alloc::boxed::Box;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
+impl ResponderContext {
+    pub fn handle_spdm_key_exchange(
+        &mut self,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_key_exchange_response(bytes, &mut writer)?;
-        self.send_message(writer.used_slice())
+        self.write_spdm_key_exchange_response(bytes, &mut writer, transport_encap)?;
+        self.send_message(writer.used_slice(), transport_encap, device_io)
     }
 
     pub fn write_spdm_key_exchange_response(
         &mut self,
         bytes: &[u8],
         writer: &mut Writer,
+        transport_encap: &mut dyn SpdmTransportEncap,
     ) -> SpdmResult {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
@@ -244,8 +250,8 @@ impl<'a> ResponderContext<'a> {
         let dhe_algo = self.common.negotiate_info.dhe_sel;
         let aead_algo = self.common.negotiate_info.aead_sel;
         let key_schedule_algo = self.common.negotiate_info.key_schedule_sel;
-        let sequence_number_count = self.common.transport_encap.get_sequence_number_count();
-        let max_random_count = self.common.transport_encap.get_max_random_count();
+        let sequence_number_count = transport_encap.get_sequence_number_count();
+        let max_random_count = transport_encap.get_max_random_count();
 
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_next_avaiable_session();

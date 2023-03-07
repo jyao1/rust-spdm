@@ -18,15 +18,10 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let message_m = &[
+        let _message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
@@ -46,15 +41,14 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
@@ -71,6 +65,8 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         let _ = requester.send_receive_spdm_key_exchange(
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
     {
@@ -81,15 +77,10 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let message_m = &[
+        let _message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info1, rsp_provision_info1);
 
         responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
@@ -109,15 +100,14 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info1, req_provision_info1);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
@@ -134,6 +124,8 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         let _ = requester.send_receive_spdm_key_exchange(
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
 }

@@ -17,25 +17,21 @@ fn fuzz_send_receive_spdm_algorithm(fuzzdata: &[u8]) {
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-    let mut responder = responder::ResponderContext::new(
-        &mut device_io_responder,
-        pcidoe_transport_encap,
-        rsp_config_info,
-        rsp_provision_info,
-    );
+    let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-    let mut device_io_requester =
-        fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-    let mut requester = requester::RequesterContext::new(
-        &mut device_io_requester,
-        pcidoe_transport_encap2,
-        req_config_info,
-        req_provision_info,
+    let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+        &shared_buffer,
+        &mut responder,
+        pcidoe_transport_encap,
+        &mut device_io_responder,
     );
 
-    let _ = requester.send_receive_spdm_algorithm().is_err();
+    let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
+
+    let _ = requester
+        .send_receive_spdm_algorithm(pcidoe_transport_encap2, &mut device_io_requester)
+        .is_err();
 }
 
 fn main() {

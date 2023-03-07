@@ -111,14 +111,23 @@ impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
 
 pub struct FakeSpdmDeviceIo<'a> {
     pub data: &'a SharedBuffer,
-    pub responder: &'a mut responder::ResponderContext<'a>,
+    pub responder: &'a mut responder::ResponderContext,
+    pub rsp_transport_encap: &'a mut dyn SpdmTransportEncap,
+    pub rsp_device_io: &'a mut dyn SpdmDeviceIo,
 }
 
 impl<'a> FakeSpdmDeviceIo<'a> {
-    pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
+    pub fn new(
+        data: &'a SharedBuffer,
+        responder: &'a mut responder::ResponderContext,
+        rsp_transport_encap: &'a mut dyn SpdmTransportEncap,
+        rsp_device_io: &'a mut dyn SpdmDeviceIo,
+    ) -> Self {
         FakeSpdmDeviceIo {
             data: data,
             responder,
+            rsp_transport_encap,
+            rsp_device_io,
         }
     }
 }
@@ -134,7 +143,11 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
         let timeout = 60;
-        if self.responder.process_message(timeout, &[0]).is_err() {
+        if self
+            .responder
+            .process_message(timeout, &[0], self.rsp_transport_encap, self.rsp_device_io)
+            .is_err()
+        {
             return spdm_result_err!(ENOMEM);
         }
         Ok(())

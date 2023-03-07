@@ -9,31 +9,38 @@ use crate::error::SpdmResult;
 use crate::message::*;
 use codec::{Codec, Reader};
 
-pub struct ResponderContext<'a> {
-    pub common: crate::common::SpdmContext<'a>,
+pub struct ResponderContext {
+    pub common: crate::common::SpdmContext,
 }
 
-impl<'a> ResponderContext<'a> {
+impl ResponderContext {
     pub fn new(
-        device_io: &'a mut dyn SpdmDeviceIo,
-        transport_encap: &'a mut dyn SpdmTransportEncap,
+        // device_io: &'a mut dyn SpdmDeviceIo,
+        // transport_encap: &'a mut dyn SpdmTransportEncap,
         config_info: crate::common::SpdmConfigInfo,
         provision_info: crate::common::SpdmProvisionInfo,
     ) -> Self {
         ResponderContext {
             common: crate::common::SpdmContext::new(
-                device_io,
-                transport_encap,
+                // device_io,
+                // transport_encap,
                 config_info,
                 provision_info,
             ),
         }
     }
 
-    pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
+    pub fn send_message(
+        &mut self,
+        send_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
-        let used = self.common.encap(send_buffer, &mut transport_buffer)?;
-        self.common.device_io.send(&transport_buffer[..used])
+        let used = self
+            .common
+            .encap(send_buffer, &mut transport_buffer, transport_encap)?;
+        device_io.send(&transport_buffer[..used])
     }
 
     pub fn send_secured_message(
@@ -41,6 +48,8 @@ impl<'a> ResponderContext<'a> {
         session_id: u32,
         send_buffer: &[u8],
         is_app_message: bool,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self.common.encode_secured_message(
@@ -49,18 +58,24 @@ impl<'a> ResponderContext<'a> {
             &mut transport_buffer,
             false,
             is_app_message,
+            transport_encap,
         )?;
-        self.common.device_io.send(&transport_buffer[..used])
+        device_io.send(&transport_buffer[..used])
     }
 
     pub fn process_message(
         &mut self,
         timeout: usize,
         auxiliary_app_data: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> Result<bool, (usize, [u8; config::DATA_TRANSFER_SIZE])> {
         let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
-        match self.receive_message(&mut receive_buffer[..], timeout) {
+        match self.receive_message(&mut receive_buffer[..], timeout, transport_encap, device_io) {
             Ok((used, secured_message)) => {
+                if used == 0 {
+                    return Err((0, receive_buffer));
+                }
                 if secured_message {
                     let mut read = Reader::init(&receive_buffer[0..used]);
                     let session_id = u32::read(&mut read).ok_or((used, receive_buffer))?;
@@ -83,10 +98,8 @@ impl<'a> ResponderContext<'a> {
                     let decode_size = decode_size.unwrap();
 
                     let mut spdm_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-                    let decap_result = self
-                        .common
-                        .transport_encap
-                        .decap_app(&app_buffer[0..decode_size], &mut spdm_buffer);
+                    let decap_result =
+                        transport_encap.decap_app(&app_buffer[0..decode_size], &mut spdm_buffer);
                     match decap_result {
                         Err(_) => Err((used, receive_buffer)),
                         Ok((decode_size, is_app_message)) => {
@@ -94,18 +107,22 @@ impl<'a> ResponderContext<'a> {
                                 Ok(self.dispatch_secured_message(
                                     session_id,
                                     &spdm_buffer[0..decode_size],
+                                    transport_encap,
+                                    device_io,
                                 ))
                             } else {
                                 Ok(self.dispatch_secured_app_message(
                                     session_id,
                                     &receive_buffer[0..used],
                                     auxiliary_app_data,
+                                    transport_encap,
+                                    device_io,
                                 ))
                             }
                         }
                     }
                 } else {
-                    Ok(self.dispatch_message(&receive_buffer[0..used]))
+                    Ok(self.dispatch_message(&receive_buffer[0..used], transport_encap, device_io))
                 }
             }
             Err(used) => Err((used, receive_buffer)),
@@ -120,16 +137,19 @@ impl<'a> ResponderContext<'a> {
         &mut self,
         receive_buffer: &mut [u8],
         timeout: usize,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> Result<(usize, bool), usize> {
         info!("receive_message!\n");
 
         let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
 
-        let used = self.common.device_io.receive(receive_buffer, timeout)?;
+        let used = device_io.receive(receive_buffer, timeout)?;
+        if used == 0 {
+            return Ok((0, true));
+        }
 
-        let (used, secured_message) = self
-            .common
-            .transport_encap
+        let (used, secured_message) = transport_encap
             .decap(&receive_buffer[..used], &mut transport_buffer)
             .map_err(|_| used)?;
 
@@ -137,61 +157,84 @@ impl<'a> ResponderContext<'a> {
         Ok((used, secured_message))
     }
 
-    fn dispatch_secured_message(&mut self, session_id: u32, bytes: &[u8]) -> bool {
+    fn dispatch_secured_message(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> bool {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
-                    self.handle_spdm_respond_if_ready(bytes);
+                    self.handle_spdm_respond_if_ready(bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetVersion => false,
                 SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
                 SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
                 SpdmRequestResponseCode::SpdmRequestGetDigests => {
-                    self.handle_spdm_digest(bytes, Some(session_id));
+                    self.handle_spdm_digest(bytes, Some(session_id), transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetCertificate => {
-                    self.handle_spdm_certificate(bytes, Some(session_id));
+                    self.handle_spdm_certificate(
+                        bytes,
+                        Some(session_id),
+                        transport_encap,
+                        device_io,
+                    );
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestChallenge => false,
                 SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
-                    self.handle_spdm_measurement(Some(session_id), bytes);
+                    self.handle_spdm_measurement(
+                        Some(session_id),
+                        bytes,
+                        transport_encap,
+                        device_io,
+                    );
                     true
                 }
 
                 SpdmRequestResponseCode::SpdmRequestKeyExchange => false,
 
                 SpdmRequestResponseCode::SpdmRequestFinish => {
-                    self.handle_spdm_finish(session_id, bytes);
+                    self.handle_spdm_finish(session_id, bytes, transport_encap, device_io);
                     true
                 }
 
                 SpdmRequestResponseCode::SpdmRequestPskExchange => false,
 
                 SpdmRequestResponseCode::SpdmRequestPskFinish => {
-                    let _ = self.handle_spdm_psk_finish(session_id, bytes);
+                    self.handle_spdm_psk_finish(session_id, bytes, transport_encap, device_io)
+                        .unwrap();
                     true
                 }
 
                 SpdmRequestResponseCode::SpdmRequestHeartbeat => {
-                    self.handle_spdm_heartbeat(session_id, bytes);
+                    self.handle_spdm_heartbeat(session_id, bytes, transport_encap, device_io);
                     true
                 }
 
                 SpdmRequestResponseCode::SpdmRequestKeyUpdate => {
-                    self.handle_spdm_key_update(session_id, bytes);
+                    self.handle_spdm_key_update(session_id, bytes, transport_encap, device_io);
                     true
                 }
 
                 SpdmRequestResponseCode::SpdmRequestEndSession => {
-                    let _ = self.handle_spdm_end_session(session_id, bytes);
+                    let _ =
+                        self.handle_spdm_end_session(session_id, bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
-                    self.handle_spdm_vendor_defined_request(session_id, bytes);
+                    self.handle_spdm_vendor_defined_request(
+                        session_id,
+                        bytes,
+                        transport_encap,
+                        device_io,
+                    );
                     true
                 }
                 SpdmRequestResponseCode::SpdmResponseDigests => false,
@@ -221,58 +264,77 @@ impl<'a> ResponderContext<'a> {
         session_id: u32,
         bytes: &[u8],
         auxiliary_app_data: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> bool {
         debug!("dispatching secured app message\n");
         let rsp_app_buffer =
             dispatch_secured_app_message_cb(self, session_id, bytes, auxiliary_app_data);
-        let _ = self.send_secured_message(session_id, &rsp_app_buffer, true);
+        let _ = self.send_secured_message(
+            session_id,
+            &rsp_app_buffer,
+            true,
+            transport_encap,
+            device_io,
+        );
         true
     }
-    pub fn dispatch_message(&mut self, bytes: &[u8]) -> bool {
+    pub fn dispatch_message(
+        &mut self,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> bool {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
                 SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
-                    self.handle_spdm_respond_if_ready(bytes);
+                    self.handle_spdm_respond_if_ready(bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetVersion => {
-                    self.handle_spdm_version(bytes);
+                    self.handle_spdm_version(bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetCapabilities => {
-                    self.handle_spdm_capability(bytes);
+                    self.handle_spdm_capability(bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => {
-                    self.handle_spdm_algorithm(bytes);
+                    self.handle_spdm_algorithm(bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetDigests => {
-                    self.handle_spdm_digest(bytes, None);
+                    self.handle_spdm_digest(bytes, None, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetCertificate => {
-                    self.handle_spdm_certificate(bytes, None);
+                    self.handle_spdm_certificate(bytes, None, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestChallenge => {
-                    self.handle_spdm_challenge(bytes);
+                    self.handle_spdm_challenge(bytes, transport_encap, device_io);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
-                    self.handle_spdm_measurement(None, bytes);
+                    self.handle_spdm_measurement(None, bytes, transport_encap, device_io);
                     true
                 }
 
                 SpdmRequestResponseCode::SpdmRequestKeyExchange => {
-                    matches!(self.handle_spdm_key_exchange(bytes), Ok(_))
+                    matches!(
+                        self.handle_spdm_key_exchange(bytes, transport_encap, device_io),
+                        Ok(_)
+                    )
                 }
 
                 SpdmRequestResponseCode::SpdmRequestFinish => false,
 
                 SpdmRequestResponseCode::SpdmRequestPskExchange => {
-                    matches!(self.handle_spdm_psk_exchange(bytes), Ok(_))
+                    matches!(
+                        self.handle_spdm_psk_exchange(bytes, transport_encap, device_io),
+                        Ok(_)
+                    )
                 }
 
                 SpdmRequestResponseCode::SpdmRequestPskFinish => false,
@@ -326,12 +388,7 @@ mod tests_responder {
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
@@ -362,7 +419,13 @@ mod tests_responder {
         value.spdm_encode(&mut context.common, &mut writer);
         let used = writer.used();
         let status = context
-            .send_secured_message(session_id, &send_buffer[0..used], false)
+            .send_secured_message(
+                session_id,
+                &send_buffer[0..used],
+                false,
+                pcidoe_transport_encap,
+                &mut socket_io_transport,
+            )
             .is_ok();
         assert!(status);
     }
@@ -373,12 +436,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -394,7 +452,13 @@ mod tests_responder {
         value.spdm_encode(&mut context.common, &mut writer);
         let used = writer.used();
         let status = context
-            .send_secured_message(session_id, &send_buffer[0..used], false)
+            .send_secured_message(
+                session_id,
+                &send_buffer[0..used],
+                false,
+                pcidoe_transport_encap,
+                &mut socket_io_transport,
+            )
             .is_err();
         assert!(status);
     }
@@ -416,16 +480,16 @@ mod tests_responder {
 
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let status = context
-            .receive_message(&mut receive_buffer[..], ST1)
+            .receive_message(
+                &mut receive_buffer[..],
+                ST1,
+                pcidoe_transport_encap,
+                &mut socket_io_transport,
+            )
             .is_ok();
         assert!(status);
     }
@@ -446,12 +510,7 @@ mod tests_responder {
         shared_buffer.set_buffer(receive_buffer);
 
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -467,7 +526,9 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let status = context.process_message(ST1, &[0]).is_err();
+        let status = context
+            .process_message(ST1, &[0], pcidoe_transport_encap, &mut socket_io_transport)
+            .is_err();
         assert!(status);
     }
     #[test]
@@ -478,12 +539,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
@@ -517,7 +573,12 @@ mod tests_responder {
                 request_response_code: dispatch_secured_data(i, true),
             };
             value.encode(&mut writer);
-            let status_secured = context.dispatch_secured_message(session_id, bytes);
+            let status_secured = context.dispatch_secured_message(
+                session_id,
+                bytes,
+                pcidoe_transport_encap,
+                &mut socket_io_transport,
+            );
             assert!(status_secured);
         }
         for i in 0..24 {
@@ -528,7 +589,12 @@ mod tests_responder {
                 request_response_code: dispatch_secured_data(i, false),
             };
             value.encode(&mut writer);
-            let status_secured = context.dispatch_secured_message(session_id, bytes);
+            let status_secured = context.dispatch_secured_message(
+                session_id,
+                bytes,
+                pcidoe_transport_encap,
+                &mut socket_io_transport,
+            );
             assert!(!status_secured);
         }
         for i in 0..9 {
@@ -539,7 +605,8 @@ mod tests_responder {
                 request_response_code: dispatc_data(i, true),
             };
             value.encode(&mut writer);
-            let status = context.dispatch_message(bytes);
+            let status =
+                context.dispatch_message(bytes, pcidoe_transport_encap, &mut socket_io_transport);
             assert!(status);
         }
         for i in 0..21 {
@@ -550,7 +617,8 @@ mod tests_responder {
                 request_response_code: dispatc_data(i, false),
             };
             value.encode(&mut writer);
-            let status = context.dispatch_message(bytes);
+            let status =
+                context.dispatch_message(bytes, pcidoe_transport_encap, &mut socket_io_transport);
             assert!(!status);
         }
     }

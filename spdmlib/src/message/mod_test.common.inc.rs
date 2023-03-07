@@ -10,8 +10,7 @@ macro_rules! create_spdm_context {
         let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
         #[allow(unused, unused_mut)]
-        let mut $context_name =
-            SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut $context_name = SpdmContext::new(config_info, provision_info);
     };
 }
 

@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::crypto;
 use crate::message::*;
 use crate::protocol::*;
@@ -11,16 +13,28 @@ extern crate alloc;
 use crate::protocol::gen_array_clone;
 use alloc::boxed::Box;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_digest(&mut self, bytes: &[u8], session_id: Option<u32>) {
+impl ResponderContext {
+    pub fn handle_spdm_digest(
+        &mut self,
+        bytes: &[u8],
+        session_id: Option<u32>,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_digest_response(bytes, &mut writer);
 
         if let Some(session_id) = session_id {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+            let _ = self.send_secured_message(
+                session_id,
+                writer.used_slice(),
+                false,
+                transport_encap,
+                device_io,
+            );
         } else {
-            let _ = self.send_message(writer.used_slice());
+            let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
         }
     }
 
@@ -128,12 +142,7 @@ mod tests_responder {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -151,6 +160,11 @@ mod tests_responder {
         value.encode(&mut writer);
 
         let bytes = &mut [0u8; 1024];
-        context.handle_spdm_digest(bytes, None);
+        context.handle_spdm_digest(
+            bytes,
+            None,
+            pcidoe_transport_encap,
+            &mut socket_io_transport,
+        );
     }
 }

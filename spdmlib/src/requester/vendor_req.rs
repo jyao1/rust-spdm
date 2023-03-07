@@ -6,13 +6,15 @@ use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
     pub fn send_spdm_vendor_defined_request(
         &mut self,
         session_id: u32,
         standard_id: RegistryOrStandardsBodyID,
         vendor_id_struct: VendorIDStruct,
         req_payload_struct: VendorDefinedReqPayloadStruct,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         info!("send vendor defined request\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
@@ -32,19 +34,38 @@ impl<'a> RequesterContext<'a> {
         };
         request.spdm_encode(&mut self.common, &mut writer);
         let used = writer.used();
-        self.send_secured_message(session_id, &send_buffer[..used], true)?;
+        self.send_secured_message(
+            session_id,
+            &send_buffer[..used],
+            true,
+            transport_encap,
+            device_io,
+        )?;
 
         //receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
+        let receive_used = self.receive_secured_message(
+            session_id,
+            &mut receive_buffer,
+            false,
+            transport_encap,
+            device_io,
+        )?;
 
-        self.handle_spdm_vendor_defined_respond(session_id, &receive_buffer[..receive_used])
+        self.handle_spdm_vendor_defined_respond(
+            session_id,
+            &receive_buffer[..receive_used],
+            transport_encap,
+            device_io,
+        )
     }
 
     pub fn handle_spdm_vendor_defined_respond(
         &mut self,
         session_id: u32,
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -70,6 +91,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
                             SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -78,6 +101,8 @@ impl<'a> RequesterContext<'a> {
                                 self.handle_spdm_vendor_defined_respond(
                                     session_id,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -109,22 +134,17 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         let session_id: u32 = 0xff;
         let standard_id: RegistryOrStandardsBodyID = RegistryOrStandardsBodyID::DMTF;
@@ -143,6 +163,8 @@ mod tests_requester {
                 standard_id,
                 vendor_idstruct,
                 req_payload_struct,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
             )
             .is_ok();
         assert_eq!(status, false); //since vendor defined response payload is not implemented, so false is expected here.

@@ -5,6 +5,8 @@
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::crypto;
 use crate::error::{spdm_err, SpdmResult};
 use crate::message::*;
@@ -13,15 +15,26 @@ use crate::responder::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_challenge(&mut self, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_challenge(
+        &mut self,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_challenge_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        self.write_spdm_challenge_response(bytes, &mut writer, transport_encap, device_io);
+        let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
     }
 
-    pub fn write_spdm_challenge_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    pub fn write_spdm_challenge_response(
+        &mut self,
+        bytes: &[u8],
+        writer: &mut Writer,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
 
@@ -141,7 +154,12 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_finalize(digest_context_m1m2_clone).unwrap(),
         );
         if signature.is_err() {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            self.send_spdm_error(
+                SpdmErrorCode::SpdmErrorInvalidRequest,
+                0,
+                transport_encap,
+                device_io,
+            );
             return;
         }
         let signature = signature.unwrap();
@@ -243,12 +261,7 @@ mod tests_responder {
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crypto::rand::register(DEFAULT_TEST.clone());
 
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -284,7 +297,7 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&challenge[0..1022]);
-        context.handle_spdm_challenge(bytes);
+        context.handle_spdm_challenge(bytes, pcidoe_transport_encap, &mut socket_io_transport);
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {

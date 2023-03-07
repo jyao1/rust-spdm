@@ -8,7 +8,8 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
+    #[allow(clippy::too_many_arguments)]
     fn send_receive_spdm_measurement_record(
         &mut self,
         session_id: Option<u32>,
@@ -16,6 +17,8 @@ impl<'a> RequesterContext<'a> {
         measurement_operation: SpdmMeasurementOperation,
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
         slot_id: u8,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<u8> {
         info!("send spdm measurement\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
@@ -27,20 +30,30 @@ impl<'a> RequesterContext<'a> {
         )?;
         match session_id {
             Some(session_id) => {
-                self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
+                self.send_secured_message(
+                    session_id,
+                    &send_buffer[..send_used],
+                    false,
+                    transport_encap,
+                    device_io,
+                )?;
             }
             None => {
-                self.send_message(&send_buffer[..send_used])?;
+                self.send_message(&send_buffer[..send_used], transport_encap, device_io)?;
             }
         }
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = match session_id {
-            Some(session_id) => {
-                self.receive_secured_message(session_id, &mut receive_buffer, true)?
-            }
-            None => self.receive_message(&mut receive_buffer, true)?,
+            Some(session_id) => self.receive_secured_message(
+                session_id,
+                &mut receive_buffer,
+                true,
+                transport_encap,
+                device_io,
+            )?,
+            None => self.receive_message(&mut receive_buffer, true, transport_encap, device_io)?,
         };
 
         self.handle_spdm_measurement_record_response(
@@ -51,6 +64,8 @@ impl<'a> RequesterContext<'a> {
             spdm_measurement_record_structure,
             &send_buffer[..send_used],
             &receive_buffer[..used],
+            transport_encap,
+            device_io,
         )
     }
 
@@ -121,6 +136,8 @@ impl<'a> RequesterContext<'a> {
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure,
         send_buffer: &[u8],
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<u8> {
         if measurement_attributes.contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED) {
             self.common.runtime_info.need_measurement_signature = true;
@@ -316,6 +333,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetMeasurements,
                             SpdmRequestResponseCode::SpdmResponseMeasurements,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -329,6 +348,8 @@ impl<'a> RequesterContext<'a> {
                                     spdm_measurement_record_structure,
                                     send_buffer,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -341,6 +362,7 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn send_receive_spdm_measurement(
         &mut self,
         session_id: Option<u32>,
@@ -350,6 +372,8 @@ impl<'a> RequesterContext<'a> {
         out_total_number: &mut u8, // out, total number when measurement_operation = SpdmMeasurementQueryTotalNumber
         //      number of blocks got measured.
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure, // out
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         if let Ok(total_number) = self.send_receive_spdm_measurement_record(
             session_id,
@@ -357,6 +381,8 @@ impl<'a> RequesterContext<'a> {
             measurement_operation,
             spdm_measurement_record_structure,
             slot_id,
+            transport_encap,
+            device_io,
         ) {
             *out_total_number = total_number;
             Ok(())
@@ -546,12 +572,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -581,14 +602,14 @@ mod tests_requester {
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -623,6 +644,8 @@ mod tests_requester {
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
             )
             .is_ok();
         assert!(status);
@@ -636,6 +659,8 @@ mod tests_requester {
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
             )
             .is_ok();
         assert!(status);
@@ -649,6 +674,8 @@ mod tests_requester {
                 measurement_operation,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
             )
             .is_ok();
         assert!(status);

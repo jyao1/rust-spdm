@@ -8,25 +8,48 @@ use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_digest(&mut self, session_id: Option<u32>) -> SpdmResult {
+impl RequesterContext {
+    pub fn send_receive_spdm_digest(
+        &mut self,
+        session_id: Option<u32>,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         info!("send spdm digest\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_digest(&mut send_buffer);
         if session_id.is_none() {
-            self.send_message(&send_buffer[..send_used])?;
+            self.send_message(&send_buffer[..send_used], transport_encap, device_io)?;
         } else {
-            self.send_secured_message(session_id.unwrap(), &send_buffer[..send_used], false)?;
+            self.send_secured_message(
+                session_id.unwrap(),
+                &send_buffer[..send_used],
+                false,
+                transport_encap,
+                device_io,
+            )?;
         }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = if session_id.is_none() {
-            self.receive_message(&mut receive_buffer, false)?
+            self.receive_message(&mut receive_buffer, false, transport_encap, device_io)?
         } else {
-            self.receive_secured_message(session_id.unwrap(), &mut receive_buffer, false)?
+            self.receive_secured_message(
+                session_id.unwrap(),
+                &mut receive_buffer,
+                false,
+                transport_encap,
+                device_io,
+            )?
         };
 
-        self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])
+        self.handle_spdm_digest_response(
+            0,
+            &send_buffer[..send_used],
+            &receive_buffer[..used],
+            transport_encap,
+            device_io,
+        )
     }
 
     pub fn encode_spdm_digest(&mut self, buf: &mut [u8]) -> usize {
@@ -47,6 +70,8 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         send_buffer: &[u8],
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -105,6 +130,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetDigests,
                             SpdmRequestResponseCode::SpdmResponseDigests,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -114,6 +141,8 @@ impl<'a> RequesterContext<'a> {
                                     session_id,
                                     send_buffer,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -144,12 +173,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
         responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
             data_size: 512u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
@@ -160,20 +184,22 @@ mod tests_requester {
         );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
-        let status = requester.send_receive_spdm_digest(None).is_ok();
+        let status = requester
+            .send_receive_spdm_digest(None, pcidoe_transport_encap2, &mut device_io_requester)
+            .is_ok();
         assert!(status);
     }
 }

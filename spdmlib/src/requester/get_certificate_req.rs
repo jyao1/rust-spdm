@@ -8,28 +8,32 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
     fn send_receive_spdm_certificate_partial(
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
         offset: u16,
         length: u16,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<(u16, u16)> {
         info!("send spdm certificate\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
-        self.send_message(&send_buffer[..send_used])?;
+        self.send_message(&send_buffer[..send_used], transport_encap, device_io)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_message(&mut receive_buffer, false)?;
+        let used = self.receive_message(&mut receive_buffer, false, transport_encap, device_io)?;
         self.handle_spdm_certificate_partial_response(
             session_id,
             slot_id,
             offset,
             &send_buffer[..send_used],
             &receive_buffer[..used],
+            transport_encap,
+            device_io,
         )
     }
 
@@ -58,6 +62,7 @@ impl<'a> RequesterContext<'a> {
         writer.used()
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_spdm_certificate_partial_response(
         &mut self,
         session_id: Option<u32>,
@@ -65,6 +70,8 @@ impl<'a> RequesterContext<'a> {
         offset: u16,
         send_buffer: &[u8],
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<(u16, u16)> {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -160,6 +167,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetCertificate,
                             SpdmRequestResponseCode::SpdmResponseCertificate,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -171,6 +180,8 @@ impl<'a> RequesterContext<'a> {
                                     offset,
                                     send_buffer,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -187,12 +198,20 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut offset = 0u16;
         let mut length = config::MAX_SPDM_CERT_PORTION_LEN as u16;
         while length != 0 {
-            let result =
-                self.send_receive_spdm_certificate_partial(session_id, slot_id, offset, length);
+            let result = self.send_receive_spdm_certificate_partial(
+                session_id,
+                slot_id,
+                offset,
+                length,
+                transport_encap,
+                device_io,
+            );
             match result {
                 Ok((portion_length, remainder_length)) => {
                     offset += portion_length;
@@ -326,12 +345,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -343,14 +357,14 @@ mod tests_requester {
         );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
@@ -359,7 +373,14 @@ mod tests_requester {
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
 
-        let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
+        let status = requester
+            .send_receive_spdm_certificate(
+                None,
+                0,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_ok();
         assert!(status);
     }
 }

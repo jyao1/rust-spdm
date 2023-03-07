@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::message::*;
 use crate::responder::*;
 
-impl<'a> ResponderContext<'a> {
+impl ResponderContext {
     pub fn write_spdm_error(
         &mut self,
         error_code: SpdmErrorCode,
@@ -29,12 +31,18 @@ impl<'a> ResponderContext<'a> {
         error.spdm_encode(&mut self.common, writer);
     }
 
-    pub fn send_spdm_error(&mut self, error_code: SpdmErrorCode, error_data: u8) {
+    pub fn send_spdm_error(
+        &mut self,
+        error_code: SpdmErrorCode,
+        error_data: u8,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         info!("send spdm version\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_error(error_code, error_data, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
     }
 }
 
@@ -50,15 +58,15 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        context.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+        context.send_spdm_error(
+            SpdmErrorCode::SpdmErrorInvalidRequest,
+            0,
+            pcidoe_transport_encap,
+            &mut socket_io_transport,
+        );
     }
 }

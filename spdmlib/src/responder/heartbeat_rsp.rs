@@ -3,15 +3,29 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::message::*;
 use crate::responder::*;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_heartbeat(&mut self, session_id: u32, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_heartbeat(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self.write_spdm_heartbeat_response(bytes, &mut writer) {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+            let _ = self.send_secured_message(
+                session_id,
+                writer.used_slice(),
+                false,
+                transport_encap,
+                device_io,
+            );
         }
     }
 
@@ -57,12 +71,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -86,6 +95,11 @@ mod tests_responder {
         };
         value.encode(&mut writer);
 
-        context.handle_spdm_heartbeat(session_id, bytes);
+        context.handle_spdm_heartbeat(
+            session_id,
+            bytes,
+            pcidoe_transport_encap,
+            &mut socket_io_transport,
+        );
     }
 }

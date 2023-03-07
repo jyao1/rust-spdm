@@ -20,36 +20,37 @@ fn intergration_client_server() {
     let transport_encap_responder = &mut PciDoeTransportEncap {};
 
     let (config_info, provision_info) = common::utils::rsp_create_info();
-    let mut responder_context = responder::ResponderContext::new(
-        device_io_responder,
-        transport_encap_responder,
-        config_info,
-        provision_info,
-    );
+    let mut responder_context = responder::ResponderContext::new(config_info, provision_info);
 
-    let device_io_requester = &mut FakeSpdmDeviceIo::new(&shared_buffer, &mut responder_context);
+    let device_io_requester = &mut FakeSpdmDeviceIo::new(
+        &shared_buffer,
+        &mut responder_context,
+        transport_encap_responder,
+        device_io_responder,
+    );
     let transport_encap_requester = &mut PciDoeTransportEncap {};
 
     let (config_info, provision_info) = common::utils::req_create_info();
-    let mut requester_context = requester::RequesterContext::new(
-        device_io_requester,
-        transport_encap_requester,
-        config_info,
-        provision_info,
-    );
-
-    assert!(!requester_context.init_connection().is_err());
-
-    assert!(!requester_context.send_receive_spdm_digest(None).is_err());
+    let mut requester_context = requester::RequesterContext::new(config_info, provision_info);
 
     assert!(!requester_context
-        .send_receive_spdm_certificate(None, 0)
+        .init_connection(transport_encap_requester, device_io_requester)
+        .is_err());
+
+    assert!(!requester_context
+        .send_receive_spdm_digest(None, transport_encap_requester, device_io_requester)
+        .is_err());
+
+    assert!(!requester_context
+        .send_receive_spdm_certificate(None, 0, transport_encap_requester, device_io_requester)
         .is_err());
 
     let result = requester_context.start_session(
         false,
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+        transport_encap_requester,
+        device_io_requester,
     );
     assert!(result.is_ok());
     if let Ok(session_id) = result {

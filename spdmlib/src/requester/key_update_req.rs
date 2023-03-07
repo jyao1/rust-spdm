@@ -6,17 +6,25 @@ use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
     fn send_receive_spdm_key_update_op(
         &mut self,
         session_id: u32,
         key_update_operation: SpdmKeyUpdateOperation,
         tag: u8,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         info!("send spdm key_update\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer);
-        self.send_secured_message(session_id, &send_buffer[..used], false)?;
+        self.send_secured_message(
+            session_id,
+            &send_buffer[..used],
+            false,
+            transport_encap,
+            device_io,
+        )?;
 
         // update key
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
@@ -30,13 +38,21 @@ impl<'a> RequesterContext<'a> {
         let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         session.create_data_secret_update(spdm_version_sel, update_requester, update_responder)?;
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
+        let used = self.receive_secured_message(
+            session_id,
+            &mut receive_buffer,
+            false,
+            transport_encap,
+            device_io,
+        )?;
 
         self.handle_spdm_key_update_op_response(
             session_id,
             update_requester,
             update_responder,
             &receive_buffer[..used],
+            transport_encap,
+            device_io,
         )
     }
 
@@ -67,6 +83,8 @@ impl<'a> RequesterContext<'a> {
         update_requester: bool,
         update_responder: bool,
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -110,6 +128,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestKeyUpdate,
                             SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -120,6 +140,8 @@ impl<'a> RequesterContext<'a> {
                                     update_requester,
                                     update_responder,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -136,17 +158,27 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         key_update_operation: SpdmKeyUpdateOperation,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         if key_update_operation != SpdmKeyUpdateOperation::SpdmUpdateAllKeys
             && key_update_operation != SpdmKeyUpdateOperation::SpdmUpdateSingleKey
         {
             return spdm_result_err!(EINVAL);
         }
-        self.send_receive_spdm_key_update_op(session_id, key_update_operation, 1)?;
+        self.send_receive_spdm_key_update_op(
+            session_id,
+            key_update_operation,
+            1,
+            transport_encap,
+            device_io,
+        )?;
         self.send_receive_spdm_key_update_op(
             session_id,
             SpdmKeyUpdateOperation::SpdmVerifyNewKey,
             2,
+            transport_encap,
+            device_io,
         )
     }
 }
@@ -168,12 +200,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -208,14 +235,14 @@ mod tests_requester {
             },
         );
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -251,13 +278,23 @@ mod tests_requester {
         );
         let measurement_summary_hash_type = SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         let status = requester
-            .send_receive_spdm_key_update(session_id, measurement_summary_hash_type)
+            .send_receive_spdm_key_update(
+                session_id,
+                measurement_summary_hash_type,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
             .is_ok();
         assert!(status);
 
         let measurement_summary_hash_type = SpdmKeyUpdateOperation::Unknown(0);
         let status = requester
-            .send_receive_spdm_key_update(session_id, measurement_summary_hash_type)
+            .send_receive_spdm_key_update(
+                session_id,
+                measurement_summary_hash_type,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
             .is_err();
         assert!(status);
     }

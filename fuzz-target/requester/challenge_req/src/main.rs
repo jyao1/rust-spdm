@@ -17,12 +17,7 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
     spdmlib::crypto::rand::register(FUZZ_RAND.clone());
 
-    let mut responder = responder::ResponderContext::new(
-        &mut device_io_responder,
-        pcidoe_transport_encap,
-        rsp_config_info,
-        rsp_provision_info,
-    );
+    let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
     responder.common.reset_runtime_info();
     responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
@@ -40,15 +35,14 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-    let mut device_io_requester =
-        fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-    let mut requester = requester::RequesterContext::new(
-        &mut device_io_requester,
-        pcidoe_transport_encap2,
-        req_config_info,
-        req_provision_info,
+    let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+        &shared_buffer,
+        &mut responder,
+        pcidoe_transport_encap,
+        &mut device_io_responder,
     );
+
+    let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
 
     requester.common.reset_runtime_info();
 
@@ -72,7 +66,8 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
         .send_receive_spdm_challenge(
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-            // SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+            pcidoe_transport_encap2,
+            &mut device_io_requester, // SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         )
         .is_err();
 }

@@ -6,16 +6,38 @@ use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_end_session(&mut self, session_id: u32) -> SpdmResult {
+impl RequesterContext {
+    pub fn send_receive_spdm_end_session(
+        &mut self,
+        session_id: u32,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         info!("send spdm end_session\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.encode_spdm_end_session(&mut send_buffer);
-        self.send_secured_message(session_id, &send_buffer[..used], false)?;
+        self.send_secured_message(
+            session_id,
+            &send_buffer[..used],
+            false,
+            transport_encap,
+            device_io,
+        )?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
-        self.handle_spdm_end_session_response(session_id, &receive_buffer[..used])
+        let used = self.receive_secured_message(
+            session_id,
+            &mut receive_buffer,
+            false,
+            transport_encap,
+            device_io,
+        )?;
+        self.handle_spdm_end_session_response(
+            session_id,
+            &receive_buffer[..used],
+            transport_encap,
+            device_io,
+        )
     }
 
     pub fn encode_spdm_end_session(&mut self, buf: &mut [u8]) -> usize {
@@ -38,6 +60,8 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -72,6 +96,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestEndSession,
                             SpdmRequestResponseCode::SpdmResponseEndSessionAck,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -80,6 +106,8 @@ impl<'a> RequesterContext<'a> {
                                 self.handle_spdm_end_session_response(
                                     session_id,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -111,12 +139,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
@@ -133,14 +156,14 @@ mod tests_requester {
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;
@@ -156,7 +179,13 @@ mod tests_requester {
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
-        let status = requester.end_session(session_id).is_ok();
+        let status = requester
+            .end_session(
+                session_id,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_ok();
         assert!(status);
     }
 }

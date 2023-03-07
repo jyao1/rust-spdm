@@ -3,16 +3,23 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_capability(&mut self, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_capability(
+        &mut self,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_capability_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
     }
 
     pub fn write_spdm_capability_response(&mut self, bytes: &[u8], writer: &mut Writer) {
@@ -106,12 +113,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
@@ -131,7 +133,7 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&capabilities[0..1022]);
-        context.handle_spdm_capability(bytes);
+        context.handle_spdm_capability(bytes, pcidoe_transport_encap, &mut socket_io_transport);
 
         let rsp_capabilities = SpdmResponseCapabilityFlags::CERT_CAP
             | SpdmResponseCapabilityFlags::CHAL_CAP

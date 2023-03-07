@@ -7,6 +7,7 @@
 
 use super::shared_buffer::SharedBuffer;
 use spdmlib::common::SpdmDeviceIo;
+use spdmlib::common::SpdmTransportEncap;
 use spdmlib::common::ST1;
 use spdmlib::error::SpdmResult;
 use spdmlib::responder;
@@ -41,12 +42,24 @@ impl SpdmDeviceIo for FakeSpdmDeviceIoReceve<'_> {
 
 pub struct FakeSpdmDeviceIo<'a> {
     pub data: &'a SharedBuffer,
-    pub responder: &'a mut responder::ResponderContext<'a>,
+    pub responder: &'a mut responder::ResponderContext,
+    pub rsp_transport_encap: &'a mut dyn SpdmTransportEncap,
+    pub rsp_device_io: &'a mut dyn SpdmDeviceIo,
 }
 
 impl<'a> FakeSpdmDeviceIo<'a> {
-    pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
-        FakeSpdmDeviceIo { data, responder }
+    pub fn new(
+        data: &'a SharedBuffer,
+        responder: &'a mut responder::ResponderContext,
+        rsp_transport_encap: &'a mut dyn SpdmTransportEncap,
+        rsp_device_io: &'a mut dyn SpdmDeviceIo,
+    ) -> Self {
+        FakeSpdmDeviceIo {
+            data,
+            responder,
+            rsp_transport_encap,
+            rsp_device_io,
+        }
     }
 }
 
@@ -61,7 +74,9 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        let _res = self.responder.process_message(ST1, &[0]);
+        let _res =
+            self.responder
+                .process_message(ST1, &[0], self.rsp_transport_encap, self.rsp_device_io);
         Ok(())
     }
 

@@ -24,17 +24,9 @@ pub fn get_test_key_directory() -> PathBuf {
     crate_dir.to_path_buf()
 }
 
-pub fn new_context<'a>(
-    my_spdm_device_io: &'a mut MySpdmDeviceIo,
-    pcidoe_transport_encap: &'a mut PciDoeTransportEncap,
-) -> SpdmContext<'a> {
+pub fn new_context<'a>() -> SpdmContext {
     let (config_info, provision_info) = create_info();
-    let mut context = SpdmContext::new(
-        my_spdm_device_io,
-        pcidoe_transport_encap,
-        config_info,
-        provision_info,
-    );
+    let mut context = SpdmContext::new(config_info, provision_info);
     context.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
     context
 }
@@ -328,11 +320,11 @@ fn sign_ecdsa_asym_algo(
 
 pub struct FakeSpdmDeviceIo<'a> {
     pub data: &'a SharedBuffer,
-    pub responder: &'a mut responder::ResponderContext<'a>,
+    pub responder: &'a mut responder::ResponderContext,
 }
 
 impl<'a> FakeSpdmDeviceIo<'a> {
-    pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
+    pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext) -> Self {
         FakeSpdmDeviceIo { data, responder }
     }
 }
@@ -348,9 +340,9 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        if self.responder.process_message(ST1, &[0]).is_err() {
-            return spdm_result_err!(ENOMEM);
-        }
+        // if self.responder.process_message(ST1, &[0], None, None).is_err() {
+        //     return spdm_result_err!(ENOMEM);
+        // }
         Ok(())
     }
 

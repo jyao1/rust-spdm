@@ -17,11 +17,13 @@ use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmV
 
 const INITIAL_SESSION_ID: u16 = 0xFFFE;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
     pub fn send_receive_spdm_key_exchange(
         &mut self,
         slot_id: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
 
@@ -31,11 +33,12 @@ impl<'a> RequesterContext<'a> {
             slot_id,
             measurement_summary_hash_type,
         )?;
-        self.send_message(&send_buffer[..send_used])?;
+        self.send_message(&send_buffer[..send_used], transport_encap, device_io)?;
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let receive_used = self.receive_message(&mut receive_buffer, false)?;
+        let receive_used =
+            self.receive_message(&mut receive_buffer, false, transport_encap, device_io)?;
         self.handle_spdm_key_exhcange_response(
             0,
             slot_id,
@@ -43,6 +46,8 @@ impl<'a> RequesterContext<'a> {
             &receive_buffer[..receive_used],
             measurement_summary_hash_type,
             key_exchange_context,
+            transport_encap,
+            device_io,
         )
     }
 
@@ -110,6 +115,7 @@ impl<'a> RequesterContext<'a> {
         Ok((key_exchange_context, writer.used()))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_spdm_key_exhcange_response(
         &mut self,
         session_id: u32,
@@ -118,6 +124,8 @@ impl<'a> RequesterContext<'a> {
         receive_buffer: &[u8],
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
         key_exchange_context: Box<dyn crypto::SpdmDheKeyExchange>,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<u32> {
         if (measurement_summary_hash_type
             == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb)
@@ -247,10 +255,8 @@ impl<'a> RequesterContext<'a> {
                             let dhe_algo = self.common.negotiate_info.dhe_sel;
                             let aead_algo = self.common.negotiate_info.aead_sel;
                             let key_schedule_algo = self.common.negotiate_info.key_schedule_sel;
-                            let sequence_number_count =
-                                self.common.transport_encap.get_sequence_number_count();
-                            let max_random_count =
-                                self.common.transport_encap.get_max_random_count();
+                            let sequence_number_count = transport_encap.get_sequence_number_count();
+                            let max_random_count = transport_encap.get_max_random_count();
 
                             let secure_spdm_version_sel = if let Some(secured_message_version) =
                                 key_exchange_rsp
@@ -354,6 +360,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestKeyExchange,
                             SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -366,6 +374,8 @@ impl<'a> RequesterContext<'a> {
                                     &receive_buffer[..used],
                                     measurement_summary_hash_type,
                                     key_exchange_context,
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -510,12 +520,7 @@ mod tests_requester {
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
@@ -550,14 +555,14 @@ mod tests_requester {
         responder.common.provision_info.my_cert_chain_data = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
@@ -597,7 +602,12 @@ mod tests_requester {
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
         let status = requester
-            .send_receive_spdm_key_exchange(0, measurement_summary_hash_type)
+            .send_receive_spdm_key_exchange(
+                0,
+                measurement_summary_hash_type,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
             .is_ok();
         assert!(status);
     }

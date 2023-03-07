@@ -26,12 +26,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         spdmlib::crypto::aead::register(FUZZ_AEAD.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
@@ -43,15 +38,14 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
         requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
         requester.common.session[0].set_crypto_param(
@@ -62,8 +56,12 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         );
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester
-            .send_receive_spdm_key_update(4294901758, SpdmKeyUpdateOperation::SpdmUpdateAllKeys);
+        let _ = requester.send_receive_spdm_key_update(
+            4294901758,
+            SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
+        );
     }
 
     {
@@ -74,12 +72,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info1, rsp_provision_info1);
 
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
@@ -91,15 +84,14 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info1, req_provision_info1);
 
         requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
@@ -111,8 +103,12 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         );
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester
-            .send_receive_spdm_key_update(4294901758, SpdmKeyUpdateOperation::SpdmUpdateAllKeys);
+        let _ = requester.send_receive_spdm_key_update(
+            4294901758,
+            SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
+        );
     }
     {
         let shared_buffer = SharedBuffer::new();
@@ -122,12 +118,7 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info2,
-            rsp_provision_info2,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info2, rsp_provision_info2);
 
         responder.common.session[0].setup(4294901758).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
@@ -139,15 +130,14 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info2,
-            req_provision_info2,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info2, req_provision_info2);
 
         requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294901758).unwrap();
@@ -159,8 +149,12 @@ fn fuzz_send_receive_spdm_key_update(fuzzdata: &[u8]) {
         );
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester
-            .send_receive_spdm_key_update(4294901758, SpdmKeyUpdateOperation::SpdmVerifyNewKey);
+        let _ = requester.send_receive_spdm_key_update(
+            4294901758,
+            SpdmKeyUpdateOperation::SpdmVerifyNewKey,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
+        );
     }
 }
 

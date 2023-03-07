@@ -5,6 +5,8 @@
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::error::SpdmResult;
@@ -12,15 +14,27 @@ use crate::responder::*;
 
 use crate::message::*;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_psk_finish(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
+impl ResponderContext {
+    pub fn handle_spdm_psk_finish(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self
             .write_spdm_psk_finish_response(session_id, bytes, &mut writer)
             .is_ok()
         {
-            self.send_secured_message(session_id, writer.used_slice(), false)?;
+            self.send_secured_message(
+                session_id,
+                writer.used_slice(),
+                false,
+                transport_encap,
+                device_io,
+            )?;
             // change state after message is sent.
             let session = self
                 .common
@@ -31,7 +45,7 @@ impl<'a> ResponderContext<'a> {
             );
             Ok(())
         } else {
-            self.send_message(writer.used_slice())
+            self.send_message(writer.used_slice(), transport_encap, device_io)
         }
     }
 

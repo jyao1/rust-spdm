@@ -14,17 +14,13 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+    let transport_encap: &mut dyn SpdmTransportEncap = if USE_PCIDOE {
+        pcidoe_transport_encap
+    } else {
+        mctp_transport_encap
+    };
 
-    let mut context = responder::ResponderContext::new(
-        &mut socket_io_transport,
-        if USE_PCIDOE {
-            pcidoe_transport_encap
-        } else {
-            mctp_transport_encap
-        },
-        config_info,
-        provision_info,
-    );
+    let mut context = responder::ResponderContext::new(config_info, provision_info);
 
     context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
@@ -34,7 +30,7 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
 
-    context.handle_spdm_certificate(data, None);
+    context.handle_spdm_certificate(data, None, transport_encap, &mut socket_io_transport);
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]

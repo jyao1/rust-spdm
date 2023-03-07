@@ -25,12 +25,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -45,15 +40,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         }
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
@@ -64,7 +58,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
+        let _ = requester
+            .send_receive_spdm_certificate(
+                None,
+                0,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_err();
     }
     {
         // error 151 lines
@@ -75,12 +76,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info1, rsp_provision_info1);
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -93,15 +89,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info1, req_provision_info1);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
@@ -112,7 +107,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
+        let _ = requester
+            .send_receive_spdm_certificate(
+                None,
+                0,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_err();
     }
     {
         // error 155 lines
@@ -122,12 +124,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info2,
-            rsp_provision_info2,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info2, rsp_provision_info2);
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -140,15 +137,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info2,
-            req_provision_info2,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info2, req_provision_info2);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
@@ -166,7 +162,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
+        let _ = requester
+            .send_receive_spdm_certificate(
+                None,
+                0,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_err();
     }
     {
         // error 167 lines
@@ -176,12 +179,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info3,
-            rsp_provision_info3,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info3, rsp_provision_info3);
 
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -197,15 +195,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         // digest_rsp
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info3,
-            req_provision_info3,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info3, req_provision_info3);
         let mut tmp = requester
             .common
             .provision_info
@@ -222,7 +219,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
+        let _ = requester
+            .send_receive_spdm_certificate(
+                None,
+                0,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_err();
     }
     {
         let shared_buffer = SharedBuffer::new();
@@ -230,12 +234,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info4,
-            rsp_provision_info4,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info4, rsp_provision_info4);
 
         responder.common.reset_runtime_info();
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -249,15 +248,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info4,
-            req_provision_info4,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info4, req_provision_info4);
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -267,7 +265,14 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             requester.common.runtime_info.digest_context_m1m2 =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-        let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
+        let _ = requester
+            .send_receive_spdm_certificate(
+                None,
+                0,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_err();
     }
 }
 

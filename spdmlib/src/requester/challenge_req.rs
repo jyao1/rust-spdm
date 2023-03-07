@@ -8,27 +8,31 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
     pub fn send_receive_spdm_challenge(
         &mut self,
         slot_id: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         info!("send spdm challenge\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_challenge(slot_id, measurement_summary_hash_type, &mut send_buffer)?;
-        self.send_message(&send_buffer[..send_used])?;
+        self.send_message(&send_buffer[..send_used], transport_encap, device_io)?;
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_message(&mut receive_buffer, true)?;
+        let used = self.receive_message(&mut receive_buffer, true, transport_encap, device_io)?;
         self.handle_spdm_challenge_response(
             0, // NULL
             slot_id,
             measurement_summary_hash_type,
             &send_buffer[..send_used],
             &receive_buffer[..used],
+            transport_encap,
+            device_io,
         )
     }
 
@@ -58,6 +62,7 @@ impl<'a> RequesterContext<'a> {
         Ok(writer.used())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_spdm_challenge_response(
         &mut self,
         session_id: u32,
@@ -65,6 +70,8 @@ impl<'a> RequesterContext<'a> {
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
         send_buffer: &[u8],
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         if (measurement_summary_hash_type
             == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb)
@@ -150,6 +157,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestChallenge,
                             SpdmRequestResponseCode::SpdmResponseChallengeAuth,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -161,6 +170,8 @@ impl<'a> RequesterContext<'a> {
                                     measurement_summary_hash_type,
                                     send_buffer,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -282,12 +293,7 @@ mod tests_requester {
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crypto::rand::register(DEFAULT_TEST.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.reset_runtime_info();
         responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
@@ -306,14 +312,14 @@ mod tests_requester {
         );
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
         requester.common.reset_runtime_info();
 
         requester
@@ -342,6 +348,8 @@ mod tests_requester {
             .send_receive_spdm_challenge(
                 0,
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
             )
             .is_ok();
         assert!(status);

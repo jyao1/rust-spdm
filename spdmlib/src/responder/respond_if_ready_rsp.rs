@@ -3,15 +3,22 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
+use crate::common::SpdmTransportEncap;
 use crate::message::*;
 use crate::responder::*;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_respond_if_ready(&mut self, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_respond_if_ready(
+        &mut self,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_respond_if_ready_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
     }
 
     pub fn write_spdm_respond_if_ready_response(&mut self, bytes: &[u8], writer: &mut Writer) {

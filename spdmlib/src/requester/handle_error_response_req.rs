@@ -5,18 +5,21 @@
 use codec::{Codec, Reader};
 
 use crate::common::session::SpdmSessionState;
+use crate::common::{SpdmDeviceIo, SpdmTransportEncap};
 use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::RequesterContext;
 use crate::time::sleep;
 
-impl<'a> RequesterContext<'a> {
+impl RequesterContext {
     fn spdm_handle_response_not_ready(
         &mut self,
         _session_id: Option<u32>,
         response: &[u8],
         original_request_code: SpdmRequestResponseCode,
         expected_response_code: SpdmRequestResponseCode,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<ReceivedMessage> {
         if response.len()
             != core::mem::size_of::<SpdmMessageHeader>()
@@ -42,7 +45,12 @@ impl<'a> RequesterContext<'a> {
 
             sleep(2 << extend_error_data.rdt_exponent);
 
-            self.spdm_requester_respond_if_ready(expected_response_code, extend_error_data)
+            self.spdm_requester_respond_if_ready(
+                expected_response_code,
+                extend_error_data,
+                transport_encap,
+                device_io,
+            )
         }
     }
 
@@ -78,6 +86,8 @@ impl<'a> RequesterContext<'a> {
         response: &[u8],
         original_request_code: SpdmRequestResponseCode,
         expected_response_code: SpdmRequestResponseCode,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult<ReceivedMessage> {
         let mut spdm_message_header_reader = Reader::init(response);
         let spdm_message_header =
@@ -122,6 +132,8 @@ impl<'a> RequesterContext<'a> {
                 response,
                 original_request_code,
                 expected_response_code,
+                transport_encap,
+                device_io,
             )
         } else {
             self.spdm_handle_simple_error_response(session_id, spdm_message_general_payload.param1)

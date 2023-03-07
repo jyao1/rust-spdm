@@ -22,19 +22,15 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
     spdmlib::crypto::hmac::register(FUZZ_HMAC.clone());
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+    let transport_encap: &mut dyn SpdmTransportEncap = if USE_PCIDOE {
+        pcidoe_transport_encap
+    } else {
+        mctp_transport_encap
+    };
 
     {
         // all pass
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info1,
-            provision_info1,
-        );
+        let mut context = responder::ResponderContext::new(config_info1, provision_info1);
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         // context.common.session = [SpdmSession::new(); 4];
@@ -59,21 +55,14 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
-        context.handle_spdm_psk_finish(4294901758, data);
+        context
+            .handle_spdm_psk_finish(4294901758, data, transport_encap, &mut socket_io_transport)
+            .unwrap();
     }
 
     {
         // runtime_info message_a add data, err 39 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info2,
-            provision_info2,
-        );
+        let mut context = responder::ResponderContext::new(config_info2, provision_info2);
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         // context.common.session = [SpdmSession::new(); 4];
         context.common.session[0] = SpdmSession::new();
@@ -102,20 +91,13 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
-        context.handle_spdm_psk_finish(4294901758, data);
+        context
+            .handle_spdm_psk_finish(4294901758, data, transport_encap, &mut socket_io_transport)
+            .unwrap();
     }
     {
         // negotiate info modify 512, err 46 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info3,
-            provision_info3,
-        );
+        let mut context = responder::ResponderContext::new(config_info3, provision_info3);
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         // context.common.session = [SpdmSession::new(); 4];
         context.common.session[0] = SpdmSession::new();
@@ -139,20 +121,13 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
-        context.handle_spdm_psk_finish(4294901758, data);
+        context
+            .handle_spdm_psk_finish(4294901758, data, transport_encap, &mut socket_io_transport)
+            .unwrap();
     }
     {
         // negotiate info modify TPM_ALG_SHA3_384, err 46 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info4,
-            provision_info4,
-        );
+        let mut context = responder::ResponderContext::new(config_info4, provision_info4);
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA3_384;
         // context.common.session = [SpdmSession::new(); 4];
@@ -176,7 +151,9 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-        context.handle_spdm_psk_finish(4294901758, data);
+        context
+            .handle_spdm_psk_finish(4294901758, data, transport_encap, &mut socket_io_transport)
+            .unwrap();
     }
 }
 fn main() {

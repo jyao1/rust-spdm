@@ -23,19 +23,15 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+    let transport_encap: &mut dyn SpdmTransportEncap = if USE_PCIDOE {
+        pcidoe_transport_encap
+    } else {
+        mctp_transport_encap
+    };
 
     {
         // all pass
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -65,23 +61,14 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
-        context.handle_spdm_finish(4294901758, data);
+        context.handle_spdm_finish(4294901758, data, transport_encap, &mut socket_io_transport);
         let mut req_buf = [0u8; 1024];
         socket_io_transport.receive(&mut req_buf, 60).unwrap();
     }
 
     {
         // runtime info message_a add, err 39 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info2,
-            provision_info2,
-        );
+        let mut context = responder::ResponderContext::new(config_info2, provision_info2);
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -109,21 +96,12 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        context.handle_spdm_finish(4294901758, data);
+        context.handle_spdm_finish(4294901758, data, transport_encap, &mut socket_io_transport);
     }
 
     {
         // 53 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info1,
-            provision_info1,
-        );
+        let mut context = responder::ResponderContext::new(config_info1, provision_info1);
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
@@ -151,20 +129,11 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
-        context.handle_spdm_finish(4294901758, data);
+        context.handle_spdm_finish(4294901758, data, transport_encap, &mut socket_io_transport);
     }
     {
         // error 98 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info3,
-            provision_info3,
-        );
+        let mut context = responder::ResponderContext::new(config_info3, provision_info3);
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -198,20 +167,11 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        context.handle_spdm_finish(4294901758, data);
+        context.handle_spdm_finish(4294901758, data, transport_encap, &mut socket_io_transport);
     }
     {
         // error 109 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info4,
-            provision_info4,
-        );
+        let mut context = responder::ResponderContext::new(config_info4, provision_info4);
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -251,21 +211,12 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             .message_a
             .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE - 103]);
 
-        context.handle_spdm_finish(4294901758, data);
+        context.handle_spdm_finish(4294901758, data, transport_encap, &mut socket_io_transport);
     }
 
     {
         // all pass
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info5,
-            provision_info5,
-        );
+        let mut context = responder::ResponderContext::new(config_info5, provision_info5);
 
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -300,7 +251,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
-        context.handle_spdm_finish(4294901758, data);
+        context.handle_spdm_finish(4294901758, data, transport_encap, &mut socket_io_transport);
         let mut req_buf = [0u8; 1024];
         socket_io_transport.receive(&mut req_buf, 60).unwrap();
     }

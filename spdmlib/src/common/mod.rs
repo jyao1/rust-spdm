@@ -86,10 +86,7 @@ impl Debug for dyn SpdmTransportEncap {
     }
 }
 
-pub struct SpdmContext<'a> {
-    pub device_io: &'a mut dyn SpdmDeviceIo,
-    pub transport_encap: &'a mut dyn SpdmTransportEncap,
-
+pub struct SpdmContext {
     pub config_info: SpdmConfigInfo,
     pub negotiate_info: SpdmNegotiateInfo,
     pub runtime_info: SpdmRuntimeInfo,
@@ -100,17 +97,10 @@ pub struct SpdmContext<'a> {
     pub session: [SpdmSession; config::MAX_SPDM_SESSION_COUNT],
 }
 
-impl<'a> SpdmContext<'a> {
-    pub fn new(
-        device_io: &'a mut dyn SpdmDeviceIo,
-        transport_encap: &'a mut dyn SpdmTransportEncap,
-        config_info: SpdmConfigInfo,
-        provision_info: SpdmProvisionInfo,
-    ) -> Self {
+impl SpdmContext {
+    pub fn new(config_info: SpdmConfigInfo, provision_info: SpdmProvisionInfo) -> Self {
         //dbg!("{:?}",mem::needs_drop::<SpdmSession>());
         SpdmContext {
-            device_io,
-            transport_encap,
             config_info,
             negotiate_info: SpdmNegotiateInfo::default(),
             runtime_info: SpdmRuntimeInfo::default(),
@@ -359,9 +349,13 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
-    pub fn encap(&mut self, send_buffer: &[u8], transport_buffer: &mut [u8]) -> SpdmResult<usize> {
-        self.transport_encap
-            .encap(send_buffer, transport_buffer, false)
+    pub fn encap(
+        &mut self,
+        send_buffer: &[u8],
+        transport_buffer: &mut [u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+    ) -> SpdmResult<usize> {
+        transport_encap.encap(send_buffer, transport_buffer, false)
     }
 
     pub fn encode_secured_message(
@@ -371,11 +365,10 @@ impl<'a> SpdmContext<'a> {
         transport_buffer: &mut [u8],
         is_requester: bool,
         is_app_message: bool,
+        transport_encap: &mut dyn SpdmTransportEncap,
     ) -> SpdmResult<usize> {
         let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self
-            .transport_encap
-            .encap_app(send_buffer, &mut app_buffer, is_app_message)?;
+        let used = transport_encap.encap_app(send_buffer, &mut app_buffer, is_app_message)?;
 
         let spdm_session = self
             .get_session_via_id(session_id)
@@ -388,18 +381,16 @@ impl<'a> SpdmContext<'a> {
             is_requester,
         )?;
 
-        self.transport_encap
-            .encap(&encoded_send_buffer[..encode_size], transport_buffer, true)
+        transport_encap.encap(&encoded_send_buffer[..encode_size], transport_buffer, true)
     }
 
     pub fn decap(
         &mut self,
         transport_buffer: &[u8],
         receive_buffer: &mut [u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
     ) -> SpdmResult<usize> {
-        let (used, secured_message) = self
-            .transport_encap
-            .decap(transport_buffer, receive_buffer)?;
+        let (used, secured_message) = transport_encap.decap(transport_buffer, receive_buffer)?;
 
         if secured_message {
             return spdm_result_err!(EFAULT);
@@ -413,11 +404,11 @@ impl<'a> SpdmContext<'a> {
         session_id: u32,
         transport_buffer: &[u8],
         receive_buffer: &mut [u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
     ) -> SpdmResult<usize> {
         let mut encoded_receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
-        let (used, secured_message) = self
-            .transport_encap
-            .decap(transport_buffer, &mut encoded_receive_buffer)?;
+        let (used, secured_message) =
+            transport_encap.decap(transport_buffer, &mut encoded_receive_buffer)?;
 
         if !secured_message {
             return spdm_result_err!(EFAULT);
@@ -434,9 +425,7 @@ impl<'a> SpdmContext<'a> {
             false,
         )?;
 
-        let used = self
-            .transport_encap
-            .decap_app(&app_buffer[0..decode_size], receive_buffer)?;
+        let used = transport_encap.decap_app(&app_buffer[0..decode_size], receive_buffer)?;
 
         Ok(used.0)
     }

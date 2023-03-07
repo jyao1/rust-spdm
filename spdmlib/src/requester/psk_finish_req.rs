@@ -12,16 +12,39 @@ extern crate alloc;
 use crate::common::ManagedBuffer;
 use alloc::boxed::Box;
 
-impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_psk_finish(&mut self, session_id: u32) -> SpdmResult {
+impl RequesterContext {
+    pub fn send_receive_spdm_psk_finish(
+        &mut self,
+        session_id: u32,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         info!("send spdm psk_finish\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let (send_used, message_f) = self.encode_spdm_psk_finish(session_id, &mut send_buffer)?;
-        self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
+        self.send_secured_message(
+            session_id,
+            &send_buffer[..send_used],
+            false,
+            transport_encap,
+            device_io,
+        )?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
-        self.handle_spdm_psk_finish_response(session_id, message_f, &receive_buffer[..receive_used])
+        let receive_used = self.receive_secured_message(
+            session_id,
+            &mut receive_buffer,
+            false,
+            transport_encap,
+            device_io,
+        )?;
+        self.handle_spdm_psk_finish_response(
+            session_id,
+            message_f,
+            &receive_buffer[..receive_used],
+            transport_encap,
+            device_io,
+        )
     }
 
     pub fn encode_spdm_psk_finish(
@@ -127,6 +150,8 @@ impl<'a> RequesterContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
         #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -224,6 +249,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestPskFinish,
                             SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -233,6 +260,8 @@ impl<'a> RequesterContext<'a> {
                                     session_id,
                                     message_f,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -274,12 +303,7 @@ mod tests_requester {
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crypto::hmac::register(HMAC_TEST.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -309,14 +333,14 @@ mod tests_requester {
         };
         let _ = responder.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion11, dhe_secret);
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -345,7 +369,13 @@ mod tests_requester {
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
         };
         let _ = requester.common.session[0].set_dhe_secret(SpdmVersion::SpdmVersion11, dhe_secret);
-        let status = requester.send_receive_spdm_psk_finish(4294901758).is_ok();
+        let status = requester
+            .send_receive_spdm_psk_finish(
+                4294901758,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_ok();
         assert!(status);
     }
 }

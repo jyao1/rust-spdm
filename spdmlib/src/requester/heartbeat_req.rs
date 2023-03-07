@@ -6,17 +6,39 @@ use crate::error::{spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_heartbeat(&mut self, session_id: u32) -> SpdmResult {
+impl RequesterContext {
+    pub fn send_receive_spdm_heartbeat(
+        &mut self,
+        session_id: u32,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         info!("send spdm heartbeat\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = self.encode_spdm_heartbeat(&mut send_buffer);
-        self.send_secured_message(session_id, &send_buffer[..used], false)?;
+        self.send_secured_message(
+            session_id,
+            &send_buffer[..used],
+            false,
+            transport_encap,
+            device_io,
+        )?;
 
         // Receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
-        self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
+        let used = self.receive_secured_message(
+            session_id,
+            &mut receive_buffer,
+            false,
+            transport_encap,
+            device_io,
+        )?;
+        self.handle_spdm_heartbeat_response(
+            session_id,
+            &receive_buffer[..used],
+            transport_encap,
+            device_io,
+        )
     }
 
     pub fn encode_spdm_heartbeat(&mut self, buf: &mut [u8]) -> usize {
@@ -36,6 +58,8 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -61,6 +85,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestHeartbeat,
                             SpdmRequestResponseCode::SpdmResponseHeartbeatAck,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -69,6 +95,8 @@ impl<'a> RequesterContext<'a> {
                                 self.handle_spdm_heartbeat_response(
                                     session_id,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -100,12 +128,7 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         let rsp_session_id = 0x11u16;
         let session_id = (0x11u32 << 16) + rsp_session_id as u32;
@@ -122,14 +145,14 @@ mod tests_requester {
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
 
         let rsp_session_id = 0x11u16;
         let session_id = (0x11u32 << 16) + rsp_session_id as u32;
@@ -145,7 +168,13 @@ mod tests_requester {
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let status = requester.send_receive_spdm_heartbeat(session_id).is_ok();
+        let status = requester
+            .send_receive_spdm_heartbeat(
+                session_id,
+                pcidoe_transport_encap2,
+                &mut device_io_requester,
+            )
+            .is_ok();
         assert!(status);
     }
 }

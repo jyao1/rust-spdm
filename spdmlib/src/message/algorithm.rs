@@ -271,7 +271,7 @@ mod tests {
         let device_io = &mut DeviceIO {};
         let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -326,7 +326,7 @@ mod tests {
         let device_io = &mut DeviceIO {};
         let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -362,7 +362,7 @@ mod tests {
         let device_io = &mut DeviceIO {};
         let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         u8_slice[26] = 1;
@@ -400,7 +400,7 @@ mod tests {
         let device_io = &mut DeviceIO {};
         let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(config_info, provision_info);
 
         context.config_info.measurement_specification = SpdmMeasurementSpecification::DMTF;
         context.config_info.measurement_hash_algo = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
@@ -494,7 +494,7 @@ mod tests {
         let device_io = &mut DeviceIO {};
         let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(config_info, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);

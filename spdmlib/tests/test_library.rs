@@ -28,7 +28,7 @@ fn test_case0_spdm_opaque_struct() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
 
     value.spdm_encode(&mut context, &mut writer);
     let mut reader = Reader::init(u8_slice);
@@ -52,7 +52,7 @@ fn test_case0_spdm_digest_struct() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
     value.spdm_encode(&mut context, &mut writer);
     let mut reader = Reader::init(u8_slice);
@@ -75,7 +75,7 @@ fn test_case0_spdm_signature_struct() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
 
     value.spdm_encode(&mut context, &mut writer);
@@ -104,7 +104,7 @@ fn test_case0_spdm_cert_chain() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
     value.spdm_encode(&mut context, &mut writer);
@@ -150,7 +150,7 @@ fn test_case0_spdm_measurement_record_structure() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
 
     value.spdm_encode(&mut context, &mut writer);
     let mut reader = Reader::init(u8_slice);
@@ -190,7 +190,7 @@ fn test_case1_spdm_measurement_record_structure() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     value.spdm_encode(&mut context, &mut writer);
 }
 #[test]
@@ -205,7 +205,7 @@ fn test_case0_spdm_dhe_exchange_struct() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
 
     value.spdm_encode(&mut context, &mut writer);
@@ -238,7 +238,7 @@ fn test_case0_spdm_dmtf_measurement_structure() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     for i in 0..5 {
         value.r#type = r#type[i];
         if i < 2 {
@@ -282,7 +282,7 @@ fn test_case0_spdm_measurement_block_structure() {
     };
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    let mut context = new_context();
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
     value.spdm_encode(&mut context, &mut writer);

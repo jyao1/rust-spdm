@@ -9,15 +9,25 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
 
-impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_algorithm(&mut self) -> SpdmResult {
+impl RequesterContext {
+    pub fn send_receive_spdm_algorithm(
+        &mut self,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_algorithm(&mut send_buffer);
-        self.send_message(&send_buffer[..send_used])?;
+        self.send_message(&send_buffer[..send_used], transport_encap, device_io)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_message(&mut receive_buffer, false)?;
-        self.handle_spdm_algorithm_response(0, &send_buffer[..send_used], &receive_buffer[..used])
+        let used = self.receive_message(&mut receive_buffer, false, transport_encap, device_io)?;
+        self.handle_spdm_algorithm_response(
+            0,
+            &send_buffer[..send_used],
+            &receive_buffer[..used],
+            transport_encap,
+            device_io,
+        )
     }
 
     pub fn encode_spdm_algorithm(&mut self, buf: &mut [u8]) -> usize {
@@ -78,6 +88,8 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         send_buffer: &[u8],
         receive_buffer: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -166,6 +178,8 @@ impl<'a> RequesterContext<'a> {
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
                             SpdmRequestResponseCode::SpdmResponseAlgorithms,
+                            transport_encap,
+                            device_io,
                         );
                         match erm {
                             Ok(rm) => {
@@ -175,6 +189,8 @@ impl<'a> RequesterContext<'a> {
                                     session_id,
                                     send_buffer,
                                     &receive_buffer[..used],
+                                    transport_encap,
+                                    device_io,
                                 )
                             }
                             _ => spdm_result_err!(EINVAL),
@@ -205,24 +221,21 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
 
-        let status = requester.send_receive_spdm_algorithm().is_ok();
+        let mut requester = RequesterContext::new(req_config_info, req_provision_info);
+
+        let status = requester
+            .send_receive_spdm_algorithm(pcidoe_transport_encap2, &mut device_io_requester)
+            .is_ok();
         assert!(status);
     }
 }

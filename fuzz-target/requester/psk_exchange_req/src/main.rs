@@ -18,27 +18,21 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
@@ -47,6 +41,8 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
     {
@@ -57,27 +53,21 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info1, rsp_provision_info1);
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info1, req_provision_info1);
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
@@ -86,6 +76,8 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
 }

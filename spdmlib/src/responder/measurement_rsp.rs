@@ -5,7 +5,9 @@
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
+use crate::common::SpdmDeviceIo;
 use crate::common::SpdmMeasurementContentChanged;
+use crate::common::SpdmTransportEncap;
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::spdm_result_err;
@@ -15,17 +17,35 @@ use crate::protocol::*;
 use crate::responder::*;
 use crate::secret::*;
 
-impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
+impl ResponderContext {
+    pub fn handle_spdm_measurement(
+        &mut self,
+        session_id: Option<u32>,
+        bytes: &[u8],
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
+    ) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_measurement_response(session_id, bytes, &mut writer);
+        self.write_spdm_measurement_response(
+            session_id,
+            bytes,
+            &mut writer,
+            transport_encap,
+            device_io,
+        );
         match session_id {
             None => {
-                let _ = self.send_message(writer.used_slice());
+                let _ = self.send_message(writer.used_slice(), transport_encap, device_io);
             }
             Some(session_id) => {
-                let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+                let _ = self.send_secured_message(
+                    session_id,
+                    writer.used_slice(),
+                    false,
+                    transport_encap,
+                    device_io,
+                );
             }
         }
     }
@@ -35,6 +55,8 @@ impl<'a> ResponderContext<'a> {
         session_id: Option<u32>,
         bytes: &[u8],
         writer: &mut Writer,
+        transport_encap: &mut dyn SpdmTransportEncap,
+        device_io: &mut dyn SpdmDeviceIo,
     ) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
@@ -227,7 +249,12 @@ impl<'a> ResponderContext<'a> {
 
             let signature = self.generate_measurement_signature(session_id);
             if signature.is_err() {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+                self.send_spdm_error(
+                    SpdmErrorCode::SpdmErrorInvalidRequest,
+                    0,
+                    transport_encap,
+                    device_io,
+                );
                 return;
             }
             let signature = signature.unwrap();
@@ -401,12 +428,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
@@ -442,7 +464,12 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
-        context.handle_spdm_measurement(None, bytes);
+        context.handle_spdm_measurement(
+            None,
+            bytes,
+            pcidoe_transport_encap,
+            &mut socket_io_transport,
+        );
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
@@ -538,12 +565,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
+        let mut context = responder::ResponderContext::new(config_info, provision_info);
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
@@ -579,7 +601,12 @@ mod tests_responder {
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&measurements_struct[0..1022]);
-        context.handle_spdm_measurement(None, bytes);
+        context.handle_spdm_measurement(
+            None,
+            bytes,
+            pcidoe_transport_encap,
+            &mut socket_io_transport,
+        );
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {

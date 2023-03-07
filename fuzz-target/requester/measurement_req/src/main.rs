@@ -24,12 +24,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info3,
-            rsp_provision_info3,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info3, rsp_provision_info3);
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -48,21 +43,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        let message_m = &[0];
+        let _message_m = &[0];
         #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info3,
-            req_provision_info3,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info3, req_provision_info3);
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -90,6 +84,8 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             &mut total_number,
             &mut spdm_measurement_record_structure,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
     {
@@ -100,12 +96,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
 
         spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info, rsp_provision_info);
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -124,21 +115,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        let message_m = &[0];
+        let _message_m = &[0];
         #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info, req_provision_info);
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -167,6 +157,8 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             &mut total_number,
             &mut spdm_measurement_record_structure,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
 
@@ -176,12 +168,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info1, rsp_provision_info1);
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -200,21 +187,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        let message_m = &[0];
+        let _message_m = &[0];
         #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info1, req_provision_info1);
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -243,6 +229,8 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
             &mut total_number,
             &mut spdm_measurement_record_structure,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
     {
@@ -251,12 +239,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info2,
-            rsp_provision_info2,
-        );
+        let mut responder = responder::ResponderContext::new(rsp_config_info2, rsp_provision_info2);
 
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -275,21 +258,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        let message_m = &[0];
+        let _message_m = &[0];
         #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info2,
-            req_provision_info2,
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(
+            &shared_buffer,
+            &mut responder,
+            pcidoe_transport_encap,
+            &mut device_io_responder,
         );
+
+        let mut requester = requester::RequesterContext::new(req_config_info2, req_provision_info2);
 
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
@@ -318,6 +300,8 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementOperation::Unknown(4),
             &mut total_number,
             &mut spdm_measurement_record_structure,
+            pcidoe_transport_encap2,
+            &mut device_io_requester,
         );
     }
 }
