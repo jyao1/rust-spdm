@@ -258,6 +258,10 @@ impl SpdmSession {
         self.session_state = session_state;
     }
 
+    pub fn get_session_state(&self) -> SpdmSessionState {
+        self.session_state
+    }
+
     pub fn generate_handshake_secret(
         &mut self,
         spdm_version: SpdmVersion,
