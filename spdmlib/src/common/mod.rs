@@ -168,6 +168,20 @@ impl<'a> SpdmContext<'a> {
         self.get_session_via_id(0)
     }
 
+    pub fn get_session_status(&self) -> [(u32, SpdmSessionState); config::MAX_SPDM_SESSION_COUNT] {
+        let mut status =
+            [(0u32, SpdmSessionState::SpdmSessionNotStarted); config::MAX_SPDM_SESSION_COUNT];
+        for (i, it) in status
+            .iter_mut()
+            .enumerate()
+            .take(config::MAX_SPDM_SESSION_COUNT)
+        {
+            it.0 = self.session[i].get_session_id();
+            it.1 = self.session[i].get_session_state();
+        }
+        status
+    }
+
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,
