@@ -61,7 +61,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
-        let _res = self.responder.process_message(ST1);
+        let _res = self.responder.process_message(ST1, &[0]);
         Ok(())
     }
 

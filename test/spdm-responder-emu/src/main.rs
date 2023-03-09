@@ -240,7 +240,7 @@ fn handle_message(
     loop {
         // if failed, receieved message can't be processed. then the message will need caller to deal.
         // now caller need to deal with message in context.
-        let res = context.process_message(ST1);
+        let res = context.process_message(ST1, &[0]);
         match res {
             Ok(spdm_result) => {
                 if spdm_result {
