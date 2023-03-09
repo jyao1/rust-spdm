@@ -4,13 +4,13 @@
 
 use conquer_once::spin::OnceCell;
 
-use crate::common::SpdmContext;
 use crate::config::MAX_SPDM_MSG_SIZE;
+use crate::responder::ResponderContext;
 
 #[derive(Clone)]
 pub struct SpdmAppMessageHandler {
     pub dispatch_secured_app_message_cb: fn(
-        ctx: &mut SpdmContext,
+        ctx: &mut ResponderContext,
         session_id: u32,
         app_buffer: &[u8],
         auxiliary_app_data: &[u8],
@@ -20,7 +20,7 @@ pub struct SpdmAppMessageHandler {
 static SPDM_APP_MESSAGE_HANDLER: OnceCell<SpdmAppMessageHandler> = OnceCell::uninit();
 
 static DEFAULT: SpdmAppMessageHandler = SpdmAppMessageHandler {
-    dispatch_secured_app_message_cb: |_ctx: &mut SpdmContext,
+    dispatch_secured_app_message_cb: |_ctx: &mut ResponderContext,
                                       _session_id: u32,
                                       _app_buffer: &[u8],
                                       _auxiliary_app_data: &[u8]|
@@ -33,7 +33,7 @@ pub fn register(context: SpdmAppMessageHandler) -> bool {
 }
 
 pub fn dispatch_secured_app_message_cb(
-    ctx: &mut SpdmContext,
+    ctx: &mut ResponderContext,
     session_id: u32,
     app_buffer: &[u8],
     auxiliary_app_data: &[u8],
