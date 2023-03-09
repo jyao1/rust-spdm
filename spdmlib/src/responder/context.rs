@@ -467,7 +467,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
-        let status = context.process_message(ST1).is_err();
+        let status = context.process_message(ST1, &[0]).is_err();
         assert!(status);
     }
     #[test]

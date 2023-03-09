@@ -134,7 +134,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
         let timeout = 60;
-        if self.responder.process_message(timeout).is_err() {
+        if self.responder.process_message(timeout, &[0]).is_err() {
             return spdm_result_err!(ENOMEM);
         }
         Ok(())
