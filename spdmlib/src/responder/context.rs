@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use super::app_message_handler::dispatch_secured_app_message_cb;
 use crate::common::{SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
 use crate::error::SpdmResult;
@@ -62,6 +63,7 @@ impl<'a> ResponderContext<'a> {
     pub fn process_message(
         &mut self,
         timeout: usize,
+        auxiliary_app_data: &[u8],
     ) -> Result<bool, (usize, [u8; config::DATA_TRANSFER_SIZE])> {
         let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         match self.receive_message(&mut receive_buffer[..], timeout) {
@@ -101,7 +103,11 @@ impl<'a> ResponderContext<'a> {
                                     &spdm_buffer[0..decode_size],
                                 ))
                             } else {
-                                Ok(self.dispatch_secured_app_message(session_id))
+                                Ok(self.dispatch_secured_app_message(
+                                    session_id,
+                                    &receive_buffer[0..used],
+                                    auxiliary_app_data,
+                                ))
                             }
                         }
                     }
@@ -217,9 +223,16 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
-    fn dispatch_secured_app_message(&mut self, session_id: u32) -> bool {
-        debug!("Send app secured message!(PLDM)\n");
-        let _ = self.send_secured_message(session_id, M_SECURE_SESSION_RESPONSE, true);
+    fn dispatch_secured_app_message(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        auxiliary_app_data: &[u8],
+    ) -> bool {
+        debug!("dispatching secured app message\n");
+        let rsp_app_buffer =
+            dispatch_secured_app_message_cb(self, session_id, bytes, auxiliary_app_data);
+        let _ = self.send_secured_message(session_id, &rsp_app_buffer, true);
         true
     }
     pub fn dispatch_message(&mut self, bytes: &[u8]) -> bool {
