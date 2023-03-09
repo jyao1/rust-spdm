@@ -13,13 +13,6 @@ pub struct ResponderContext<'a> {
     pub common: crate::common::SpdmContext<'a>,
 }
 
-pub const M_SECURE_SESSION_RESPONSE: &[u8; 5] = &[
-    0x00u8, 0x00u8, //PLDM_MESSAGE_TYPE_CONTROL_DISCOVERY
-    0x02u8, //PLDM_CONTROL_DISCOVERY_COMMAND_GET_TID
-    0x00u8, //PLDM_BASE_CODE_SUCCESS
-    0x01u8, //TID
-];
-
 impl<'a> ResponderContext<'a> {
     pub fn new(
         device_io: &'a mut dyn SpdmDeviceIo,
