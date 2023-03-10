@@ -68,9 +68,6 @@ build() {
     
     echo "Building spdm-responder-emu..."
     echo_command cargo build -p spdm-responder-emu
-    
-    echo "Building tdisp..."
-    echo_command cargo build -p tdisp
 }
 
 SPDM_EMU_PRE_BUILD_NAME=${SPDM_EMU_PRE_BUILD_NAME:-spdm-emu-v2.2.0.tar.bz2}
