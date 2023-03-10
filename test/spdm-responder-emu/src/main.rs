@@ -231,16 +231,11 @@ fn handle_message(
     };
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
-    let mut context = responder::ResponderContext::new(
-        &mut socket_io_transport,
-        transport_encap,
-        config_info,
-        provision_info,
-    );
+    let mut context = responder::ResponderContext::new(config_info, provision_info);
     loop {
         // if failed, receieved message can't be processed. then the message will need caller to deal.
         // now caller need to deal with message in context.
-        let res = context.process_message(ST1, &[0]);
+        let res = context.process_message(ST1, &[0], transport_encap, &mut socket_io_transport);
         match res {
             Ok(spdm_result) => {
                 if spdm_result {

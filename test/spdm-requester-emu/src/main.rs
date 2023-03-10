@@ -159,22 +159,26 @@ fn test_spdm(
         default_version: SpdmVersion::SpdmVersion12,
     };
 
-    let mut context = requester::RequesterContext::new(
-        socket_io_transport,
-        transport_encap,
-        config_info,
-        provision_info,
-    );
+    let mut context = requester::RequesterContext::new(config_info, provision_info);
 
-    if context.init_connection().is_err() {
+    if context
+        .init_connection(transport_encap, socket_io_transport)
+        .is_err()
+    {
         panic!("init_connection failed!");
     }
 
-    if context.send_receive_spdm_digest(None).is_err() {
+    if context
+        .send_receive_spdm_digest(None, transport_encap, socket_io_transport)
+        .is_err()
+    {
         panic!("send_receive_spdm_digest failed!");
     }
 
-    if context.send_receive_spdm_certificate(None, 0).is_err() {
+    if context
+        .send_receive_spdm_certificate(None, 0, transport_encap, socket_io_transport)
+        .is_err()
+    {
         panic!("send_receive_spdm_certificate failed!");
     }
 
@@ -182,6 +186,8 @@ fn test_spdm(
         .send_receive_spdm_challenge(
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            transport_encap,
+            socket_io_transport,
         )
         .is_err()
     {
@@ -198,6 +204,8 @@ fn test_spdm(
             SpdmMeasurementOperation::SpdmMeasurementRequestAll,
             &mut total_number,
             &mut spdm_measurement_record_structure,
+            transport_encap,
+            socket_io_transport,
         )
         .is_err()
     {
@@ -208,6 +216,8 @@ fn test_spdm(
         false,
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+        transport_encap,
+        socket_io_transport,
     );
     if let Ok(session_id) = result {
         info!("\nSession established ... session_id {:0x?}\n", session_id);
@@ -232,12 +242,20 @@ fn test_spdm(
             response_direction.salt.as_ref()
         );
 
-        if context.send_receive_spdm_heartbeat(session_id).is_err() {
+        if context
+            .send_receive_spdm_heartbeat(session_id, transport_encap, socket_io_transport)
+            .is_err()
+        {
             panic!("send_receive_spdm_heartbeat failed");
         }
 
         if context
-            .send_receive_spdm_key_update(session_id, SpdmKeyUpdateOperation::SpdmUpdateAllKeys)
+            .send_receive_spdm_key_update(
+                session_id,
+                SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
+                transport_encap,
+                socket_io_transport,
+            )
             .is_err()
         {
             panic!("send_receive_spdm_key_update failed");
@@ -251,24 +269,37 @@ fn test_spdm(
                 SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
                 &mut total_number,
                 &mut spdm_measurement_record_structure,
+                transport_encap,
+                socket_io_transport,
             )
             .is_err()
         {
             panic!("send_receive_spdm_measurement failed");
         }
 
-        if context.send_receive_spdm_digest(Some(session_id)).is_err() {
+        if context
+            .send_receive_spdm_digest(Some(session_id), transport_encap, socket_io_transport)
+            .is_err()
+        {
             panic!("send_receive_spdm_digest failed");
         }
 
         if context
-            .send_receive_spdm_certificate(Some(session_id), 0)
+            .send_receive_spdm_certificate(
+                Some(session_id),
+                0,
+                transport_encap,
+                socket_io_transport,
+            )
             .is_err()
         {
             panic!("send_receive_spdm_certificate failed");
         }
 
-        if context.end_session(session_id).is_err() {
+        if context
+            .end_session(session_id, transport_encap, socket_io_transport)
+            .is_err()
+        {
             panic!("end_session failed");
         }
     } else {
@@ -279,9 +310,14 @@ fn test_spdm(
         true,
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+        transport_encap,
+        socket_io_transport,
     );
     if let Ok(session_id) = result {
-        if context.end_session(session_id).is_err() {
+        if context
+            .end_session(session_id, transport_encap, socket_io_transport)
+            .is_err()
+        {
             panic!("\nSession session_id is err\n");
         }
     } else {
