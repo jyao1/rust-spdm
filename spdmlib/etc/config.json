@@ -8,7 +8,6 @@
         "max_ext_algo_struct_count": 0
     },
     "cert_config": {
-        "max_cert_portion_len": 512,
         "max_cert_chain_data_size": 4096
     },
     "max_opaque_size": 64,

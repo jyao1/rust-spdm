@@ -4,8 +4,9 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
-use crate::config;
 use codec::{Codec, Reader, Writer};
+
+pub(crate) const MAX_SPDM_CERT_PORTION_LEN: usize = 512;
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmGetCertificateRequestPayload {
@@ -44,7 +45,7 @@ pub struct SpdmCertificateResponsePayload {
     pub slot_id: u8,
     pub portion_length: u16,
     pub remainder_length: u16,
-    pub cert_chain: [u8; config::MAX_SPDM_CERT_PORTION_LEN],
+    pub cert_chain: [u8; MAX_SPDM_CERT_PORTION_LEN],
 }
 impl Default for SpdmCertificateResponsePayload {
     fn default() -> SpdmCertificateResponsePayload {
@@ -52,7 +53,7 @@ impl Default for SpdmCertificateResponsePayload {
             slot_id: 0,
             portion_length: 0,
             remainder_length: 0,
-            cert_chain: [0u8; config::MAX_SPDM_CERT_PORTION_LEN],
+            cert_chain: [0u8; MAX_SPDM_CERT_PORTION_LEN],
         }
     }
 }
@@ -77,17 +78,17 @@ impl SpdmCodec for SpdmCertificateResponsePayload {
         u8::read(r)?; // param2
         let portion_length = u16::read(r)?;
         let remainder_length = u16::read(r)?;
-
-        let mut cert_chain = [0u8; config::MAX_SPDM_CERT_PORTION_LEN];
-        for data in cert_chain.iter_mut().take(portion_length as usize) {
-            *data = u8::read(r)?;
-        }
-        Some(SpdmCertificateResponsePayload {
+        let mut response = SpdmCertificateResponsePayload {
             slot_id,
             portion_length,
             remainder_length,
-            cert_chain,
-        })
+            ..Default::default()
+        };
+
+        for data in response.cert_chain.iter_mut().take(portion_length as usize) {
+            *data = u8::read(r)?;
+        }
+        Some(response)
     }
 }
 
@@ -130,7 +131,7 @@ mod tests {
         value.slot_id = 100;
         value.portion_length = 512;
         value.remainder_length = 100;
-        value.cert_chain = [100u8; config::MAX_SPDM_CERT_PORTION_LEN];
+        value.cert_chain = [100u8; MAX_SPDM_CERT_PORTION_LEN];
 
         create_spdm_context!(context);
 
