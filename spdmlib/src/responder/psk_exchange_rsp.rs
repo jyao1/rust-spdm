@@ -203,7 +203,7 @@ impl<'a> ResponderContext<'a> {
 
         let session = session.unwrap();
         let session_id =
-            ((psk_exchange_req.unwrap().req_session_id as u32) << 16) + rsp_session_id as u32;
+            ((rsp_session_id as u32) << 16) + psk_exchange_req.unwrap().req_session_id as u32;
         session.setup(session_id).unwrap();
         session.set_use_psk(true);
         let mut psk_key = SpdmDheFinalKeyStruct {

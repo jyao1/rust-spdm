@@ -70,8 +70,8 @@ build() {
     echo_command cargo build -p spdm-responder-emu
 }
 
-SPDM_EMU_PRE_BUILD_NAME=${SPDM_EMU_PRE_BUILD_NAME:-spdm-emu-v2.2.0.tar.bz2}
-SPDM_EMU_PRE_BUILD_URL=${SPDM_EMU_PRE_BUILD_URL:-https://github.com/xiaoyuxlu/spdm-emu/releases/download/v2.2.0/spdm-emu-v2.2.0.tar.bz2}
+SPDM_EMU_PRE_BUILD_NAME=${SPDM_EMU_PRE_BUILD_NAME:-spdm-emu-v2.3.1.tar.bz2}
+SPDM_EMU_PRE_BUILD_URL=${SPDM_EMU_PRE_BUILD_URL:-https://github.com/longlongyang/spdm-emu/releases/download/2.3.1/spdm-emu-v2.3.1.tar.bz2}
 
 download_spdm_emu() {
     if [ -f ${SPDM_EMU_PRE_BUILD_NAME} ]
@@ -89,7 +89,7 @@ RUN_RESPONDER_FEATURES=${RUN_RESPONDER_FEATURES:-spdmlib/spdm-ring,spdmlib/std,s
 
 run_with_spdm_emu() {
     echo "Running with spdm-emu..."
-    pushd spdm-emu-v2.2.0
+    pushd spdm-emu-v2.3.1
     echo_command  ./spdm_responder_emu --ver 1.2 --trans PCI_DOE &
     popd
     sleep 5
@@ -98,7 +98,7 @@ run_with_spdm_emu() {
     
     echo_command cargo run -p spdm-responder-emu --no-default-features --features="$RUN_REQUESTER_FEATURES" &
     sleep 5
-    pushd spdm-emu-v2.2.0
+    pushd spdm-emu-v2.3.1
     echo_command  ./spdm_requester_emu --ver 1.2 --trans PCI_DOE
     popd
 }
