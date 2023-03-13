@@ -81,8 +81,7 @@ impl<'a> RequesterContext<'a> {
                         let used = reader.used();
                         if let Some(certificate) = certificate {
                             debug!("!!! certificate : {:02x?}\n", certificate);
-                            if certificate.portion_length as usize
-                                > config::MAX_SPDM_CERT_PORTION_LEN
+                            if certificate.portion_length as usize > MAX_SPDM_CERT_PORTION_LEN
                                 || (offset + certificate.portion_length) as usize
                                     > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
                             {
@@ -189,7 +188,7 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
     ) -> SpdmResult {
         let mut offset = 0u16;
-        let mut length = config::MAX_SPDM_CERT_PORTION_LEN as u16;
+        let mut length = MAX_SPDM_CERT_PORTION_LEN as u16;
         while length != 0 {
             let result =
                 self.send_receive_spdm_certificate_partial(session_id, slot_id, offset, length);
@@ -197,8 +196,8 @@ impl<'a> RequesterContext<'a> {
                 Ok((portion_length, remainder_length)) => {
                     offset += portion_length;
                     length = remainder_length;
-                    if length > config::MAX_SPDM_CERT_PORTION_LEN as u16 {
-                        length = config::MAX_SPDM_CERT_PORTION_LEN as u16;
+                    if length > MAX_SPDM_CERT_PORTION_LEN as u16 {
+                        length = MAX_SPDM_CERT_PORTION_LEN as u16;
                     }
                 }
                 Err(_) => return spdm_result_err!(EIO),

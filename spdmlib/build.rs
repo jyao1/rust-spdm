@@ -32,7 +32,6 @@ impl SpdmConfig {
         // This will be checked by the compiler thus no need to check again here.
 
         // Check if meet SPDM requirements.
-        assert!(self.cert_config.max_cert_portion_len < self.data_transfer_size);
         assert!(self.max_opaque_size < 1024);
 
         // TODO: add more sanity checks if needed.
@@ -49,7 +48,6 @@ struct SpdmAlgoConfig {
 
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmCertConfig {
-    max_cert_portion_len: usize,
     max_cert_chain_data_size: usize,
 }
 
@@ -88,10 +86,6 @@ pub const MAX_SPDM_EXTEND_ASYM_ALGO_COUNT: usize = {ext_asym_algo_cnt};
 pub const MAX_SPDM_EXTEND_HASH_ALGO_COUNT: usize = {ext_hash_algo_cnt};
 pub const MAX_SPDM_ALG_STRUCT_COUNT: usize = {algo_struct_cnt};
 pub const MAX_SPDM_EXTEND_ALG_STRUCT_COUNT: usize = {ext_algo_struct_cnt};
-
-/// This is used in SpdmGetCertificateRequestPayload / SpdmCertificateResponsePayload
-/// It should be smaller than MAX_SPDM_TRANSPORT_SIZE
-pub const MAX_SPDM_CERT_PORTION_LEN: usize = {cert_portion_len}; // 0x200;
 
 /// This is used in SpdmCertChainData without SpdmCertChainHeader.
 pub const MAX_SPDM_CERT_CHAIN_DATA_SIZE: usize = {cert_chain_data_sz}; // 0x1000;
@@ -165,7 +159,6 @@ fn main() {
         ext_hash_algo_cnt = spdm_config.algo_config.max_ext_hash_algo_count,
         algo_struct_cnt = spdm_config.algo_config.max_algo_struct_count,
         ext_algo_struct_cnt = spdm_config.algo_config.max_ext_algo_struct_count,
-        cert_portion_len = spdm_config.cert_config.max_cert_portion_len,
         cert_chain_data_sz = spdm_config.cert_config.max_cert_chain_data_size,
         opaque_sz = spdm_config.max_opaque_size,
         meas_val_len = spdm_config.measurement_config.max_measurement_val_len,
