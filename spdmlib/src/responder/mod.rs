@@ -22,7 +22,7 @@ mod version_rsp;
 mod error_rsp;
 mod vendor_rsp;
 
-mod app_message_handler;
+pub mod app_message_handler;
 
 pub use context::ResponderContext;
 
