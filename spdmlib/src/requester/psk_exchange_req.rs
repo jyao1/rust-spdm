@@ -199,8 +199,8 @@ impl<'a> RequesterContext<'a> {
                                 0
                             };
 
-                            let session_id = ((INITIAL_SESSION_ID as u32) << 16)
-                                + psk_exchange_rsp.rsp_session_id as u32;
+                            let session_id = ((psk_exchange_rsp.rsp_session_id as u32) << 16)
+                                + INITIAL_SESSION_ID as u32;
                             let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                             let session = self
                                 .common

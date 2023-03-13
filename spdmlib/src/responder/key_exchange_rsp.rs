@@ -257,7 +257,7 @@ impl<'a> ResponderContext<'a> {
 
         let session = session.unwrap();
         let session_id =
-            ((key_exchange_req.unwrap().req_session_id as u32) << 16) + rsp_session_id as u32;
+            ((rsp_session_id as u32) << 16) + key_exchange_req.unwrap().req_session_id as u32;
         session.setup(session_id).unwrap();
         session.set_use_psk(false);
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
