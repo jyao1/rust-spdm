@@ -280,9 +280,10 @@ impl<'a> ResponderContext<'a> {
         auxiliary_app_data: &[u8],
     ) -> bool {
         debug!("dispatching secured app message\n");
-        let rsp_app_buffer =
-            dispatch_secured_app_message_cb(self, session_id, bytes, auxiliary_app_data);
-        let _ = self.send_secured_message(session_id, &rsp_app_buffer, true);
+
+        let (rsp_app_buffer, size) =
+            dispatch_secured_app_message_cb(self, session_id, bytes, auxiliary_app_data).unwrap();
+        let _ = self.send_secured_message(session_id, &rsp_app_buffer[..size], true);
         true
     }
     pub fn dispatch_message(&mut self, bytes: &[u8]) -> bool {

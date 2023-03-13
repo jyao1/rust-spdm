@@ -5,7 +5,10 @@
 use conquer_once::spin::OnceCell;
 
 use crate::config::MAX_SPDM_MSG_SIZE;
+use crate::error::SpdmResult;
 use crate::responder::ResponderContext;
+
+type SpdmAppMessageCbRes = ([u8; MAX_SPDM_MSG_SIZE], usize);
 
 #[derive(Clone)]
 pub struct SpdmAppMessageHandler {
@@ -14,7 +17,7 @@ pub struct SpdmAppMessageHandler {
         session_id: u32,
         app_buffer: &[u8],
         auxiliary_app_data: &[u8],
-    ) -> [u8; MAX_SPDM_MSG_SIZE],
+    ) -> SpdmResult<SpdmAppMessageCbRes>,
 }
 
 static SPDM_APP_MESSAGE_HANDLER: OnceCell<SpdmAppMessageHandler> = OnceCell::uninit();
@@ -24,7 +27,7 @@ static DEFAULT: SpdmAppMessageHandler = SpdmAppMessageHandler {
                                       _session_id: u32,
                                       _app_buffer: &[u8],
                                       _auxiliary_app_data: &[u8]|
-     -> [u8; MAX_SPDM_MSG_SIZE] { unimplemented!() },
+     -> SpdmResult<SpdmAppMessageCbRes> { unimplemented!() },
 };
 
 #[allow(dead_code)]
@@ -37,7 +40,7 @@ pub fn dispatch_secured_app_message_cb(
     session_id: u32,
     app_buffer: &[u8],
     auxiliary_app_data: &[u8],
-) -> [u8; MAX_SPDM_MSG_SIZE] {
+) -> SpdmResult<SpdmAppMessageCbRes> {
     (SPDM_APP_MESSAGE_HANDLER
         .try_get_or_init(|| DEFAULT.clone())
         .unwrap_or(&DEFAULT)
