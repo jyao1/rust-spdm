@@ -10,6 +10,8 @@ use codec::{enum_builder, Codec, Reader, Writer};
 
 use conquer_once::spin::OnceCell;
 
+pub(crate) const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = 2048;
+
 enum_builder! {
     @U16
     EnumName: RegistryOrStandardsBodyID;
@@ -75,7 +77,7 @@ impl Codec for VendorIDStruct {
 #[derive(Debug, Clone)]
 pub struct VendorDefinedReqPayloadStruct {
     pub req_length: u16,
-    pub vendor_defined_req_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+    pub vendor_defined_req_payload: [u8; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
 }
 impl Codec for VendorDefinedReqPayloadStruct {
     fn encode(&self, bytes: &mut Writer) {
@@ -91,7 +93,7 @@ impl Codec for VendorDefinedReqPayloadStruct {
 
     fn read(r: &mut Reader) -> Option<VendorDefinedReqPayloadStruct> {
         let req_length = u16::read(r)?;
-        let mut vendor_defined_req_payload = [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
+        let mut vendor_defined_req_payload = [0u8; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
         for d in vendor_defined_req_payload
             .iter_mut()
             .take(req_length as usize)
@@ -108,7 +110,7 @@ impl Codec for VendorDefinedReqPayloadStruct {
 #[derive(Debug, Clone)]
 pub struct VendorDefinedRspPayloadStruct {
     pub rsp_length: u16,
-    pub vendor_defined_rsp_payload: [u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+    pub vendor_defined_rsp_payload: [u8; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
 }
 
 impl Codec for VendorDefinedRspPayloadStruct {
@@ -125,7 +127,7 @@ impl Codec for VendorDefinedRspPayloadStruct {
 
     fn read(r: &mut Reader) -> Option<VendorDefinedRspPayloadStruct> {
         let rsp_length = u16::read(r)?;
-        let mut vendor_defined_rsp_payload = [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
+        let mut vendor_defined_rsp_payload = [0u8; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE];
         for d in vendor_defined_rsp_payload
             .iter_mut()
             .take(rsp_length as usize)
