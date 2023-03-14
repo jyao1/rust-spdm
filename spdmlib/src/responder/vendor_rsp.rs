@@ -77,7 +77,7 @@ mod tests_requester {
 
         let req = VendorDefinedReqPayloadStruct {
             req_length: 0,
-            vendor_defined_req_payload: [0; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+            vendor_defined_req_payload: [0; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
         };
 
         let vendor_defined_func: for<'r> fn(
@@ -86,7 +86,7 @@ mod tests_requester {
             |_vendor_defined_req_payload_struct| -> SpdmResult<VendorDefinedRspPayloadStruct> {
                 let mut vendor_defined_res_payload_struct = VendorDefinedRspPayloadStruct {
                     rsp_length: 0,
-                    vendor_defined_rsp_payload: [0; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+                    vendor_defined_rsp_payload: [0; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
                 };
                 vendor_defined_res_payload_struct.rsp_length = 8;
                 vendor_defined_res_payload_struct.vendor_defined_rsp_payload[0..8]

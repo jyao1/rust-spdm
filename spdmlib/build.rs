@@ -59,7 +59,6 @@ struct SpdmPskConfig {
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmVendorDefinedConfig {
     max_vendor_defined_vendor_id_len: usize,
-    max_vendor_defined_payload_size: usize,
 }
 
 macro_rules! TEMPLATE {
@@ -113,7 +112,6 @@ pub const MAX_SPDM_MEASUREMENT_VALUE_LEN: usize = MAX_SPDM_MSG_SIZE - 42 - 0x100
 
 /// This is used in vendor defined message transport
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
-pub const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = {vendor_payload_sz};
 
 /// This is used by responder to specify the heartbeat period
 /// 0 represents either Heartbeat is not supported or
@@ -164,9 +162,6 @@ fn main() {
         vendor_id_len = spdm_config
             .vendor_defined_config
             .max_vendor_defined_vendor_id_len,
-        vendor_payload_sz = spdm_config
-            .vendor_defined_config
-            .max_vendor_defined_payload_size,
         heartbeat_period = spdm_config.heartbeat_period_value,
         secure_spdm_version = spdm_config.secure_spdm_version,
     )

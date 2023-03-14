@@ -126,7 +126,7 @@ mod tests_requester {
         };
         let req_payload_struct: VendorDefinedReqPayloadStruct = VendorDefinedReqPayloadStruct {
             req_length: 0,
-            vendor_defined_req_payload: [0u8; config::MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
+            vendor_defined_req_payload: [0u8; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
         };
 
         let status = requester

@@ -16,8 +16,7 @@
         "max_psk_hint_size": 32
     },
     "vendor_defined_config": {
-    	"max_vendor_defined_vendor_id_len": 128,
-	"max_vendor_defined_payload_size": 2048
+    	"max_vendor_defined_vendor_id_len": 128
     },
     "max_session_count": 4,
     "max_msg_buffer_size": 4608,
