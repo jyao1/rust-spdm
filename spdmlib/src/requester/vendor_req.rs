@@ -32,7 +32,7 @@ impl<'a> RequesterContext<'a> {
         };
         request.spdm_encode(&mut self.common, &mut writer);
         let used = writer.used();
-        self.send_secured_message(session_id, &send_buffer[..used], true)?;
+        self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         //receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];

@@ -37,7 +37,7 @@ impl<'a> ResponderContext<'a> {
         };
         response.spdm_encode(&mut self.common, &mut writer);
         let used = writer.used();
-        let _ = self.send_secured_message(session_id, &send_buffer[..used], true);
+        let _ = self.send_secured_message(session_id, &send_buffer[..used], false);
     }
 
     pub fn respond_to_vendor_defined_request<F>(
