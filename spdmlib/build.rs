@@ -15,7 +15,6 @@ struct SpdmConfig {
     algo_config: SpdmAlgoConfig,
     cert_config: SpdmCertConfig,
     max_opaque_size: usize,
-    measurement_config: SpdmMeasurementConfig,
     psk_config: SpdmPskConfig,
     vendor_defined_config: SpdmVendorDefinedConfig,
     max_session_count: usize,
@@ -49,11 +48,6 @@ struct SpdmAlgoConfig {
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmCertConfig {
     max_cert_chain_data_size: usize,
-}
-
-#[derive(Debug, PartialEq, Deserialize)]
-struct SpdmMeasurementConfig {
-    max_measurement_val_len: usize,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -94,10 +88,6 @@ pub const MAX_SPDM_CERT_CHAIN_DATA_SIZE: usize = {cert_chain_data_sz}; // 0x1000
 /// It should be smaller than 1024
 pub const MAX_SPDM_OPAQUE_SIZE: usize = {opaque_sz};
 
-/// This is used in SpdmDmtfMeasurementStructure <- SpdmMeasurementBlockStructure <- SpdmMeasurementsResponsePayload
-/// It should be MAX (MAX MEASUREMENT_MANIFEST_LEN, MAX supported DIGEST SIZE)
-pub const MAX_SPDM_MEASUREMENT_VALUE_LEN: usize = {meas_val_len};
-
 /// This is used in SpdmPskExchangeRequestPayload / SpdmPskExchangeResponsePayload
 /// It should be no smaller than negoatiated DIGEST SIZE.
 pub const MAX_SPDM_PSK_CONTEXT_SIZE: usize = {psk_ctx_sz};
@@ -116,6 +106,10 @@ pub const DATA_TRANSFER_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZ
 
 /// SPDM 1.2
 pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz}; // set to equal to DATA_TRANSFER_SIZE @todo
+
+/// This is used in SpdmMeasurementRecordStructure
+/// It should be MAX_SPDM_MSG_SIZE - (42 + L + OpaqueDataLength + SigLen) + L
+pub const MAX_SPDM_MEASUREMENT_VALUE_LEN: usize = MAX_SPDM_MSG_SIZE - 42 - 0x100 - 96; // 0x100 for OpaqueDataLength
 
 /// This is used in vendor defined message transport
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
@@ -161,7 +155,6 @@ fn main() {
         ext_algo_struct_cnt = spdm_config.algo_config.max_ext_algo_struct_count,
         cert_chain_data_sz = spdm_config.cert_config.max_cert_chain_data_size,
         opaque_sz = spdm_config.max_opaque_size,
-        meas_val_len = spdm_config.measurement_config.max_measurement_val_len,
         psk_ctx_sz = spdm_config.psk_config.max_psk_context_size,
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,
