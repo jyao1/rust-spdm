@@ -15,8 +15,6 @@ use crate::error::{spdm_err, spdm_result_err, SpdmResult};
 use crate::message::*;
 use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmVersion};
 
-const INITIAL_SESSION_ID: u16 = 0xFFFE;
-
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_key_exchange(
         &mut self,
@@ -54,7 +52,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<(Box<dyn crypto::SpdmDheKeyExchange>, usize)> {
         let mut writer = Writer::init(buf);
 
-        let req_session_id = INITIAL_SESSION_ID;
+        let req_session_id = self.common.get_next_half_session_id(true)?;
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
         crypto::rand::get_random(&mut random)?;
