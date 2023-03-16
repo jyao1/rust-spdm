@@ -33,6 +33,9 @@ pub const ST1: usize = 1_000_000;
 /// used as parameter to be slot_id when use_psk is true
 pub const INVALID_SLOT: u8 = 0xFF;
 
+/// used to as the first next_half_session_id
+pub const INITIAL_SESSION_ID: u16 = 0xFFFD;
+
 pub trait SpdmDeviceIo {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult;
 
@@ -45,6 +48,7 @@ pub trait SpdmDeviceIo {
 }
 
 use core::fmt::Debug;
+
 impl Debug for dyn SpdmDeviceIo {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "Dyn SpdmDeviceIo")
@@ -180,6 +184,25 @@ impl<'a> SpdmContext<'a> {
             it.1 = self.session[i].get_session_state();
         }
         status
+    }
+
+    pub fn get_next_half_session_id(&self, is_requester: bool) -> SpdmResult<u16> {
+        let session_status = self.get_session_status();
+        let mut next_half_session_id = INITIAL_SESSION_ID;
+        for id_state in session_status.iter() {
+            if id_state.1 == SpdmSessionState::SpdmSessionEstablished {
+                let session_id = id_state.0;
+                let shift = if is_requester { 0 } else { 16 };
+                let half_session_id = ((session_id & (0xFFFF << shift)) >> shift) as u16;
+                if half_session_id < next_half_session_id {
+                    next_half_session_id = half_session_id - 1;
+                    if next_half_session_id == 0 {
+                        return spdm_result_err!(ENOENT);
+                    }
+                }
+            }
+        }
+        Ok(next_half_session_id)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
