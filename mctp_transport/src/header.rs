@@ -5,8 +5,10 @@
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 use spdmlib::common::SpdmTransportEncap;
-use spdmlib::error::SpdmResult;
-use spdmlib::{spdm_err, spdm_result_err};
+use spdmlib::error::{
+    SpdmResult, SPDM_STATUS_DECAP_APP_FAIL, SPDM_STATUS_DECAP_FAIL, SPDM_STATUS_ENCAP_APP_FAIL,
+    SPDM_STATUS_ENCAP_FAIL,
+};
 
 enum_builder! {
     @U8
@@ -62,7 +64,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
         mctp_header.encode(&mut writer);
         let header_size = writer.used();
         if transport_buffer.len() < header_size + payload_len {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_ENCAP_FAIL);
         }
         transport_buffer[header_size..(header_size + payload_len)].copy_from_slice(spdm_buffer);
         Ok(header_size + payload_len)
@@ -83,14 +85,14 @@ impl SpdmTransportEncap for MctpTransportEncap {
                 MctpMessageType::MctpMessageTypeSecuredMctp => {
                     secured_message = true;
                 }
-                _ => return spdm_result_err!(EINVAL),
+                _ => return Err(SPDM_STATUS_DECAP_FAIL),
             },
-            None => return spdm_result_err!(EIO),
+            None => return Err(SPDM_STATUS_DECAP_FAIL),
         }
         let header_size = reader.used();
         let payload_size = transport_buffer.len() - header_size;
         if spdm_buffer.len() < payload_size {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECAP_FAIL);
         }
         let payload = &transport_buffer[header_size..];
         spdm_buffer[..payload_size].copy_from_slice(payload);
@@ -117,7 +119,7 @@ impl SpdmTransportEncap for MctpTransportEncap {
         mctp_header.encode(&mut writer);
         let header_size = writer.used();
         if app_buffer.len() < header_size + payload_len {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_ENCAP_APP_FAIL);
         }
         app_buffer[header_size..(header_size + payload_len)].copy_from_slice(spdm_buffer);
         Ok(header_size + payload_len)
@@ -136,14 +138,14 @@ impl SpdmTransportEncap for MctpTransportEncap {
                 MctpMessageType::MctpMessageTypePldm => {
                     is_app_mesaage = true;
                 }
-                _ => return spdm_result_err!(EINVAL),
+                _ => return Err(SPDM_STATUS_DECAP_APP_FAIL),
             },
-            None => return spdm_result_err!(EIO),
+            None => return Err(SPDM_STATUS_DECAP_APP_FAIL),
         }
         let header_size = reader.used();
         let payload_size = app_buffer.len() - header_size;
         if spdm_buffer.len() < payload_size {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECAP_APP_FAIL);
         }
         let payload = &app_buffer[header_size..];
         spdm_buffer[..payload_size].copy_from_slice(payload);

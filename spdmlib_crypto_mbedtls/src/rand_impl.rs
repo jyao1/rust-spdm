@@ -4,7 +4,7 @@
 
 use core::arch::x86_64::_rdrand64_step;
 use spdmlib::crypto::SpdmCryptoRandom;
-use spdmlib::error::{spdm_err, spdm_result_err, SpdmResult};
+use spdmlib::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 
 pub static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
     get_random_cb: get_random,
@@ -14,7 +14,7 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
     if 0 == f_rng(data.as_mut_ptr(), data.len()) {
         Ok(data.len())
     } else {
-        spdm_result_err!(EFAULT)
+        Err(SPDM_STATUS_CRYPTO_ERROR)
     }
 }
 

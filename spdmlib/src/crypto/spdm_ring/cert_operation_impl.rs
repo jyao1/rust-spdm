@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use core::convert::TryFrom;
 
 use crate::crypto::SpdmCertOperation;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_INVALID_CERT, SPDM_STATUS_INVALID_STATE_LOCAL};
 use ring::io::der;
 
 pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {
@@ -21,10 +21,10 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
     let mut this_index = 0isize;
     loop {
         if cert_chain[offset..].len() < 4 || offset > cert_chain.len() {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_CERT);
         }
         if cert_chain[offset] != 0x30 || cert_chain[offset + 1] != 0x82 {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_CERT);
         }
         let this_cert_len =
             ((cert_chain[offset + 2] as usize) << 8) + (cert_chain[offset + 3] as usize) + 4;
@@ -67,7 +67,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
                 let end = reader.mark();
                 let cert = reader
                     .get_input_between_marks(start, end)
-                    .map_err(|_| spdm_err!(EINVAL))?;
+                    .map_err(|_| SPDM_STATUS_INVALID_CERT)?;
                 certs.push(cert.as_slice_less_safe())
             }
             Err(_) => break,
@@ -76,7 +76,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let certs_len = certs.len();
 
     let (ca, inters, ee): (&[u8], &[&[u8]], &[u8]) = match certs_len {
-        0 => return spdm_result_err!(EINVAL),
+        0 => return Err(SPDM_STATUS_INVALID_CERT),
         1 => (certs[0], &[], certs[0]),
         2 => (certs[0], &[], certs[1]),
         n => (certs[0], &certs[1..(n - 1)], certs[n - 1]),
@@ -85,7 +85,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let anchors = if let Ok(ta) = webpki::TrustAnchor::try_from_cert_der(ca) {
         vec![ta]
     } else {
-        return spdm_result_err!(ESEC);
+        return Err(SPDM_STATUS_INVALID_CERT);
     };
 
     #[cfg(any(target_os = "uefi", target_os = "none"))]
@@ -96,7 +96,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
         if let Ok(ds) = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
             ds.as_secs()
         } else {
-            return spdm_result_err!(EDEV);
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
     };
     let time = webpki::Time::from_seconds_since_unix_epoch(timestamp);
@@ -104,7 +104,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     let cert = if let Ok(eec) = webpki::EndEntityCert::try_from(ee) {
         eec
     } else {
-        return spdm_result_err!(ESEC);
+        return Err(SPDM_STATUS_INVALID_CERT);
     };
 
     // we cannot call verify_is_valid_tls_server_cert because it will check verify_cert::EKU_SERVER_AUTH.
@@ -123,7 +123,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
         Ok(())
     } else {
         error!("Cert verification Fail\n");
-        spdm_result_err!(EFAULT)
+        Err(SPDM_STATUS_INVALID_CERT)
     }
 }
 #[cfg(all(test,))]

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use spdmlib::crypto::SpdmAsymVerify;
-use spdmlib::error::{spdm_err, spdm_result_err, SpdmResult};
+use spdmlib::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 use spdmlib::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 
 pub static DEFAULT: SpdmAsymVerify = SpdmAsymVerify {
@@ -94,7 +94,7 @@ fn asym_verify(
     };
     match ret {
         0 => Ok(()),
-        _ => spdm_result_err!(EFAULT),
+        _ => Err(SPDM_STATUS_CRYPTO_ERROR),
     }
 }
 

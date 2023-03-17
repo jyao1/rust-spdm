@@ -3,7 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
-use crate::error::{spdm_result_err, SpdmResult};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::error::{
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_CERT,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER,
+};
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -70,7 +75,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponseCertificate => {
@@ -85,16 +90,16 @@ impl<'a> RequesterContext<'a> {
                                 || (offset + certificate.portion_length) as usize
                                     > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
                             {
-                                return spdm_result_err!(ENOMEM);
+                                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                             }
                             if certificate.slot_id != slot_id {
                                 error!("slot id is not match between requester and responder!\n");
-                                return spdm_result_err!(EINVAL);
+                                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                             }
                             if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
                                 if offset != 0 {
                                     error!("offset invalid!\n");
-                                    return spdm_result_err!(EIO);
+                                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                                 }
                                 self.common.peer_info.peer_cert_chain[slot_id as usize] =
                                     Some(SpdmCertChain::default());
@@ -121,10 +126,10 @@ impl<'a> RequesterContext<'a> {
                                 let message_b = &mut self.common.runtime_info.message_b;
                                 message_b
                                     .append_message(send_buffer)
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                                 message_b
                                     .append_message(&receive_buffer[..used])
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                             }
 
                             #[cfg(feature = "hashed-transcript-data")]
@@ -150,35 +155,30 @@ impl<'a> RequesterContext<'a> {
                             Ok((certificate.portion_length, certificate.remainder_length))
                         } else {
                             error!("!!! certificate : fail !!!\n");
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             session_id,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetCertificate,
                             SpdmRequestResponseCode::SpdmResponseCertificate,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_certificate_partial_response(
-                                    session_id,
-                                    slot_id,
-                                    offset,
-                                    send_buffer,
-                                    &receive_buffer[..used],
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_certificate_partial_response(
+                            session_id,
+                            slot_id,
+                            offset,
+                            send_buffer,
+                            &receive_buffer[..used],
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 
@@ -190,17 +190,12 @@ impl<'a> RequesterContext<'a> {
         let mut offset = 0u16;
         let mut length = MAX_SPDM_CERT_PORTION_LEN as u16;
         while length != 0 {
-            let result =
-                self.send_receive_spdm_certificate_partial(session_id, slot_id, offset, length);
-            match result {
-                Ok((portion_length, remainder_length)) => {
-                    offset += portion_length;
-                    length = remainder_length;
-                    if length > MAX_SPDM_CERT_PORTION_LEN as u16 {
-                        length = MAX_SPDM_CERT_PORTION_LEN as u16;
-                    }
-                }
-                Err(_) => return spdm_result_err!(EIO),
+            let (portion_length, remainder_length) =
+                self.send_receive_spdm_certificate_partial(session_id, slot_id, offset, length)?;
+            offset += portion_length;
+            length = remainder_length;
+            if length > MAX_SPDM_CERT_PORTION_LEN as u16 {
+                length = MAX_SPDM_CERT_PORTION_LEN as u16;
             }
         }
         self.verify_spdm_certificate_chain(slot_id)
@@ -214,7 +209,7 @@ impl<'a> RequesterContext<'a> {
             //
             if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
                 error!("peer_cert_chain is not populated!\n");
-                return spdm_result_err!(EIO);
+                return Err(SPDM_STATUS_INVALID_PARAMETER);
             }
             if self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
@@ -223,7 +218,7 @@ impl<'a> RequesterContext<'a> {
                 .data_size
                 <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
             {
-                return spdm_result_err!(EIO);
+                return Err(SPDM_STATUS_INVALID_CERT);
             }
 
             let data_size = self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -261,7 +256,7 @@ impl<'a> RequesterContext<'a> {
             {
                 rh
             } else {
-                return spdm_result_err!(ESEC);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             };
             if root_hash.data[..(root_hash.data_size as usize)]
                 != self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -272,7 +267,7 @@ impl<'a> RequesterContext<'a> {
                     ..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]
             {
                 error!("root_hash - fail!\n");
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_CERT);
             }
 
             if runtime_peer_cert_chain_data.data_size != peer_cert_chain_data.data_size {
@@ -285,11 +280,11 @@ impl<'a> RequesterContext<'a> {
                     "runtime cert_chain data size - {:?}\n",
                     runtime_peer_cert_chain_data.data_size
                 );
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_CERT);
             }
             if runtime_peer_cert_chain_data.data != peer_cert_chain_data.data {
                 error!("cert_chain data - fail!\n");
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_CERT);
             }
 
             if crypto::cert_operation::verify_cert_chain(
@@ -299,7 +294,7 @@ impl<'a> RequesterContext<'a> {
             .is_err()
             {
                 error!("cert_chain verification - fail! - TBD later\n");
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_INVALID_CERT);
             }
             info!("cert_chain verification - pass!\n");
         }

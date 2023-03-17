@@ -83,7 +83,7 @@ pub mod hash {
 pub mod hmac {
     use super::CRYPTO_HMAC;
     use crate::crypto::SpdmHmac;
-    use crate::error::{spdm_err, SpdmResult};
+    use crate::error::{SpdmResult, SPDM_STATUS_VERIF_FAIL};
     use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
@@ -125,7 +125,7 @@ pub mod hmac {
     ) -> SpdmResult {
         (CRYPTO_HMAC
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_VERIF_FAIL)?
             .hmac_verify_cb)(base_hash_algo, key, data, hmac)
     }
 }
@@ -161,7 +161,7 @@ pub mod asym_sign {
 pub mod asym_verify {
     use super::CRYPTO_ASYM_VERIFY;
     use crate::crypto::SpdmAsymVerify;
-    use crate::error::{spdm_err, SpdmResult};
+    use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
     use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
@@ -190,7 +190,7 @@ pub mod asym_verify {
     ) -> SpdmResult {
         (CRYPTO_ASYM_VERIFY
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .verify_cb)(
             base_hash_algo,
             base_asym_algo,
@@ -237,7 +237,7 @@ pub mod dhe {
 pub mod cert_operation {
     use super::CRYPTO_CERT_OPERATION;
     use crate::crypto::SpdmCertOperation;
-    use crate::error::{spdm_err, SpdmResult};
+    use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmCertOperation = SpdmCertOperation {
@@ -257,14 +257,14 @@ pub mod cert_operation {
     pub fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usize, usize)> {
         (CRYPTO_CERT_OPERATION
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .get_cert_from_cert_chain_cb)(cert_chain, index)
     }
 
     pub fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
         (CRYPTO_CERT_OPERATION
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .verify_cert_chain_cb)(cert_chain)
     }
 }
@@ -306,7 +306,7 @@ pub mod hkdf {
 pub mod aead {
     use super::CRYPTO_AEAD;
     use crate::crypto::SpdmAead;
-    use crate::error::{spdm_err, SpdmResult};
+    use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
     use crate::protocol::SpdmAeadAlgo;
 
     #[cfg(not(any(feature = "spdm-ring")))]
@@ -347,7 +347,7 @@ pub mod aead {
     ) -> SpdmResult<(usize, usize)> {
         (CRYPTO_AEAD
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .encrypt_cb)(aead_algo, key, iv, aad, plain_text, tag, cipher_text)
     }
 
@@ -362,7 +362,7 @@ pub mod aead {
     ) -> SpdmResult<usize> {
         (CRYPTO_AEAD
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .decrypt_cb)(aead_algo, key, iv, aad, cipher_text, tag, plain_text)
     }
 }
@@ -370,7 +370,7 @@ pub mod aead {
 pub mod rand {
     use super::CRYPTO_RAND;
     use crate::crypto::SpdmCryptoRandom;
-    use crate::error::{spdm_err, SpdmResult};
+    use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
@@ -387,7 +387,7 @@ pub mod rand {
     pub fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
         (CRYPTO_RAND
             .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| spdm_err!(EFAULT))?
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .get_random_cb)(data)
     }
 }

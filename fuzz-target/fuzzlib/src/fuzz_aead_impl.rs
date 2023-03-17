@@ -6,10 +6,11 @@ use crate::spdmlib::crypto::SpdmAead;
 // use crate::spdmlib::error::SpdmResult;
 use bytes::BytesMut;
 use spdmlib::error::SpdmResult;
-use spdmlib::{spdm_err, spdm_result_err};
 
 // use crate::spdmlib::msgs::SpdmAeadAlgo;
 use spdmlib::protocol::SpdmAeadAlgo;
+
+use crate::spdmlib::error::SPDM_STATUS_CRYPTO_ERROR;
 
 pub static FUZZ_AEAD: SpdmAead = SpdmAead {
     encrypt_cb: encrypt,
@@ -72,7 +73,7 @@ fn encrypt(
             //debug!("cipher_text - {:02x?}\n", cipher_text);
             Ok((plain_text_size, tag_size))
         }
-        Err(_) => spdm_result_err!(EFAULT),
+        Err(_) => Err(SPDM_STATUS_CRYPTO_ERROR),
     }
 }
 
@@ -136,7 +137,7 @@ fn decrypt(
                 //info!("plain_text - {:02x?}\n", plain_text);
                 Ok(cipher_text_size)
             }
-            Err(_) => spdm_result_err!(EFAULT),
+            Err(_) => Err(SPDM_STATUS_CRYPTO_ERROR),
         }
     }
 }

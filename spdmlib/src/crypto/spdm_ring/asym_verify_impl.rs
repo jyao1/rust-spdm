@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmAsymVerify;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_INVALID_CERT, SPDM_STATUS_VERIF_FAIL};
 use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use core::convert::TryFrom;
 
@@ -96,19 +96,19 @@ fn asym_verify(
                     match cert.verify_signature(algorithm, data, &der_signature[..(der_sign_size)])
                     {
                         Ok(()) => Ok(()),
-                        Err(_) => spdm_result_err!(EFAULT),
+                        Err(_) => Err(SPDM_STATUS_VERIF_FAIL),
                     }
                 }
                 _ => {
                     // RSASSA or RSAPSS
                     match cert.verify_signature(algorithm, data, signature.as_ref()) {
                         Ok(()) => Ok(()),
-                        Err(_) => spdm_result_err!(EFAULT),
+                        Err(_) => Err(SPDM_STATUS_VERIF_FAIL),
                     }
                 }
             }
         }
-        Err(_e) => spdm_result_err!(EFAULT),
+        Err(_e) => Err(SPDM_STATUS_INVALID_CERT),
     }
 }
 

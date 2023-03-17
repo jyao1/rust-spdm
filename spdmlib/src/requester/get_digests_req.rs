@@ -4,7 +4,9 @@
 
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
-use crate::error::{spdm_result_err, SpdmResult};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::error::{SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD};
 use crate::message::*;
 use crate::requester::*;
 
@@ -52,7 +54,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponseDigests => {
@@ -67,10 +69,10 @@ impl<'a> RequesterContext<'a> {
                                 let message_b = &mut self.common.runtime_info.message_b;
                                 message_b
                                     .append_message(send_buffer)
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                                 message_b
                                     .append_message(&receive_buffer[..used])
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                             }
 
                             #[cfg(feature = "hashed-transcript-data")]
@@ -96,33 +98,28 @@ impl<'a> RequesterContext<'a> {
                             Ok(())
                         } else {
                             error!("!!! digests : fail !!!\n");
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             Some(session_id),
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetDigests,
                             SpdmRequestResponseCode::SpdmResponseDigests,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_digest_response(
-                                    session_id,
-                                    send_buffer,
-                                    &receive_buffer[..used],
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_digest_response(
+                            session_id,
+                            send_buffer,
+                            &receive_buffer[..used],
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 }

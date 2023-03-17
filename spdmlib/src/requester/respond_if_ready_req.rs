@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_INVALID_MSG_FIELD};
 use crate::message::*;
 use crate::requester::*;
 
@@ -42,12 +42,10 @@ impl<'a> RequesterContext<'a> {
                         used,
                     })
                 } else {
-                    spdm_result_err!(EDEV)
+                    Err(SPDM_STATUS_INVALID_MSG_FIELD)
                 }
             }
-            None => {
-                spdm_result_err!(EDEV)
-            }
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 }

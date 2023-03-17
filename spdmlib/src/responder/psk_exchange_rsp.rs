@@ -6,7 +6,13 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::SpdmCodec;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::SpdmResult;
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
+use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
+use crate::error::SPDM_STATUS_INVALID_PARAMETER;
+use crate::error::SPDM_STATUS_NEGOTIATION_FAIL;
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_STATE_LOCAL};
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
@@ -58,7 +64,7 @@ impl<'a> ResponderContext<'a> {
                 if secured_message_version_list.version_count
                     > crate::common::opaque::MAX_SECURE_SPDM_VERSION_COUNT as u8
                 {
-                    return spdm_result_err!(EINVAL);
+                    return Err(SPDM_STATUS_NEGOTIATION_FAIL);
                 }
                 for index in 0..secured_message_version_list.version_count as usize {
                     if secured_message_version_list.versions_list[index].get_secure_spdm_version()
@@ -94,7 +100,7 @@ impl<'a> ResponderContext<'a> {
         } else {
             error!("!!! psk_exchange req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
 
         #[cfg(feature = "hashed-transcript-data")]
@@ -149,14 +155,14 @@ impl<'a> ResponderContext<'a> {
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_BUFFER_FULL);
             }
             if message_k
                 .append_message(&writer.used_slice()[..temp_used])
                 .is_none()
             {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_BUFFER_FULL);
             }
         }
 
@@ -177,12 +183,12 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         if th1.is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         let th1 = th1.unwrap();
         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
@@ -198,7 +204,7 @@ impl<'a> ResponderContext<'a> {
         if session.is_none() {
             error!("!!! too many sessions : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let session = session.unwrap();
@@ -224,7 +230,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
@@ -241,7 +247,7 @@ impl<'a> ResponderContext<'a> {
         if hmac.is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         let hmac = hmac.unwrap();
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -249,7 +255,7 @@ impl<'a> ResponderContext<'a> {
             if message_k.append_message(hmac.as_ref()).is_none() {
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_BUFFER_FULL);
             }
             session.runtime_info.message_k = message_k;
         }

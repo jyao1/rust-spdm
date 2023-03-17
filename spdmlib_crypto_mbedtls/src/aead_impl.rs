@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use spdmlib::crypto::SpdmAead;
-use spdmlib::error::{spdm_err, spdm_result_err, SpdmResult};
+use spdmlib::error::{SpdmResult, SPDM_STATUS_INVALID_PARAMETER};
 
 use spdmlib::protocol::SpdmAeadAlgo;
 
@@ -66,9 +66,7 @@ fn encrypt(
             );
             Ok((cipher_text_len, tag.len()))
         },
-        _ => {
-            spdm_result_err!(ESEC)
-        }
+        _ => Err(SPDM_STATUS_INVALID_PARAMETER),
     }
 }
 
@@ -120,9 +118,7 @@ fn decrypt(
                 Ok(plain_text_len)
             }
         }
-        _ => {
-            spdm_result_err!(ESEC)
-        }
+        _ => Err(SPDM_STATUS_INVALID_PARAMETER),
     }
 }
 

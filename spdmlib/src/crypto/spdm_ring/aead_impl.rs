@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmAead;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 use bytes::BytesMut;
 
 use crate::protocol::SpdmAeadAlgo;
@@ -64,7 +64,7 @@ fn encrypt(
         if let Ok(k) = make_key(algorithm, key, nonce) {
             k
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
     match s_key.seal_in_place_append_tag(ring::aead::Aad::from(aad), &mut in_out) {
         Ok(()) => {
@@ -74,7 +74,7 @@ fn encrypt(
             //debug!("cipher_text - {:02x?}\n", cipher_text);
             Ok((plain_text_size, tag_size))
         }
-        Err(_) => spdm_result_err!(ESEC),
+        Err(_) => Err(SPDM_STATUS_CRYPTO_ERROR),
     }
 }
 
@@ -131,7 +131,7 @@ fn decrypt(
         if let Ok(k) = make_key(algorithm, key, nonce) {
             k
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
     match o_key.open_in_place(ring::aead::Aad::from(aad), &mut in_out) {
         Ok(in_out_result) => {
@@ -139,7 +139,7 @@ fn decrypt(
             //info!("plain_text - {:02x?}\n", plain_text);
             Ok(cipher_text_size)
         }
-        Err(_) => spdm_result_err!(ESEC),
+        Err(_) => Err(SPDM_STATUS_CRYPTO_ERROR),
     }
 }
 
@@ -167,7 +167,7 @@ fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
     let key = if let Ok(k) = ring::aead::UnboundKey::new(algorithm, key) {
         k
     } else {
-        return spdm_result_err!(ESEC);
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     };
     let nonce_sequence = OneNonceSequence::new(nonce);
     Ok(K::new(key, nonce_sequence))

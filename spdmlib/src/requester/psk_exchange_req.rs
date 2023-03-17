@@ -5,7 +5,12 @@
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::error::{
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
+};
 use crate::message::*;
 use crate::protocol::SpdmMeasurementSummaryHashType;
 use crate::protocol::*;
@@ -122,7 +127,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => {
@@ -162,11 +167,11 @@ impl<'a> RequesterContext<'a> {
                             {
                                 message_k
                                     .append_message(send_buffer)
-                                    .ok_or(spdm_err!(ENOMEM))?;
+                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
 
                                 message_k
                                     .append_message(&receive_buffer[..temp_receive_used])
-                                    .ok_or(spdm_err!(ENOMEM))?;
+                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
                             }
 
                             // create session - generate the handshake secret (including finished_key)
@@ -206,7 +211,7 @@ impl<'a> RequesterContext<'a> {
                             let session = self
                                 .common
                                 .get_next_avaiable_session()
-                                .ok_or(spdm_err!(EINVAL))?;
+                                .ok_or(SPDM_STATUS_SESSION_NUMBER_EXCEED)?;
 
                             session.setup(session_id)?;
 
@@ -238,7 +243,7 @@ impl<'a> RequesterContext<'a> {
                             let session = self
                                 .common
                                 .get_session_via_id(session_id)
-                                .ok_or(spdm_err!(EINVAL))?;
+                                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
                             if session
                                 .verify_hmac_with_response_finished_key(
                                     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -253,7 +258,7 @@ impl<'a> RequesterContext<'a> {
                             {
                                 error!("verify_hmac_with_response_finished_key fail");
                                 let _ = session.teardown(session_id);
-                                return spdm_result_err!(EFAULT);
+                                return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
@@ -261,7 +266,7 @@ impl<'a> RequesterContext<'a> {
                             {
                                 message_k
                                     .append_message(psk_exchange_rsp.verify_data.as_ref())
-                                    .ok_or(spdm_err!(ENOMEM))?;
+                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
                                 session.runtime_info.message_k = message_k;
                             }
                             #[cfg(feature = "hashed-transcript-data")]
@@ -283,34 +288,29 @@ impl<'a> RequesterContext<'a> {
                             Ok(session_id)
                         } else {
                             error!("!!! psk_exchange : fail !!!\n");
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             None,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestPskExchange,
                             SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_psk_exchange_response(
-                                    half_session_id,
-                                    measurement_summary_hash_type,
-                                    send_buffer,
-                                    &receive_buffer[..used],
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_psk_exchange_response(
+                            half_session_id,
+                            measurement_summary_hash_type,
+                            send_buffer,
+                            &receive_buffer[..used],
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 }

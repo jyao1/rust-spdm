@@ -13,7 +13,14 @@ pub use opaque::*;
 pub use spdm_codec::SpdmCodec;
 
 use crate::config;
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_DECAP_FAIL, SPDM_STATUS_INVALID_PARAMETER,
+    SPDM_STATUS_SESSION_NUMBER_EXCEED,
+};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{
+    SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_INVALID_STATE_LOCAL,
+};
 use codec::Writer;
 use session::*;
 
@@ -197,7 +204,7 @@ impl<'a> SpdmContext<'a> {
                 if half_session_id < next_half_session_id {
                     next_half_session_id = half_session_id - 1;
                     if next_half_session_id == 0 {
-                        return spdm_result_err!(ENOENT);
+                        return Err(SPDM_STATUS_SESSION_NUMBER_EXCEED);
                     }
                 }
             }
@@ -216,13 +223,13 @@ impl<'a> SpdmContext<'a> {
         let mut message = ManagedBuffer::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
-            .ok_or(spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
 
         if !use_psk {
             if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
                 error!("peer_cert_chain is not populated!\n");
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_PARAMETER);
             }
 
             let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
@@ -236,20 +243,20 @@ impl<'a> SpdmContext<'a> {
                 .data_size as usize)];
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
-                    .ok_or_else(|| spdm_err!(EFAULT))?;
+                    .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
             message
                 .append_message(cert_chain_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             debug!("cert_chain_data - {:02x?}", cert_chain_data);
         }
         message
             .append_message(message_k.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_k - {:02x?}", message_k.as_ref());
         if message_f.is_some() {
             message
                 .append_message(message_f.unwrap().as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             debug!("message_f - {:02x?}", message_f.unwrap().as_ref());
         }
 
@@ -266,33 +273,33 @@ impl<'a> SpdmContext<'a> {
         let mut message = ManagedBuffer::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
-            .ok_or(spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
         if !use_psk {
             if self.provision_info.my_cert_chain.is_none() {
                 error!("my_cert_chain is not populated!\n");
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
             }
 
             let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref().unwrap();
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
-                    .ok_or_else(|| spdm_err!(EFAULT))?;
+                    .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
             message
                 .append_message(cert_chain_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             debug!("cert_chain_data - {:02x?}", cert_chain_data);
         }
         message
             .append_message(message_k.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_k - {:02x?}", message_k.as_ref());
         if message_f.is_some() {
             message
                 .append_message(message_f.unwrap().as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             debug!("message_f - {:02x?}", message_f.unwrap().as_ref());
         }
 
@@ -311,7 +318,7 @@ impl<'a> SpdmContext<'a> {
 
         let transcript_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         Ok(transcript_hash)
     }
 
@@ -326,7 +333,7 @@ impl<'a> SpdmContext<'a> {
 
         let transcript_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         Ok(transcript_hash)
     }
 
@@ -402,7 +409,7 @@ impl<'a> SpdmContext<'a> {
 
         let spdm_session = self
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
         let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let encode_size = spdm_session.encode_spdm_secured_message(
@@ -425,7 +432,7 @@ impl<'a> SpdmContext<'a> {
             .decap(transport_buffer, receive_buffer)?;
 
         if secured_message {
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_DECAP_FAIL); //need check
         }
 
         Ok(used)
@@ -443,12 +450,12 @@ impl<'a> SpdmContext<'a> {
             .decap(transport_buffer, &mut encoded_receive_buffer)?;
 
         if !secured_message {
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_DECAP_FAIL);
         }
 
         let spdm_session = self
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
         let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let decode_size = spdm_session.decode_spdm_secured_message(

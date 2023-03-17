@@ -11,9 +11,11 @@ use spdmlib::{common, responder};
 
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
-use spdmlib::error::SpdmResult;
+use spdmlib::error::{
+    SpdmResult, SPDM_STATUS_DECAP_FAIL, SPDM_STATUS_ENCAP_FAIL, SPDM_STATUS_SEND_FAIL,
+    SPDM_STATUS_VERIF_FAIL,
+};
 use spdmlib::message::*;
-use spdmlib::{spdm_err, spdm_result_err};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::path::PathBuf;
@@ -212,7 +214,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         pcidoe_header.encode(&mut writer);
         let header_size = writer.used();
         if transport_buffer.len() < header_size + aligned_payload_len {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_ENCAP_FAIL);
         }
         transport_buffer[header_size..(header_size + payload_len)].copy_from_slice(spdm_buffer);
         Ok(header_size + aligned_payload_len)
@@ -229,20 +231,20 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
             Some(pcidoe_header) => {
                 match pcidoe_header.vendor_id {
                     PciDoeVendorId::PciDoeVendorIdPciSig => {}
-                    _ => return spdm_result_err!(EINVAL),
+                    _ => return Err(SPDM_STATUS_DECAP_FAIL),
                 }
                 match pcidoe_header.data_object_type {
                     PciDoeDataObjectType::PciDoeDataObjectTypeSpdm => secured_message = false,
                     PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm => secured_message = true,
-                    _ => return spdm_result_err!(EINVAL),
+                    _ => return Err(SPDM_STATUS_DECAP_FAIL),
                 }
             }
-            None => return spdm_result_err!(EIO),
+            None => return Err(SPDM_STATUS_DECAP_FAIL),
         }
         let header_size = reader.used();
         let payload_size = transport_buffer.len() - header_size;
         if spdm_buffer.len() < payload_size {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECAP_FAIL);
         }
         let payload = &transport_buffer[header_size..];
         spdm_buffer[..payload_size].copy_from_slice(payload);
@@ -349,7 +351,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         log::info!("requester send    RAW - {:02x?}\n", buffer);
 
         if self.responder.process_message(ST1, &[0]).is_err() {
-            return spdm_result_err!(ENOMEM);
+            return Err(SPDM_STATUS_SEND_FAIL);
         }
         Ok(())
     }
@@ -472,7 +474,7 @@ fn hmac_verify(
     let SpdmDigestStruct { data_size, .. } = hmac;
     match data_size {
         48 => Ok(()),
-        _ => spdm_result_err!(EFAULT),
+        _ => Err(SPDM_STATUS_VERIF_FAIL),
     }
 }
 

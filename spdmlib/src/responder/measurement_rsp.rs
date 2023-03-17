@@ -7,9 +7,11 @@ use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::common::SpdmMeasurementContentChanged;
 use crate::crypto;
+use crate::error::SpdmResult;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::spdm_result_err;
-use crate::error::{spdm_err, SpdmResult};
+use crate::error::SPDM_STATUS_INVALID_PARAMETER;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
@@ -308,7 +310,7 @@ impl<'a> ResponderContext<'a> {
             let message_a = self.common.runtime_info.message_a.clone();
             message
                 .append_message(message_a.as_ref())
-                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -316,17 +318,17 @@ impl<'a> ResponderContext<'a> {
             None => {
                 message
                     .append_message(self.common.runtime_info.message_m.as_ref())
-                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
             Some(session_id) => {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                     s
                 } else {
-                    return spdm_result_err!(EINVAL);
+                    return Err(SPDM_STATUS_INVALID_PARAMETER);
                 };
                 message
                     .append_message(session.runtime_info.message_m.as_ref())
-                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
         }
         // we dont need create message hash for verify
@@ -334,7 +336,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
         #[cfg(feature = "hashed-transcript-data")]
         let message_hash = match session_id {
@@ -365,16 +367,16 @@ impl<'a> ResponderContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_sign::sign(
@@ -382,7 +384,7 @@ impl<'a> ResponderContext<'a> {
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
         )
-        .ok_or_else(|| spdm_err!(EFAULT))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 }
 

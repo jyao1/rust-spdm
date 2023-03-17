@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER,
+};
 use crate::message::*;
 use crate::requester::*;
 
@@ -23,7 +26,7 @@ impl<'a> RequesterContext<'a> {
         let session = if let Some(s) = self.common.get_session_via_id(session_id) {
             s
         } else {
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         };
         let update_requester = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateSingleKey
             || key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
@@ -72,7 +75,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => {
@@ -82,7 +85,7 @@ impl<'a> RequesterContext<'a> {
                         let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                             s
                         } else {
-                            return spdm_result_err!(EFAULT);
+                            return Err(SPDM_STATUS_INVALID_PARAMETER);
                         };
                         if let Some(key_update_rsp) = key_update_rsp {
                             debug!("!!! key_update rsp : {:02x?}\n", key_update_rsp);
@@ -101,34 +104,29 @@ impl<'a> RequesterContext<'a> {
                                 update_responder,
                                 false,
                             )?;
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             Some(session_id),
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestKeyUpdate,
                             SpdmRequestResponseCode::SpdmResponseKeyUpdateAck,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_key_update_op_response(
-                                    session_id,
-                                    update_requester,
-                                    update_responder,
-                                    &receive_buffer[..used],
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_key_update_op_response(
+                            session_id,
+                            update_requester,
+                            update_responder,
+                            &receive_buffer[..used],
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 
@@ -140,7 +138,7 @@ impl<'a> RequesterContext<'a> {
         if key_update_operation != SpdmKeyUpdateOperation::SpdmUpdateAllKeys
             && key_update_operation != SpdmKeyUpdateOperation::SpdmUpdateSingleKey
         {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
         self.send_receive_spdm_key_update_op(session_id, key_update_operation, 1)?;
         self.send_receive_spdm_key_update_op(
