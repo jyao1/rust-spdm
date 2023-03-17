@@ -10,7 +10,9 @@ use codec::{enum_builder, Codec, Reader, Writer};
 
 use conquer_once::spin::OnceCell;
 
-pub(crate) const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = 2048;
+// config::MAX_SPDM_MSG_SIZE - 7 - 2 - 4
+// SPDM0274 1.2.1: Table 56, table 57 VENDOR_DEFINED_RESPONSE message format
+pub(crate) const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = config::MAX_SPDM_MSG_SIZE - 7 - 2 - 4;
 
 enum_builder! {
     @U16
