@@ -4,13 +4,10 @@
 
 #![forbid(unsafe_code)]
 
-use spdmlib::spdm_result_err;
-
-use spdmlib::spdm_err;
-
 // use crate::spdmlib::error::SpdmResult;
 use spdmlib::error::SpdmResult;
 // use crate::spdmlib::responder::context::*;
+use crate::spdmlib::error::SPDM_STATUS_SEND_FAIL;
 
 use super::*;
 
@@ -135,7 +132,7 @@ impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
         log::info!("requester send    RAW - {:02x?}\n", buffer);
         let timeout = 60;
         if self.responder.process_message(timeout, &[0]).is_err() {
-            return spdm_result_err!(ENOMEM);
+            return Err(SPDM_STATUS_SEND_FAIL);
         }
         Ok(())
     }

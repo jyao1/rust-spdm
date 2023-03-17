@@ -5,7 +5,7 @@
 use crate::common::ST1;
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_RECEIVE_FAIL};
 use crate::protocol::*;
 
 pub struct RequesterContext<'a> {
@@ -42,30 +42,14 @@ impl<'a> RequesterContext<'a> {
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<u32> {
         if !use_psk {
-            let result =
-                self.send_receive_spdm_key_exchange(slot_id, measurement_summary_hash_type);
-            if let Ok(session_id) = result {
-                let result = self.send_receive_spdm_finish(slot_id, session_id);
-                if result.is_ok() {
-                    Ok(session_id)
-                } else {
-                    spdm_result_err!(EIO)
-                }
-            } else {
-                spdm_result_err!(EIO)
-            }
+            let session_id =
+                self.send_receive_spdm_key_exchange(slot_id, measurement_summary_hash_type)?;
+            self.send_receive_spdm_finish(slot_id, session_id)?;
+            Ok(session_id)
         } else {
-            let result = self.send_receive_spdm_psk_exchange(measurement_summary_hash_type);
-            if let Ok(session_id) = result {
-                let result = self.send_receive_spdm_psk_finish(session_id);
-                if result.is_ok() {
-                    Ok(session_id)
-                } else {
-                    spdm_result_err!(EIO)
-                }
-            } else {
-                spdm_result_err!(EIO)
-            }
+            let session_id = self.send_receive_spdm_psk_exchange(measurement_summary_hash_type)?;
+            self.send_receive_spdm_psk_finish(session_id)?;
+            Ok(session_id)
         }
     }
 
@@ -114,7 +98,7 @@ impl<'a> RequesterContext<'a> {
             .common
             .device_io
             .receive(&mut transport_buffer, timeout)
-            .map_err(|_| spdm_err!(EIO))?;
+            .map_err(|_| SPDM_STATUS_RECEIVE_FAIL)?;
 
         self.common.decap(&transport_buffer[..used], receive_buffer)
     }
@@ -139,7 +123,7 @@ impl<'a> RequesterContext<'a> {
             .common
             .device_io
             .receive(&mut transport_buffer, timeout)
-            .map_err(|_| spdm_err!(EIO))?;
+            .map_err(|_| SPDM_STATUS_RECEIVE_FAIL)?;
 
         self.common
             .decode_secured_message(session_id, &transport_buffer[..used], receive_buffer)

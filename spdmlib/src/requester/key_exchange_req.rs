@@ -6,12 +6,20 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 use crate::common::ManagedBuffer;
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
+use crate::error::SPDM_STATUS_ERROR_PEER;
+use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
+use crate::error::SPDM_STATUS_SESSION_NUMBER_EXCEED;
+use crate::error::SPDM_STATUS_VERIF_FAIL;
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_PARAMETER};
 use crate::protocol::*;
 use crate::requester::*;
 
 use crate::crypto;
 
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::SpdmResult;
 use crate::message::*;
 use crate::protocol::{SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmVersion};
 
@@ -59,7 +67,7 @@ impl<'a> RequesterContext<'a> {
 
         let (exchange, key_exchange_context) =
             crypto::dhe::generate_key_pair(self.common.negotiate_info.dhe_sel)
-                .ok_or(spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
         debug!("!!! exchange data : {:02x?}\n", exchange);
 
@@ -131,7 +139,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => {
@@ -149,7 +157,7 @@ impl<'a> RequesterContext<'a> {
 
                             let final_key = key_exchange_context
                                 .compute_final_key(&key_exchange_rsp.exchange)
-                                .ok_or(spdm_err!(EFAULT))?;
+                                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
                             debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
 
@@ -166,7 +174,7 @@ impl<'a> RequesterContext<'a> {
                             if let Some(hash) = self.common.get_certchain_hash_req(slot_id, false) {
                                 cert_chain_hash = hash;
                             } else {
-                                return spdm_result_err!(EFAULT);
+                                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
                             }
 
                             #[cfg(feature = "hashed-transcript-data")]
@@ -198,10 +206,10 @@ impl<'a> RequesterContext<'a> {
                             {
                                 message_k
                                     .append_message(send_buffer)
-                                    .ok_or(spdm_err!(ENOMEM))?;
+                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
                                 message_k
                                     .append_message(&receive_buffer[..temp_receive_used])
-                                    .ok_or(spdm_err!(ENOMEM))?;
+                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
                             }
 
                             if self
@@ -216,7 +224,7 @@ impl<'a> RequesterContext<'a> {
                                 .is_err()
                             {
                                 error!("verify_key_exchange_rsp_signature fail");
-                                return spdm_result_err!(EFAULT);
+                                return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
                                 info!("verify_key_exchange_rsp_signature pass");
                             }
@@ -224,7 +232,7 @@ impl<'a> RequesterContext<'a> {
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             message_k
                                 .append_message(key_exchange_rsp.signature.as_ref())
-                                .ok_or(spdm_err!(ENOMEM))?;
+                                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
 
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
@@ -271,7 +279,7 @@ impl<'a> RequesterContext<'a> {
                             let session = self
                                 .common
                                 .get_next_avaiable_session()
-                                .ok_or(spdm_err!(EINVAL))?;
+                                .ok_or(SPDM_STATUS_SESSION_NUMBER_EXCEED)?;
 
                             session.setup(session_id)?;
 
@@ -295,7 +303,7 @@ impl<'a> RequesterContext<'a> {
                             let mut session = self
                                 .common
                                 .get_session_via_id(session_id)
-                                .ok_or(spdm_err!(EINVAL))?;
+                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
 
                             if session
                                 .verify_hmac_with_response_finished_key(
@@ -311,7 +319,7 @@ impl<'a> RequesterContext<'a> {
                             {
                                 error!("verify_hmac_with_response_finished_key fail");
                                 let _ = session.teardown(session_id);
-                                return spdm_result_err!(EFAULT);
+                                return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
@@ -319,7 +327,7 @@ impl<'a> RequesterContext<'a> {
                             {
                                 message_k
                                     .append_message(key_exchange_rsp.verify_data.as_ref())
-                                    .ok_or(spdm_err!(ENOMEM))?;
+                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
                                 session.runtime_info.message_k = message_k;
                             }
 
@@ -343,36 +351,31 @@ impl<'a> RequesterContext<'a> {
                             Ok(session_id)
                         } else {
                             error!("!!! key_exchange : fail !!!\n");
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             Some(session_id),
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestKeyExchange,
                             SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_key_exhcange_response(
-                                    session_id,
-                                    slot_id,
-                                    send_buffer,
-                                    &receive_buffer[..used],
-                                    measurement_summary_hash_type,
-                                    key_exchange_context,
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_key_exhcange_response(
+                            session_id,
+                            slot_id,
+                            send_buffer,
+                            &receive_buffer[..used],
+                            measurement_summary_hash_type,
+                            key_exchange_context,
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 
@@ -383,12 +386,14 @@ impl<'a> RequesterContext<'a> {
         message_k: HashCtx,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
+        use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_PARAMETER};
+
         let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -407,16 +412,16 @@ impl<'a> RequesterContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_verify::verify(
@@ -442,12 +447,12 @@ impl<'a> RequesterContext<'a> {
         // we just print message hash for debug purpose
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -465,16 +470,16 @@ impl<'a> RequesterContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_verify::verify(

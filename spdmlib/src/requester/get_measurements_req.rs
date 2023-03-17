@@ -3,7 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
+};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -90,7 +95,7 @@ impl<'a> RequesterContext<'a> {
                     s
                 } else {
                     log::error!("can't find session via session id!");
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_PARAMETER);
                 };
                 #[cfg(not(feature = "hashed-transcript-data"))]
                 session.runtime_info.message_m.reset_message();
@@ -132,7 +137,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponseMeasurements => {
@@ -166,7 +171,7 @@ impl<'a> RequesterContext<'a> {
                                     {
                                         s
                                     } else {
-                                        return spdm_result_err!(EFAULT);
+                                        return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                                     };
 
                                     #[cfg(feature = "hashed-transcript-data")]
@@ -211,12 +216,18 @@ impl<'a> RequesterContext<'a> {
                                             .runtime_info
                                             .message_m
                                             .append_message(send_buffer)
-                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                            .map_or_else(
+                                                || Err(SPDM_STATUS_BUFFER_FULL),
+                                                |_| Ok(()),
+                                            )?;
                                         session
                                             .runtime_info
                                             .message_m
                                             .append_message(&receive_buffer[..temp_used])
-                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                            .map_or_else(
+                                                || Err(SPDM_STATUS_BUFFER_FULL),
+                                                |_| Ok(()),
+                                            )?;
                                     }
                                 }
                                 None => {
@@ -261,12 +272,18 @@ impl<'a> RequesterContext<'a> {
                                             .runtime_info
                                             .message_m
                                             .append_message(send_buffer)
-                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                            .map_or_else(
+                                                || Err(SPDM_STATUS_BUFFER_FULL),
+                                                |_| Ok(()),
+                                            )?;
                                         self.common
                                             .runtime_info
                                             .message_m
                                             .append_message(&receive_buffer[..temp_used])
-                                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                            .map_or_else(
+                                                || Err(SPDM_STATUS_BUFFER_FULL),
+                                                |_| Ok(()),
+                                            )?;
                                     }
                                 }
                             }
@@ -285,7 +302,7 @@ impl<'a> RequesterContext<'a> {
                                 {
                                     error!("verify_measurement_signature fail");
                                     let _ = self.reset_l1l2(session_id);
-                                    return spdm_result_err!(EFAULT);
+                                    return Err(SPDM_STATUS_VERIF_FAIL);
                                 } else {
                                     let _ = self.reset_l1l2(session_id);
                                     info!("verify_measurement_signature pass");
@@ -307,37 +324,32 @@ impl<'a> RequesterContext<'a> {
                             }
                         } else {
                             error!("!!! measurements : fail !!!\n");
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             session_id,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetMeasurements,
                             SpdmRequestResponseCode::SpdmResponseMeasurements,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_measurement_record_response(
-                                    session_id,
-                                    slot_id,
-                                    measurement_attributes,
-                                    measurement_operation,
-                                    spdm_measurement_record_structure,
-                                    send_buffer,
-                                    &receive_buffer[..used],
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_measurement_record_response(
+                            session_id,
+                            slot_id,
+                            measurement_attributes,
+                            measurement_operation,
+                            spdm_measurement_record_structure,
+                            send_buffer,
+                            &receive_buffer[..used],
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 
@@ -351,18 +363,14 @@ impl<'a> RequesterContext<'a> {
         //      number of blocks got measured.
         spdm_measurement_record_structure: &mut SpdmMeasurementRecordStructure, // out
     ) -> SpdmResult {
-        if let Ok(total_number) = self.send_receive_spdm_measurement_record(
+        *out_total_number = self.send_receive_spdm_measurement_record(
             session_id,
             spdm_measuremente_attributes,
             measurement_operation,
             spdm_measurement_record_structure,
             slot_id,
-        ) {
-            *out_total_number = total_number;
-            Ok(())
-        } else {
-            spdm_result_err!(EFAULT)
-        }
+        )?;
+        Ok(())
     }
 
     #[cfg(feature = "hashed-transcript-data")]
@@ -372,6 +380,8 @@ impl<'a> RequesterContext<'a> {
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
+        use crate::error::SPDM_STATUS_BUFFER_FULL;
+
         let message_hash = match session_id {
             None => {
                 let ctx = self
@@ -387,7 +397,7 @@ impl<'a> RequesterContext<'a> {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                     s
                 } else {
-                    return spdm_result_err!(EINVAL);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 };
                 let ctx = session
                     .runtime_info
@@ -404,7 +414,7 @@ impl<'a> RequesterContext<'a> {
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -423,16 +433,16 @@ impl<'a> RequesterContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_verify::verify(
@@ -457,24 +467,24 @@ impl<'a> RequesterContext<'a> {
             let message_a = self.common.runtime_info.message_a.clone();
             message
                 .append_message(message_a.as_ref())
-                .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
         }
 
         match session_id {
             None => {
                 message
                     .append_message(self.common.runtime_info.message_m.as_ref())
-                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
             Some(session_id) => {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
                     s
                 } else {
-                    return spdm_result_err!(EINVAL);
+                    return Err(SPDM_STATUS_INVALID_PARAMETER);
                 };
                 message
                     .append_message(session.runtime_info.message_m.as_ref())
-                    .ok_or_else(|| spdm_err!(ENOMEM))?;
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
         }
 
@@ -483,12 +493,12 @@ impl<'a> RequesterContext<'a> {
         debug!("message_m - {:02x?}", message.as_ref());
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -506,16 +516,16 @@ impl<'a> RequesterContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_verify::verify(

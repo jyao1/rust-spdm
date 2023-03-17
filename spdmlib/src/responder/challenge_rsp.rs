@@ -6,12 +6,15 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::crypto;
-use crate::error::{spdm_err, SpdmResult};
+use crate::error::SpdmResult;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
 extern crate alloc;
 use alloc::boxed::Box;
+
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_challenge(&mut self, bytes: &[u8]) {
@@ -154,6 +157,8 @@ impl<'a> ResponderContext<'a> {
         &self,
         message_hash: SpdmDigestStruct,
     ) -> SpdmResult<SpdmSignatureStruct> {
+        use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
+
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         let mut message = ManagedBuffer::default();
@@ -161,16 +166,16 @@ impl<'a> ResponderContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_sign::sign(
@@ -178,7 +183,7 @@ impl<'a> ResponderContext<'a> {
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
         )
-        .ok_or_else(|| spdm_err!(EFAULT))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -186,34 +191,34 @@ impl<'a> ResponderContext<'a> {
         let mut message = ManagedBuffer::default();
         message
             .append_message(self.common.runtime_info.message_a.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         message
             .append_message(self.common.runtime_info.message_b.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         message
             .append_message(self.common.runtime_info.message_c.as_ref())
-            .ok_or_else(|| spdm_err!(ENOMEM))?;
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_sign::sign(
@@ -221,7 +226,7 @@ impl<'a> ResponderContext<'a> {
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
         )
-        .ok_or_else(|| spdm_err!(EFAULT))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 }
 

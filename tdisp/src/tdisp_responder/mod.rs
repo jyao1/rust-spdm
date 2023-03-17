@@ -7,7 +7,6 @@ pub use ::codec::*;
 use spdmlib::{
     error::*,
     message::{VendorDefinedReqPayloadStruct, VendorDefinedRspPayloadStruct},
-    spdm_err, spdm_result_err,
 };
 
 use crate::{
@@ -50,9 +49,9 @@ pub fn vendor_defined_request_handler(
     } = vendor_defined_req_payload_struct;
 
     if (*req_length as usize) < mem::size_of::<TdispMessageHeader>() {
-        spdm_result_err!(EINVAL)
+        Err(SPDM_STATUS_INVALID_MSG_FIELD)
     } else if unsafe { TDISP_RESPONDER.is_none() } {
-        spdm_result_err!(ENODEV)
+        Err(SPDM_STATUS_INVALID_MSG_FIELD)
     } else {
         let tdisp_message_header = TdispMessageHeader::read_bytes(vendor_defined_req_payload);
         match tdisp_message_header {
@@ -123,9 +122,9 @@ pub fn vendor_defined_request_handler(
                         .unwrap()
                         .handle_vdm_request(vendor_defined_req_payload_struct)
                 },
-                _ => spdm_result_err!(EINVAL),
+                _ => Err(SPDM_STATUS_INVALID_MSG_FIELD),
             },
-            None => spdm_result_err!(EINVAL),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 }

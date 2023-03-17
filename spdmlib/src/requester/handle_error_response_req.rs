@@ -5,7 +5,11 @@
 use codec::{Codec, Reader};
 
 use crate::common::session::SpdmSessionState;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_BUSY_PEER, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_MSG_SIZE, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_NOT_READY_PEER,
+    SPDM_STATUS_SESSION_MSG_ERROR,
+};
 use crate::message::*;
 use crate::requester::RequesterContext;
 use crate::time::sleep;
@@ -23,7 +27,7 @@ impl<'a> RequesterContext<'a> {
                 + core::mem::size_of::<SpdmMessageGeneralPayload>()
                 + core::mem::size_of::<SpdmErrorResponseNotReadyExtData>()
         {
-            spdm_result_err!(EDEV)
+            Err(SPDM_STATUS_INVALID_MSG_SIZE)
         } else {
             let extoff = core::mem::size_of::<SpdmMessageHeader>()
                 + core::mem::size_of::<SpdmMessageGeneralPayload>();
@@ -33,11 +37,11 @@ impl<'a> RequesterContext<'a> {
             {
                 eed
             } else {
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             };
 
             if extend_error_data.request_code != original_request_code.get_u8() {
-                return spdm_result_err!(EDEV);
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             }
 
             sleep(2 << extend_error_data.rdt_exponent);
@@ -54,21 +58,21 @@ impl<'a> RequesterContext<'a> {
         /* NOT_READY is treated as error here.
          * Use spdm_handle_error_response_main to handle NOT_READY message in long latency command.*/
         if error_code == SpdmErrorCode::SpdmErrorResponseNotReady.get_u8() {
-            spdm_result_err!(EDEV)
+            Err(SPDM_STATUS_NOT_READY_PEER)
         } else if error_code == SpdmErrorCode::SpdmErrorBusy.get_u8() {
-            spdm_result_err!(EBUSY)
+            Err(SPDM_STATUS_BUSY_PEER)
         } else if error_code == SpdmErrorCode::SpdmErrorRequestResynch.get_u8() {
             if let Some(sid) = session_id {
                 let session = if let Some(s) = self.common.get_session_via_id(sid) {
                     s
                 } else {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_PARAMETER);
                 };
                 session.set_session_state(SpdmSessionState::SpdmSessionNotStarted);
             }
-            spdm_result_err!(EDEV)
+            Err(SPDM_STATUS_INVALID_PARAMETER)
         } else {
-            spdm_result_err!(EDEV)
+            Err(SPDM_STATUS_ERROR_PEER)
         }
     }
 
@@ -84,16 +88,16 @@ impl<'a> RequesterContext<'a> {
             if let Some(smh) = SpdmMessageHeader::read(&mut spdm_message_header_reader) {
                 smh
             } else {
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             };
         let header_size = spdm_message_header_reader.used();
 
         if spdm_message_header.version != self.common.negotiate_info.spdm_version_sel {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
 
         if spdm_message_header.request_response_code != SpdmRequestResponseCode::SpdmResponseError {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
 
         let mut spdm_message_payload_reader = Reader::init(&response[header_size..]);
@@ -101,7 +105,7 @@ impl<'a> RequesterContext<'a> {
             if let Some(smgp) = SpdmMessageGeneralPayload::read(&mut spdm_message_payload_reader) {
                 smgp
             } else {
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             };
 
         if spdm_message_general_payload.param1 == SpdmErrorCode::SpdmErrorDecryptError.get_u8() {
@@ -109,11 +113,11 @@ impl<'a> RequesterContext<'a> {
                 let session = if let Some(s) = self.common.get_session_via_id(sid) {
                     s
                 } else {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_PARAMETER);
                 };
                 let _ = session.teardown(sid);
             }
-            spdm_result_err!(ESEC)
+            Err(SPDM_STATUS_SESSION_MSG_ERROR)
         } else if spdm_message_general_payload.param1
             == SpdmErrorCode::SpdmErrorResponseNotReady.get_u8()
         {

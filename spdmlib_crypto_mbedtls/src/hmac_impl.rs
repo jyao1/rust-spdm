@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use spdmlib::crypto::SpdmHmac;
-use spdmlib::error::{spdm_err, spdm_result_err, SpdmResult};
+use spdmlib::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHmac = SpdmHmac {
@@ -57,11 +57,11 @@ fn hmac_verify(
     data: &[u8],
     message_digest: &SpdmDigestStruct,
 ) -> SpdmResult {
-    let digest = hmac(base_hash_algo, key, data).ok_or(spdm_err!(EFAULT))?;
+    let digest = hmac(base_hash_algo, key, data).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
     if digest.as_ref() == message_digest.as_ref() {
         Ok(())
     } else {
-        spdm_result_err!(EFAULT)
+        Err(SPDM_STATUS_CRYPTO_ERROR)
     }
 }
 

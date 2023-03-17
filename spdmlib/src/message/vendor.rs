@@ -5,7 +5,7 @@
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
 use codec::{enum_builder, Codec, Reader, Writer};
 
 use conquer_once::spin::OnceCell;
@@ -217,7 +217,7 @@ static VENDOR_DEFNIED: OnceCell<VendorDefinedStruct> = OnceCell::uninit();
 
 static VENDOR_DEFNIED_DEFAULT: VendorDefinedStruct = VendorDefinedStruct {
     vendor_defined_request_handler: |_vendor_defined_req_payload_struct: &VendorDefinedReqPayloadStruct|
-     -> SpdmResult<VendorDefinedRspPayloadStruct> { log::info!("not implement vendor defined struct!!!\n"); spdm_result_err!(EUNDEF) },
+     -> SpdmResult<VendorDefinedRspPayloadStruct> { log::info!("not implement vendor defined struct!!!\n"); unimplemented!() },
 };
 
 pub fn register_vendor_defined_struct(context: VendorDefinedStruct) -> bool {
@@ -230,6 +230,6 @@ pub fn vendor_defined_request_handler(
     if let Ok(vds) = VENDOR_DEFNIED.try_get_or_init(|| VENDOR_DEFNIED_DEFAULT) {
         (vds.vendor_defined_request_handler)(vendor_defined_req_payload_struct)
     } else {
-        spdm_result_err!(EUNDEF)
+        Err(SPDM_STATUS_INVALID_STATE_LOCAL)
     }
 }

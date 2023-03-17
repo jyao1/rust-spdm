@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmCryptoRandom;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 
 pub static DEFAULT: SpdmCryptoRandom = SpdmCryptoRandom {
     get_random_cb: get_random,
@@ -18,7 +18,7 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
         let rand_data: [u8; 64] = if let Ok(rd) = ring::rand::generate(&rng) {
             rd.expose()
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         if len > 64 {
             data[offset..(offset + 64)].copy_from_slice(&rand_data);

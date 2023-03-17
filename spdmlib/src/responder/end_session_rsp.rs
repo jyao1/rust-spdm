@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
-use crate::error::{spdm_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_INVALID_PARAMETER};
 use crate::message::*;
 use crate::responder::*;
 
@@ -16,7 +16,7 @@ impl<'a> ResponderContext<'a> {
             let session = self
                 .common
                 .get_session_via_id(session_id)
-                .ok_or(spdm_err!(EINVAL))?;
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
             session.teardown(session_id)
         } else {
             self.send_message(writer.used_slice())

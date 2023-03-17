@@ -2,7 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_NEGOTIATION_FAIL, SPDM_STATUS_SESSION_NUMBER_EXCEED,
+};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_STATE_LOCAL};
 use crate::responder::*;
 
 use crate::common::SpdmCodec;
@@ -66,7 +71,7 @@ impl<'a> ResponderContext<'a> {
                 if secured_message_version_list.version_count
                     > crate::common::opaque::MAX_SECURE_SPDM_VERSION_COUNT as u8
                 {
-                    return spdm_result_err!(EINVAL);
+                    return Err(SPDM_STATUS_NEGOTIATION_FAIL);
                 }
                 for index in 0..secured_message_version_list.version_count as usize {
                     if secured_message_version_list.versions_list[index].get_secure_spdm_version()
@@ -102,7 +107,7 @@ impl<'a> ResponderContext<'a> {
         } else {
             error!("!!! key_exchange req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
 
         info!("send spdm key_exchange rsp\n");
@@ -121,7 +126,7 @@ impl<'a> ResponderContext<'a> {
             key_exchange_context.compute_final_key(&key_exchange_req.as_ref().unwrap().exchange);
 
         if final_key.is_none() {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         let final_key = final_key.unwrap();
         debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
@@ -173,14 +178,14 @@ impl<'a> ResponderContext<'a> {
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_BUFFER_FULL);
             }
             if message_k
                 .append_message(&writer.used_slice()[..temp_used])
                 .is_none()
             {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_BUFFER_FULL);
             }
         }
 
@@ -190,7 +195,7 @@ impl<'a> ResponderContext<'a> {
         if let Some(hash) = self.common.get_certchain_hash_rsp(false) {
             cert_chain_hash = hash;
         } else {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
 
         #[cfg(feature = "hashed-transcript-data")]
@@ -215,13 +220,13 @@ impl<'a> ResponderContext<'a> {
         let signature = self.generate_key_exchange_rsp_signature(digest_context_th.clone());
         if signature.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         let signature = signature.unwrap();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_k.append_message(signature.as_ref()).is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_BUFFER_FULL);
         }
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(&mut digest_context_th, signature.as_ref());
@@ -236,7 +241,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         let th1 = th1.unwrap();
         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
@@ -252,7 +257,7 @@ impl<'a> ResponderContext<'a> {
         if session.is_none() {
             error!("!!! too many sessions : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_SESSION_NUMBER_EXCEED);
         }
 
         let session = session.unwrap();
@@ -275,7 +280,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
@@ -292,7 +297,7 @@ impl<'a> ResponderContext<'a> {
         if hmac.is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EFAULT);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         let hmac = hmac.unwrap();
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -300,7 +305,7 @@ impl<'a> ResponderContext<'a> {
             if message_k.append_message(hmac.as_ref()).is_none() {
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return spdm_result_err!(EFAULT);
+                return Err(SPDM_STATUS_BUFFER_FULL);
             }
 
             session.runtime_info.message_k = message_k;
@@ -336,6 +341,8 @@ impl<'a> ResponderContext<'a> {
         &mut self,
         message_k: HashCtx,
     ) -> SpdmResult<SpdmSignatureStruct> {
+        use crate::error::SPDM_STATUS_BUFFER_FULL;
+
         let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
@@ -344,16 +351,16 @@ impl<'a> ResponderContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_sign::sign(
@@ -361,7 +368,7 @@ impl<'a> ResponderContext<'a> {
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
         )
-        .ok_or_else(|| spdm_err!(EFAULT))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -376,23 +383,23 @@ impl<'a> ResponderContext<'a> {
         // we just print message hash for debug purpose
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_sign::sign(
@@ -400,7 +407,7 @@ impl<'a> ResponderContext<'a> {
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
         )
-        .ok_or_else(|| spdm_err!(EFAULT))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 }
 

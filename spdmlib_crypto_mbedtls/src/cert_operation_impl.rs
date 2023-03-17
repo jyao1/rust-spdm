@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use spdmlib::crypto::SpdmCertOperation;
-use spdmlib::error::{spdm_err, spdm_result_err, SpdmResult};
+use spdmlib::error::{SpdmResult, SPDM_STATUS_INVALID_CERT};
 
 pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {
     get_cert_from_cert_chain_cb: get_cert_from_cert_chain,
@@ -19,10 +19,10 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
     let mut this_index = 0isize;
     loop {
         if cert_chain[offset..].len() < 4 || offset > cert_chain.len() {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_CERT);
         }
         if cert_chain[offset] != 0x30 || cert_chain[offset + 1] != 0x82 {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_CERT);
         }
         let this_cert_len =
             ((cert_chain[offset + 2] as usize) << 8) + (cert_chain[offset + 3] as usize) + 4;
@@ -45,7 +45,7 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     if ret == 0 {
         Ok(())
     } else {
-        spdm_result_err!(EINVAL)
+        Err(SPDM_STATUS_INVALID_CERT)
     }
 }
 

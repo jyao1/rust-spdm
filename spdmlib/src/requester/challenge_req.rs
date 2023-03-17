@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
+};
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -80,7 +83,7 @@ impl<'a> RequesterContext<'a> {
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
                 if message_header.version != self.common.negotiate_info.spdm_version_sel {
-                    return spdm_result_err!(EFAULT);
+                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                 }
                 match message_header.request_response_code {
                     SpdmRequestResponseCode::SpdmResponseChallengeAuth => {
@@ -102,10 +105,10 @@ impl<'a> RequesterContext<'a> {
                                 let message_c = &mut self.common.runtime_info.message_c;
                                 message_c
                                     .append_message(send_buffer)
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                                 message_c
                                     .append_message(&receive_buffer[..temp_used])
-                                    .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                             }
 
                             #[cfg(feature = "hashed-transcript-data")]
@@ -133,7 +136,7 @@ impl<'a> RequesterContext<'a> {
                                 .is_err()
                             {
                                 error!("verify_challenge_auth_signature fail");
-                                return spdm_result_err!(EFAULT);
+                                return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
                                 info!("verify_challenge_auth_signature pass");
                             }
@@ -141,35 +144,30 @@ impl<'a> RequesterContext<'a> {
                             Ok(())
                         } else {
                             error!("!!! challenge_auth : fail !!!\n");
-                            spdm_result_err!(EFAULT)
+                            Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let erm = self.spdm_handle_error_response_main(
+                        let rm = self.spdm_handle_error_response_main(
                             Some(session_id),
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestChallenge,
                             SpdmRequestResponseCode::SpdmResponseChallengeAuth,
-                        );
-                        match erm {
-                            Ok(rm) => {
-                                let receive_buffer = rm.receive_buffer;
-                                let used = rm.used;
-                                self.handle_spdm_challenge_response(
-                                    session_id,
-                                    slot_id,
-                                    measurement_summary_hash_type,
-                                    send_buffer,
-                                    &receive_buffer[..used],
-                                )
-                            }
-                            _ => spdm_result_err!(EINVAL),
-                        }
+                        )?;
+                        let receive_buffer = rm.receive_buffer;
+                        let used = rm.used;
+                        self.handle_spdm_challenge_response(
+                            session_id,
+                            slot_id,
+                            measurement_summary_hash_type,
+                            send_buffer,
+                            &receive_buffer[..used],
+                        )
                     }
-                    _ => spdm_result_err!(EINVAL),
+                    _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 
@@ -184,13 +182,13 @@ impl<'a> RequesterContext<'a> {
         {
             message
                 .append_message(self.common.runtime_info.message_a.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(self.common.runtime_info.message_b.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(self.common.runtime_info.message_c.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         // we dont need create message hash for verify
@@ -198,7 +196,7 @@ impl<'a> RequesterContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let message_hash =
             crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or_else(|| spdm_err!(EFAULT))?;
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         #[cfg(feature = "hashed-transcript-data")]
         let message_hash;
         #[cfg(feature = "hashed-transcript-data")]
@@ -214,14 +212,14 @@ impl<'a> RequesterContext<'a> {
             if let Some(digest) = digest {
                 message_hash = digest;
             } else {
-                return spdm_result_err!(ESEC);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             }
         }
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -242,16 +240,16 @@ impl<'a> RequesterContext<'a> {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
                 .append_message(message_hash.as_ref())
-                .ok_or_else(|| spdm_err!(ENOMEM))?;
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_verify::verify(

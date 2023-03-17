@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmHmac;
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{SpdmResult, SPDM_STATUS_VERIF_FAIL};
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHmac = SpdmHmac {
@@ -45,7 +45,7 @@ fn hmac_verify(
     let v_key = ring::hmac::Key::new(algorithm, key);
     match ring::hmac::verify(&v_key, data, &hmac.data[..(hmac.data_size as usize)]) {
         Ok(()) => Ok(()),
-        Err(_) => spdm_result_err!(EFAULT),
+        Err(_) => Err(SPDM_STATUS_VERIF_FAIL),
     }
 }
 

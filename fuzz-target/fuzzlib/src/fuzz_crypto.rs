@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::spdmlib::error::SPDM_STATUS_VERIF_FAIL;
 use spdmlib::crypto::{SpdmCryptoRandom, SpdmHmac};
 use spdmlib::error::SpdmResult;
-use spdmlib::error::{spdm_err, spdm_result_err};
 use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct, SPDM_NONCE_SIZE};
 
 pub static FUZZ_HMAC: SpdmHmac = SpdmHmac {
@@ -27,7 +27,7 @@ fn hmac_verify(
     let SpdmDigestStruct { data_size, .. } = hmac;
     match data_size {
         48 => Ok(()),
-        _ => spdm_result_err!(EFAULT),
+        _ => Err(SPDM_STATUS_VERIF_FAIL),
     }
 }
 

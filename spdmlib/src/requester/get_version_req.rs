@@ -2,7 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{spdm_result_err, SpdmResult};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_NEGOTIATION_FAIL,
+};
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -80,7 +83,7 @@ impl<'a> RequesterContext<'a> {
                                     "Version negotiation failed! with given version list: {:?}",
                                     versions
                                 );
-                                return spdm_result_err!(EFAULT);
+                                return Err(SPDM_STATUS_NEGOTIATION_FAIL);
                             }
                             _ => {
                                 debug!(
@@ -96,38 +99,33 @@ impl<'a> RequesterContext<'a> {
                         let message_a = &mut self.common.runtime_info.message_a;
                         message_a
                             .append_message(send_buffer)
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))?;
+                            .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
                         message_a
                             .append_message(&receive_buffer[..used])
-                            .map_or_else(|| spdm_result_err!(ENOMEM), |_| Ok(()))
+                            .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))
                     } else {
                         error!("!!! version : fail !!!\n");
-                        spdm_result_err!(EFAULT)
+                        Err(SPDM_STATUS_INVALID_MSG_FIELD)
                     }
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
-                    let erm = self.spdm_handle_error_response_main(
+                    let rm = self.spdm_handle_error_response_main(
                         Some(session_id),
                         receive_buffer,
                         SpdmRequestResponseCode::SpdmRequestGetVersion,
                         SpdmRequestResponseCode::SpdmResponseVersion,
-                    );
-                    match erm {
-                        Ok(rm) => {
-                            let receive_buffer = rm.receive_buffer;
-                            let used = rm.used;
-                            self.handle_spdm_version_response(
-                                session_id,
-                                send_buffer,
-                                &receive_buffer[..used],
-                            )
-                        }
-                        _ => spdm_result_err!(EINVAL),
-                    }
+                    )?;
+                    let receive_buffer = rm.receive_buffer;
+                    let used = rm.used;
+                    self.handle_spdm_version_response(
+                        session_id,
+                        send_buffer,
+                        &receive_buffer[..used],
+                    )
                 }
-                _ => spdm_result_err!(EINVAL),
+                _ => Err(SPDM_STATUS_ERROR_PEER),
             },
-            None => spdm_result_err!(EIO),
+            None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
     }
 }

@@ -5,7 +5,10 @@
 use super::key_schedule::SpdmKeySchedule;
 use crate::config;
 use crate::crypto;
-use crate::error::{spdm_err, spdm_result_err, SpdmResult};
+use crate::error::SpdmResult;
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
+use crate::error::SPDM_STATUS_DECODE_AEAD_FAIL;
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -207,7 +210,7 @@ impl SpdmSession {
         ) {
             hs
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
 
         let key = handshake_secret.as_ref();
@@ -218,7 +221,7 @@ impl SpdmSession {
         ) {
             ms
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
 
         self.master_secret.handshake_secret = handshake_secret;
@@ -281,7 +284,7 @@ impl SpdmSession {
             ) {
             rhs
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         debug!(
             "!!! request_handshake_secret !!!: {:02x?}\n",
@@ -296,7 +299,7 @@ impl SpdmSession {
             ) {
             rhs
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         debug!(
             "!!! response_handshake_secret !!!: {:02x?}\n",
@@ -310,7 +313,7 @@ impl SpdmSession {
             ) {
             rfk
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         debug!(
             "!!! request_finished_key !!!: {:02x?}\n",
@@ -324,7 +327,7 @@ impl SpdmSession {
             ) {
             rfk
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         debug!(
             "!!! response_finished_key !!!: {:02x?}\n",
@@ -339,7 +342,7 @@ impl SpdmSession {
         ) {
             aki
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
 
         self.handshake_secret.request_direction.encryption_key = res.0;
@@ -364,7 +367,7 @@ impl SpdmSession {
         ) {
             aki
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         self.handshake_secret.response_direction.encryption_key = res.0;
         self.handshake_secret.response_direction.salt = res.1;
@@ -388,7 +391,7 @@ impl SpdmSession {
             ) {
             ems
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
 
         Ok(())
@@ -413,7 +416,7 @@ impl SpdmSession {
             ) {
             rds
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         self.application_secret.response_data_secret = if let Some(rds) =
             self.key_schedule.derive_response_data_secret(
@@ -424,7 +427,7 @@ impl SpdmSession {
             ) {
             rds
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         debug!(
             "!!! request_data_secret !!!: {:02x?}\n",
@@ -443,7 +446,7 @@ impl SpdmSession {
         ) {
             aki
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         self.application_secret.request_direction.encryption_key = res.0;
         self.application_secret.request_direction.salt = res.1;
@@ -467,7 +470,7 @@ impl SpdmSession {
         ) {
             aki
         } else {
-            return spdm_result_err!(ESEC);
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         self.application_secret.response_direction.encryption_key = res.0;
         self.application_secret.response_direction.salt = res.1;
@@ -513,7 +516,7 @@ impl SpdmSession {
                 ) {
                 us
             } else {
-                return spdm_result_err!(ESEC);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             };
             debug!(
                 "!!! request_data_secret !!!: {:02x?}\n",
@@ -528,7 +531,7 @@ impl SpdmSession {
             ) {
                 aki
             } else {
-                return spdm_result_err!(ESEC);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             };
             self.application_secret.request_direction.encryption_key = res.0;
             self.application_secret.request_direction.salt = res.1;
@@ -560,7 +563,7 @@ impl SpdmSession {
                 ) {
                 us
             } else {
-                return spdm_result_err!(ESEC);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             };
             debug!(
                 "!!! response_data_secret !!!: {:02x?}\n",
@@ -575,7 +578,7 @@ impl SpdmSession {
             ) {
                 aki
             } else {
-                return spdm_result_err!(ESEC);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             };
             self.application_secret.response_direction.encryption_key = res.0;
             self.application_secret.response_direction.salt = res.1;
@@ -639,10 +642,10 @@ impl SpdmSession {
             self.crypto_param.base_hash_algo,
             self.handshake_secret.response_finished_key.as_ref(),
             crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(spdm_err!(EINVAL))?
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                 .as_ref(),
         )
-        .ok_or(spdm_err!(ESEC))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(feature = "hashed-transcript-data")]
@@ -655,7 +658,7 @@ impl SpdmSession {
             self.handshake_secret.response_finished_key.as_ref(),
             message_hash,
         )
-        .ok_or(spdm_err!(ESEC))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -667,10 +670,10 @@ impl SpdmSession {
             self.crypto_param.base_hash_algo,
             self.handshake_secret.request_finished_key.as_ref(),
             crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(spdm_err!(EINVAL))?
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                 .as_ref(),
         )
-        .ok_or(spdm_err!(ESEC))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(feature = "hashed-transcript-data")]
@@ -683,7 +686,7 @@ impl SpdmSession {
             self.handshake_secret.request_finished_key.as_ref(),
             message_hash,
         )
-        .ok_or(spdm_err!(ESEC))
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -696,7 +699,7 @@ impl SpdmSession {
             self.crypto_param.base_hash_algo,
             self.handshake_secret.response_finished_key.as_ref(),
             crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(spdm_err!(EINVAL))?
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                 .as_ref(),
             hmac,
         )
@@ -726,7 +729,7 @@ impl SpdmSession {
             self.crypto_param.base_hash_algo,
             self.handshake_secret.request_finished_key.as_ref(),
             crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(spdm_err!(EINVAL))?
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                 .as_ref(),
             hmac,
         )
@@ -776,7 +779,7 @@ impl SpdmSession {
         is_requester: bool,
     ) -> SpdmResult<usize> {
         match self.session_state {
-            SpdmSessionState::SpdmSessionNotStarted => spdm_result_err!(EINVAL),
+            SpdmSessionState::SpdmSessionNotStarted => Err(SPDM_STATUS_INVALID_STATE_LOCAL),
             SpdmSessionState::SpdmSessionHandshaking => {
                 if is_requester {
                     let r = self.encode_msg(
@@ -826,7 +829,7 @@ impl SpdmSession {
         is_requester: bool,
     ) -> SpdmResult<usize> {
         match self.session_state {
-            SpdmSessionState::SpdmSessionNotStarted => spdm_result_err!(EINVAL),
+            SpdmSessionState::SpdmSessionNotStarted => Err(SPDM_STATUS_INVALID_STATE_LOCAL),
             SpdmSessionState::SpdmSessionHandshaking => {
                 if is_requester {
                     let r = self.decode_msg(
@@ -865,7 +868,7 @@ impl SpdmSession {
                     r
                 }
             }
-            _ => spdm_result_err!(ENOMEM),
+            _ => Err(SPDM_STATUS_INVALID_STATE_LOCAL),
         }
     }
 
@@ -952,22 +955,22 @@ impl SpdmSession {
         let tag_size = aead_algo.get_tag_size() as usize;
 
         let mut reader = Reader::init(secured_buffer);
-        let read_session_id = u32::read(&mut reader).ok_or(spdm_err!(EIO))?;
+        let read_session_id = u32::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)?;
         if read_session_id != session_id {
             error!("session_id mismatch!\n");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECODE_AEAD_FAIL);
         }
         if transport_param.sequence_number_count != 0 {
             let sequence_number = secret_param.sequence_number;
             for i in 0..transport_param.sequence_number_count {
-                let s = u8::read(&mut reader).ok_or(spdm_err!(EIO))?;
+                let s = u8::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)?;
                 if s != ((sequence_number >> (8 * i)) & 0xFF) as u8 {
                     info!("sequence_num mismatch!\n");
-                    return spdm_result_err!(EINVAL);
+                    return Err(SPDM_STATUS_DECODE_AEAD_FAIL);
                 }
             }
         }
-        let length = u16::read(&mut reader).ok_or(spdm_err!(EIO))?;
+        let length = u16::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)?;
         let aad_size = reader.used();
         assert_eq!(aad_size, 6 + transport_param.sequence_number_count as usize);
 
@@ -975,11 +978,11 @@ impl SpdmSession {
 
         // secure buffer might be bigger for alignment
         if secured_buffer.len() < length as usize + aad_size {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECODE_AEAD_FAIL);
         }
 
         if (length as usize) < tag_size {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECODE_AEAD_FAIL);
         }
 
         let cipher_text_size = length as usize - tag_size;
@@ -1009,9 +1012,9 @@ impl SpdmSession {
         )?;
 
         let mut reader = Reader::init(&plain_text_buf);
-        let app_length = u16::read(&mut reader).ok_or(spdm_err!(EIO))? as usize;
+        let app_length = u16::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)? as usize;
         if ret_plain_text_size < app_length + 2 {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_DECODE_AEAD_FAIL);
         }
 
         app_buffer[..app_length].copy_from_slice(&plain_text_buf[2..(app_length + 2)]);

@@ -7,8 +7,7 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 
 use spdmlib::common::SpdmDeviceIo;
-use spdmlib::error::SpdmResult;
-use spdmlib::{spdm_err, spdm_result_err};
+use spdmlib::error::{SpdmResult, SPDM_STATUS_SEND_FAIL};
 
 pub struct TcpTransport<'a> {
     pub data: &'a mut TcpStream,
@@ -29,7 +28,7 @@ impl SpdmDeviceIo for TcpTransport<'_> {
         if res.is_ok() {
             Ok(())
         } else {
-            spdm_result_err!(EIO)
+            Err(SPDM_STATUS_SEND_FAIL)
         }
     }
 

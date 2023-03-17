@@ -8,6 +8,12 @@ use crate::common::SpdmCodec;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::error::SpdmResult;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
+use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
+use crate::error::SPDM_STATUS_INVALID_PARAMETER;
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_STATE_LOCAL};
 use crate::responder::*;
 
 use crate::message::*;
@@ -25,7 +31,7 @@ impl<'a> ResponderContext<'a> {
             let session = self
                 .common
                 .get_session_via_id(session_id)
-                .ok_or(spdm_err!(EINVAL))?;
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
             session.set_session_state(
                 crate::common::session::SpdmSessionState::SpdmSessionEstablished,
             );
@@ -52,7 +58,7 @@ impl<'a> ResponderContext<'a> {
         } else {
             error!("!!! psk_finish req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
         // Safety to call unwrap()
         let psk_finish_req = psk_finish_req.unwrap();
@@ -66,13 +72,13 @@ impl<'a> ResponderContext<'a> {
         let mut message_f = ManagedBuffer::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_BUFFER_FULL);
         }
 
         let session = self
             .common
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
@@ -80,7 +86,7 @@ impl<'a> ResponderContext<'a> {
                 .runtime_info
                 .digest_context_th
                 .as_mut()
-                .ok_or(spdm_err!(EINVAL))?,
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             &bytes[..temp_used],
         );
 
@@ -94,7 +100,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
@@ -106,13 +112,13 @@ impl<'a> ResponderContext<'a> {
                 .digest_context_th
                 .as_mut()
                 .cloned()
-                .ok_or(spdm_err!(EINVAL))?,
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
         );
 
         let session = self
             .common
             .get_immutable_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
         let res = session.verify_hmac_with_request_finished_key(
             #[cfg(not(feature = "hashed-transcript-data"))]
             transcript_data.as_ref(),
@@ -133,14 +139,14 @@ impl<'a> ResponderContext<'a> {
             .is_none()
         {
             error!("message_f add the message error");
-            return spdm_result_err!(EINVAL);
+            return Err(SPDM_STATUS_BUFFER_FULL);
         }
 
         #[cfg(feature = "hashed-transcript-data")]
         let session = self
             .common
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
@@ -148,7 +154,7 @@ impl<'a> ResponderContext<'a> {
                 .runtime_info
                 .digest_context_th
                 .as_mut()
-                .ok_or(spdm_err!(EINVAL))?,
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             psk_finish_req.verify_data.as_ref(),
         );
 
@@ -168,7 +174,7 @@ impl<'a> ResponderContext<'a> {
         let session = self
             .common
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(writer.used_slice()).is_none() {
@@ -181,14 +187,14 @@ impl<'a> ResponderContext<'a> {
                 .runtime_info
                 .digest_context_th
                 .as_mut()
-                .ok_or(spdm_err!(EINVAL))?,
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             writer.used_slice(),
         );
 
         let session = self
             .common
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
         // generate the data secret
         let th2;
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -202,9 +208,9 @@ impl<'a> ResponderContext<'a> {
                 let session = self
                     .common
                     .get_session_via_id(session_id)
-                    .ok_or(spdm_err!(EINVAL))?;
+                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
                 let _ = session.teardown(session_id);
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
             }
         }
         #[cfg(feature = "hashed-transcript-data")]
@@ -215,16 +221,16 @@ impl<'a> ResponderContext<'a> {
                     .digest_context_th
                     .as_mut()
                     .cloned()
-                    .ok_or(spdm_err!(EINVAL))?,
+                    .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             );
             if th2.is_none() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 let session = self
                     .common
                     .get_session_via_id(session_id)
-                    .ok_or(spdm_err!(EINVAL))?;
+                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
                 let _ = session.teardown(session_id);
-                return spdm_result_err!(EINVAL);
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             }
         }
         // Safely to call unwrap;
@@ -234,7 +240,7 @@ impl<'a> ResponderContext<'a> {
         let session = self
             .common
             .get_session_via_id(session_id)
-            .ok_or(spdm_err!(EINVAL))?;
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
         session.generate_data_secret(spdm_version_sel, &th2)
     }
 }
