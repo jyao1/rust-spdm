@@ -909,7 +909,11 @@ impl SpdmSession {
         assert_eq!(head_size, 2);
         plain_text_buf[head_size..(head_size + app_buffer.len())].copy_from_slice(app_buffer);
 
+        #[cfg(not(feature = "null-aead"))]
         let mut tag_buffer = [0u8; 16];
+
+        #[cfg(feature = "null-aead")]
+        let tag_buffer = [0u8; 16];
 
         let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
@@ -922,6 +926,7 @@ impl SpdmSession {
         salt[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
         salt[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
 
+        #[cfg(not(feature = "null-aead"))]
         let (ret_cipher_text_size, ret_tag_size) = crypto::aead::encrypt(
             aead_algo,
             &secret_param.encryption_key.data[..(aead_algo.get_key_size() as usize)],
@@ -931,7 +936,16 @@ impl SpdmSession {
             &mut tag_buffer[0..tag_size],
             &mut secured_buffer[aad_size..(aad_size + cipher_text_size)],
         )?;
+
+        #[cfg(feature = "null-aead")]
+        {
+            secured_buffer[aad_size..(aad_size + cipher_text_size)]
+                .copy_from_slice(&plain_text_buf[0..cipher_text_size]);
+        }
+
+        #[cfg(not(feature = "null-aead"))]
         assert_eq!(ret_tag_size, tag_size);
+        #[cfg(not(feature = "null-aead"))]
         assert_eq!(ret_cipher_text_size, cipher_text_size);
 
         secured_buffer[..aad_size].copy_from_slice(&aad_buffer[..aad_size]);
@@ -1000,6 +1014,7 @@ impl SpdmSession {
         salt[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
         salt[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
 
+        #[cfg(not(feature = "null-aead"))]
         let ret_plain_text_size = crypto::aead::decrypt(
             aead_algo,
             &secret_param.encryption_key.data[..(aead_algo.get_key_size() as usize)],
@@ -1010,6 +1025,12 @@ impl SpdmSession {
                 [(aad_size + cipher_text_size)..(aad_size + cipher_text_size + tag_size)],
             &mut plain_text_buf[..cipher_text_size],
         )?;
+
+        #[cfg(feature = "null-aead")]
+        plain_text_buf[..cipher_text_size]
+            .copy_from_slice(&secured_buffer[aad_size..(aad_size + cipher_text_size)]);
+        #[cfg(feature = "null-aead")]
+        let ret_plain_text_size = cipher_text_size;
 
         let mut reader = Reader::init(&plain_text_buf);
         let app_length = u16::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)? as usize;

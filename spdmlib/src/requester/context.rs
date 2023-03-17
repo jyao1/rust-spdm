@@ -35,6 +35,59 @@ impl<'a> RequesterContext<'a> {
         self.send_receive_spdm_algorithm()
     }
 
+    #[cfg(feature = "null-aead")]
+    pub fn start_session(
+        &mut self,
+        use_psk: bool,
+        _slot_id: u8,
+        _measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+    ) -> SpdmResult<u32> {
+        use crate::error::SPDM_STATUS_SESSION_NUMBER_EXCEED;
+
+        let base_hash_algo = self.common.negotiate_info.base_hash_sel;
+        let dhe_algo = self.common.negotiate_info.dhe_sel;
+        let aead_algo = self.common.negotiate_info.aead_sel;
+        let key_schedule_algo = self.common.negotiate_info.key_schedule_sel;
+        let sequence_number_count = self.common.transport_encap.get_sequence_number_count();
+        let max_random_count = self.common.transport_encap.get_max_random_count();
+        let mut final_key = SpdmDheFinalKeyStruct {
+            data_size: dhe_algo.get_size(),
+            data: Box::new([6u8; SPDM_MAX_DHE_KEY_SIZE]),
+        };
+        final_key.data[..b"final_key for null-aead".len()]
+            .copy_from_slice(b"final_key for null-aead");
+        let mut th1 = SpdmDigestStruct {
+            data_size: 0,
+            data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+        };
+        th1.data[..b"th1 for null-aead".len()].copy_from_slice(b"th1 for null-aead");
+        let mut th2 = SpdmDigestStruct {
+            data_size: 0,
+            data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+        };
+        th2.data[..b"th2 for null-aead".len()].copy_from_slice(b"th2 for null-aead");
+
+        let session_id = ((0xFFFDu32) << 16) + self.common.get_next_half_session_id(true)? as u32;
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+        let session = self
+            .common
+            .get_next_avaiable_session()
+            .ok_or(SPDM_STATUS_SESSION_NUMBER_EXCEED)?;
+
+        session.setup(session_id)?;
+        session.set_use_psk(use_psk);
+        session.set_crypto_param(base_hash_algo, dhe_algo, aead_algo, key_schedule_algo);
+        session.set_transport_param(sequence_number_count, max_random_count);
+        session.set_dhe_secret(spdm_version_sel, final_key)?;
+        session.generate_handshake_secret(spdm_version_sel, &th1)?;
+        session.generate_data_secret(spdm_version_sel, &th2)?;
+        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
+        session.secure_spdm_version_sel = 0x11;
+        session.heartbeat_period = 10;
+        Ok(session_id)
+    }
+
+    #[cfg(not(feature = "null-aead"))]
     pub fn start_session(
         &mut self,
         use_psk: bool,
