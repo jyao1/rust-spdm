@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmAead;
-use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
+use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_INVALID_PARAMETER};
 use bytes::BytesMut;
 
 use crate::protocol::SpdmAeadAlgo;
@@ -27,24 +27,28 @@ fn encrypt(
         SpdmAeadAlgo::AES_256_GCM => &ring::aead::AES_256_GCM,
         SpdmAeadAlgo::CHACHA20_POLY1305 => &ring::aead::CHACHA20_POLY1305,
         _ => {
-            panic!();
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
     };
 
     if key.len() != aead_algo.get_key_size() as usize {
-        panic!("key len invalid");
+        log::error!("key len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
     if iv.len() != aead_algo.get_iv_size() as usize {
-        panic!("iv len invalid");
+        log::error!("iv len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
     let tag_size = tag.len();
     if tag_size != aead_algo.get_tag_size() as usize {
-        panic!("tag len invalid");
+        log::error!("tag len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
     let plain_text_size = plain_text.len();
 
     if cipher_text.len() != plain_text_size {
-        panic!("cipher_text len invalid");
+        log::error!("cipher_text len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
 
     //debug!("encryption:\n");
@@ -92,32 +96,30 @@ fn decrypt(
         SpdmAeadAlgo::AES_256_GCM => &ring::aead::AES_256_GCM,
         SpdmAeadAlgo::CHACHA20_POLY1305 => &ring::aead::CHACHA20_POLY1305,
         _ => {
-            panic!();
+            log::error!("Decrypt algrithm not support");
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
     };
 
     if key.len() != aead_algo.get_key_size() as usize {
-        panic!("key len invalid");
+        log::error!("key len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
     if iv.len() != aead_algo.get_iv_size() as usize {
-        panic!("iv len invalid");
+        log::error!("iv len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
     let tag_size = tag.len();
     if tag_size != aead_algo.get_tag_size() as usize {
-        panic!("tag len invalid");
+        log::error!("tag len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
     let cipher_text_size = cipher_text.len();
 
     if plain_text.len() != cipher_text_size {
-        panic!("plain_text len invalid");
+        log::error!("plain_text len invalid");
+        return Err(SPDM_STATUS_INVALID_PARAMETER);
     }
-
-    //debug!("decryption:\n");
-    //debug!("key - {:02x?}\n", key);
-    //debug!("iv - {:02x?}\n", iv);
-    //debug!("aad - {:02x?}\n", aad);
-    //debug!("tag - {:02x?}\n", tag);
-    //debug!("cipher_text - {:02x?}\n", cipher_text);
 
     let mut d = [0u8; ring::aead::NONCE_LEN];
     d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
@@ -206,7 +208,6 @@ mod tests {
         assert!(status);
     }
     #[test]
-    #[should_panic]
     fn test_case2_encrypt() {
         let aead_algo = SpdmAeadAlgo::empty();
         let key = &mut [100u8; 1];
@@ -216,10 +217,10 @@ mod tests {
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
         let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        assert!(ret_tag_size.is_err());
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case3_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
         let key = &mut [100u8; 1];
@@ -229,10 +230,10 @@ mod tests {
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
         let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        assert!(ret_tag_size.is_err());
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case4_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
         let key = &mut [100u8; 32];
@@ -242,10 +243,10 @@ mod tests {
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 16];
         let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        assert!(ret_tag_size.is_err());
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case5_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
         let key = &mut [100u8; 32];
@@ -255,10 +256,10 @@ mod tests {
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 1];
         let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        assert!(ret_tag_size.is_err());
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case6_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
         let key = &mut [100u8; 32];
@@ -268,10 +269,10 @@ mod tests {
         let aad = &mut [100u8; 16];
         let cipher_text = &mut [100u8; 1];
         let ret_tag_size = encrypt(aead_algo, key, iv, aad, plain_text, tag, cipher_text);
+        assert!(ret_tag_size.is_err());
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case0_decrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
         let key = &mut [100u8; 32];
@@ -283,13 +284,6 @@ mod tests {
 
         let ret_tag_size = decrypt(aead_algo, key, iv, aad, cipher_text, tag, plain_text);
 
-        match ret_tag_size {
-            Ok(16) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        assert!(ret_tag_size.is_err())
     }
 }

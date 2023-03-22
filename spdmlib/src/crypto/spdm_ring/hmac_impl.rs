@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmHmac;
-use crate::error::{SpdmResult, SPDM_STATUS_VERIF_FAIL};
+use crate::error::{SpdmResult, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL};
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHmac = SpdmHmac {
@@ -17,7 +17,8 @@ fn hmac(base_hash_algo: SpdmBaseHashAlgo, key: &[u8], data: &[u8]) -> Option<Spd
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
         SpdmBaseHashAlgo::TPM_ALG_SHA_512 => ring::hmac::HMAC_SHA512,
         _ => {
-            panic!();
+            log::error!("Not support");
+            return None;
         }
     };
 
@@ -38,7 +39,8 @@ fn hmac_verify(
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
         SpdmBaseHashAlgo::TPM_ALG_SHA_512 => ring::hmac::HMAC_SHA512,
         _ => {
-            panic!();
+            log::error!("Not support");
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
     };
 
@@ -60,15 +62,7 @@ mod tests {
         let data = &mut [100u8; 64];
         let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
         let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
-
-        match spdm_digest_struct {
-            Ok(()) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        assert!(spdm_digest_struct.is_ok())
     }
     #[test]
     fn test_case1_hmac_verify() {
@@ -77,18 +71,9 @@ mod tests {
         let data = &mut [10u8; 128];
         let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
         let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
-
-        match spdm_digest_struct {
-            Ok(()) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        assert!(spdm_digest_struct.is_ok())
     }
     #[test]
-    #[should_panic]
     fn test_case2_hmac_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
         let key = &mut [10u8; 128];
@@ -96,14 +81,6 @@ mod tests {
         let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
         let data = &mut [100u8; 128];
         let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
-
-        match spdm_digest_struct {
-            Ok(()) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        assert!(spdm_digest_struct.is_err())
     }
 }

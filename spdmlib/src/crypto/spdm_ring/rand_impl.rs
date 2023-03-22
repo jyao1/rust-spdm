@@ -41,27 +41,12 @@ mod tests {
     fn test_case0_get_random() {
         let data = &mut [100u8; 16];
         let data_len = get_random(data);
-
-        match data_len {
-            Ok(16) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        assert_eq!(data_len.unwrap(), 16);
     }
     #[test]
     fn test_case1_get_random() {
         let data = &mut [100u8; 80];
         let data_len = get_random(data);
-        match data_len {
-            Ok(80) => {
-                assert!(true)
-            }
-            _ => {
-                panic!()
-            }
-        }
+        assert_eq!(data_len.unwrap(), 80);
     }
 }

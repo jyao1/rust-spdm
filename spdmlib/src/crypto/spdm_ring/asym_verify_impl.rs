@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmAsymVerify;
-use crate::error::{SpdmResult, SPDM_STATUS_INVALID_CERT, SPDM_STATUS_VERIF_FAIL};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_INVALID_CERT, SPDM_STATUS_VERIF_FAIL,
+};
 use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use core::convert::TryFrom;
 
@@ -62,7 +64,8 @@ fn asym_verify(
             &webpki::RSA_PSS_2048_8192_SHA512_LEGACY_KEY
         }
         _ => {
-            panic!();
+            log::error!("(hash,asym) algo not support");
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
     };
 
@@ -145,7 +148,8 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     let der_sign_size = der_r_size + der_s_size + 6;
 
     if der_signature.len() < der_sign_size {
-        panic!("der_signature too small");
+        log::error!("der_signature too small");
+        return 0;
     }
 
     der_signature[0] = 0x30u8;
@@ -208,11 +212,11 @@ mod tests {
         assert_eq!(der_sign_size, 0);
     }
     #[test]
-    #[should_panic]
     fn test_case3_ecc_signature_bin_to_der() {
         let signature = &mut [0xffu8; 64];
         let der_signature = &mut [0u8; 64];
-        ecc_signature_bin_to_der(signature, der_signature);
+        let res = ecc_signature_bin_to_der(signature, der_signature);
+        assert_eq!(res, 0);
     }
     #[test]
     fn test_case0_asym_verify() {
@@ -299,7 +303,6 @@ mod tests {
         }
     }
     #[test]
-    #[should_panic]
     fn test_case3_asym_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;

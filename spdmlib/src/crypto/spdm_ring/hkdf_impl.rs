@@ -84,8 +84,6 @@ mod tests {
     }
     #[test]
     fn test_case1_hkdf_expand() {
-        // remove should panic
-        // hkdf_expand is a library call. It's better to return failure/success instead of panic.
         let base_hash_algo = SpdmBaseHashAlgo::empty();
         let pk = &mut [100u8; 64];
         let info = &mut [100u8; 64];
