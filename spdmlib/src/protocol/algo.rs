@@ -627,6 +627,8 @@ pub struct SpdmAlgStruct {
 
 impl Codec for SpdmAlgStruct {
     fn encode(&self, bytes: &mut Writer) {
+        // DSP0274 Table: Algorithm request structure
+        assert_eq!((self.alg_fixed_count + 2) % 4, 0);
         assert_eq!(self.alg_ext_count, 0);
         self.alg_type.encode(bytes);
         let alg_count = ((self.alg_fixed_count as u32) << 4) as u8;
@@ -1436,7 +1438,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid MeasurementHashAlgo")]
     fn test_case1_spdm_measurement_hash_algo() {
         let mut value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_256;
         assert_eq!(value.get_size(), SHA256_DIGEST_SIZE as u16);
@@ -1463,7 +1465,7 @@ mod tests {
         value.get_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid AsymAlgo")]
     fn test_case1_spdm_base_asym_algo() {
         let mut value = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048;
         assert_eq!(value.get_size(), RSASSA_2048_KEY_SIZE as u16);
@@ -1495,7 +1497,7 @@ mod tests {
         value.get_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid DheAlgo")]
     fn test_case1_spdm_dhe_algo() {
         let mut value = SpdmDheAlgo::FFDHE_2048;
         assert_eq!(value.get_size(), FFDHE_2048_KEY_SIZE as u16);
@@ -1519,7 +1521,7 @@ mod tests {
         value.get_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid AeadAlgo")]
     fn test_case1_spdm_aead_algo() {
         let mut value = SpdmAeadAlgo::AES_128_GCM;
         assert_eq!(value.get_key_size(), AEAD_AES_128_GCM_KEY_SIZE as u16);
@@ -1534,7 +1536,7 @@ mod tests {
         value.get_key_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid AeadAlgo")]
     fn test_case2_spdm_aead_algo() {
         let mut value = SpdmAeadAlgo::AES_128_GCM;
         assert_eq!(value.get_key_size(), AEAD_AES_128_GCM_KEY_SIZE as u16);
@@ -1549,7 +1551,7 @@ mod tests {
         value.get_key_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid AeadAlgo")]
     fn test_case3_spdm_aead_algo() {
         let mut value = SpdmAeadAlgo::AES_128_GCM;
         assert_eq!(value.get_iv_size(), AEAD_AES_128_GCM_IV_SIZE as u16);
@@ -1564,7 +1566,7 @@ mod tests {
         value.get_iv_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid AeadAlgo")]
     fn test_case4_spdm_aead_algo() {
         let mut value = SpdmAeadAlgo::AES_128_GCM;
         assert_eq!(value.get_tag_size(), AEAD_AES_128_GCM_TAG_SIZE as u16);
@@ -1579,7 +1581,7 @@ mod tests {
         value.get_tag_size();
     }
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "invalid ReqAsymAlgo")]
     fn test_case1_spdm_req_asym_algo() {
         let mut value = SpdmReqAsymAlgo::TPM_ALG_RSASSA_2048;
         assert_eq!(value.get_size(), RSASSA_2048_KEY_SIZE as u16);
