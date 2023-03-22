@@ -115,7 +115,7 @@ impl<'a> ResponderContext<'a> {
                             } else {
                                 Ok(self.dispatch_secured_app_message(
                                     session_id,
-                                    &receive_buffer[0..used],
+                                    &spdm_buffer[..decode_size],
                                     auxiliary_app_data,
                                 ))
                             }
