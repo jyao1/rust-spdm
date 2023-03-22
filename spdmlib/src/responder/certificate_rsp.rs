@@ -55,7 +55,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .unwrap(),
             &bytes[..reader.used()],
-        );
+        )
+        .unwrap();
 
         let get_certificate = get_certificate.unwrap();
         let slot_id = get_certificate.slot_id;
@@ -113,7 +114,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .unwrap(),
             writer.used_slice(),
-        );
+        )
+        .unwrap();
     }
 }
 

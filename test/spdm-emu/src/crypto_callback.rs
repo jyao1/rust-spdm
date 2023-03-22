@@ -107,11 +107,11 @@ fn sign_ecdsa_asym_algo(
     let key_bytes = der_file.as_slice();
 
     let key_pair: ring::signature::EcdsaKeyPair =
-        ring::signature::EcdsaKeyPair::from_pkcs8(algorithm, key_bytes).unwrap();
+        ring::signature::EcdsaKeyPair::from_pkcs8(algorithm, key_bytes).ok()?;
 
     let rng = ring::rand::SystemRandom::new();
 
-    let signature = key_pair.sign(&rng, data).unwrap();
+    let signature = key_pair.sign(&rng, data).ok()?;
     let signature = signature.as_ref();
 
     let mut full_signature: [u8; SPDM_MAX_ASYM_KEY_SIZE] = [0u8; SPDM_MAX_ASYM_KEY_SIZE];
@@ -153,7 +153,7 @@ fn sign_rsa_asym_algo(
     let key_bytes = der_file.as_slice();
 
     let key_pair: ring::signature::RsaKeyPair =
-        ring::signature::RsaKeyPair::from_der(key_bytes).unwrap();
+        ring::signature::RsaKeyPair::from_der(key_bytes).ok()?;
 
     if key_len != key_pair.public_modulus_len() {
         panic!();
@@ -164,7 +164,7 @@ fn sign_rsa_asym_algo(
     let mut full_sign = [0u8; SPDM_MAX_ASYM_KEY_SIZE];
     key_pair
         .sign(padding_alg, &rng, data, &mut full_sign[0..key_len])
-        .unwrap();
+        .ok()?;
 
     Some(SpdmSignatureStruct {
         data_size: key_len as u16,

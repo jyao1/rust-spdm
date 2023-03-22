@@ -34,6 +34,9 @@ pub mod hash {
     use crate::crypto::SpdmHash;
     use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
+    #[cfg(feature = "hashed-transcript-data")]
+    use crate::error::SpdmResult;
+
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHash = SpdmHash {
         hash_all_cb: |_base_hash_algo: SpdmBaseHashAlgo,
@@ -64,10 +67,12 @@ pub mod hash {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) {
+    pub fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) -> SpdmResult {
+        use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
+
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
-            .unwrap()
+            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
             .hash_ctx_update_cb)(ctx, data)
     }
 

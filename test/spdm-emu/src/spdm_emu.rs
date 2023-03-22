@@ -63,7 +63,7 @@ pub fn receive_message<'a>(
         buffer_size += s;
         if (expected_size == 0) && (buffer_size >= SOCKET_HEADER_LEN) {
             let mut reader = Reader::init(&buffer[..core::mem::size_of::<SpdmSocketHeader>()]);
-            let socket_header = SpdmSocketHeader::read(&mut reader).unwrap();
+            let socket_header = SpdmSocketHeader::read(&mut reader)?;
 
             expected_size = socket_header.payload_size.to_be() as usize + SOCKET_HEADER_LEN;
             // println!("expected_size: {:?}", expected_size);
@@ -84,7 +84,7 @@ pub fn receive_message<'a>(
     }
 
     let mut reader = Reader::init(&buffer[..SOCKET_HEADER_LEN]);
-    let socket_header = SpdmSocketHeader::read(&mut reader).unwrap();
+    let socket_header = SpdmSocketHeader::read(&mut reader)?;
 
     Some((
         socket_header.transport_type.to_be(),

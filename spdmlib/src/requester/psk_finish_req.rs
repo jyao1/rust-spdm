@@ -5,10 +5,14 @@
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::{
-    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER,
+};
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -85,9 +89,13 @@ impl<'a> RequesterContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
-            session.runtime_info.digest_context_th.as_mut().unwrap(),
+            session
+                .runtime_info
+                .digest_context_th
+                .as_mut()
+                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
             &buf[..temp_used],
-        );
+        )?;
         #[cfg(feature = "hashed-transcript-data")]
         let message_hash = crypto::hash::hash_ctx_finalize(
             session
@@ -95,11 +103,12 @@ impl<'a> RequesterContext<'a> {
                 .digest_context_th
                 .as_mut()
                 .cloned()
-                .unwrap(),
-        );
+                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         let hmac = session.generate_hmac_with_request_finished_key(
             #[cfg(feature = "hashed-transcript-data")]
-            message_hash.unwrap().as_ref(),
+            message_hash.as_ref(),
             #[cfg(not(feature = "hashed-transcript-data"))]
             transcript_data.as_ref(),
         )?;
@@ -112,9 +121,13 @@ impl<'a> RequesterContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         {
             crypto::hash::hash_ctx_update(
-                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                session
+                    .runtime_info
+                    .digest_context_th
+                    .as_mut()
+                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                 hmac.as_ref(),
-            );
+            )?;
         }
 
         // patch the message before send
@@ -190,9 +203,13 @@ impl<'a> RequesterContext<'a> {
                                 };
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                                session
+                                    .runtime_info
+                                    .digest_context_th
+                                    .as_mut()
+                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                 &receive_buffer[..receive_used],
-                            );
+                            )?;
 
                             #[cfg(feature = "hashed-transcript-data")]
                             let th2 = crypto::hash::hash_ctx_finalize(
@@ -201,9 +218,9 @@ impl<'a> RequesterContext<'a> {
                                     .digest_context_th
                                     .as_mut()
                                     .cloned()
-                                    .unwrap(),
+                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                             )
-                            .unwrap();
+                            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
                             debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                             let session =

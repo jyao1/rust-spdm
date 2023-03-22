@@ -5,10 +5,14 @@
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::{
-    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
+};
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -111,23 +115,31 @@ impl<'a> RequesterContext<'a> {
                 return Err(SPDM_STATUS_INVALID_PARAMETER);
             };
             crypto::hash::hash_ctx_update(
-                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                session
+                    .runtime_info
+                    .digest_context_th
+                    .as_mut()
+                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                 &buf[..temp_used],
-            );
+            )?;
             let message_hash = crypto::hash::hash_ctx_finalize(
                 session
                     .runtime_info
                     .digest_context_th
                     .as_mut()
                     .cloned()
-                    .unwrap(),
-            );
-            let hmac =
-                session.generate_hmac_with_request_finished_key(message_hash.unwrap().as_ref())?;
+                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+            )
+            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+            let hmac = session.generate_hmac_with_request_finished_key(message_hash.as_ref())?;
             crypto::hash::hash_ctx_update(
-                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                session
+                    .runtime_info
+                    .digest_context_th
+                    .as_mut()
+                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                 hmac.as_ref(),
-            );
+            )?;
             // patch the message before send
             buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
             Ok((send_used, base_hash_size, ManagedBuffer::default()))
@@ -200,9 +212,13 @@ impl<'a> RequesterContext<'a> {
 
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                                session
+                                    .runtime_info
+                                    .digest_context_th
+                                    .as_mut()
+                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                 &receive_buffer[..temp_used],
-                            );
+                            )?;
 
                             #[cfg(feature = "hashed-transcript-data")]
                             let ctx_cloned = session
@@ -210,14 +226,14 @@ impl<'a> RequesterContext<'a> {
                                 .digest_context_th
                                 .as_mut()
                                 .cloned()
-                                .unwrap();
+                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
                             if session
                                 .verify_hmac_with_response_finished_key(
                                     #[cfg(not(feature = "hashed-transcript-data"))]
                                     transcript_data.as_ref(),
                                     #[cfg(feature = "hashed-transcript-data")]
                                     crypto::hash::hash_ctx_finalize(ctx_cloned)
-                                        .unwrap()
+                                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                                         .as_ref(),
                                     &finish_rsp.verify_data,
                                 )
@@ -239,9 +255,13 @@ impl<'a> RequesterContext<'a> {
                             }
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                                session
+                                    .runtime_info
+                                    .digest_context_th
+                                    .as_mut()
+                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                 finish_rsp.verify_data.as_ref(),
-                            );
+                            )?;
                         } else {
                             let session =
                                 if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -259,9 +279,13 @@ impl<'a> RequesterContext<'a> {
                             }
                             #[cfg(feature = "hashed-transcript-data")]
                             crypto::hash::hash_ctx_update(
-                                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                                session
+                                    .runtime_info
+                                    .digest_context_th
+                                    .as_mut()
+                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                 &receive_buffer[..receive_used],
-                            );
+                            )?;
                         }
 
                         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -296,9 +320,9 @@ impl<'a> RequesterContext<'a> {
                                 .digest_context_th
                                 .as_mut()
                                 .cloned()
-                                .unwrap(),
+                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                         )
-                        .unwrap();
+                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                         let session = if let Some(s) = self.common.get_session_via_id(session_id) {

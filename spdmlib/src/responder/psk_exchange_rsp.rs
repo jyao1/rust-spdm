@@ -110,7 +110,8 @@ impl<'a> ResponderContext<'a> {
         crypto::hash::hash_ctx_update(
             &mut digest_context_th,
             self.common.runtime_info.message_a.as_ref(),
-        );
+        )
+        .unwrap();
 
         info!("send spdm psk_exchange rsp\n");
 
@@ -168,11 +169,12 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]);
+            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]).unwrap();
             crypto::hash::hash_ctx_update(
                 &mut digest_context_th,
                 &writer.used_slice()[..temp_used],
-            );
+            )
+            .unwrap();
         }
 
         // create session - generate the handshake secret (including finished_key)
@@ -261,7 +263,7 @@ impl<'a> ResponderContext<'a> {
         }
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref());
+            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref()).unwrap();
             session.runtime_info.digest_context_th = Some(digest_context_th);
         }
 

@@ -183,7 +183,8 @@ impl<'a> ResponderContext<'a> {
                         crypto::hash::hash_ctx_update(
                             session.runtime_info.digest_context_l1l2.as_mut().unwrap(),
                             message_a.as_ref(),
-                        );
+                        )
+                        .unwrap();
                     }
                 }
 
@@ -201,7 +202,8 @@ impl<'a> ResponderContext<'a> {
                                 .as_mut()
                                 .unwrap(),
                             message_a.as_ref(),
-                        );
+                        )
+                        .unwrap();
                     }
                 }
 
@@ -209,7 +211,8 @@ impl<'a> ResponderContext<'a> {
             }
         };
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), &bytes[..reader.used()]);
+        crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), &bytes[..reader.used()])
+            .unwrap();
 
         // generat signature
         if get_measurements
@@ -225,7 +228,8 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 message_m.as_mut().unwrap(),
                 &writer.used_slice()[..temp_used],
-            );
+            )
+            .unwrap();
 
             let signature = self.generate_measurement_signature(session_id);
             if signature.is_err() {
@@ -269,7 +273,8 @@ impl<'a> ResponderContext<'a> {
             #[cfg(feature = "hashed-transcript-data")]
             match session_id {
                 Some(_) => {
-                    crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), writer.used_slice());
+                    crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), writer.used_slice())
+                        .unwrap();
                 }
                 None => {
                     crypto::hash::hash_ctx_update(
@@ -279,7 +284,8 @@ impl<'a> ResponderContext<'a> {
                             .as_mut()
                             .unwrap(),
                         writer.used_slice(),
-                    );
+                    )
+                    .unwrap();
                 }
             }
         }

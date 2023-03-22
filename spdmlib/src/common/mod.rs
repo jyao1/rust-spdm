@@ -234,11 +234,11 @@ impl<'a> SpdmContext<'a> {
 
             let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
-                .unwrap()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .cert_chain
                 .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
-                .unwrap()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .cert_chain
                 .data_size as usize)];
             let cert_chain_hash =
@@ -253,11 +253,11 @@ impl<'a> SpdmContext<'a> {
             .append_message(message_k.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_k - {:02x?}", message_k.as_ref());
-        if message_f.is_some() {
+        if let Some(message_f) = message_f {
             message
-                .append_message(message_f.unwrap().as_ref())
+                .append_message(message_f.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            debug!("message_f - {:02x?}", message_f.unwrap().as_ref());
+            debug!("message_f - {:02x?}", message_f.as_ref());
         }
 
         Ok(message)
@@ -281,7 +281,11 @@ impl<'a> SpdmContext<'a> {
                 return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
             }
 
-            let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref().unwrap();
+            let my_cert_chain_data = self
+                .provision_info
+                .my_cert_chain
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
@@ -296,11 +300,11 @@ impl<'a> SpdmContext<'a> {
             .append_message(message_k.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_k - {:02x?}", message_k.as_ref());
-        if message_f.is_some() {
+        if let Some(message_f) = message_f {
             message
-                .append_message(message_f.unwrap().as_ref())
+                .append_message(message_f.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            debug!("message_f - {:02x?}", message_f.unwrap().as_ref());
+            debug!("message_f - {:02x?}", message_f.as_ref());
         }
 
         Ok(message)
@@ -344,7 +348,7 @@ impl<'a> SpdmContext<'a> {
                 return None;
             }
 
-            let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref().unwrap();
+            let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref()?;
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
@@ -367,12 +371,10 @@ impl<'a> SpdmContext<'a> {
             }
 
             let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .unwrap()
+                .as_ref()?
                 .cert_chain
                 .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .unwrap()
+                .as_ref()?
                 .cert_chain
                 .data_size as usize)];
             let cert_chain_hash =
