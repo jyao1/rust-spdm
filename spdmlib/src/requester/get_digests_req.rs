@@ -5,8 +5,15 @@
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::SPDM_STATUS_BUFFER_FULL;
-use crate::error::{SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD};
+use crate::error::{
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER,
+};
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
+};
 use crate::message::*;
 use crate::requester::*;
 
@@ -18,14 +25,22 @@ impl<'a> RequesterContext<'a> {
         if session_id.is_none() {
             self.send_message(&send_buffer[..send_used])?;
         } else {
-            self.send_secured_message(session_id.unwrap(), &send_buffer[..send_used], false)?;
+            self.send_secured_message(
+                session_id.ok_or(SPDM_STATUS_INVALID_PARAMETER)?,
+                &send_buffer[..send_used],
+                false,
+            )?;
         }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let used = if session_id.is_none() {
             self.receive_message(&mut receive_buffer, false)?
         } else {
-            self.receive_secured_message(session_id.unwrap(), &mut receive_buffer, false)?
+            self.receive_secured_message(
+                session_id.ok_or(SPDM_STATUS_INVALID_PARAMETER)?,
+                &mut receive_buffer,
+                false,
+            )?
         };
 
         self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])
@@ -82,17 +97,17 @@ impl<'a> RequesterContext<'a> {
                                         .runtime_info
                                         .digest_context_m1m2
                                         .as_mut()
-                                        .unwrap(),
+                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                     send_buffer,
-                                );
+                                )?;
                                 crypto::hash::hash_ctx_update(
                                     self.common
                                         .runtime_info
                                         .digest_context_m1m2
                                         .as_mut()
-                                        .unwrap(),
+                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                     &receive_buffer[..used],
-                                );
+                                )?;
                             }
 
                             Ok(())

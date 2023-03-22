@@ -201,7 +201,8 @@ impl<'a> ResponderContext<'a> {
                     .as_mut()
                     .unwrap(),
                 self.common.runtime_info.message_a.as_ref(),
-            );
+            )
+            .unwrap();
         }
     }
 }

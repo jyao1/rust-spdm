@@ -57,7 +57,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .unwrap(),
             &bytes[..reader.used()],
-        );
+        )
+        .unwrap();
 
         let digest_size = self.common.negotiate_info.base_hash_sel.get_size();
 
@@ -107,7 +108,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .unwrap(),
             writer.used_slice(),
-        );
+        )
+        .unwrap();
     }
 }
 

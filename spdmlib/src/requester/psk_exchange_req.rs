@@ -6,9 +6,13 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::{
-    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
+};
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
 };
 use crate::message::*;
@@ -147,18 +151,18 @@ impl<'a> RequesterContext<'a> {
                             let mut digest_context_th = crypto::hash::hash_ctx_init(
                                 self.common.negotiate_info.base_hash_sel,
                             )
-                            .unwrap();
+                            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                             #[cfg(feature = "hashed-transcript-data")]
                             {
                                 crypto::hash::hash_ctx_update(
                                     &mut digest_context_th,
                                     self.common.runtime_info.message_a.as_ref(),
-                                );
-                                crypto::hash::hash_ctx_update(&mut digest_context_th, send_buffer);
+                                )?;
+                                crypto::hash::hash_ctx_update(&mut digest_context_th, send_buffer)?;
                                 crypto::hash::hash_ctx_update(
                                     &mut digest_context_th,
                                     &receive_buffer[..temp_receive_used],
-                                );
+                                )?;
                             }
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
@@ -183,8 +187,8 @@ impl<'a> RequesterContext<'a> {
                                 None,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
-                            let th1 =
-                                crypto::hash::hash_ctx_finalize(digest_context_th.clone()).unwrap();
+                            let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone())
+                                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                             let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                             let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -250,7 +254,7 @@ impl<'a> RequesterContext<'a> {
                                     transcript_data.as_ref(),
                                     #[cfg(feature = "hashed-transcript-data")]
                                     crypto::hash::hash_ctx_finalize(digest_context_th.clone())
-                                        .unwrap()
+                                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                                         .as_ref(),
                                     &psk_exchange_rsp.verify_data,
                                 )
@@ -274,7 +278,7 @@ impl<'a> RequesterContext<'a> {
                                 crypto::hash::hash_ctx_update(
                                     &mut digest_context_th,
                                     psk_exchange_rsp.verify_data.as_ref(),
-                                );
+                                )?;
                                 session.runtime_info.digest_context_th = Some(digest_context_th);
                             }
 

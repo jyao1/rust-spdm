@@ -67,7 +67,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .unwrap(),
             &bytes[..reader.used()],
-        );
+        )
+        .unwrap();
 
         info!("send spdm challenge_auth\n");
 
@@ -128,7 +129,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .unwrap(),
             &writer.used_slice()[..temp_used],
-        );
+        )
+        .unwrap();
         #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_challenge_auth_signature();
         #[cfg(feature = "hashed-transcript-data")]

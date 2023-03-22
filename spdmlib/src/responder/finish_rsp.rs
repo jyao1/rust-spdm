@@ -89,7 +89,8 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 session.runtime_info.digest_context_th.as_mut().unwrap(),
                 &bytes[..temp_used],
-            );
+            )
+            .unwrap();
 
             #[cfg(feature = "hashed-transcript-data")]
             let message_hash = crypto::hash::hash_ctx_finalize(
@@ -130,7 +131,8 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 session.runtime_info.digest_context_th.as_mut().unwrap(),
                 finish_req.verify_data.as_ref(),
-            );
+            )
+            .unwrap();
         }
 
         let in_clear_text = self
@@ -184,7 +186,8 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 session.runtime_info.digest_context_th.as_mut().unwrap(),
                 &writer.used_slice()[..temp_used],
-            );
+            )
+            .unwrap();
 
             #[cfg(not(feature = "hashed-transcript-data"))]
             let transcript_data =
@@ -238,7 +241,8 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 session.runtime_info.digest_context_th.as_mut().unwrap(),
                 hmac.as_ref(),
-            );
+            )
+            .unwrap();
 
             // patch the message before send
             writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
@@ -257,7 +261,8 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 session.runtime_info.digest_context_th.as_mut().unwrap(),
                 writer.used_slice(),
-            );
+            )
+            .unwrap();
         }
 
         // generate the data secret

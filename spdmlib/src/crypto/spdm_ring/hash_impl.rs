@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmHash;
+use crate::error::SpdmResult;
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 #[cfg(feature = "hashed-transcript-data")]
@@ -41,8 +42,9 @@ fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx> {
 }
 
 #[cfg(feature = "hashed-transcript-data")]
-fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) {
-    ctx.update(data)
+fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) -> SpdmResult {
+    ctx.update(data);
+    Ok(())
 }
 
 #[cfg(feature = "hashed-transcript-data")]

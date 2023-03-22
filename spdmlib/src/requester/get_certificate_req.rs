@@ -7,7 +7,7 @@ use crate::crypto;
 use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::{
     SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_CERT,
-    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -106,7 +106,7 @@ impl<'a> RequesterContext<'a> {
                             }
                             self.common.peer_info.peer_cert_chain[slot_id as usize]
                                 .as_mut()
-                                .unwrap()
+                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?
                                 .cert_chain
                                 .data[(offset as usize)
                                 ..(offset as usize + certificate.portion_length as usize)]
@@ -117,7 +117,7 @@ impl<'a> RequesterContext<'a> {
 
                             self.common.peer_info.peer_cert_chain[slot_id as usize]
                                 .as_mut()
-                                .unwrap()
+                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?
                                 .cert_chain
                                 .data_size = offset + certificate.portion_length;
 
@@ -139,17 +139,17 @@ impl<'a> RequesterContext<'a> {
                                         .runtime_info
                                         .digest_context_m1m2
                                         .as_mut()
-                                        .unwrap(),
+                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                     send_buffer,
-                                );
+                                )?;
                                 crypto::hash::hash_ctx_update(
                                     self.common
                                         .runtime_info
                                         .digest_context_m1m2
                                         .as_mut()
-                                        .unwrap(),
+                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                     &receive_buffer[..used],
-                                );
+                                )?;
                             }
 
                             Ok((certificate.portion_length, certificate.remainder_length))
@@ -213,7 +213,7 @@ impl<'a> RequesterContext<'a> {
             }
             if self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
-                .unwrap()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .cert_chain
                 .data_size
                 <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
@@ -223,7 +223,7 @@ impl<'a> RequesterContext<'a> {
 
             let data_size = self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
-                .unwrap()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .cert_chain
                 .data_size
                 - 4
@@ -232,13 +232,13 @@ impl<'a> RequesterContext<'a> {
             data[0..(data_size as usize)].copy_from_slice(
                 &self.common.peer_info.peer_cert_chain[slot_id as usize]
                     .as_ref()
-                    .unwrap()
+                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                     .cert_chain
                     .data[(4usize
                     + self.common.negotiate_info.base_hash_sel.get_size() as usize)
                     ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                         .as_ref()
-                        .unwrap()
+                        .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                         .cert_chain
                         .data_size as usize)],
             );
@@ -261,7 +261,7 @@ impl<'a> RequesterContext<'a> {
             if root_hash.data[..(root_hash.data_size as usize)]
                 != self.common.peer_info.peer_cert_chain[slot_id as usize]
                     .as_ref()
-                    .unwrap()
+                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                     .cert_chain
                     .data[4usize
                     ..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]

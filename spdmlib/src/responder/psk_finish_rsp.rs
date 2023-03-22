@@ -88,7 +88,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             &bytes[..temp_used],
-        );
+        )
+        .unwrap();
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         let message_k = &session.runtime_info.message_k.clone();
@@ -156,7 +157,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             psk_finish_req.verify_data.as_ref(),
-        );
+        )
+        .unwrap();
 
         info!("send spdm psk_finish rsp\n");
 
@@ -189,7 +191,8 @@ impl<'a> ResponderContext<'a> {
                 .as_mut()
                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             writer.used_slice(),
-        );
+        )
+        .unwrap();
 
         let session = self
             .common

@@ -3,12 +3,16 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
+};
+#[cfg(feature = "hashed-transcript-data")]
 use crate::error::{
     SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
 };
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -184,9 +188,9 @@ impl<'a> RequesterContext<'a> {
                                                     .runtime_info
                                                     .digest_context_l1l2
                                                     .as_mut()
-                                                    .unwrap(),
+                                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                                 message_a.as_ref(),
-                                            );
+                                            )?;
                                         }
                                     }
 
@@ -197,17 +201,17 @@ impl<'a> RequesterContext<'a> {
                                                 .runtime_info
                                                 .digest_context_l1l2
                                                 .as_mut()
-                                                .unwrap(),
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                             send_buffer,
-                                        );
+                                        )?;
                                         crypto::hash::hash_ctx_update(
                                             session
                                                 .runtime_info
                                                 .digest_context_l1l2
                                                 .as_mut()
-                                                .unwrap(),
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                             &receive_buffer[..temp_used],
-                                        );
+                                        )?;
                                     }
 
                                     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -241,9 +245,9 @@ impl<'a> RequesterContext<'a> {
                                                     .runtime_info
                                                     .digest_context_l1l2
                                                     .as_mut()
-                                                    .unwrap(),
+                                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                                 message_a.as_ref(),
-                                            );
+                                            )?;
                                         }
                                     }
                                     #[cfg(feature = "hashed-transcript-data")]
@@ -253,17 +257,17 @@ impl<'a> RequesterContext<'a> {
                                                 .runtime_info
                                                 .digest_context_l1l2
                                                 .as_mut()
-                                                .unwrap(),
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                             send_buffer,
-                                        );
+                                        )?;
                                         crypto::hash::hash_ctx_update(
                                             self.common
                                                 .runtime_info
                                                 .digest_context_l1l2
                                                 .as_mut()
-                                                .unwrap(),
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                             &receive_buffer[..temp_used],
-                                        );
+                                        )?;
                                     }
 
                                     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -380,7 +384,7 @@ impl<'a> RequesterContext<'a> {
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        use crate::error::SPDM_STATUS_BUFFER_FULL;
+        use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 
         let message_hash = match session_id {
             None => {
@@ -390,8 +394,8 @@ impl<'a> RequesterContext<'a> {
                     .digest_context_l1l2
                     .as_mut()
                     .cloned()
-                    .unwrap();
-                crypto::hash::hash_ctx_finalize(ctx)
+                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+                crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?
             }
             Some(session_id) => {
                 let session = if let Some(s) = self.common.get_session_via_id(session_id) {
@@ -404,12 +408,11 @@ impl<'a> RequesterContext<'a> {
                     .digest_context_l1l2
                     .as_mut()
                     .cloned()
-                    .unwrap();
-                crypto::hash::hash_ctx_finalize(ctx)
+                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+                crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?
             }
         };
-        assert!(message_hash.is_some());
-        let message_hash = message_hash.unwrap();
+
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
@@ -419,12 +422,12 @@ impl<'a> RequesterContext<'a> {
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
-            .unwrap()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
             .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
-                .unwrap()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .cert_chain
                 .data_size as usize)];
 
@@ -503,12 +506,12 @@ impl<'a> RequesterContext<'a> {
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
-            .unwrap()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
             .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
-                .unwrap()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .cert_chain
                 .data_size as usize)];
 

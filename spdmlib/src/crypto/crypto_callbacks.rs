@@ -21,7 +21,7 @@ pub struct SpdmHash {
     #[cfg(feature = "hashed-transcript-data")]
     pub hash_ctx_init_cb: fn(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx>,
     #[cfg(feature = "hashed-transcript-data")]
-    pub hash_ctx_update_cb: fn(ctx: &mut HashCtx, data: &[u8]),
+    pub hash_ctx_update_cb: fn(ctx: &mut HashCtx, data: &[u8]) -> SpdmResult,
     #[cfg(feature = "hashed-transcript-data")]
     pub hash_ctx_finalize_cb: fn(ctx: HashCtx) -> Option<SpdmDigestStruct>,
 }

@@ -311,7 +311,7 @@ impl Codec for SpdmStatus {
         let mut sc = 0u32;
         sc += (((self.severity as u8) & 0x0F) as u32) << 28;
         sc += <StatusCode as TryInto<u24>>::try_into(self.status_code)
-            .unwrap()
+            .unwrap() //due to the design of encode, panic is allowed
             .get();
         sc.encode(bytes);
     }

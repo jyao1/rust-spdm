@@ -206,13 +206,16 @@ impl<'a> ResponderContext<'a> {
             crypto::hash::hash_ctx_update(
                 &mut digest_context_th,
                 self.common.runtime_info.message_a.as_ref(),
-            );
-            crypto::hash::hash_ctx_update(&mut digest_context_th, cert_chain_hash.as_ref());
-            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]);
+            )
+            .unwrap();
+            crypto::hash::hash_ctx_update(&mut digest_context_th, cert_chain_hash.as_ref())
+                .unwrap();
+            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]).unwrap();
             crypto::hash::hash_ctx_update(
                 &mut digest_context_th,
                 &writer.used_slice()[..temp_used],
-            );
+            )
+            .unwrap();
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_key_exchange_rsp_signature(&message_k);
@@ -229,7 +232,7 @@ impl<'a> ResponderContext<'a> {
             return Err(SPDM_STATUS_BUFFER_FULL);
         }
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(&mut digest_context_th, signature.as_ref());
+        crypto::hash::hash_ctx_update(&mut digest_context_th, signature.as_ref()).unwrap();
 
         // create session - generate the handshake secret (including finished_key)
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -313,7 +316,7 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref());
+            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref()).unwrap();
 
             session.runtime_info.digest_context_th = Some(digest_context_th);
         }

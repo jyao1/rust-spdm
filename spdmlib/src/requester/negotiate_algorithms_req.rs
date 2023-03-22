@@ -4,10 +4,17 @@
 
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_NEGOTIATION_FAIL,
+};
+#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_NEGOTIATION_FAIL,
 };
+
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -153,9 +160,9 @@ impl<'a> RequesterContext<'a> {
                                         .runtime_info
                                         .digest_context_m1m2
                                         .as_mut()
-                                        .unwrap(),
+                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
                                     message_a.as_ref(),
-                                );
+                                )?;
                             }
 
                             return Ok(());
