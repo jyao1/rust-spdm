@@ -190,6 +190,18 @@ mod tests {
 
         let bundle_certs_der =
             &include_bytes!("../../../../test_key/crypto_chains/bundle_cert.der")[..];
-        assert!(verify_cert_chain(bundle_certs_der).is_ok())
+        assert!(verify_cert_chain(bundle_certs_der).is_ok());
+
+        // Flipping bits to test signature hash is invalid.
+        let mut cert_chain = bundle_certs_der.to_vec();
+        // offset 3140 is in signature range.
+        cert_chain[3140] ^= 0xFE;
+        assert!(verify_cert_chain(&cert_chain).is_err());
+
+        // Invalid Intermediate cert
+        let mut cert_chain = bundle_certs_der.to_vec();
+        // Change intermediate cert data
+        cert_chain[1380] = 0xFF;
+        assert!(verify_cert_chain(&cert_chain).is_err());
     }
 }
