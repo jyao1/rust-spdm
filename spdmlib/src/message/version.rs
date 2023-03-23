@@ -189,3 +189,7 @@ mod tests {
         SpdmGetVersionRequestPayload::spdm_read(&mut context, &mut reader);
     }
 }
+
+#[cfg(all(test,))]
+#[path = "version_test.rs"]
+mod version_test;
