@@ -7,7 +7,7 @@ use crate::common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
 use byteorder::{ByteOrder, LittleEndian};
 use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
-#[ignore]
+#[ignore = "Test Fail"]
 #[test]
 fn test_capability_struct() {
     // 1. Validate Negative DataTransferSize < MinDataTransferSize. Expectation failed.

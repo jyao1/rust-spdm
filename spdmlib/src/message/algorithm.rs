@@ -515,3 +515,7 @@ mod tests {
         assert_eq!(16, reader.left());
     }
 }
+
+#[cfg(all(test,))]
+#[path = "algorithm_test.rs"]
+mod algorithm_test;
