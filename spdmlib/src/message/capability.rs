@@ -384,3 +384,7 @@ mod tests {
         assert_eq!(0, reader.left())
     }
 }
+
+#[cfg(all(test,))]
+#[path = "capability_test.rs"]
+mod capability_test;
