@@ -21,17 +21,107 @@ use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_algorithm(&mut self) -> SpdmResult {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_NEGOTIATE_ALGORITHMS_REQUEST_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_algorithm(&mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_ALGORITHMS_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_algorithm_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }
 
     pub fn encode_spdm_algorithm(&mut self, buf: &mut [u8]) -> usize {
         let other_params_support: SpdmOpaqueSupport = self.common.config_info.opaque_support;
+
+        let mut alg_struct =
+            gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
+        for i in 0..config::USER_MAX_SPDM_ALG_STRUCT_COUNT {
+            if self.common.config_info.is_dhe_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeDHE {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(self.common.config_info.dhe_algo),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+
+            if self.common.config_info.is_aead_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeAEAD {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoAead(self.common.config_info.aead_algo),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+
+            if self.common.config_info.is_req_asym_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeReqAsym {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoReqAsym(self.common.config_info.req_asym_algo),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+
+            if self.common.config_info.is_key_schedule_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeKeySchedule {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                        self.common.config_info.key_schedule_algo,
+                    ),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+        }
 
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
@@ -45,37 +135,8 @@ impl<'a> RequesterContext<'a> {
                     other_params_support,
                     base_asym_algo: self.common.config_info.base_asym_algo,
                     base_hash_algo: self.common.config_info.base_hash_algo,
-                    alg_struct_count: 4,
-                    alg_struct: [
-                        SpdmAlgStruct {
-                            alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                            alg_fixed_count: 2,
-                            alg_supported: SpdmAlg::SpdmAlgoDhe(self.common.config_info.dhe_algo),
-                            alg_ext_count: 0,
-                        },
-                        SpdmAlgStruct {
-                            alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
-                            alg_fixed_count: 2,
-                            alg_supported: SpdmAlg::SpdmAlgoAead(self.common.config_info.aead_algo),
-                            alg_ext_count: 0,
-                        },
-                        SpdmAlgStruct {
-                            alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
-                            alg_fixed_count: 2,
-                            alg_supported: SpdmAlg::SpdmAlgoReqAsym(
-                                self.common.config_info.req_asym_algo,
-                            ),
-                            alg_ext_count: 0,
-                        },
-                        SpdmAlgStruct {
-                            alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
-                            alg_fixed_count: 2,
-                            alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
-                                self.common.config_info.key_schedule_algo,
-                            ),
-                            alg_ext_count: 0,
-                        },
-                    ],
+                    alg_struct_count: config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8,
+                    alg_struct,
                 },
             ),
         };
@@ -201,8 +262,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_algorithm() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -213,7 +274,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -223,7 +283,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

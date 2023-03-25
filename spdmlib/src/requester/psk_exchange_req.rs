@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use config::MAX_SPDM_PSK_CONTEXT_SIZE;
+use config::USER_MAX_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
@@ -22,9 +22,6 @@ use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
-
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_exchange(
         &mut self,
@@ -32,7 +29,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm psk exchange\n");
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_PSK_KEY_EXCHANGE_REQUEST_MESSAGE_BUFFER_SIZE];
         let half_session_id = self.common.get_next_half_session_id(true)?;
         let send_used = self.encode_spdm_psk_exchange(
             half_session_id,
@@ -43,7 +40,8 @@ impl<'a> RequesterContext<'a> {
         self.send_message(&send_buffer[..send_used])?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer =
+            [0u8; config::MAX_PSK_KEY_EXCHANGE_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_psk_exchange_response(
             half_session_id,
@@ -61,7 +59,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
 
-        let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
+        let mut psk_context = [0u8; USER_MAX_PSK_CONTEXT_SIZE];
         crypto::rand::get_random(&mut psk_context)?;
 
         let mut opaque;
@@ -166,7 +164,7 @@ impl<'a> RequesterContext<'a> {
                             }
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
-                            let mut message_k = ManagedBuffer::default();
+                            let mut message_k = ManagedBufferMessageK::default();
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             {
                                 message_k
@@ -327,8 +325,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_psk_exchange() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -339,7 +337,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -357,7 +354,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

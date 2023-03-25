@@ -20,5 +20,5 @@ pub type TdispResult<T = ()> = Result<T, InternalError>;
 
 pub const PCI_VENDOR_ID_STRUCT: VendorIDStruct = VendorIDStruct {
     len: 0,
-    vendor_id: [0u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
+    vendor_id: [0u8; config::MAX_VENDOR_ID_LEN_SIZE],
 };

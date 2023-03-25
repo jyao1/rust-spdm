@@ -9,12 +9,12 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_heartbeat(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm heartbeat\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_HEARTBEAT_REQUEST_MESSAGE_BUFFER_SIZE];
         let used = self.encode_spdm_heartbeat(&mut send_buffer);
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_HEARTBEAT_ACK_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
     }
@@ -83,8 +83,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_heartbeat() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -95,7 +95,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -119,7 +118,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 
@@ -138,6 +136,7 @@ mod tests_requester {
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         let status = requester.send_receive_spdm_heartbeat(session_id).is_ok();
+        println!("status:{:?}", status);
         assert!(status);
     }
 }

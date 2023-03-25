@@ -15,7 +15,7 @@ impl<'a> RequesterContext<'a> {
         req_payload_struct: VendorDefinedReqPayloadStruct,
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         info!("send vendor defined request\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_VENDOR_DEFINED_REQUEST_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -35,7 +35,7 @@ impl<'a> RequesterContext<'a> {
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         //receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_VENDOR_DEFINED_RESPONSE_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
 
         self.handle_spdm_vendor_defined_respond(session_id, &receive_buffer[..receive_used])
@@ -92,8 +92,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_spdm_vendor_defined_request() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -104,7 +104,6 @@ mod tests_requester {
         let mut responder = ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -114,7 +113,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 
@@ -122,7 +120,7 @@ mod tests_requester {
         let standard_id: RegistryOrStandardsBodyID = RegistryOrStandardsBodyID::DMTF;
         let vendor_idstruct: VendorIDStruct = VendorIDStruct {
             len: 0,
-            vendor_id: [0u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
+            vendor_id: [0u8; config::MAX_VENDOR_ID_LEN_SIZE],
         };
         let req_payload_struct: VendorDefinedReqPayloadStruct = VendorDefinedReqPayloadStruct {
             req_length: 0,

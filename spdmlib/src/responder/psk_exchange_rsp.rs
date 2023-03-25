@@ -16,16 +16,13 @@ use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_STATE_LOCAL};
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
-use config::MAX_SPDM_PSK_CONTEXT_SIZE;
+use config::USER_MAX_PSK_CONTEXT_SIZE;
 extern crate alloc;
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
-
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_psk_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_PSK_KEY_EXCHANGE_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_psk_exchange_response(bytes, &mut writer)?;
         self.send_message(writer.used_slice())
@@ -115,7 +112,7 @@ impl<'a> ResponderContext<'a> {
 
         info!("send spdm psk_exchange rsp\n");
 
-        let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
+        let mut psk_context = [0u8; USER_MAX_PSK_CONTEXT_SIZE];
         let _ = crypto::rand::get_random(&mut psk_context);
 
         let rsp_session_id = self.common.get_next_half_session_id(false)?;
@@ -151,7 +148,7 @@ impl<'a> ResponderContext<'a> {
         let temp_used = used - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_k = ManagedBuffer::default();
+        let mut message_k = crate::common::ManagedBufferMessageK::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {
@@ -286,7 +283,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
-    use crate::config::MAX_SPDM_PSK_HINT_SIZE;
+    use crate::config::USER_MAX_PSK_HINT_SIZE;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
     use crate::{crypto, responder};
@@ -294,7 +291,7 @@ mod tests_responder {
 
     #[test]
     fn test_case0_handle_spdm_psk_exchange() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -304,7 +301,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
@@ -331,16 +327,16 @@ mod tests_responder {
             req_session_id: 100u16,
             psk_hint: SpdmPskHintStruct {
                 data_size: 32,
-                data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
+                data: [100u8; USER_MAX_PSK_HINT_SIZE],
             },
             psk_context: SpdmPskContextStruct {
                 data_size: 64,
-                data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
                     .len() as u16,
-                data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+                data: [0u8; config::MAX_OPAQUE_DATA_LENGTH],
             },
         };
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(

@@ -12,7 +12,7 @@ impl<'a> RequesterContext<'a> {
         expected_response_code: SpdmRequestResponseCode,
         extend_error_data: SpdmErrorResponseNotReadyExtData,
     ) -> SpdmResult<ReceivedMessage> {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_RESPOND_IF_READY_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -29,7 +29,7 @@ impl<'a> RequesterContext<'a> {
         let used = writer.used();
         self.send_message(&send_buffer[..used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
 
         //Have a sanity check!

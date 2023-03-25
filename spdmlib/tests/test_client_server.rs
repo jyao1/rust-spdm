@@ -19,22 +19,20 @@ fn intergration_client_server() {
     let device_io_responder = &mut FakeSpdmDeviceIoReceve::new(&shared_buffer);
     let transport_encap_responder = &mut PciDoeTransportEncap {};
 
-    let (config_info, provision_info) = common::utils::rsp_create_info();
+    let provision_info = common::utils::rsp_create_info();
     let mut responder_context = responder::ResponderContext::new(
         device_io_responder,
         transport_encap_responder,
-        config_info,
         provision_info,
     );
 
     let device_io_requester = &mut FakeSpdmDeviceIo::new(&shared_buffer, &mut responder_context);
     let transport_encap_requester = &mut PciDoeTransportEncap {};
 
-    let (config_info, provision_info) = common::utils::req_create_info();
+    let provision_info = common::utils::req_create_info();
     let mut requester_context = requester::RequesterContext::new(
         device_io_requester,
         transport_encap_requester,
-        config_info,
         provision_info,
     );
 
@@ -48,6 +46,7 @@ fn intergration_client_server() {
 
     let result = requester_context.start_session(
         false,
+        0,
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );

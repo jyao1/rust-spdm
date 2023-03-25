@@ -5,7 +5,6 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::common::ManagedBuffer;
 use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_ERROR_PEER;
 use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
@@ -27,20 +26,23 @@ impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_key_exchange(
         &mut self,
         slot_id: u8,
+        session_policy: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_KEY_EXCHANGE_REQUEST_MESSAGE_BUFFER_SIZE];
         let (key_exchange_context, send_used) = self.encode_spdm_key_exchange(
             &mut send_buffer,
             slot_id,
+            session_policy,
             measurement_summary_hash_type,
         )?;
+
         self.send_message(&send_buffer[..send_used])?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_KEY_EXCHANGE_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_key_exhcange_response(
             0,
@@ -56,6 +58,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         buf: &mut [u8],
         slot_id: u8,
+        session_policy: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<(Box<dyn crypto::SpdmDheKeyExchange>, usize)> {
         let mut writer = Writer::init(buf);
@@ -106,7 +109,7 @@ impl<'a> RequesterContext<'a> {
                 slot_id,
                 measurement_summary_hash_type,
                 req_session_id,
-                session_policy: self.common.config_info.session_policy,
+                session_policy,
                 random: SpdmRandomStruct { data: random },
                 exchange,
                 opaque,
@@ -201,7 +204,7 @@ impl<'a> RequesterContext<'a> {
                             }
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
-                            let mut message_k = ManagedBuffer::default();
+                            let mut message_k = ManagedBufferMessageK::default();
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             {
                                 message_k
@@ -438,7 +441,7 @@ impl<'a> RequesterContext<'a> {
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
-        message_k: &ManagedBuffer,
+        message_k: &ManagedBufferMessageK,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         let mut message = self
@@ -501,8 +504,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_key_exchange() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -517,7 +520,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -559,7 +561,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 
@@ -601,7 +602,7 @@ mod tests_requester {
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
         let status = requester
-            .send_receive_spdm_key_exchange(0, measurement_summary_hash_type)
+            .send_receive_spdm_key_exchange(0, 0, measurement_summary_hash_type)
             .is_ok();
         assert!(status);
     }

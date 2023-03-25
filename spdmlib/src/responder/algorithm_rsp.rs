@@ -10,7 +10,7 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_algorithm(&mut self, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_ALGORITHMS_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_algorithm(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());
@@ -137,6 +137,98 @@ impl<'a> ResponderContext<'a> {
         let other_params_selection = self.common.config_info.opaque_support & other_params_support;
         self.common.negotiate_info.opaque_data_support = other_params_selection;
 
+        let mut alg_struct =
+            gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
+        for i in 0..config::USER_MAX_SPDM_ALG_STRUCT_COUNT {
+            if self.common.config_info.is_dhe_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeDHE {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeDHE,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(self.common.negotiate_info.dhe_sel),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+
+            if self.common.config_info.is_aead_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeAEAD {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoAead(self.common.negotiate_info.aead_sel),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+
+            if self.common.config_info.is_req_asym_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeReqAsym {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoReqAsym(
+                        self.common.negotiate_info.req_asym_sel,
+                    ),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+
+            if self.common.config_info.is_key_schedule_structure_active
+                && alg_struct
+                    .iter()
+                    .find_map(|at| {
+                        if at.alg_type == SpdmAlgType::SpdmAlgTypeKeySchedule {
+                            Some(0u8)
+                        } else {
+                            None
+                        }
+                    })
+                    .is_none()
+            {
+                alg_struct[i] = SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                    alg_fixed_count: 2,
+                    alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                        self.common.negotiate_info.key_schedule_sel,
+                    ),
+                    alg_ext_count: 0,
+                };
+                continue;
+            }
+        }
+
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
@@ -151,37 +243,8 @@ impl<'a> ResponderContext<'a> {
                 measurement_hash_algo: self.common.negotiate_info.measurement_hash_sel,
                 base_asym_sel: self.common.negotiate_info.base_asym_sel,
                 base_hash_sel: self.common.negotiate_info.base_hash_sel,
-                alg_struct_count: 4,
-                alg_struct: [
-                    SpdmAlgStruct {
-                        alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                        alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoDhe(self.common.negotiate_info.dhe_sel),
-                        alg_ext_count: 0,
-                    },
-                    SpdmAlgStruct {
-                        alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
-                        alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoAead(self.common.negotiate_info.aead_sel),
-                        alg_ext_count: 0,
-                    },
-                    SpdmAlgStruct {
-                        alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
-                        alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoReqAsym(
-                            self.common.negotiate_info.req_asym_sel,
-                        ),
-                        alg_ext_count: 0,
-                    },
-                    SpdmAlgStruct {
-                        alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
-                        alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
-                            self.common.negotiate_info.key_schedule_sel,
-                        ),
-                        alg_ext_count: 0,
-                    },
-                ],
+                alg_struct_count: config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8,
+                alg_struct,
             }),
         };
         response.spdm_encode(&mut self.common, writer);
@@ -219,7 +282,7 @@ mod tests_responder {
 
     #[test]
     fn test_case0_handle_spdm_algorithm() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
@@ -230,7 +293,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
@@ -251,7 +313,7 @@ mod tests_responder {
             other_params_support: SpdmOpaqueSupport::empty(),
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            alg_struct_count: 4,
+            alg_struct_count: config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8,
             alg_struct: gen_array_clone(
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
@@ -302,8 +364,11 @@ mod tests_responder {
             spdm_sturct_data.base_hash_algo,
             SpdmBaseHashAlgo::TPM_ALG_SHA_384
         );
-        assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for index in 0..4 {
+        assert_eq!(
+            spdm_sturct_data.alg_struct_count,
+            config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8
+        );
+        for index in 0..config::USER_MAX_SPDM_ALG_STRUCT_COUNT {
             assert_eq!(
                 spdm_sturct_data.alg_struct[index].alg_type,
                 SpdmAlgType::SpdmAlgTypeDHE
@@ -316,7 +381,7 @@ mod tests_responder {
             assert_eq!(spdm_sturct_data.alg_struct[index].alg_ext_count, 0);
         }
 
-        let u8_slice = &u8_slice[46..];
+        let u8_slice = &u8_slice[42..];
         debug!("u8_slice: {:02X?}\n", u8_slice);
         let mut reader = Reader::init(u8_slice);
         let spdm_message: SpdmMessage =
@@ -341,45 +406,26 @@ mod tests_responder {
                 SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
             );
             assert_eq!(payload.base_hash_sel, SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-            assert_eq!(payload.alg_struct_count, 4);
+            assert_eq!(
+                payload.alg_struct_count,
+                config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8
+            );
 
             assert_eq!(payload.alg_struct[0].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
             assert_eq!(payload.alg_struct[0].alg_fixed_count, 2);
-            assert_eq!(
-                payload.alg_struct[0].alg_supported,
-                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::empty())
-            );
             assert_eq!(payload.alg_struct[0].alg_ext_count, 0);
 
             assert_eq!(payload.alg_struct[1].alg_type, SpdmAlgType::SpdmAlgTypeAEAD);
             assert_eq!(payload.alg_struct[1].alg_fixed_count, 2);
-            assert_eq!(
-                payload.alg_struct[1].alg_supported,
-                SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::empty())
-            );
             assert_eq!(payload.alg_struct[1].alg_ext_count, 0);
 
             assert_eq!(
                 payload.alg_struct[2].alg_type,
-                SpdmAlgType::SpdmAlgTypeReqAsym
-            );
-            assert_eq!(payload.alg_struct[2].alg_fixed_count, 2);
-            assert_eq!(
-                payload.alg_struct[2].alg_supported,
-                SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::empty())
-            );
-            assert_eq!(payload.alg_struct[2].alg_ext_count, 0);
-
-            assert_eq!(
-                payload.alg_struct[3].alg_type,
                 SpdmAlgType::SpdmAlgTypeKeySchedule
             );
-            assert_eq!(payload.alg_struct[3].alg_fixed_count, 2);
-            assert_eq!(
-                payload.alg_struct[3].alg_supported,
-                SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::empty())
-            );
-            assert_eq!(payload.alg_struct[3].alg_ext_count, 0);
+            assert_eq!(payload.alg_struct[2].alg_fixed_count, 2);
+
+            assert_eq!(payload.alg_struct[2].alg_ext_count, 0);
         }
     }
 }

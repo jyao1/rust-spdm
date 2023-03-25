@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::opaque::SpdmOpaqueStruct;
-use crate::common::ManagedBuffer;
+use crate::common::ManagedBufferMessageL;
 use crate::common::SpdmCodec;
 use crate::common::SpdmMeasurementContentChanged;
 use crate::crypto;
@@ -19,7 +19,7 @@ use crate::secret::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_MEASUREMENTS_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_measurement_response(session_id, bytes, &mut writer);
         match session_id {
@@ -154,7 +154,7 @@ impl<'a> ResponderContext<'a> {
                     nonce: SpdmNonceStruct { data: nonce },
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,
-                        data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+                        data: [0u8; config::MAX_OPAQUE_DATA_LENGTH],
                     },
                     signature: SpdmSignatureStruct {
                         data_size: signature_size,
@@ -309,7 +309,7 @@ impl<'a> ResponderContext<'a> {
         &mut self,
         session_id: Option<u32>,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferMessageL::default();
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
@@ -405,14 +405,13 @@ mod tests_responder {
     #[test]
     #[should_panic(expected = "not implemented")]
     fn test_case0_handle_spdm_measurement() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
@@ -542,14 +541,13 @@ mod tests_responder {
     #[test]
     #[should_panic(expected = "not implemented")]
     fn test_case1_handle_spdm_measurement() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
@@ -663,7 +661,7 @@ mod tests_responder {
                 }
                 assert_eq!(
                     payload.measurement_record.record[4].measurement_size,
-                    3 + config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,
+                    3 + config::MAX_MEASUREMENT_RECORD_DATA_SIZE as u16,
                 );
                 assert_eq!(
                     payload.measurement_record.record[4]
@@ -716,7 +714,7 @@ mod tests_responder {
                 );
                 assert_eq!(
                     payload.measurement_record.record[4].measurement.value_size,
-                    config::MAX_SPDM_MEASUREMENT_VALUE_LEN as u16,
+                    config::MAX_MEASUREMENT_RECORD_DATA_SIZE as u16,
                 );
 
                 for j in 0..value_size as usize {

@@ -11,7 +11,6 @@ use log::*;
 use simple_logger::SimpleLogger;
 
 use spdmlib::common;
-use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::common::ST1;
 use spdmlib::config;
 use spdmlib::message::*;
@@ -42,7 +41,7 @@ fn send_receive_hello(
         SOCKET_SPDM_COMMAND_TEST,
         &payload[0..used],
     );
-    let mut buffer = [0u8; config::DATA_TRANSFER_SIZE];
+    let mut buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
     let (_transport_type, _command, _payload) =
         spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..], ST1).unwrap();
 }
@@ -64,7 +63,7 @@ fn send_receive_stop(
         SOCKET_SPDM_COMMAND_STOP,
         &payload[0..used],
     );
-    let mut buffer = [0u8; config::DATA_TRANSFER_SIZE];
+    let mut buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
     let (_transport_type, _command, _payload) =
         spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..], ST1).unwrap();
 }
@@ -73,45 +72,6 @@ fn test_spdm(
     socket_io_transport: &mut SocketIoTransport,
     transport_encap: &mut dyn SpdmTransportEncap,
 ) {
-    let config_info = common::SpdmConfigInfo {
-        spdm_version: [
-            SpdmVersion::SpdmVersion10,
-            SpdmVersion::SpdmVersion11,
-            SpdmVersion::SpdmVersion12,
-        ],
-        req_capabilities: SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::CHAL_CAP
-        | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-        | SpdmRequestCapabilityFlags::MAC_CAP
-        //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-        | SpdmRequestCapabilityFlags::KEY_EX_CAP
-        | SpdmRequestCapabilityFlags::PSK_CAP
-        | SpdmRequestCapabilityFlags::ENCAP_CAP
-        | SpdmRequestCapabilityFlags::HBEAT_CAP
-        | SpdmRequestCapabilityFlags::KEY_UPD_CAP, // | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
-        // | SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP
-        req_ct_exponent: 0,
-        measurement_specification: SpdmMeasurementSpecification::DMTF,
-        base_asym_algo: if USE_ECDSA {
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
-        } else {
-            SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
-        },
-        base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        dhe_algo: if USE_ECDH {
-            SpdmDheAlgo::SECP_384_R1
-        } else {
-            SpdmDheAlgo::FFDHE_3072
-        },
-        aead_algo: SpdmAeadAlgo::AES_256_GCM,
-        req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
-        key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
-        data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
-        max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
-        ..Default::default()
-    };
-
     let mut peer_cert_chain_data = SpdmCertChainData {
         ..Default::default()
     };
@@ -159,12 +119,8 @@ fn test_spdm(
         default_version: SpdmVersion::SpdmVersion12,
     };
 
-    let mut context = requester::RequesterContext::new(
-        socket_io_transport,
-        transport_encap,
-        config_info,
-        provision_info,
-    );
+    let mut context =
+        requester::RequesterContext::new(socket_io_transport, transport_encap, provision_info);
 
     if context.init_connection().is_err() {
         panic!("init_connection failed!");
@@ -206,6 +162,7 @@ fn test_spdm(
 
     let result = context.start_session(
         false,
+        0,
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );
@@ -277,6 +234,7 @@ fn test_spdm(
 
     let result = context.start_session(
         true,
+        0,
         0,
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
     );

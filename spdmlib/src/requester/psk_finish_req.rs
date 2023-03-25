@@ -18,17 +18,16 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
 extern crate alloc;
-use crate::common::ManagedBuffer;
 use alloc::boxed::Box;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_finish(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm psk_finish\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_PSK_FINISH_REQUEST_MESSAGE_BUFFER_SIZE];
         let (send_used, message_f) = self.encode_spdm_psk_finish(session_id, &mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_PSK_FINISH_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_psk_finish_response(session_id, message_f, &receive_buffer[..receive_used])
     }
@@ -37,7 +36,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         buf: &mut [u8],
-    ) -> SpdmResult<(usize, ManagedBuffer)> {
+    ) -> SpdmResult<(usize, ManagedBufferMessageF)> {
         let mut writer = Writer::init(buf);
 
         let request = SpdmMessage {
@@ -60,7 +59,7 @@ impl<'a> RequesterContext<'a> {
         let temp_used = send_used - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_f = ManagedBuffer::default();
+        let mut message_f = ManagedBufferMessageF::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         message_f
             .append_message(&buf[..temp_used])
@@ -136,14 +135,14 @@ impl<'a> RequesterContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         return Ok((send_used, message_f));
         #[cfg(feature = "hashed-transcript-data")]
-        Ok((send_used, ManagedBuffer::default()))
+        Ok((send_used, ManagedBufferMessageF::default()))
     }
 
     pub fn handle_spdm_psk_finish_response(
         &mut self,
         session_id: u32,
-        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
+        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBufferMessageF,
+        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBufferMessageF, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
@@ -272,8 +271,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_psk_finish() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
         let data = &mut [
             0x1, 0x0, 0x2, 0x0, 0x9, 0x0, 0x0, 0x0, 0xfe, 0xff, 0xfe, 0xff, 0x16, 0x0, 0xca, 0xa7,
             0x51, 0x5a, 0x4d, 0x60, 0xcf, 0x4e, 0xc3, 0x17, 0x14, 0xa7, 0x55, 0x6f, 0x77, 0x56,
@@ -294,7 +293,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -331,7 +329,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

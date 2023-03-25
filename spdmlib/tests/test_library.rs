@@ -5,7 +5,7 @@ use codec::{Reader, Writer};
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
 use spdmlib::config::{
-    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
+    MAX_MEASUREMENT_RECORD_DATA_SIZE, MAX_OPAQUE_DATA_LENGTH, MAX_SPDM_CERT_CHAIN_DATA_SIZE,
 };
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,
@@ -23,7 +23,7 @@ fn test_case0_spdm_opaque_struct() {
     let mut writer = Writer::init(u8_slice);
     let value = SpdmOpaqueStruct {
         data_size: 64,
-        data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+        data: [100u8; MAX_OPAQUE_DATA_LENGTH],
     };
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -97,7 +97,7 @@ fn test_case0_spdm_cert_chain() {
             data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
         },
         cert_chain: SpdmCertChainData {
-            data_size: 4096u16,
+            data_size: MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16,
             data: [100u8; MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         },
     };
@@ -115,8 +115,11 @@ fn test_case0_spdm_cert_chain() {
     for i in 0..64 {
         assert_eq!(spdm_cert_chain.root_hash.data[i], 100);
     }
-    assert_eq!(spdm_cert_chain.cert_chain.data_size, 4096);
-    for i in 0..4096 {
+    assert_eq!(
+        spdm_cert_chain.cert_chain.data_size,
+        MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16
+    );
+    for i in 0..MAX_SPDM_CERT_CHAIN_DATA_SIZE {
         assert_eq!(spdm_cert_chain.cert_chain.data[i], 100);
     }
 }
@@ -132,10 +135,10 @@ fn test_case0_spdm_measurement_record_structure() {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
             value_size: 64u16,
-            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            value: [100u8; MAX_MEASUREMENT_RECORD_DATA_SIZE],
         },
     };
-    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    let mut measurement_record_data = [0u8; MAX_MEASUREMENT_RECORD_DATA_SIZE];
     let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
 
     for _i in 0..5 {
@@ -172,10 +175,10 @@ fn test_case1_spdm_measurement_record_structure() {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
             value_size: 64u16,
-            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            value: [100u8; MAX_MEASUREMENT_RECORD_DATA_SIZE],
         },
     };
-    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    let mut measurement_record_data = [0u8; MAX_MEASUREMENT_RECORD_DATA_SIZE];
     let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
 
     for _i in 0..5 {
@@ -234,7 +237,7 @@ fn test_case0_spdm_dmtf_measurement_structure() {
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
     ];
     value.value_size = 64u16;
-    value.value = [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    value.value = [100u8; MAX_MEASUREMENT_RECORD_DATA_SIZE];
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
@@ -277,7 +280,7 @@ fn test_case0_spdm_measurement_block_structure() {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
             value_size: 64,
-            value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            value: [100u8; MAX_MEASUREMENT_RECORD_DATA_SIZE],
         },
     };
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

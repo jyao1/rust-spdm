@@ -27,7 +27,7 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
     ) -> SpdmResult<u8> {
         info!("send spdm measurement\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_GET_MEASUREMENTS_REQUEST_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_measurement_record(
             measurement_attributes,
             measurement_operation,
@@ -44,7 +44,7 @@ impl<'a> RequesterContext<'a> {
         }
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_MEASUREMENTS_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = match session_id {
             Some(session_id) => {
                 self.receive_secured_message(session_id, &mut receive_buffer, true)?
@@ -464,7 +464,7 @@ impl<'a> RequesterContext<'a> {
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferMessageL::default();
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             let message_a = self.common.runtime_info.message_a.clone();
@@ -550,8 +550,8 @@ mod tests_requester {
     #[test]
     #[should_panic(expected = "not implemented")]
     fn test_case0_send_receive_spdm_measurement() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -562,7 +562,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -599,7 +598,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

@@ -7,11 +7,9 @@ macro_rules! create_spdm_context {
     ($context_name: ident) => {
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
         #[allow(unused, unused_mut)]
-        let mut $context_name =
-            SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut $context_name = SpdmContext::new(device_io, transport_encap, provision_info);
     };
 }
 

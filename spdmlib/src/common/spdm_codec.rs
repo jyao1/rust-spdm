@@ -132,7 +132,7 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
         let number_of_blocks = u8::read(r)?;
         let measurement_record_length = u24::read(r)?;
 
-        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut measurement_record_data = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
         for d in measurement_record_data
             .iter_mut()
             .take(measurement_record_length.get() as usize)
@@ -220,7 +220,7 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         // TBD: Check measurement_hash
 
         let value_size = u16::read(r)?;
-        let mut value = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut value = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
         for v in value.iter_mut().take(value_size as usize) {
             *v = u8::read(r)?;
         }

@@ -10,10 +10,10 @@ use codec::{enum_builder, Codec, Reader, Writer};
 
 use conquer_once::spin::OnceCell;
 
-// config::MAX_SPDM_MSG_SIZE - 7 - 2 - 4
+// config::USER_MAX_SPDM_MSG_SIZE - 7 - 2 - 4
 // SPDM0274 1.2.1: Table 56, table 57 VENDOR_DEFINED_RESPONSE message format
 pub(crate) const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize =
-    config::MAX_SPDM_MSG_SIZE - 7 - 2 - 4;
+    config::USER_MAX_SPDM_MSG_SIZE - 7 - 2 - 4;
 
 enum_builder! {
     @U16
@@ -51,7 +51,7 @@ impl RegistryOrStandardsBodyID {
 #[derive(Debug, Clone)]
 pub struct VendorIDStruct {
     pub len: u8,
-    pub vendor_id: [u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
+    pub vendor_id: [u8; config::MAX_VENDOR_ID_LEN_SIZE],
 }
 
 impl Codec for VendorIDStruct {
@@ -64,7 +64,7 @@ impl Codec for VendorIDStruct {
 
     fn read(r: &mut Reader) -> Option<VendorIDStruct> {
         let len = u8::read(r)?;
-        let mut vendor_id = [0u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN];
+        let mut vendor_id = [0u8; config::MAX_VENDOR_ID_LEN_SIZE];
         for d in vendor_id.iter_mut().take(len as usize) {
             *d = u8::read(r)?;
         }

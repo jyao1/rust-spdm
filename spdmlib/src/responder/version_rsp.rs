@@ -9,7 +9,7 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_version(&mut self, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_VERSION_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_version_response(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());
@@ -43,27 +43,23 @@ impl<'a> ResponderContext<'a> {
         }
 
         info!("send spdm version\n");
+        let mut versions = [SpdmVersionStruct::default(); config::MAX_SPDM_VERSION_COUNT];
+        for (i, v) in versions
+            .iter_mut()
+            .enumerate()
+            .take(config::SPDM_VERSION_COUNT)
+        {
+            v.version = self.common.config_info.spdm_version[i];
+        }
+
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: SpdmRequestResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
-                version_number_entry_count: 3,
-                versions: [
-                    SpdmVersionStruct {
-                        update: 0,
-                        version: self.common.config_info.spdm_version[0],
-                    },
-                    SpdmVersionStruct {
-                        update: 0,
-                        version: self.common.config_info.spdm_version[1],
-                    },
-                    SpdmVersionStruct {
-                        update: 0,
-                        version: self.common.config_info.spdm_version[2],
-                    },
-                ],
+                version_number_entry_count: config::SPDM_VERSION_COUNT as u8,
+                versions,
             }),
         };
 
@@ -85,7 +81,7 @@ mod tests_responder {
 
     #[test]
     fn test_case0_handle_spdm_version() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
@@ -96,7 +92,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
@@ -104,7 +99,7 @@ mod tests_responder {
         let mut writer = Writer::init(bytes);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
-            request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
+            request_response_code: SpdmRequestResponseCode::SpdmRequestGetVersion,
         };
         value.encode(&mut writer);
 
@@ -121,7 +116,7 @@ mod tests_responder {
         assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
         assert_eq!(
             spdm_message_header.request_response_code,
-            SpdmRequestResponseCode::SpdmRequestChallenge
+            SpdmRequestResponseCode::SpdmRequestGetVersion
         );
 
         let u8_slice = &u8_slice[4..];
@@ -135,13 +130,12 @@ mod tests_responder {
             SpdmRequestResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.version_number_entry_count, 0x03);
+            assert_eq!(
+                payload.version_number_entry_count,
+                crate::config::SPDM_VERSION_COUNT as u8
+            );
             assert_eq!(payload.versions[0].update, 0);
-            assert_eq!(payload.versions[0].version, SpdmVersion::SpdmVersion10);
-            assert_eq!(payload.versions[1].update, 0);
-            assert_eq!(payload.versions[1].version, SpdmVersion::SpdmVersion11);
-            assert_eq!(payload.versions[2].update, 0);
-            assert_eq!(payload.versions[2].version, SpdmVersion::SpdmVersion12);
+            assert_eq!(payload.versions[0].version, SpdmVersion::SpdmVersion12);
         }
     }
 }

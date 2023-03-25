@@ -10,7 +10,7 @@ use spdmlib::protocol::*;
 // use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_end_session(data: &[u8]) {
-    let (config_info, provision_info) = rsp_create_info();
+    let provision_info = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
@@ -26,7 +26,6 @@ fn fuzz_handle_spdm_end_session(data: &[u8]) {
         } else {
             mctp_transport_encap
         },
-        config_info,
         provision_info,
     );
 

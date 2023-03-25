@@ -81,9 +81,9 @@ pub struct SpdmSessionTransportParam {
 #[derive(Debug, Clone, Default)]
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmSessionRuntimeInfo {
-    pub message_k: ManagedBuffer,
-    pub message_f: ManagedBuffer,
-    pub message_m: ManagedBuffer,
+    pub message_k: ManagedBufferMessageK,
+    pub message_f: ManagedBufferMessageF,
+    pub message_m: ManagedBufferMessageM,
 }
 
 #[derive(Clone, Default)]
@@ -901,15 +901,18 @@ impl SpdmSession {
         let aad_size = writer.used();
         assert_eq!(aad_size, 6 + transport_param.sequence_number_count as usize);
 
-        let mut plain_text_buf =
-            [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE + core::mem::size_of::<u16>()]; // app length + app buffer
+        let mut plain_text_buf = [0; config::USER_DATA_TRANSFER_SIZE + core::mem::size_of::<u16>()]; // app length + app buffer
         let mut writer = Writer::init(&mut plain_text_buf);
         app_length.encode(&mut writer);
         let head_size = writer.used();
         assert_eq!(head_size, 2);
         plain_text_buf[head_size..(head_size + app_buffer.len())].copy_from_slice(app_buffer);
 
+        #[cfg(not(feature = "null-aead"))]
         let mut tag_buffer = [0u8; 16];
+
+        #[cfg(feature = "null-aead")]
+        let tag_buffer = [0u8; 16];
 
         let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
@@ -922,6 +925,7 @@ impl SpdmSession {
         salt[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
         salt[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
 
+        #[cfg(not(feature = "null-aead"))]
         let (ret_cipher_text_size, ret_tag_size) = crypto::aead::encrypt(
             aead_algo,
             &secret_param.encryption_key.data[..(aead_algo.get_key_size() as usize)],
@@ -931,7 +935,16 @@ impl SpdmSession {
             &mut tag_buffer[0..tag_size],
             &mut secured_buffer[aad_size..(aad_size + cipher_text_size)],
         )?;
+
+        #[cfg(feature = "null-aead")]
+        {
+            secured_buffer[aad_size..(aad_size + cipher_text_size)]
+                .copy_from_slice(&plain_text_buf[0..cipher_text_size]);
+        }
+
+        #[cfg(not(feature = "null-aead"))]
         assert_eq!(ret_tag_size, tag_size);
+        #[cfg(not(feature = "null-aead"))]
         assert_eq!(ret_cipher_text_size, cipher_text_size);
 
         secured_buffer[..aad_size].copy_from_slice(&aad_buffer[..aad_size]);
@@ -987,7 +1000,7 @@ impl SpdmSession {
 
         let cipher_text_size = length as usize - tag_size;
 
-        let mut plain_text_buf = [0; config::DATA_TRANSFER_SIZE];
+        let mut plain_text_buf = [0; config::USER_DATA_TRANSFER_SIZE];
 
         let mut salt = secret_param.salt.data.clone();
         let sequence_number = secret_param.sequence_number;
@@ -1000,6 +1013,7 @@ impl SpdmSession {
         salt[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
         salt[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
 
+        #[cfg(not(feature = "null-aead"))]
         let ret_plain_text_size = crypto::aead::decrypt(
             aead_algo,
             &secret_param.encryption_key.data[..(aead_algo.get_key_size() as usize)],
@@ -1010,6 +1024,12 @@ impl SpdmSession {
                 [(aad_size + cipher_text_size)..(aad_size + cipher_text_size + tag_size)],
             &mut plain_text_buf[..cipher_text_size],
         )?;
+
+        #[cfg(feature = "null-aead")]
+        plain_text_buf[..cipher_text_size]
+            .copy_from_slice(&secured_buffer[aad_size..(aad_size + cipher_text_size)]);
+        #[cfg(feature = "null-aead")]
+        let ret_plain_text_size = cipher_text_size;
 
         let mut reader = Reader::init(&plain_text_buf);
         let app_length = u16::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)? as usize;
@@ -1048,8 +1068,8 @@ mod tests_session {
     fn test_case0_decode_msg() {
         let mut session = SpdmSession::default();
         let session_id = 4294901758u32;
-        let mut send_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [100u8; config::USER_MAX_SPDM_MSG_SIZE];
+        let mut encoded_send_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
 
         session.setup(session_id).unwrap();
         session.set_crypto_param(
@@ -1097,8 +1117,8 @@ mod tests_session {
     fn test_case0_encode_msg() {
         let mut session = SpdmSession::default();
         let session_id = 4294901758u32;
-        let send_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE * 2]; // need to be big enough to hold ciper text
+        let send_buffer = [100u8; config::USER_DATA_TRANSFER_SIZE];
+        let mut encoded_send_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE * 2]; // need to be big enough to hold ciper text
 
         session.setup(session_id).unwrap();
         session.set_crypto_param(

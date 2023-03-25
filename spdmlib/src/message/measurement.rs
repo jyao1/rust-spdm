@@ -269,10 +269,10 @@ mod tests {
                 r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
                 representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
                 value_size: 64u16,
-                value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                value: [100u8; MAX_MEASUREMENT_RECORD_DATA_SIZE],
             },
         };
-        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut measurement_record_data = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
         let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
         for i in 0..5 {
             spdm_measurement_block_structure
@@ -292,7 +292,7 @@ mod tests {
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
-                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                data: [100u8; MAX_OPAQUE_DATA_LENGTH],
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,

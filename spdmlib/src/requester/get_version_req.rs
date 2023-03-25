@@ -12,13 +12,13 @@ use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_version(&mut self) -> SpdmResult {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_GET_VERSION_REQUEST_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_version(&mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_VERSION_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
-        self.handle_spdm_version_response(0, &send_buffer[..send_used], &receive_buffer[..used])
+        self.handle_spdm_version_response(&send_buffer[..send_used], &receive_buffer[..used])
     }
 
     pub fn encode_spdm_version(&mut self, buf: &mut [u8]) -> usize {
@@ -36,7 +36,6 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_version_response(
         &mut self,
-        session_id: u32,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult {
@@ -110,18 +109,14 @@ impl<'a> RequesterContext<'a> {
                 }
                 SpdmRequestResponseCode::SpdmResponseError => {
                     let rm = self.spdm_handle_error_response_main(
-                        Some(session_id),
+                        None,
                         receive_buffer,
                         SpdmRequestResponseCode::SpdmRequestGetVersion,
                         SpdmRequestResponseCode::SpdmResponseVersion,
                     )?;
                     let receive_buffer = rm.receive_buffer;
                     let used = rm.used;
-                    self.handle_spdm_version_response(
-                        session_id,
-                        send_buffer,
-                        &receive_buffer[..used],
-                    )
+                    self.handle_spdm_version_response(send_buffer, &receive_buffer[..used])
                 }
                 _ => Err(SPDM_STATUS_ERROR_PEER),
             },
@@ -138,8 +133,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_version() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -150,7 +145,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -160,7 +154,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

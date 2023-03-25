@@ -86,26 +86,26 @@ fn spdm_measurement_collection_impl(
                 hash::hash_all(measurement_hash_algo, &firmware9).expect("hash_all failed!");
             let digest10 =
                 hash::hash_all(measurement_hash_algo, &firmware10).expect("hash_all failed!");
-            let mut digest_value1: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value2: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value3: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value4: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value5: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value6: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value7: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value8: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value9: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
-            let mut digest_value10: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut digest_value1: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value2: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value3: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value4: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value5: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value6: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value7: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value8: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value9: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
+            let mut digest_value10: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
             digest_value1[..64].copy_from_slice(digest1.data.as_ref());
             digest_value2[..64].copy_from_slice(digest2.data.as_ref());
             digest_value3[..64].copy_from_slice(digest3.data.as_ref());
@@ -129,7 +129,7 @@ fn spdm_measurement_collection_impl(
                 },
             };
 
-            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut measurement_record_data = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
             let mut writer = Writer::init(&mut measurement_record_data);
             for i in 0..10 {
                 spdm_measurement_block_structure.encode(&mut writer);
@@ -148,8 +148,8 @@ fn spdm_measurement_collection_impl(
 
             let digest = hash::hash_all(measurement_hash_algo, &firmware)?;
 
-            let mut digest_value: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
-                [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut digest_value: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE] =
+                [0; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
             digest_value[(measurement_index) * SPDM_MAX_HASH_SIZE
                 ..(measurement_index + 1) * SPDM_MAX_HASH_SIZE]
                 .copy_from_slice(digest.data.as_ref());
@@ -166,7 +166,7 @@ fn spdm_measurement_collection_impl(
                 },
             };
 
-            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut measurement_record_data = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
             let mut writer = Writer::init(&mut measurement_record_data);
             spdm_measurement_block_structure.encode(&mut writer);
 

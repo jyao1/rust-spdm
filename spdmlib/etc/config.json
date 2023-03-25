@@ -1,27 +1,145 @@
 {
     "__usage": "This helps generate compile-time constant sizes for SPDM arrays. See src/config.rs generated for details.",
-    "max_version_count": 3,
-    "algo_config": {
-        "max_ext_asym_algo_count": 0,
-        "max_ext_hash_algo_count": 0,
-        "max_algo_struct_count": 4,
-        "max_ext_algo_struct_count": 0
+    "spdm_version_config": {
+        "is_spdm_version_10_supported": false,
+        "is_spdm_version_11_supported": false,
+        "is_spdm_version_12_supported": true
     },
-    "cert_config": {
-        "max_cert_chain_data_size": 4096
+    "spdm_capabilities_config": {
+        "requester_cap": {
+            "req_ct_exponent": 0,
+            "is_requester_cert_cap_supported": false,
+            "is_requester_chal_cap_supported": false,
+            "is_requester_encrypt_cap_supported": true,
+            "is_requester_mac_cap_supported": true,
+            "is_requester_mut_auth_cap_supported": false,
+            "is_requester_key_ex_cap_supported": true,
+            "is_requester_psk_cap_supported": true,
+            "is_requester_encap_cap_supported": false,
+            "is_requester_hbeat_cap_supported": true,
+            "is_requester_key_upd_cap_supported": true,
+            "is_requester_handshake_in_the_clear_cap_supported": false,
+            "is_requester_pub_key_id_cap_supported": false,
+            "is_requester_chunk_cap_supported": false
+        },
+        "responder_cap": {
+            "rsp_ct_exponent": 0,
+            "is_responder_cache_cap_supported": false,
+            "is_responder_cert_cap_supported": false,
+            "is_responder_chal_cap_supported": false,
+            "is_responder_meas_without_sig_cap_supported": false,
+            "is_responder_meas_with_sig_cap_supported": false,
+            "is_responder_meas_fresh_cap_supported": false,
+            "is_responder_encrypt_cap_supported": true,
+            "is_responder_mac_cap_supported": true,
+            "is_responder_mut_auth_cap_supported": false,
+            "is_responder_key_ex_cap_supported": true,
+            "is_responder_psk_cap_supported": false,
+            "is_responder_encap_cap_supported": false,
+            "is_responder_hbeat_cap_supported": true,
+            "is_responder_key_upd_cap_supported": true,
+            "is_responder_handshake_in_the_clear_cap_supported": false,
+            "is_responder_pub_key_id_cap_supported": false,
+            "is_responder_chunk_cap_supported": false,
+            "is_responder_alias_cert_cap_supported": false,
+            "is_responder_set_cert_cap_supported": false,
+            "is_responder_csr_cap_supported": false,
+            "is_responder_cert_install_reset_cap_supported": false
+        },
+        "data_transfer_size": 4096,
+        "max_spdm_msg_size": 4096
     },
-    "max_opaque_size": 64,
-    "psk_config": {
+    "spdm_algorithm_config": {
+        "measurement_specification": {
+            "is_dmtf_define_measurement_specification_supported": true
+        },
+        "other_params_support": {
+            "is_opaque_data_fmt0_supported": false,
+            "is_opaque_data_fmt1_supported": true
+        },
+        "base_asym_algo": {
+            "is_tpm_alg_rsassa_2048_supported": false,
+            "is_tpm_alg_rsapss_2048_supported": false,
+            "is_tpm_alg_rsassa_3072_supported": true,
+            "is_tpm_alg_rsapss_3072_supported": false,
+            "is_tpm_alg_ecdsa_ecc_nist_p256_supported": true,
+            "is_tpm_alg_rsassa_4096_supported": false,
+            "is_tpm_alg_rsapss_4096_supported": false,
+            "is_tpm_alg_ecdsa_ecc_nist_p384_supported": true,
+            "is_tpm_alg_ecdsa_ecc_nist_p521_supported": false,
+            "is_tpm_alg_sm2_ecc_sm2_p256_supported": false,
+            "is_tpm_alg_eddsa_ed25519_supported": false,
+            "is_tpm_alg_eddsa_ed448_supported": false
+        },
+        "base_hash_algo": {
+            "is_tpm_alg_sha_256_supported": true,
+            "is_tpm_alg_sha_384_supported": true,
+            "is_tpm_alg_sha_512_supported": false,
+            "is_tpm_alg_sha3_256_supported": false,
+            "is_tpm_alg_sha3_384_supported": false,
+            "is_tpm_alg_sha3_512_supported": false,
+            "is_tpm_alg_sm3_256_supported": false
+        },
+        "algorithm_structure": {
+            "dhe": {
+                "is_ffdhe2048_supported": false,
+                "is_ffdhe3072_supported": false,
+                "is_ffdhe4096_supported": false,
+                "is_secp256r1_supported": true,
+                "is_secp384r1_supported": true,
+                "is_secp521r1_supported": false,
+                "is_sm2_p256_supported": false
+            },
+            "aead": {
+                "is_aes_128_gcm_supported": false,
+                "is_aes_256_gcm_supported": true,
+                "is_chacha20_poly1305_supported": false,
+                "is_aead_sm4_gcm_supported": false
+            },
+            "req_base_asym_alg": {
+                "is_tpm_alg_rsassa_2048_supported": false,
+                "is_tpm_alg_rsapss_2048_supported": false,
+                "is_tpm_alg_rsassa_3072_supported": false,
+                "is_tpm_alg_rsapss_3072_supported": false,
+                "is_tpm_alg_ecdsa_ecc_nist_p256_supported": false,
+                "is_tpm_alg_rsassa_4096_supported": false,
+                "is_tpm_alg_rsapss_4096_supported": false,
+                "is_tpm_alg_ecdsa_ecc_nist_p384_supported": false,
+                "is_tpm_alg_ecdsa_ecc_nist_p521_supported": false,
+                "is_tpm_alg_sm2_ecc_sm2_p256_supported": false,
+                "is_tpm_alg_eddsa_ed25519_supported": false,
+                "is_tpm_alg_eddsa_ed448_supported": false
+            },
+            "key_schedule": {
+                "is_spdm_key_schedule_supported": true
+            }
+        },
+        "measurement_hash_algo": {
+            "is_raw_bit_stream_only": false,
+            "is_tpm_alg_sha_256_supported": false,
+            "is_tpm_alg_sha_384_supported": true,
+            "is_tpm_alg_sha_512_supported": false,
+            "is_tpm_alg_sha3_256_supported": false,
+            "is_tpm_alg_sha3_384_supported": false,
+            "is_tpm_alg_sha3_512_supported": false,
+            "is_tpm_alg_sm3_256_supported": false
+        },
+        "extended_algorithm": "Not Supported by Rust-SPDM yet"
+    },
+    "key_exchange": {
+        "is_secure_spdm_version_10_supported": false,
+        "is_secure_spdm_version_11_supported": true
+    },
+    "psk_exchange": {
         "max_psk_context_size": 64,
         "max_psk_hint_size": 32
     },
-    "vendor_defined_config": {
-    	"max_vendor_defined_vendor_id_len": 128
+    "heartbeat": {
+        "responder_heartbeat_period": 0
     },
-    "max_session_count": 4,
-    "max_msg_buffer_size": 4608,
-    "data_transfer_size": 4864,
-    "max_spdm_msg_size": 4864,
-    "heartbeat_period_value": 0,
-    "secure_spdm_version": 17
+    "other_buffer_size": {
+        "max_single_certificate_chain_size": 2048,
+        "all_certificate_chains_buffer_size": 2048,
+        "all_measurements_buffer_size": 2048
+    }
 }

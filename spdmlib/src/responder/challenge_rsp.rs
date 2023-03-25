@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::opaque::SpdmOpaqueStruct;
-use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::crypto;
 use crate::error::SpdmResult;
@@ -18,7 +17,7 @@ use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_challenge(&mut self, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_CHALLENGE_AUTH_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_challenge_response(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());
@@ -100,7 +99,7 @@ impl<'a> ResponderContext<'a> {
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,
-                        data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+                        data: [0u8; config::MAX_OPAQUE_DATA_LENGTH],
                     },
                     signature: SpdmSignatureStruct {
                         data_size: self.common.negotiate_info.base_asym_sel.get_size(),
@@ -163,7 +162,7 @@ impl<'a> ResponderContext<'a> {
 
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let mut message = ManagedBuffer::default();
+        let mut message = crate::common::ManagedBuffer::default();
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
             message
@@ -190,7 +189,9 @@ impl<'a> ResponderContext<'a> {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_challenge_auth_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = ManagedBuffer::default();
+        use crate::common::ManagedBufferMessageM1M2;
+
+        let mut message = ManagedBufferMessageM1M2::default();
         message
             .append_message(self.common.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -242,7 +243,7 @@ mod tests_responder {
 
     #[test]
     fn test_case0_handle_spdm_challenge() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -253,7 +254,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {

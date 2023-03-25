@@ -19,13 +19,13 @@ impl<'a> RequesterContext<'a> {
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult {
         info!("send spdm challenge\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_CHALLENGE_REQUEST_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_challenge(slot_id, measurement_summary_hash_type, &mut send_buffer)?;
         self.send_message(&send_buffer[..send_used])?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_CHALLENGE_AUTH_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, true)?;
         self.handle_spdm_challenge_response(
             0, // NULL
@@ -178,7 +178,7 @@ impl<'a> RequesterContext<'a> {
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferMessageM1M2::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             message
@@ -270,8 +270,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_challenge() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -284,7 +284,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -310,7 +309,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
         requester.common.reset_runtime_info();

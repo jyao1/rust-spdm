@@ -165,7 +165,7 @@ mod tests {
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
-                data: [0xAAu8; MAX_SPDM_OPAQUE_SIZE],
+                data: [0xAAu8; MAX_OPAQUE_DATA_LENGTH],
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,
@@ -229,7 +229,7 @@ mod tests {
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
-                data: [0xAAu8; MAX_SPDM_OPAQUE_SIZE],
+                data: [0xAAu8; MAX_OPAQUE_DATA_LENGTH],
             },
             signature: SpdmSignatureStruct {
                 data_size: 512,

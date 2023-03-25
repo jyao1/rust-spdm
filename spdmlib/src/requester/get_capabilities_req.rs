@@ -11,11 +11,11 @@ use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_capability(&mut self) -> SpdmResult {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_GET_CAPABILITIES_REQUEST_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_capability(&mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_CAPABILITIES_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_capability_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }
@@ -125,8 +125,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_capability() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -137,7 +137,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -147,7 +146,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

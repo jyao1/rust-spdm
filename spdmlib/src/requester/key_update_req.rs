@@ -17,7 +17,7 @@ impl<'a> RequesterContext<'a> {
         tag: u8,
     ) -> SpdmResult {
         info!("send spdm key_update\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_KEY_UPDATE_REQUEST_MESSAGE_BUFFER_SIZE];
         let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer);
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
@@ -32,7 +32,7 @@ impl<'a> RequesterContext<'a> {
             || key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         let update_responder = key_update_operation == SpdmKeyUpdateOperation::SpdmUpdateAllKeys;
         session.create_data_secret_update(spdm_version_sel, update_requester, update_responder)?;
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_KEY_UPDATE_ACK_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
 
         self.handle_spdm_key_update_op_response(
@@ -157,8 +157,8 @@ mod tests_requester {
     use crate::{crypto, responder};
     #[test]
     fn test_case0_send_receive_spdm_key_update() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -169,7 +169,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -211,7 +210,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

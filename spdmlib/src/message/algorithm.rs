@@ -256,7 +256,7 @@ mod tests {
             other_params_support: SpdmOpaqueSupport::empty(),
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
-            alg_struct_count: 4,
+            alg_struct_count: crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8,
             alg_struct: gen_array_clone(
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
@@ -269,9 +269,8 @@ mod tests {
         };
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(device_io, transport_encap, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -290,8 +289,11 @@ mod tests {
             spdm_sturct_data.base_hash_algo,
             SpdmBaseHashAlgo::TPM_ALG_SHA_256
         );
-        assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for i in 0..4 {
+        assert_eq!(
+            spdm_sturct_data.alg_struct_count,
+            crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8
+        );
+        for i in 0..crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT {
             assert_eq!(
                 spdm_sturct_data.alg_struct[i].alg_type,
                 SpdmAlgType::SpdmAlgTypeDHE
@@ -303,7 +305,7 @@ mod tests {
             );
             assert_eq!(spdm_sturct_data.alg_struct[i].alg_ext_count, 0);
         }
-        assert_eq!(2, reader.left());
+        assert_eq!(6, reader.left());
     }
 
     #[test]
@@ -324,9 +326,8 @@ mod tests {
 
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(device_io, transport_encap, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);
@@ -360,9 +361,8 @@ mod tests {
 
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(device_io, transport_encap, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         u8_slice[26] = 1;
@@ -398,9 +398,8 @@ mod tests {
 
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(device_io, transport_encap, provision_info);
 
         context.config_info.measurement_specification = SpdmMeasurementSpecification::DMTF;
         context.config_info.measurement_hash_algo = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
@@ -429,7 +428,7 @@ mod tests {
             SpdmBaseHashAlgo::TPM_ALG_SHA_256
         );
         assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for i in 0..4 {
+        for i in 0..crate::config::MAX_SPDM_ALG_STRUCT_COUNT {
             assert_eq!(
                 spdm_sturct_data.alg_struct[i].alg_type,
                 SpdmAlgType::SpdmAlgTypeDHE
@@ -441,7 +440,6 @@ mod tests {
             );
             assert_eq!(spdm_sturct_data.alg_struct[i].alg_ext_count, 0);
         }
-        assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case1_spdm_algorithms_response_payload() {
@@ -492,9 +490,8 @@ mod tests {
 
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
-        let config_info = SpdmConfigInfo::default();
         let provision_info = SpdmProvisionInfo::default();
-        let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
+        let mut context = SpdmContext::new(device_io, transport_encap, provision_info);
 
         value.spdm_encode(&mut context, &mut writer);
         let mut reader = Reader::init(u8_slice);

@@ -22,12 +22,12 @@ impl<'a> RequesterContext<'a> {
         length: u16,
     ) -> SpdmResult<(u16, u16)> {
         info!("send spdm certificate\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_GET_CERTIFICATE_REQUEST_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_CERTIFICATE_RESPONSE_MESSAGE_BUFFER_SIZE];
         let used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_certificate_partial_response(
             session_id,
@@ -310,8 +310,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_certificate() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -323,7 +323,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -342,7 +341,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

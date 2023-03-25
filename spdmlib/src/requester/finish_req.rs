@@ -20,17 +20,17 @@ use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::common::ManagedBuffer;
+use crate::common::ManagedBufferMessageF;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_finish(&mut self, slot_id: u8, session_id: u32) -> SpdmResult {
         info!("send spdm finish\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_FINISH_REQUEST_MESSAGE_BUFFER_SIZE];
         let (send_used, base_hash_size, message_f) =
             self.encode_spdm_finish(session_id, slot_id, &mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_FINISH_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_finish_response(
             session_id,
@@ -46,7 +46,7 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         slot_id: u8,
         buf: &mut [u8],
-    ) -> SpdmResult<(usize, usize, ManagedBuffer)> {
+    ) -> SpdmResult<(usize, usize, ManagedBufferMessageF)> {
         let mut writer = Writer::init(buf);
 
         let request = SpdmMessage {
@@ -73,7 +73,7 @@ impl<'a> RequesterContext<'a> {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
-            let mut message_f = ManagedBuffer::default();
+            let mut message_f = ManagedBufferMessageF::default();
             message_f
                 .append_message(&buf[..temp_used])
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -142,7 +142,7 @@ impl<'a> RequesterContext<'a> {
             )?;
             // patch the message before send
             buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
-            Ok((send_used, base_hash_size, ManagedBuffer::default()))
+            Ok((send_used, base_hash_size, ManagedBufferMessageF::default()))
         }
     }
 
@@ -151,8 +151,8 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         slot_id: u8,
         base_hash_size: usize,
-        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
+        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBufferMessageF,
+        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBufferMessageF, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let in_clear_text = self
@@ -379,8 +379,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_send_receive_spdm_finish() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -392,7 +392,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -453,7 +452,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 

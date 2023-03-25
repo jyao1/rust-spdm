@@ -5,46 +5,7 @@
 use super::*;
 use spdmlib::protocol::*;
 
-pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
-    let config_info = common::SpdmConfigInfo {
-        spdm_version: [
-            SpdmVersion::SpdmVersion10,
-            SpdmVersion::SpdmVersion11,
-            SpdmVersion::SpdmVersion12,
-        ],
-        rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::CHAL_CAP
-        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-        | SpdmResponseCapabilityFlags::MAC_CAP
-        //| SpdmResponseCapabilityFlags::MUT_AUTH_CAP
-        | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
-        | SpdmResponseCapabilityFlags::HBEAT_CAP
-        | SpdmResponseCapabilityFlags::KEY_UPD_CAP, // | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
-        // | SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP
-        rsp_ct_exponent: 0,
-        measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_hash_algo: SpdmMeasurementHashAlgo::TPM_ALG_SHA_384,
-        base_asym_algo: if USE_ECDSA {
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
-        } else {
-            SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
-        },
-        base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        dhe_algo: if USE_ECDH {
-            SpdmDheAlgo::SECP_384_R1
-        } else {
-            SpdmDheAlgo::FFDHE_3072
-        },
-        aead_algo: SpdmAeadAlgo::AES_256_GCM,
-        req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
-        key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        ..Default::default()
-    };
-
+pub fn rsp_create_info() -> common::SpdmProvisionInfo {
     let mut my_cert_chain_data = SpdmCertChainData {
         ..Default::default()
     };
@@ -95,5 +56,5 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         default_version: SpdmVersion::SpdmVersion12,
     };
 
-    (config_info, provision_info)
+    provision_info
 }

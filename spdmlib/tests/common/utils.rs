@@ -19,46 +19,7 @@ pub fn get_test_key_directory() -> PathBuf {
 }
 
 /// Create requester config and provision info
-pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
-    let config_info = common::SpdmConfigInfo {
-        spdm_version: [
-            SpdmVersion::SpdmVersion10,
-            SpdmVersion::SpdmVersion11,
-            SpdmVersion::SpdmVersion12,
-        ],
-        req_capabilities: SpdmRequestCapabilityFlags::CERT_CAP
-        | SpdmRequestCapabilityFlags::CHAL_CAP
-        | SpdmRequestCapabilityFlags::ENCRYPT_CAP
-        | SpdmRequestCapabilityFlags::MAC_CAP
-        //| SpdmRequestCapabilityFlags::MUT_AUTH_CAP
-        | SpdmRequestCapabilityFlags::KEY_EX_CAP
-        | SpdmRequestCapabilityFlags::PSK_CAP
-        | SpdmRequestCapabilityFlags::ENCAP_CAP
-        | SpdmRequestCapabilityFlags::HBEAT_CAP
-        | SpdmRequestCapabilityFlags::KEY_UPD_CAP, // | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
-        // | SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP
-        req_ct_exponent: 0,
-        measurement_specification: SpdmMeasurementSpecification::DMTF,
-        base_asym_algo: if USE_ECDSA {
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
-        } else {
-            SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
-        },
-        base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        dhe_algo: if USE_ECDH {
-            SpdmDheAlgo::SECP_384_R1
-        } else {
-            SpdmDheAlgo::FFDHE_3072
-        },
-        aead_algo: SpdmAeadAlgo::AES_256_GCM,
-        req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
-        key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
-        data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
-        max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
-        ..Default::default()
-    };
-
+pub fn req_create_info() -> common::SpdmProvisionInfo {
     let mut peer_cert_chain_data = SpdmCertChainData {
         ..Default::default()
     };
@@ -107,54 +68,10 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         default_version: SpdmVersion::SpdmVersion12,
     };
 
-    (config_info, provision_info)
+    provision_info
 }
 
-pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
-    let config_info = common::SpdmConfigInfo {
-        spdm_version: [
-            SpdmVersion::SpdmVersion10,
-            SpdmVersion::SpdmVersion11,
-            SpdmVersion::SpdmVersion12,
-        ],
-        rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::CHAL_CAP
-        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-        | SpdmResponseCapabilityFlags::MAC_CAP
-        //| SpdmResponseCapabilityFlags::MUT_AUTH_CAP
-        | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
-        | SpdmResponseCapabilityFlags::HBEAT_CAP
-        | SpdmResponseCapabilityFlags::KEY_UPD_CAP, // | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
-        // | SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP
-        rsp_ct_exponent: 0,
-        measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_hash_algo: SpdmMeasurementHashAlgo::TPM_ALG_SHA_384,
-        base_asym_algo: if USE_ECDSA {
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
-        } else {
-            SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
-        },
-        base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        dhe_algo: if USE_ECDH {
-            SpdmDheAlgo::SECP_384_R1
-        } else {
-            SpdmDheAlgo::FFDHE_3072
-        },
-        aead_algo: SpdmAeadAlgo::AES_256_GCM,
-        req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
-        key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
-        data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
-        max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
-        heartbeat_period: config::HEARTBEAT_PERIOD,
-        secure_spdm_version: config::SECURE_SPDM_VERSION,
-        ..Default::default()
-    };
-
+pub fn rsp_create_info() -> common::SpdmProvisionInfo {
     let mut my_cert_chain_data = SpdmCertChainData {
         ..Default::default()
     };
@@ -204,5 +121,5 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         default_version: SpdmVersion::SpdmVersion12,
     };
 
-    (config_info, provision_info)
+    provision_info
 }

@@ -855,7 +855,7 @@ pub struct SpdmDmtfMeasurementStructure {
     pub r#type: SpdmDmtfMeasurementType,
     pub representation: SpdmDmtfMeasurementRepresentation,
     pub value_size: u16,
-    pub value: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+    pub value: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE],
 }
 impl Default for SpdmDmtfMeasurementStructure {
     fn default() -> SpdmDmtfMeasurementStructure {
@@ -863,7 +863,7 @@ impl Default for SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
             value_size: 0,
-            value: [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            value: [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE],
         }
     }
 }
@@ -920,7 +920,7 @@ impl Codec for SpdmDmtfMeasurementStructure {
         // TBD: Check measurement_hash
 
         let value_size = u16::read(r)?;
-        let mut value = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut value = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
         for v in value.iter_mut().take(value_size as usize) {
             *v = u8::read(r)?;
         }
@@ -965,14 +965,14 @@ impl Codec for SpdmMeasurementBlockStructure {
 pub struct SpdmMeasurementRecordStructure {
     pub number_of_blocks: u8,
     pub measurement_record_length: u24,
-    pub measurement_record_data: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+    pub measurement_record_data: [u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE],
 }
 impl Default for SpdmMeasurementRecordStructure {
     fn default() -> SpdmMeasurementRecordStructure {
         SpdmMeasurementRecordStructure {
             number_of_blocks: 0,
             measurement_record_length: u24::new(0),
-            measurement_record_data: [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            measurement_record_data: [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE],
         }
     }
 }
@@ -1040,13 +1040,13 @@ impl From<BytesMut> for SpdmDheFinalKeyStruct {
 #[derive(Debug, Clone)]
 pub struct SpdmPskContextStruct {
     pub data_size: u16,
-    pub data: [u8; config::MAX_SPDM_PSK_CONTEXT_SIZE],
+    pub data: [u8; config::USER_MAX_PSK_CONTEXT_SIZE],
 }
 impl Default for SpdmPskContextStruct {
     fn default() -> SpdmPskContextStruct {
         SpdmPskContextStruct {
             data_size: 0,
-            data: [0u8; config::MAX_SPDM_PSK_CONTEXT_SIZE],
+            data: [0u8; config::USER_MAX_PSK_CONTEXT_SIZE],
         }
     }
 }
@@ -1060,13 +1060,13 @@ impl AsRef<[u8]> for SpdmPskContextStruct {
 #[derive(Debug, Clone)]
 pub struct SpdmPskHintStruct {
     pub data_size: u16,
-    pub data: [u8; config::MAX_SPDM_PSK_HINT_SIZE],
+    pub data: [u8; config::USER_MAX_PSK_HINT_SIZE],
 }
 impl Default for SpdmPskHintStruct {
     fn default() -> SpdmPskHintStruct {
         SpdmPskHintStruct {
             data_size: 0,
-            data: [0u8; config::MAX_SPDM_PSK_HINT_SIZE],
+            data: [0u8; config::USER_MAX_PSK_HINT_SIZE],
         }
     }
 }

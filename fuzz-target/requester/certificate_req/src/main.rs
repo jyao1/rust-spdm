@@ -6,16 +6,16 @@ use fuzzlib::*;
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
-    let (rsp_config_info, rsp_provision_info) = rsp_create_info();
-    let (req_config_info, req_provision_info) = req_create_info();
-    let (rsp_config_info1, rsp_provision_info1) = rsp_create_info();
-    let (req_config_info1, req_provision_info1) = req_create_info();
-    let (rsp_config_info2, rsp_provision_info2) = rsp_create_info();
-    let (req_config_info2, req_provision_info2) = req_create_info();
-    let (rsp_config_info3, rsp_provision_info3) = rsp_create_info();
-    let (req_config_info3, req_provision_info3) = req_create_info();
-    let (rsp_config_info4, rsp_provision_info4) = rsp_create_info();
-    let (req_config_info4, req_provision_info4) = req_create_info();
+    let rsp_provision_info = rsp_create_info();
+    let req_provision_info = req_create_info();
+    let rsp_provision_info1 = rsp_create_info();
+    let req_provision_info1 = req_create_info();
+    let rsp_provision_info2 = rsp_create_info();
+    let req_provision_info2 = req_create_info();
+    let rsp_provision_info3 = rsp_create_info();
+    let req_provision_info3 = req_create_info();
+    let rsp_provision_info4 = rsp_create_info();
+    let req_provision_info4 = req_create_info();
     {
         // pass
         let shared_buffer = SharedBuffer::new();
@@ -28,7 +28,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -51,7 +50,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 
@@ -78,7 +76,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info1,
             rsp_provision_info1,
         );
         responder.common.reset_runtime_info();
@@ -99,7 +96,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info1,
             req_provision_info1,
         );
 
@@ -125,7 +121,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info2,
             rsp_provision_info2,
         );
         responder.common.reset_runtime_info();
@@ -146,7 +141,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info2,
             req_provision_info2,
         );
 
@@ -179,7 +173,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info3,
             rsp_provision_info3,
         );
 
@@ -203,7 +196,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info3,
             req_provision_info3,
         );
         let mut tmp = requester
@@ -233,7 +225,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info4,
             rsp_provision_info4,
         );
 
@@ -255,7 +246,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info4,
             req_provision_info4,
         );
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;

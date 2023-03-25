@@ -13,7 +13,7 @@ use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_digest(&mut self, bytes: &[u8], session_id: Option<u32>) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_DIGESTS_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_digest_response(bytes, &mut writer);
 
@@ -123,7 +123,7 @@ mod tests_responder {
 
     #[test]
     fn test_case0_handle_spdm_digest() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -133,7 +133,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {

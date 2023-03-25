@@ -31,7 +31,7 @@ impl<'a> ResponderContext<'a> {
 
     pub fn send_spdm_error(&mut self, error_code: SpdmErrorCode, error_data: u8) {
         info!("send spdm version\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_ERROR_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_error(error_code, error_data, &mut writer);
         let _ = self.send_message(writer.used_slice());
@@ -45,7 +45,7 @@ mod tests_responder {
     use crate::{crypto, responder};
     #[test]
     fn test_case0_send_spdm_error() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -53,7 +53,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 

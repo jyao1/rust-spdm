@@ -556,14 +556,11 @@ mod tests {
                 request_response_code: SpdmRequestResponseCode::SpdmResponseVersion,
             },
             payload: SpdmMessagePayload::SpdmVersionResponse(SpdmVersionResponsePayload {
-                version_number_entry_count: 0x02,
-                versions: gen_array_clone(
-                    SpdmVersionStruct {
-                        update: 100,
-                        version: SpdmVersion::SpdmVersion11,
-                    },
-                    MAX_SPDM_VERSION_COUNT,
-                ),
+                version_number_entry_count: crate::config::SPDM_VERSION_COUNT as u8,
+                versions: [SpdmVersionStruct {
+                    update: 100,
+                    version: SpdmVersion::SpdmVersion11,
+                }; crate::config::MAX_SPDM_VERSION_COUNT],
             }),
         };
 
@@ -576,8 +573,11 @@ mod tests {
             SpdmRequestResponseCode::SpdmResponseVersion
         );
         if let SpdmMessagePayload::SpdmVersionResponse(payload) = &spdm_message.payload {
-            assert_eq!(payload.version_number_entry_count, 0x02);
-            for i in 0..2 {
+            assert_eq!(
+                payload.version_number_entry_count,
+                crate::config::SPDM_VERSION_COUNT as u8
+            );
+            for i in 0..crate::config::SPDM_VERSION_COUNT {
                 assert_eq!(payload.versions[i].update, 100);
                 assert_eq!(payload.versions[i].version, SpdmVersion::SpdmVersion11);
             }
@@ -652,7 +652,7 @@ mod tests {
                     other_params_support: SpdmOpaqueSupport::empty(),
                     base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                     base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
-                    alg_struct_count: 4,
+                    alg_struct_count: crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8,
                     alg_struct: gen_array_clone(
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
@@ -682,8 +682,11 @@ mod tests {
                 SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048
             );
             assert_eq!(payload.base_hash_algo, SpdmBaseHashAlgo::TPM_ALG_SHA_256);
-            assert_eq!(payload.alg_struct_count, 4);
-            for i in 0..4 {
+            assert_eq!(
+                payload.alg_struct_count,
+                crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8
+            );
+            for i in 0..crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT {
                 assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
                 assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
                 assert_eq!(
@@ -707,7 +710,7 @@ mod tests {
                 measurement_hash_algo: SpdmMeasurementHashAlgo::RAW_BIT_STREAM,
                 base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                 base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
-                alg_struct_count: 4,
+                alg_struct_count: crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8,
                 alg_struct: gen_array_clone(
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeDHE,
@@ -742,8 +745,11 @@ mod tests {
             );
             assert_eq!(payload.base_asym_sel, SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
             assert_eq!(payload.base_hash_sel, SpdmBaseHashAlgo::TPM_ALG_SHA_256);
-            assert_eq!(payload.alg_struct_count, 4);
-            for i in 0..4 {
+            assert_eq!(
+                payload.alg_struct_count,
+                crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT as u8
+            );
+            for i in 0..crate::config::USER_MAX_SPDM_ALG_STRUCT_COUNT {
                 assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
                 assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
                 assert_eq!(
@@ -842,7 +848,7 @@ mod tests {
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 64,
-                        data: [0xAAu8; MAX_SPDM_OPAQUE_SIZE],
+                        data: [0xAAu8; MAX_OPAQUE_DATA_LENGTH],
                     },
                     signature: SpdmSignatureStruct {
                         data_size: 512,
@@ -937,11 +943,11 @@ mod tests {
                 r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
                 representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
                 value_size: 64u16,
-                value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
+                value: [100u8; MAX_MEASUREMENT_RECORD_DATA_SIZE],
             },
         };
 
-        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut measurement_record_data = [0u8; config::MAX_MEASUREMENT_RECORD_DATA_SIZE];
         let mut writer = Writer::init(&mut measurement_record_data);
         for i in 0..5 {
             spdm_measurement_block_structure.encode(&mut writer);
@@ -967,7 +973,7 @@ mod tests {
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 64,
-                        data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                        data: [100u8; MAX_OPAQUE_DATA_LENGTH],
                     },
                     signature: SpdmSignatureStruct {
                         data_size: 512,
@@ -1029,7 +1035,7 @@ mod tests {
                 },
                 opaque: SpdmOpaqueStruct {
                     data_size: 64u16,
-                    data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                    data: [100u8; crate::config::MAX_OPAQUE_DATA_LENGTH],
                 },
             }),
         };
@@ -1149,15 +1155,15 @@ mod tests {
                 req_session_id: 100u16,
                 psk_hint: SpdmPskHintStruct {
                     data_size: 32,
-                    data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
+                    data: [100u8; USER_MAX_PSK_HINT_SIZE],
                 },
                 psk_context: SpdmPskContextStruct {
                     data_size: 64,
-                    data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                    data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
                 },
                 opaque: SpdmOpaqueStruct {
                     data_size: 64,
-                    data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                    data: [100u8; MAX_OPAQUE_DATA_LENGTH],
                 },
             }),
         };
@@ -1199,11 +1205,11 @@ mod tests {
                 },
                 psk_context: SpdmPskContextStruct {
                     data_size: 64,
-                    data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                    data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
                 },
                 opaque: SpdmOpaqueStruct {
                     data_size: 64,
-                    data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                    data: [100u8; MAX_OPAQUE_DATA_LENGTH],
                 },
                 verify_data: SpdmDigestStruct {
                     data_size: 64,

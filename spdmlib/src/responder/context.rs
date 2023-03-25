@@ -17,21 +17,15 @@ impl<'a> ResponderContext<'a> {
     pub fn new(
         device_io: &'a mut dyn SpdmDeviceIo,
         transport_encap: &'a mut dyn SpdmTransportEncap,
-        config_info: crate::common::SpdmConfigInfo,
         provision_info: crate::common::SpdmProvisionInfo,
     ) -> Self {
         ResponderContext {
-            common: crate::common::SpdmContext::new(
-                device_io,
-                transport_encap,
-                config_info,
-                provision_info,
-            ),
+            common: crate::common::SpdmContext::new(device_io, transport_encap, provision_info),
         }
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
@@ -42,7 +36,7 @@ impl<'a> ResponderContext<'a> {
         send_buffer: &[u8],
         is_app_message: bool,
     ) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
             send_buffer,
@@ -57,8 +51,8 @@ impl<'a> ResponderContext<'a> {
         &mut self,
         timeout: usize,
         auxiliary_app_data: &[u8],
-    ) -> Result<bool, (usize, [u8; config::DATA_TRANSFER_SIZE])> {
-        let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+    ) -> Result<bool, (usize, [u8; config::USER_DATA_TRANSFER_SIZE])> {
+        let mut receive_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         match self.receive_message(&mut receive_buffer[..], timeout) {
             Ok((used, secured_message)) => {
                 if secured_message {
@@ -70,7 +64,7 @@ impl<'a> ResponderContext<'a> {
                         .get_session_via_id(session_id)
                         .ok_or((used, receive_buffer))?;
 
-                    let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+                    let mut app_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
 
                     let decode_size = spdm_session.decode_spdm_secured_message(
                         &receive_buffer[..used],
@@ -82,7 +76,7 @@ impl<'a> ResponderContext<'a> {
                     }
                     let decode_size = decode_size.unwrap();
 
-                    let mut spdm_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+                    let mut spdm_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
                     let decap_result = self
                         .common
                         .transport_encap
@@ -123,7 +117,7 @@ impl<'a> ResponderContext<'a> {
     ) -> Result<(usize, bool), usize> {
         info!("receive_message!\n");
 
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
 
         let used = self.common.device_io.receive(receive_buffer, timeout)?;
 
@@ -320,7 +314,7 @@ mod tests_responder {
 
     #[test]
     fn test_case0_send_secured_message() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -329,7 +323,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
@@ -347,7 +340,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -368,7 +361,7 @@ mod tests_responder {
     }
     #[test]
     fn test_case1_send_secured_message() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -376,14 +369,13 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let value = SpdmMessage {
             header: SpdmMessageHeader::default(),
@@ -400,7 +392,7 @@ mod tests_responder {
     }
     #[test]
     fn test_case0_receive_message() {
-        let receive_buffer = &mut [0u8; config::DATA_TRANSFER_SIZE];
+        let receive_buffer = &mut [0u8; config::USER_DATA_TRANSFER_SIZE];
         let mut writer = Writer::init(receive_buffer);
         let value = PciDoeMessageHeader {
             vendor_id: PciDoeVendorId::PciDoeVendorIdPciSig,
@@ -409,7 +401,7 @@ mod tests_responder {
         };
         value.encode(&mut writer);
 
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         shared_buffer.set_buffer(receive_buffer);
@@ -419,11 +411,10 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
-        let mut receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut receive_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let status = context
             .receive_message(&mut receive_buffer[..], ST1)
             .is_ok();
@@ -440,7 +431,7 @@ mod tests_responder {
         };
         value.encode(&mut writer);
 
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         shared_buffer.set_buffer(receive_buffer);
@@ -449,7 +440,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 
@@ -473,7 +463,7 @@ mod tests_responder {
     #[test]
     #[should_panic(expected = "not implemented")]
     fn test_case0_dispatch_secured_message() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -481,7 +471,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 

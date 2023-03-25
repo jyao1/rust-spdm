@@ -206,7 +206,7 @@ mod tests {
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64u16,
-                data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data: [100u8; crate::config::MAX_OPAQUE_DATA_LENGTH],
             },
         };
 
@@ -260,7 +260,7 @@ mod tests {
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64u16,
-                data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data: [0x22u8; crate::config::MAX_OPAQUE_DATA_LENGTH],
             },
             signature: SpdmSignatureStruct {
                 data_size: 512u16,
@@ -338,7 +338,7 @@ mod tests {
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
                 data_size: 64u16,
-                data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data: [0x22u8; crate::config::MAX_OPAQUE_DATA_LENGTH],
             },
             signature: SpdmSignatureStruct {
                 data_size: 512u16,

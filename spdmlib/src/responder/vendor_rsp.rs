@@ -19,7 +19,7 @@ impl<'a> ResponderContext<'a> {
         let rsp_payload = self
             .respond_to_vendor_defined_request(&req_payload, vendor_defined_request_handler)
             .unwrap();
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_VENDOR_DEFINED_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
 
         let response = SpdmMessage {
@@ -60,7 +60,7 @@ mod tests_requester {
 
     #[test]
     fn test_case0_handle_spdm_vendor_defined_request() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
+        let rsp_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -71,7 +71,6 @@ mod tests_requester {
         let mut responder = ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 

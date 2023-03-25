@@ -108,7 +108,7 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
             let data_transfer_size = u32::read(r)?;
             let max_spdm_msg_size = u32::read(r)?;
             if data_transfer_size < 42 || max_spdm_msg_size < 42 {
-                panic!("requester: data_transfer_size or max_spdm_msg_size < 42");
+                return None;
             }
             Some(SpdmCapabilitiesResponsePayload {
                 ct_exponent,
@@ -134,7 +134,7 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
-    use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
+    use crate::common::{SpdmContext, SpdmProvisionInfo};
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]

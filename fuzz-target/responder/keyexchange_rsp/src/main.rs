@@ -6,9 +6,9 @@ use fuzzlib::*;
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
-    let (config_info, provision_info) = rsp_create_info();
-    let (config_info1, provision_info1) = rsp_create_info();
-    let (config_info2, provision_info2) = rsp_create_info();
+    let provision_info = rsp_create_info();
+    let provision_info1 = rsp_create_info();
+    let provision_info2 = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
@@ -25,7 +25,6 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info,
             provision_info,
         );
         // algorithm_rsp
@@ -52,7 +51,6 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info1,
             provision_info1,
         );
 
@@ -86,7 +84,6 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info2,
             provision_info2,
         );
 

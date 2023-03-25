@@ -115,14 +115,13 @@ impl<'a> SpdmContext<'a> {
     pub fn new(
         device_io: &'a mut dyn SpdmDeviceIo,
         transport_encap: &'a mut dyn SpdmTransportEncap,
-        config_info: SpdmConfigInfo,
         provision_info: SpdmProvisionInfo,
     ) -> Self {
         //dbg!("{:?}",mem::needs_drop::<SpdmSession>());
         SpdmContext {
             device_io,
             transport_encap,
-            config_info,
+            config_info: SpdmConfigInfo::gen_config(),
             negotiate_info: SpdmNegotiateInfo::default(),
             runtime_info: SpdmRuntimeInfo::default(),
             provision_info,
@@ -217,10 +216,10 @@ impl<'a> SpdmContext<'a> {
         &self,
         slot_id: u8,
         use_psk: bool,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
-    ) -> SpdmResult<ManagedBuffer> {
-        let mut message = ManagedBuffer::default();
+        message_k: &ManagedBufferMessageK,
+        message_f: Option<&ManagedBufferMessageF>,
+    ) -> SpdmResult<ManagedBufferMessageA_CERT_K_F> {
+        let mut message = ManagedBufferMessageA_CERT_K_F::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -267,10 +266,10 @@ impl<'a> SpdmContext<'a> {
     pub fn calc_rsp_transcript_data(
         &mut self,
         use_psk: bool,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
-    ) -> SpdmResult<ManagedBuffer> {
-        let mut message = ManagedBuffer::default();
+        message_k: &ManagedBufferMessageK,
+        message_f: Option<&ManagedBufferMessageF>,
+    ) -> SpdmResult<ManagedBufferMessageA_CERT_K_F> {
+        let mut message = ManagedBufferMessageA_CERT_K_F::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -315,8 +314,8 @@ impl<'a> SpdmContext<'a> {
         &self,
         slot_id: u8,
         use_psk: bool,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
+        message_k: &ManagedBufferMessageK,
+        message_f: Option<&ManagedBufferMessageF>,
     ) -> SpdmResult<SpdmDigestStruct> {
         let message = self.calc_req_transcript_data(slot_id, use_psk, message_k, message_f)?;
 
@@ -330,8 +329,8 @@ impl<'a> SpdmContext<'a> {
     pub fn calc_rsp_transcript_hash(
         &mut self,
         use_psk: bool,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
+        message_k: &ManagedBufferMessageK,
+        message_f: Option<&ManagedBufferMessageF>,
     ) -> SpdmResult<SpdmDigestStruct> {
         let message = self.calc_rsp_transcript_data(use_psk, message_k, message_f)?;
 
@@ -404,7 +403,7 @@ impl<'a> SpdmContext<'a> {
         is_requester: bool,
         is_app_message: bool,
     ) -> SpdmResult<usize> {
-        let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut app_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
         let used = self
             .transport_encap
             .encap_app(send_buffer, &mut app_buffer, is_app_message)?;
@@ -413,7 +412,7 @@ impl<'a> SpdmContext<'a> {
             .get_session_via_id(session_id)
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut encoded_send_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let encode_size = spdm_session.encode_spdm_secured_message(
             &app_buffer[0..used],
             &mut encoded_send_buffer,
@@ -446,7 +445,7 @@ impl<'a> SpdmContext<'a> {
         transport_buffer: &[u8],
         receive_buffer: &mut [u8],
     ) -> SpdmResult<usize> {
-        let mut encoded_receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut encoded_receive_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let (used, secured_message) = self
             .transport_encap
             .decap(transport_buffer, &mut encoded_receive_buffer)?;
@@ -459,7 +458,7 @@ impl<'a> SpdmContext<'a> {
             .get_session_via_id(session_id)
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
-        let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut app_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
         let decode_size = spdm_session.decode_spdm_secured_message(
             &encoded_receive_buffer[..used],
             &mut app_buffer,
@@ -476,7 +475,7 @@ impl<'a> SpdmContext<'a> {
 
 #[derive(Debug, Default)]
 pub struct SpdmConfigInfo {
-    pub spdm_version: [SpdmVersion; config::MAX_SPDM_VERSION_COUNT],
+    pub spdm_version: [SpdmVersion; config::SPDM_VERSION_COUNT],
     pub req_capabilities: SpdmRequestCapabilityFlags,
     pub rsp_capabilities: SpdmResponseCapabilityFlags,
     pub req_ct_exponent: u8,
@@ -486,16 +485,323 @@ pub struct SpdmConfigInfo {
     pub base_hash_algo: SpdmBaseHashAlgo,
     pub base_asym_algo: SpdmBaseAsymAlgo,
     pub dhe_algo: SpdmDheAlgo,
+    pub is_dhe_structure_active: bool,
     pub aead_algo: SpdmAeadAlgo,
+    pub is_aead_structure_active: bool,
     pub req_asym_algo: SpdmReqAsymAlgo,
+    pub is_req_asym_structure_active: bool,
     pub key_schedule_algo: SpdmKeyScheduleAlgo,
+    pub is_key_schedule_structure_active: bool,
     pub opaque_support: SpdmOpaqueSupport,
-    pub session_policy: u8,
     pub runtime_content_change_support: bool,
     pub data_transfer_size: u32,
     pub max_spdm_msg_size: u32,
     pub heartbeat_period: u8,    // used by responder only
     pub secure_spdm_version: u8, // used by responder only
+}
+
+impl SpdmConfigInfo {
+    pub fn gen_config() -> Self {
+        let mut spdm_version = [SpdmVersion::Unknown(0); config::SPDM_VERSION_COUNT];
+        for i in 0..config::SPDM_VERSION_COUNT {
+            if config::USER_IS_SPDM_VERSION_10_SUPPORTED
+                && !spdm_version.contains(&SpdmVersion::SpdmVersion10)
+            {
+                spdm_version[i] = SpdmVersion::SpdmVersion10;
+                continue;
+            }
+            if config::USER_IS_SPDM_VERSION_11_SUPPORTED
+                && !spdm_version.contains(&SpdmVersion::SpdmVersion11)
+            {
+                spdm_version[i] = SpdmVersion::SpdmVersion11;
+                continue;
+            }
+            if config::USER_IS_SPDM_VERSION_12_SUPPORTED
+                && !spdm_version.contains(&SpdmVersion::SpdmVersion12)
+            {
+                spdm_version[i] = SpdmVersion::SpdmVersion12;
+                continue;
+            }
+        }
+
+        let mut req_capabilities = SpdmRequestCapabilityFlags::default();
+        if config::USER_IS_REQUESTER_CERT_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::CERT_CAP;
+        }
+        if config::USER_IS_REQUESTER_CHAL_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::CHAL_CAP;
+        }
+        if config::USER_IS_REQUESTER_ENCRYPT_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::ENCRYPT_CAP;
+        }
+        if config::USER_IS_REQUESTER_MAC_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::MAC_CAP;
+        }
+        if config::USER_IS_REQUESTER_MUT_AUTH_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::MUT_AUTH_CAP;
+        }
+        if config::USER_IS_REQUESTER_KEY_EX_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::KEY_EX_CAP;
+        }
+        if config::USER_IS_REQUESTER_PSK_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::PSK_CAP;
+        }
+        if config::USER_IS_REQUESTER_ENCAP_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::ENCAP_CAP;
+        }
+        if config::USER_IS_REQUESTER_HBEAT_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::HBEAT_CAP;
+        }
+        if config::USER_IS_REQUESTER_KEY_UPD_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::KEY_UPD_CAP;
+        }
+        if config::USER_IS_REQUESTER_HANDSHAKE_IN_THE_CLEAR_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        }
+        if config::USER_IS_REQUESTER_PUB_KEY_ID_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP;
+        }
+        if config::USER_IS_REQUESTER_CHUNK_CAP_SUPPORTED {
+            req_capabilities |= SpdmRequestCapabilityFlags::CHUNK_CAP;
+        }
+
+        let mut rsp_capabilities = SpdmResponseCapabilityFlags::default();
+        if config::USER_IS_RESPONDER_CACHE_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::CACHE_CAP;
+        }
+        if config::USER_IS_RESPONDER_CERT_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::CERT_CAP;
+        }
+        if config::USER_IS_RESPONDER_CHAL_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::CHAL_CAP;
+        }
+        if config::USER_IS_RESPONDER_MEAS_WITHOUT_SIG_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG;
+        }
+        if config::USER_IS_RESPONDER_MEAS_WITH_SIG_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::MEAS_CAP_SIG;
+        }
+        if config::USER_IS_RESPONDER_MEAS_FRESH_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::MEAS_FRESH_CAP;
+        }
+        if config::USER_IS_RESPONDER_ENCRYPT_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::ENCRYPT_CAP;
+        }
+        if config::USER_IS_RESPONDER_MAC_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::MAC_CAP;
+        }
+        if config::USER_IS_RESPONDER_MUT_AUTH_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::MUT_AUTH_CAP;
+        }
+        if config::USER_IS_RESPONDER_KEY_EX_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::KEY_EX_CAP;
+        }
+        if config::USER_IS_RESPONDER_PSK_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::PSK_CAP;
+        }
+        if config::USER_IS_RESPONDER_ENCAP_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::ENCAP_CAP;
+        }
+        if config::USER_IS_RESPONDER_HBEAT_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::HBEAT_CAP;
+        }
+        if config::USER_IS_RESPONDER_KEY_UPD_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::KEY_UPD_CAP;
+        }
+        if config::USER_IS_RESPONDER_HANDSHAKE_IN_THE_CLEAR_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
+        }
+        if config::USER_IS_RESPONDER_PUB_KEY_ID_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP;
+        }
+        if config::USER_IS_RESPONDER_CHUNK_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::CHUNK_CAP;
+        }
+        if config::USER_IS_RESPONDER_ALIAS_CERT_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::ALIAS_CERT_CAP;
+        }
+        if config::USER_IS_RESPONDER_SET_CERT_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::SET_CERT_CAP;
+        }
+        if config::USER_IS_RESPONDER_CSR_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::CSR_CAP;
+        }
+        if config::USER_IS_RESPONDER_CERT_INSTALL_RESET_CAP_SUPPORTED {
+            rsp_capabilities |= SpdmResponseCapabilityFlags::CERT_INSTALL_RESET_CAP;
+        }
+
+        let mut measurement_specification = SpdmMeasurementSpecification::default();
+        if config::USER_IS_DMTF_DEFINE_MEASUREMENT_SPECIFICATION_SUPPORTED {
+            measurement_specification = SpdmMeasurementSpecification::DMTF;
+        }
+
+        let mut measurement_hash_algo = SpdmMeasurementHashAlgo::default();
+        if config::USER_IS_RAW_BIT_STREAM_ONLY_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
+        } else if config::USER_IS_TPM_ALG_SHA_256_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::TPM_ALG_SHA_256;
+        } else if config::USER_IS_TPM_ALG_SHA_384_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        } else if config::USER_IS_TPM_ALG_SHA_512_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::TPM_ALG_SHA_512;
+        } else if config::USER_IS_TPM_ALG_SHA3_256_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::TPM_ALG_SHA3_256;
+        } else if config::USER_IS_TPM_ALG_SHA3_384_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::TPM_ALG_SHA3_384;
+        } else if config::USER_IS_TPM_ALG_SHA3_512_FOR_MEASUREMENT_HASH_SUPPORTED {
+            measurement_hash_algo |= SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512;
+        }
+
+        let mut base_asym_algo = SpdmBaseAsymAlgo::default();
+        if config::USER_IS_TPM_ALG_RSASSA_2048_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048;
+        }
+        if config::USER_IS_TPM_ALG_RSAPSS_2048_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048;
+        }
+        if config::USER_IS_TPM_ALG_RSASSA_3072_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072;
+        }
+        if config::USER_IS_TPM_ALG_RSAPSS_3072_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072;
+        }
+        if config::USER_IS_TPM_ALG_ECDSA_ECC_NIST_P256_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256;
+        }
+        if config::USER_IS_TPM_ALG_RSASSA_4096_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
+        }
+        if config::USER_IS_TPM_ALG_RSAPSS_4096_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
+        }
+        if config::USER_IS_TPM_ALG_ECDSA_ECC_NIST_P384_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        }
+        if config::USER_IS_TPM_ALG_ECDSA_ECC_NIST_P521_FOR_BASE_AYSM_ALGO_SUPPORTED {
+            base_asym_algo |= SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521;
+        }
+
+        let mut base_hash_algo = SpdmBaseHashAlgo::default();
+        if config::USER_IS_TPM_ALG_SHA_256_FOR_BASE_HASH_ALGO_SUPPORTED {
+            base_hash_algo |= SpdmBaseHashAlgo::TPM_ALG_SHA_256;
+        }
+        if config::USER_IS_TPM_ALG_SHA_384_FOR_BASE_HASH_ALGO_SUPPORTED {
+            base_hash_algo |= SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        }
+        if config::USER_IS_TPM_ALG_SHA_512_FOR_BASE_HASH_ALGO_SUPPORTED {
+            base_hash_algo |= SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        }
+        if config::USER_IS_TPM_ALG_SHA3_256_FOR_BASE_HASH_ALGO_SUPPORTED {
+            base_hash_algo |= SpdmBaseHashAlgo::TPM_ALG_SHA3_256;
+        }
+        if config::USER_IS_TPM_ALG_SHA3_384_FOR_BASE_HASH_ALGO_SUPPORTED {
+            base_hash_algo |= SpdmBaseHashAlgo::TPM_ALG_SHA3_384;
+        }
+        if config::USER_IS_TPM_ALG_SHA3_512_FOR_BASE_HASH_ALGO_SUPPORTED {
+            base_hash_algo |= SpdmBaseHashAlgo::TPM_ALG_SHA3_512;
+        }
+
+        let mut dhe_algo = SpdmDheAlgo::default();
+        if config::IS_DHE_STRUCTURE_ACTIVE {
+            if config::USER_IS_FFDHE2048_FOR_DHE_SUPPORTED {
+                dhe_algo |= SpdmDheAlgo::FFDHE_2048;
+            }
+            if config::USER_IS_FFDHE3072_FOR_DHE_SUPPORTED {
+                dhe_algo |= SpdmDheAlgo::FFDHE_3072;
+            }
+            if config::USER_IS_FFDHE4096_FOR_DHE_SUPPORTED {
+                dhe_algo |= SpdmDheAlgo::FFDHE_4096;
+            }
+            if config::USER_IS_SECP256R1_FOR_DHE_SUPPORTED {
+                dhe_algo |= SpdmDheAlgo::SECP_256_R1;
+            }
+            if config::USER_IS_SECP384R1_FOR_DHE_SUPPORTED {
+                dhe_algo |= SpdmDheAlgo::SECP_384_R1;
+            }
+            if config::USER_IS_SECP521R1_FOR_DHE_SUPPORTED {
+                dhe_algo |= SpdmDheAlgo::SECP_521_R1;
+            }
+        }
+
+        let mut aead_algo = SpdmAeadAlgo::default();
+        if config::IS_AEAD_STRUCTURE_ACTIVE {
+            if config::USER_IS_AES_128_GCM_FOR_AEAD_SUPPORTED {
+                aead_algo |= SpdmAeadAlgo::AES_128_GCM;
+            }
+            if config::USER_IS_AES_256_GCM_FOR_AEAD_SUPPORTED {
+                aead_algo |= SpdmAeadAlgo::AES_256_GCM;
+            }
+            if config::USER_IS_CHACHA20_POLY1305_FOR_AEAD_SUPPORTED {
+                aead_algo |= SpdmAeadAlgo::CHACHA20_POLY1305;
+            }
+        }
+
+        let mut req_asym_algo = SpdmReqAsymAlgo::default();
+        if config::IS_REQ_BASE_ASYM_ALG_STRUCTURE_ACTIVE {
+            if config::USER_IS_TPM_ALG_RSASSA_2048_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_RSASSA_2048;
+            }
+            if config::USER_IS_TPM_ALG_RSAPSS_2048_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
+            }
+            if config::USER_IS_TPM_ALG_RSASSA_3072_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_RSASSA_3072;
+            }
+            if config::USER_IS_TPM_ALG_RSAPSS_3072_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_RSAPSS_3072;
+            }
+            if config::USER_IS_TPM_ALG_ECDSA_ECC_NIST_P256_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256;
+            }
+            if config::USER_IS_TPM_ALG_RSASSA_4096_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_RSASSA_4096;
+            }
+            if config::USER_IS_TPM_ALG_RSAPSS_4096_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_RSAPSS_4096;
+            }
+            if config::USER_IS_TPM_ALG_ECDSA_ECC_NIST_P384_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+            }
+            if config::USER_IS_TPM_ALG_ECDSA_ECC_NIST_P521_FOR_REQBASEASYMALG_SUPPORTED {
+                req_asym_algo |= SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521;
+            }
+        }
+
+        let mut key_schedule_algo = SpdmKeyScheduleAlgo::default();
+        if config::IS_KEY_SCHEDULE_STRUCTURE_ACTIVE && config::USER_IS_SPDM_KEY_SCHEDULE_SUPPORTED {
+            key_schedule_algo |= SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
+        }
+
+        Self {
+            spdm_version,
+            req_capabilities,
+            rsp_capabilities,
+            req_ct_exponent: config::USER_REQ_CT_EXPONENT,
+            rsp_ct_exponent: config::USER_RSP_CT_EXPONENT,
+            measurement_specification,
+            measurement_hash_algo,
+            base_hash_algo,
+            base_asym_algo,
+            dhe_algo,
+            is_dhe_structure_active: config::IS_DHE_STRUCTURE_ACTIVE,
+            aead_algo,
+            is_aead_structure_active: config::IS_AEAD_STRUCTURE_ACTIVE,
+            req_asym_algo,
+            is_req_asym_structure_active: config::IS_REQ_BASE_ASYM_ALG_STRUCTURE_ACTIVE,
+            key_schedule_algo,
+            is_key_schedule_structure_active: config::IS_KEY_SCHEDULE_STRUCTURE_ACTIVE,
+            opaque_support: if config::USER_IS_OPAQUE_DATA_FMT0_SUPPORTED {
+                SpdmOpaqueSupport::OPAQUE_DATA_FMT0
+            } else {
+                SpdmOpaqueSupport::OPAQUE_DATA_FMT1
+            },
+            runtime_content_change_support: spdm_version.contains(&SpdmVersion::SpdmVersion12),
+            data_transfer_size: config::USER_DATA_TRANSFER_SIZE as u32,
+            max_spdm_msg_size: config::USER_MAX_SPDM_MSG_SIZE as u32,
+            heartbeat_period: config::USER_RESPONDER_HEARTBEAT_PERIOD,
+            secure_spdm_version: config::SECURE_SPDM_VERSION,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -523,7 +829,7 @@ pub struct SpdmNegotiateInfo {
 
 // TBD ManagedSmallBuffer
 #[derive(Debug, Clone)]
-pub struct ManagedBuffer(usize, [u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
+pub struct ManagedBuffer(usize, [u8; config::USER_MAX_SPDM_MSG_SIZE]);
 
 impl ManagedBuffer {
     pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
@@ -546,7 +852,266 @@ impl AsRef<[u8]> for ManagedBuffer {
 
 impl Default for ManagedBuffer {
     fn default() -> Self {
-        ManagedBuffer(0usize, [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE])
+        ManagedBuffer(0usize, [0u8; config::USER_MAX_SPDM_MSG_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageA(usize, [u8; config::MAX_MESSAGE_A_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageA {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageA {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageA {
+    fn default() -> Self {
+        ManagedBufferMessageA(0usize, [0u8; config::MAX_MESSAGE_A_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageB(usize, [u8; config::MAX_MESSAGE_B_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageB {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageB {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageB {
+    fn default() -> Self {
+        ManagedBufferMessageB(0usize, [0u8; config::MAX_MESSAGE_B_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageC(usize, [u8; config::MAX_MESSAGE_C_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageC {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageC {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageC {
+    fn default() -> Self {
+        ManagedBufferMessageC(0usize, [0u8; config::MAX_MESSAGE_C_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageM(usize, [u8; config::MAX_MESSAGE_M_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageM {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageM {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageM {
+    fn default() -> Self {
+        ManagedBufferMessageM(0usize, [0u8; config::MAX_MESSAGE_M_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageM1M2(usize, [u8; config::MAX_MESSAGE_M1M2_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageM1M2 {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageM1M2 {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageM1M2 {
+    fn default() -> Self {
+        ManagedBufferMessageM1M2(0usize, [0u8; config::MAX_MESSAGE_M1M2_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageL(usize, [u8; config::MAX_MESSAGE_L_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageL {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageL {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageL {
+    fn default() -> Self {
+        ManagedBufferMessageL(0usize, [0u8; config::MAX_MESSAGE_L_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageK(usize, [u8; config::MAX_MESSAGE_K_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageK {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageK {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageK {
+    fn default() -> Self {
+        ManagedBufferMessageK(0usize, [0u8; config::MAX_MESSAGE_K_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferMessageF(usize, [u8; config::MAX_MESSAGE_F_TRANSCRIPT_SIZE]);
+
+impl ManagedBufferMessageF {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageF {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageF {
+    fn default() -> Self {
+        ManagedBufferMessageF(0usize, [0u8; config::MAX_MESSAGE_F_TRANSCRIPT_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+#[allow(non_camel_case_types)]
+pub struct ManagedBufferMessageA_CERT_K_F(
+    usize,
+    [u8; config::MAX_MESSAGE_A_CERT_K_F_TRANSCRIPT_SIZE],
+);
+
+impl ManagedBufferMessageA_CERT_K_F {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferMessageA_CERT_K_F {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferMessageA_CERT_K_F {
+    fn default() -> Self {
+        ManagedBufferMessageA_CERT_K_F(
+            0usize,
+            [0u8; config::MAX_MESSAGE_A_CERT_K_F_TRANSCRIPT_SIZE],
+        )
     }
 }
 
@@ -564,10 +1129,10 @@ bitflags! {
 pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
-    pub message_a: ManagedBuffer,
-    pub message_b: ManagedBuffer,
-    pub message_c: ManagedBuffer,
-    pub message_m: ManagedBuffer,
+    pub message_a: ManagedBufferMessageA,
+    pub message_b: ManagedBufferMessageB,
+    pub message_c: ManagedBufferMessageC,
+    pub message_m: ManagedBufferMessageM,
     pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.
                                                         // used by requester, consume when measurement response report content changed.
 }
@@ -577,7 +1142,7 @@ pub struct SpdmRuntimeInfo {
 pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
-    pub message_a: ManagedBuffer,
+    pub message_a: ManagedBufferMessageA,
     pub digest_context_m1m2: Option<HashCtx>, // for M1/M2
     pub digest_context_l1l2: Option<HashCtx>, // for out of session get measurement/measurement
     pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.

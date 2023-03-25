@@ -5,7 +5,7 @@
 use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
-use crate::config::MAX_SPDM_OPAQUE_SIZE;
+use crate::config::MAX_OPAQUE_DATA_LENGTH;
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
 };
@@ -66,7 +66,7 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
         psk_hint.data_size = u16::read(r)?;
         psk_context.data_size = u16::read(r)?;
         opaque.data_size = u16::read(r)?;
-        if opaque.data_size > MAX_SPDM_OPAQUE_SIZE as u16 {
+        if opaque.data_size > MAX_OPAQUE_DATA_LENGTH as u16 {
             return None;
         }
 
@@ -199,15 +199,15 @@ mod tests {
             req_session_id: 100u16,
             psk_hint: SpdmPskHintStruct {
                 data_size: 32,
-                data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
+                data: [100u8; USER_MAX_PSK_HINT_SIZE],
             },
             psk_context: SpdmPskContextStruct {
                 data_size: 64,
-                data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
-                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                data: [100u8; MAX_OPAQUE_DATA_LENGTH],
             },
         };
 
@@ -245,15 +245,15 @@ mod tests {
             req_session_id: 100u16,
             psk_hint: SpdmPskHintStruct {
                 data_size: 0,
-                data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
+                data: [100u8; USER_MAX_PSK_HINT_SIZE],
             },
             psk_context: SpdmPskContextStruct {
                 data_size: 0,
-                data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 0,
-                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                data: [100u8; MAX_OPAQUE_DATA_LENGTH],
             },
         };
 
@@ -294,11 +294,11 @@ mod tests {
             },
             psk_context: SpdmPskContextStruct {
                 data_size: 64,
-                data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 64,
-                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                data: [100u8; MAX_OPAQUE_DATA_LENGTH],
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64,
@@ -363,11 +363,11 @@ mod tests {
             },
             psk_context: SpdmPskContextStruct {
                 data_size: 0,
-                data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
+                data: [100u8; USER_MAX_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
                 data_size: 0,
-                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
+                data: [100u8; MAX_OPAQUE_DATA_LENGTH],
             },
             verify_data: SpdmDigestStruct {
                 data_size: 64,

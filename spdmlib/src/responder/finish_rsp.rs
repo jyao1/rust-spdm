@@ -8,15 +8,13 @@ use crate::crypto;
 use crate::protocol::*;
 use crate::responder::*;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
 use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_FINISH_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self.write_spdm_finish_response(session_id, bytes, &mut writer) {
             let _ = self.send_secured_message(session_id, writer.used_slice(), false);
@@ -56,7 +54,7 @@ impl<'a> ResponderContext<'a> {
         let temp_used = read_used - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_f = ManagedBuffer::default();
+        let mut message_f = crate::common::ManagedBufferMessageF::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             panic!("message_f add the message error");
@@ -389,14 +387,13 @@ mod tests_responder {
     }
     #[test]
     fn test_case1_handle_spdm_finish() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
 

@@ -5,7 +5,7 @@
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
-use crate::protocol::{gen_array_clone, SpdmVersion};
+use crate::protocol::SpdmVersion;
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -28,7 +28,7 @@ impl SpdmCodec for SpdmGetVersionRequestPayload {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct SpdmVersionStruct {
     pub update: u8,
     pub version: SpdmVersion,
@@ -85,13 +85,11 @@ impl SpdmCodec for SpdmVersionResponsePayload {
             return None;
         }
 
-        let mut versions = gen_array_clone(
-            SpdmVersionStruct {
-                update: 0,
-                version: SpdmVersion::SpdmVersion10,
-            },
-            config::MAX_SPDM_VERSION_COUNT,
-        );
+        let mut versions = [SpdmVersionStruct {
+            update: 0,
+            version: SpdmVersion::SpdmVersion10,
+        }; config::MAX_SPDM_VERSION_COUNT];
+
         for version in versions
             .iter_mut()
             .take(version_number_entry_count as usize)
@@ -149,13 +147,10 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmVersionResponsePayload {
             version_number_entry_count: 2u8,
-            versions: gen_array_clone(
-                SpdmVersionStruct {
-                    update: 100u8,
-                    version: SpdmVersion::SpdmVersion10,
-                },
-                config::MAX_SPDM_VERSION_COUNT,
-            ),
+            versions: [SpdmVersionStruct {
+                update: 100u8,
+                version: SpdmVersion::SpdmVersion10,
+            }; config::MAX_SPDM_VERSION_COUNT],
         };
 
         create_spdm_context!(context);

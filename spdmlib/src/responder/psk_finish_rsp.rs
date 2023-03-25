@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
@@ -20,7 +18,7 @@ use crate::message::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_psk_finish(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_PSK_FINISH_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         if self
             .write_spdm_psk_finish_response(session_id, bytes, &mut writer)
@@ -69,7 +67,7 @@ impl<'a> ResponderContext<'a> {
         let temp_used = read_used - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_f = ManagedBuffer::default();
+        let mut message_f = crate::common::ManagedBufferMessageF::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             return Err(SPDM_STATUS_BUFFER_FULL);

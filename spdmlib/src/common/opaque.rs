@@ -446,13 +446,13 @@ impl SpdmCodec for SecuredMessageDMTFSupportedVersion {
 #[derive(Debug, Clone)]
 pub struct SpdmOpaqueStruct {
     pub data_size: u16,
-    pub data: [u8; config::MAX_SPDM_OPAQUE_SIZE],
+    pub data: [u8; config::MAX_OPAQUE_DATA_LENGTH],
 }
 impl Default for SpdmOpaqueStruct {
     fn default() -> SpdmOpaqueStruct {
         SpdmOpaqueStruct {
             data_size: 0,
-            data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+            data: [0u8; config::MAX_OPAQUE_DATA_LENGTH],
         }
     }
 }
@@ -466,10 +466,10 @@ impl SpdmCodec for SpdmOpaqueStruct {
     }
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
         let data_size = u16::read(r)?;
-        if data_size > config::MAX_SPDM_OPAQUE_SIZE as u16 {
+        if data_size > config::MAX_OPAQUE_DATA_LENGTH as u16 {
             return None;
         }
-        let mut data = [0u8; config::MAX_SPDM_OPAQUE_SIZE];
+        let mut data = [0u8; config::MAX_OPAQUE_DATA_LENGTH];
         for d in data.iter_mut().take(data_size as usize) {
             *d = u8::read(r)?;
         }

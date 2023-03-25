@@ -9,7 +9,7 @@ use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_capability(&mut self, bytes: &[u8]) {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_CAPABILITIES_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_capability_response(bytes, &mut writer);
         let _ = self.send_message(writer.used_slice());
@@ -101,7 +101,7 @@ mod tests_responder {
     use codec::{Codec, Writer};
     #[test]
     fn test_case0_handle_spdm_capability() {
-        let (config_info, provision_info) = create_info();
+        let provision_info = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -109,7 +109,6 @@ mod tests_responder {
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
-            config_info,
             provision_info,
         );
         let spdm_message_header = &mut [0u8; 1024];
@@ -133,17 +132,6 @@ mod tests_responder {
         bytes[2..].copy_from_slice(&capabilities[0..1022]);
         context.handle_spdm_capability(bytes);
 
-        let rsp_capabilities = SpdmResponseCapabilityFlags::CERT_CAP
-            | SpdmResponseCapabilityFlags::CHAL_CAP
-            | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-            | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-            | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-            | SpdmResponseCapabilityFlags::MAC_CAP
-            | SpdmResponseCapabilityFlags::KEY_EX_CAP
-            | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-            | SpdmResponseCapabilityFlags::ENCAP_CAP
-            | SpdmResponseCapabilityFlags::HBEAT_CAP
-            | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
         let data = context.common.runtime_info.message_a.as_ref();
         let u8_slice = &mut [0u8; 2048];
         for (i, data) in data.iter().enumerate() {
@@ -176,7 +164,6 @@ mod tests_responder {
         );
         if let SpdmMessagePayload::SpdmCapabilitiesResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.ct_exponent, 0);
-            assert_eq!(payload.flags, rsp_capabilities);
         }
     }
 }

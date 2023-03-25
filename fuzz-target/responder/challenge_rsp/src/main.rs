@@ -6,7 +6,7 @@ use fuzzlib::*;
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_challenge(data: &[u8]) {
-    let (config_info, provision_info) = rsp_create_info();
+    let provision_info = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
@@ -23,7 +23,6 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
         } else {
             mctp_transport_encap
         },
-        config_info,
         provision_info,
     );
     context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);

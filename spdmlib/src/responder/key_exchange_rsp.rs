@@ -11,7 +11,7 @@ use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_STATE_LOCAL};
 use crate::responder::*;
 
 use crate::common::SpdmCodec;
-use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
+use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
 use crate::protocol::*;
 extern crate alloc;
@@ -23,7 +23,7 @@ use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_KEY_EXCHANGE_RSP_RESPONSE_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_key_exchange_response(bytes, &mut writer)?;
         self.send_message(writer.used_slice())
@@ -173,7 +173,7 @@ impl<'a> ResponderContext<'a> {
         let temp_used = used - base_asym_size - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_k = ManagedBuffer::default();
+        let mut message_k = crate::common::ManagedBufferMessageK::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {
@@ -349,7 +349,7 @@ impl<'a> ResponderContext<'a> {
         let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let mut message = ManagedBuffer::default();
+        let mut message = crate::common::ManagedBuffer::default();
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
             message
@@ -377,7 +377,7 @@ impl<'a> ResponderContext<'a> {
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
-        message_k: &ManagedBuffer,
+        message_k: &crate::common::ManagedBufferMessageK,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = self
             .common
@@ -478,7 +478,7 @@ mod tests_responder {
             opaque: SpdmOpaqueStruct {
                 data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
                     .len() as u16,
-                data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+                data: [0u8; config::MAX_OPAQUE_DATA_LENGTH],
             },
         };
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(

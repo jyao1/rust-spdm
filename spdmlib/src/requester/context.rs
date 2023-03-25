@@ -16,16 +16,10 @@ impl<'a> RequesterContext<'a> {
     pub fn new(
         device_io: &'a mut dyn SpdmDeviceIo,
         transport_encap: &'a mut dyn SpdmTransportEncap,
-        config_info: common::SpdmConfigInfo,
         provision_info: common::SpdmProvisionInfo,
     ) -> Self {
         RequesterContext {
-            common: common::SpdmContext::new(
-                device_io,
-                transport_encap,
-                config_info,
-                provision_info,
-            ),
+            common: common::SpdmContext::new(device_io, transport_encap, provision_info),
         }
     }
 
@@ -39,11 +33,16 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         use_psk: bool,
         slot_id: u8,
+        session_policy: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<u32> {
         if !use_psk {
-            let session_id =
-                self.send_receive_spdm_key_exchange(slot_id, measurement_summary_hash_type)?;
+            let session_id = self.send_receive_spdm_key_exchange(
+                slot_id,
+                session_policy,
+                measurement_summary_hash_type,
+            )?;
+
             self.send_receive_spdm_finish(slot_id, session_id)?;
             Ok(session_id)
         } else {
@@ -58,7 +57,7 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         self.common.device_io.send(&transport_buffer[..used])
     }
@@ -69,7 +68,7 @@ impl<'a> RequesterContext<'a> {
         send_buffer: &[u8],
         is_app_message: bool,
     ) -> SpdmResult {
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
             send_buffer,
@@ -93,7 +92,7 @@ impl<'a> RequesterContext<'a> {
             ST1
         };
 
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
         let used = self
             .common
             .device_io
@@ -117,7 +116,7 @@ impl<'a> RequesterContext<'a> {
             ST1
         };
 
-        let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [0u8; config::USER_DATA_TRANSFER_SIZE];
 
         let used = self
             .common
@@ -142,8 +141,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_start_session() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -154,7 +153,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -164,7 +162,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 
@@ -180,12 +177,14 @@ mod tests_requester {
         let result = requester.start_session(
             false,
             0,
+            0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         );
         assert!(result.is_ok());
 
         let result = requester.start_session(
             false,
+            0,
             0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         );
@@ -194,6 +193,7 @@ mod tests_requester {
         let result = requester.start_session(
             true,
             0,
+            0,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         );
         assert!(result.is_ok());
@@ -201,8 +201,8 @@ mod tests_requester {
 
     #[test]
     fn test_case0_receive_secured_message() {
-        let (rsp_config_info, rsp_provision_info) = create_info();
-        let (req_config_info, req_provision_info) = create_info();
+        let rsp_provision_info = create_info();
+        let req_provision_info = create_info();
 
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -213,7 +213,6 @@ mod tests_requester {
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info,
             rsp_provision_info,
         );
 
@@ -238,7 +237,6 @@ mod tests_requester {
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info,
             req_provision_info,
         );
 
@@ -256,7 +254,7 @@ mod tests_requester {
         );
         requester.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
 
         let request = SpdmMessage {
@@ -276,7 +274,7 @@ mod tests_requester {
             .is_ok();
         assert!(status);
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::USER_MAX_SPDM_MSG_SIZE];
 
         let status = requester
             .receive_secured_message(session_id, &mut receive_buffer, false)

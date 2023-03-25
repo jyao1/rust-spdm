@@ -11,10 +11,10 @@ use fuzzlib::{
 };
 
 fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
-    let (config_info1, provision_info1) = rsp_create_info();
-    let (config_info2, provision_info2) = rsp_create_info();
-    let (config_info3, provision_info3) = rsp_create_info();
-    let (config_info4, provision_info4) = rsp_create_info();
+    let provision_info1 = rsp_create_info();
+    let provision_info2 = rsp_create_info();
+    let provision_info3 = rsp_create_info();
+    let provision_info4 = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
@@ -32,7 +32,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info1,
             provision_info1,
         );
 
@@ -71,7 +70,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info2,
             provision_info2,
         );
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -88,7 +86,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             .common
             .runtime_info
             .message_a
-            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
+            .append_message(&[1u8; config::USER_MAX_SPDM_MSG_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
         #[cfg(feature = "hashed-transcript-data")]
@@ -113,7 +111,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info3,
             provision_info3,
         );
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
@@ -150,7 +147,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             } else {
                 mctp_transport_encap
             },
-            config_info4,
             provision_info4,
         );
 
