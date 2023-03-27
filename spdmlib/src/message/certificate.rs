@@ -148,3 +148,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(all(test,))]
+#[path = "certificate_test.rs"]
+mod certificate_test;
