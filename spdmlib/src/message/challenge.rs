@@ -259,3 +259,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(all(test,))]
+#[path = "challenge_test.rs"]
+mod challenge_test;
