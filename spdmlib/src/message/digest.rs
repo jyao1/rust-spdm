@@ -178,3 +178,7 @@ mod tests {
         SpdmGetDigestsRequestPayload::spdm_read(&mut context, &mut reader);
     }
 }
+
+#[cfg(all(test,))]
+#[path = "digest_test.rs"]
+mod digest_test;
