@@ -353,3 +353,7 @@ mod tests {
         assert_eq!(541, reader.left());
     }
 }
+
+#[cfg(all(test,))]
+#[path = "measurement_test.rs"]
+mod measurement_test;
