@@ -395,3 +395,7 @@ mod tests {
         assert_eq!(64, reader.left());
     }
 }
+
+#[cfg(all(test,))]
+#[path = "key_exchange_test.rs"]
+mod key_exchange_test;
