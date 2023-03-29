@@ -128,3 +128,7 @@ mod tests {
         SpdmEndSessionResponsePayload::spdm_read(&mut context, &mut reader);
     }
 }
+
+#[cfg(all(test,))]
+#[path = "end_session_test.rs"]
+mod end_session_test;
