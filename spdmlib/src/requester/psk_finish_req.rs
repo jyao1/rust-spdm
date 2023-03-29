@@ -283,9 +283,6 @@ mod tests_requester {
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = SpdmDeviceIoReceve::new(&shared_buffer, data);
 
-        // let shared_buffer = SharedBuffer::new();
-        // let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());

@@ -66,15 +66,9 @@ fn asym_verify(
         }
     };
 
-    //
-    // TBD: Find leaf cert - need use WEBPKI function
-    //
     let (leaf_begin, leaf_end) =
         (super::cert_operation_impl::DEFAULT.get_cert_from_cert_chain_cb)(public_cert_der, -1)?;
     let leaf_cert_der = &public_cert_der[leaf_begin..leaf_end];
-
-    //debug!("signature len - 0x{:x?}\n", signature.data_size);
-    //debug!("signature - {:x?}\n", &signature.data[..(signature.data_size as usize)]);
 
     let res = webpki::EndEntityCert::try_from(leaf_cert_der);
     match res {
@@ -89,9 +83,6 @@ fn asym_verify(
                     let mut der_signature = [0u8; 66 * 2 + 8 + 1];
                     let der_sign_size =
                         ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature);
-
-                    //debug!("der signature len - 0x{:x?}\n", der_sign_size);
-                    //debug!("der signature - {:x?}\n", der_signature);
 
                     match cert.verify_signature(algorithm, data, &der_signature[..(der_sign_size)])
                     {

@@ -13,7 +13,6 @@ pub fn fuzz_total_requesters() {
     let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-    // let mctp_transport_encap = &mut MctpTransportEncap {};
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 

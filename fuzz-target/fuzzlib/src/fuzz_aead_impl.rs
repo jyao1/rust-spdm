@@ -3,11 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::spdmlib::crypto::SpdmAead;
-// use crate::spdmlib::error::SpdmResult;
 use bytes::BytesMut;
 use spdmlib::error::SpdmResult;
 
-// use crate::spdmlib::msgs::SpdmAeadAlgo;
 use spdmlib::protocol::SpdmAeadAlgo;
 
 use crate::spdmlib::error::SPDM_STATUS_CRYPTO_ERROR;

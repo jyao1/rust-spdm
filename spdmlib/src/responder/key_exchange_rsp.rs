@@ -416,13 +416,6 @@ impl<'a> ResponderContext<'a> {
 
 #[cfg(all(test,))]
 mod tests_responder {
-    use super::*;
-    use crate::message::SpdmMessageHeader;
-    use crate::testlib::*;
-    use crate::{crypto, responder};
-    use bytes::BytesMut;
-    use codec::{Codec, Writer};
-
     #[test]
     #[cfg(not(feature = "hashed-transcript-data"))]
     fn test_case0_handle_spdm_key_exchange() {

@@ -4,10 +4,8 @@
 
 #![forbid(unsafe_code)]
 
-// use crate::spdmlib::error::SpdmResult;
-use spdmlib::error::SpdmResult;
-// use crate::spdmlib::responder::context::*;
 use crate::spdmlib::error::SPDM_STATUS_SEND_FAIL;
+use spdmlib::error::SpdmResult;
 
 use super::*;
 

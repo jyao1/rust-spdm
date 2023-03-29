@@ -3,8 +3,6 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
-// use spdmlib::protocol::*;
-// use crate::spdmlib::message::capability::*;
 
 fn fuzz_send_receive_spdm_algorithm(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();

@@ -28,7 +28,6 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
         }
         let this_cert_len =
             ((cert_chain[offset + 2] as usize) << 8) + (cert_chain[offset + 3] as usize) + 4;
-        //debug!("this_cert_len - 0x{:04x?}\n", this_cert_len);
         if this_index == index {
             // return the this one
             return Ok((offset, offset + this_cert_len));
@@ -43,7 +42,6 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
 }
 
 fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
-    // TBD
     static EKU_SPDM_RESPONDER_AUTH: &[u8] = &[40 + 3, 6, 1, 5, 5, 7, 3, 1];
 
     static ALL_SIGALGS: &[&webpki::SignatureAlgorithm] = &[
