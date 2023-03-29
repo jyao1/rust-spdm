@@ -205,7 +205,7 @@ impl<'a> RequesterContext<'a> {
         // verify
         if let Some(peer_cert_chain_data) = &self.common.provision_info.peer_cert_chain_data {
             //
-            // TBD: Verify cert chain
+            // Verify cert chain
             //
             if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
                 error!("peer_cert_chain is not populated!\n");

@@ -25,15 +25,6 @@ pub trait SpdmCodec: Debug + Sized {
     /// Return Some if it worked, None if not.
     fn spdm_read(_context: &mut SpdmContext, _: &mut Reader) -> Option<Self>;
 
-    // /// Convenience function to get the results of `encode()`.
-    // /// TBD: Encode may fail if the caller encodes too many data that exceeds the max size of preallocated slice.
-    // /// Should we assert() here? or return to caller to let the caller handle it?
-    // fn spdm_get_encoding(&self, bytes: &mut [u8]) -> Writer {
-    //     let mut ret = Writer::init(bytes);
-    //     self.encode(&mut ret);
-    //     ret
-    // }
-
     /// Read one of these from the front of `bytes` and
     /// return it.
     fn spdm_read_bytes(context: &mut SpdmContext, bytes: &[u8]) -> Option<Self> {

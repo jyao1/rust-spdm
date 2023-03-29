@@ -66,10 +66,8 @@ pub fn receive_message<'a>(
             let socket_header = SpdmSocketHeader::read(&mut reader)?;
 
             expected_size = socket_header.payload_size.to_be() as usize + SOCKET_HEADER_LEN;
-            // println!("expected_size: {:?}", expected_size);
         }
         if (expected_size != 0) && (buffer_size >= expected_size) {
-            // println!("buffer_size: {:?}", buffer_size);
             break;
         }
     }

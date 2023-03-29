@@ -32,7 +32,6 @@ pub use spdm_emu::spdm_emu::*;
 pub use spdmlib;
 pub use spdmlib::common::{SpdmDeviceIo, SpdmTransportEncap};
 pub use spdmlib::config;
-// pub use spdmlib::msgs::*;
 pub use spdmlib::{common, requester, responder};
 
 pub use flexi_logger;

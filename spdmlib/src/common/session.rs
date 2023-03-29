@@ -938,8 +938,6 @@ impl SpdmSession {
         secured_buffer[(aad_size + cipher_text_size)..(aad_size + cipher_text_size + tag_size)]
             .copy_from_slice(&tag_buffer);
 
-        //debug!("secure_buffer len - {}\n", aad_size + cipher_text_size + tag_size);
-
         Ok(aad_size + cipher_text_size + tag_size)
     }
 

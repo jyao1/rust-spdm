@@ -510,7 +510,6 @@ mod tests_requester {
                 data: Box::new([0; SPDM_MAX_HASH_SIZE]),
             },
         );
-        // let _ = requester.send_receive_spdm_finish(4294901758);
         let status = requester.send_receive_spdm_finish(0, 4294901758).is_ok();
         assert!(status);
     }

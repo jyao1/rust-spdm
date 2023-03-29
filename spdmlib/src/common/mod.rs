@@ -118,7 +118,6 @@ impl<'a> SpdmContext<'a> {
         config_info: SpdmConfigInfo,
         provision_info: SpdmProvisionInfo,
     ) -> Self {
-        //dbg!("{:?}",mem::needs_drop::<SpdmSession>());
         SpdmContext {
             device_io,
             transport_encap,
@@ -597,5 +596,4 @@ pub struct SpdmProvisionInfo {
 #[derive(Default)]
 pub struct SpdmPeerInfo {
     pub peer_cert_chain: [Option<SpdmCertChain>; 8],
-    // pub peer_cert_chain_data: SpdmCertChain,
 }

@@ -114,13 +114,6 @@ pub trait Codec: Debug + Sized {
     /// Return Some if it worked, None if not.
     fn read(_: &mut Reader) -> Option<Self>;
 
-    /// Convenience function to get the results of `encode()`.
-    // fn get_encoding(&self) -> Writer {
-    //     let mut ret = Vec::new();
-    //     self.encode(&mut ret);
-    //     ret
-    // }
-
     /// Read one of these from the front of `bytes` and
     /// return it.
     fn read_bytes(bytes: &[u8]) -> Option<Self> {
