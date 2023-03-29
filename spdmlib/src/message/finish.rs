@@ -264,3 +264,7 @@ mod tests {
         assert_eq!(66, reader.left());
     }
 }
+
+#[cfg(all(test,))]
+#[path = "finish_test.rs"]
+mod finish_test;

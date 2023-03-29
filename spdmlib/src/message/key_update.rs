@@ -126,3 +126,7 @@ mod tests {
         assert_eq!(0, reader.left());
     }
 }
+
+#[cfg(all(test,))]
+#[path = "key_update_test.rs"]
+mod key_update_test;

@@ -81,3 +81,7 @@ mod tests {
         SpdmHeartbeatRequestPayload::spdm_read(&mut context, &mut reader);
     }
 }
+
+#[cfg(all(test,))]
+#[path = "heartbeat_test.rs"]
+mod heartbeat_test;
