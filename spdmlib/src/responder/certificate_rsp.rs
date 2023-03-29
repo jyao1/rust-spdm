@@ -29,6 +29,10 @@ impl<'a> ResponderContext<'a> {
             SpdmGetCertificateRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(get_certificate) = &get_certificate {
             debug!("!!! get_certificate : {:02x?}\n", get_certificate);
+            if get_certificate.slot_id != 0 {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return;
+            }
         } else {
             error!("!!! get_certificate : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
