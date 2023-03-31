@@ -9,7 +9,7 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_spdm_vendor_defined_request(
         &mut self,
-        session_id: u32,
+        session_id: Option<u32>,
         standard_id: RegistryOrStandardsBodyID,
         vendor_id_struct: VendorIDStruct,
         req_payload_struct: VendorDefinedReqPayloadStruct,
@@ -32,18 +32,31 @@ impl<'a> RequesterContext<'a> {
         };
         request.spdm_encode(&mut self.common, &mut writer);
         let used = writer.used();
-        self.send_secured_message(session_id, &send_buffer[..used], false)?;
+
+        match session_id {
+            Some(session_id) => {
+                self.send_secured_message(session_id, &send_buffer[..used], false)?;
+            }
+            None => {
+                self.send_message(&send_buffer[..used])?;
+            }
+        }
 
         //receive
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
+        let receive_used = match session_id {
+            Some(session_id) => {
+                self.receive_secured_message(session_id, &mut receive_buffer, false)?
+            }
+            None => self.receive_message(&mut receive_buffer, false)?,
+        };
 
         self.handle_spdm_vendor_defined_respond(session_id, &receive_buffer[..receive_used])
     }
 
     pub fn handle_spdm_vendor_defined_respond(
         &mut self,
-        session_id: u32,
+        session_id: Option<u32>,
         receive_buffer: &[u8],
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         let mut reader = Reader::init(receive_buffer);
@@ -66,7 +79,7 @@ impl<'a> RequesterContext<'a> {
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
                         let rm = self.spdm_handle_error_response_main(
-                            Some(session_id),
+                            session_id,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
                             SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
@@ -131,7 +144,7 @@ mod tests_requester {
 
         let status = requester
             .send_spdm_vendor_defined_request(
-                session_id,
+                Some(session_id),
                 standard_id,
                 vendor_idstruct,
                 req_payload_struct,

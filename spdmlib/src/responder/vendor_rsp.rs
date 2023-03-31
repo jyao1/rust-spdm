@@ -8,7 +8,7 @@ use crate::message::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_vendor_defined_request(&mut self, session_id: u32, bytes: &[u8]) {
+    pub fn handle_spdm_vendor_defined_request(&mut self, session_id: Option<u32>, bytes: &[u8]) {
         let mut reader = Reader::init(bytes);
         SpdmMessageHeader::read(&mut reader);
         let vendor_defined_request_payload =
@@ -37,7 +37,15 @@ impl<'a> ResponderContext<'a> {
         };
         response.spdm_encode(&mut self.common, &mut writer);
         let used = writer.used();
-        let _ = self.send_secured_message(session_id, &send_buffer[..used], false);
+
+        match session_id {
+            Some(session_id) => {
+                let _ = self.send_secured_message(session_id, &send_buffer[..used], false);
+            }
+            None => {
+                let _ = self.send_message(&send_buffer[..used]);
+            }
+        }
     }
 
     pub fn respond_to_vendor_defined_request<F>(
