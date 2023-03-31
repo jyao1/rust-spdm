@@ -191,7 +191,7 @@ impl<'a> ResponderContext<'a> {
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
-                    self.handle_spdm_vendor_defined_request(session_id, bytes);
+                    self.handle_spdm_vendor_defined_request(Some(session_id), bytes);
                     true
                 }
                 SpdmRequestResponseCode::SpdmResponseDigests => false,
@@ -275,6 +275,11 @@ impl<'a> ResponderContext<'a> {
                     matches!(self.handle_spdm_psk_exchange(bytes), Ok(_))
                 }
 
+                SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
+                    self.handle_spdm_vendor_defined_request(None, bytes);
+                    true
+                }
+
                 SpdmRequestResponseCode::SpdmRequestPskFinish => false,
 
                 SpdmRequestResponseCode::SpdmRequestHeartbeat => false,
@@ -282,7 +287,6 @@ impl<'a> ResponderContext<'a> {
                 SpdmRequestResponseCode::SpdmRequestKeyUpdate => false,
 
                 SpdmRequestResponseCode::SpdmRequestEndSession => false,
-                SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => false,
                 SpdmRequestResponseCode::SpdmResponseDigests => false,
                 SpdmRequestResponseCode::SpdmResponseCertificate => false,
                 SpdmRequestResponseCode::SpdmResponseChallengeAuth => false,
