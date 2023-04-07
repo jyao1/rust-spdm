@@ -166,7 +166,12 @@ impl<'a> RequesterContext<'a> {
 
                             let base_asym_size =
                                 self.common.negotiate_info.base_asym_sel.get_size() as usize;
-                            let temp_used = used - base_asym_size;
+                            let temp_used = used
+                                - if self.common.runtime_info.need_measurement_signature {
+                                    base_asym_size
+                                } else {
+                                    0
+                                };
 
                             match session_id {
                                 Some(session_id) => {
