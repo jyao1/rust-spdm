@@ -25,7 +25,7 @@ fn test_measurement_struct() {
         nonce: SpdmNonceStruct::default(),
         slot_id: 1,
     };
-    request.spdm_encode(context, writer);
+    assert!(request.spdm_encode(context, writer).is_ok());
     assert_eq!(writer.used(), 4 + 32 + 1 - 2);
 
     // Validate SpdmMeasurementAttributes::RAW_BIT_STREAM_REQUESTED length
@@ -36,7 +36,7 @@ fn test_measurement_struct() {
         nonce: SpdmNonceStruct::default(),
         slot_id: 1,
     };
-    request.spdm_encode(context, writer);
+    assert!(request.spdm_encode(context, writer).is_ok());
     assert_eq!(writer.used(), 4 - 2);
 }
 

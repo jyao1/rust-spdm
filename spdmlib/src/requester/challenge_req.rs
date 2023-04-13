@@ -58,8 +58,7 @@ impl<'a> RequesterContext<'a> {
                 nonce: SpdmNonceStruct { data: nonce },
             }),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        Ok(writer.used())
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     pub fn handle_spdm_challenge_response(

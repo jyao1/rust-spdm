@@ -45,7 +45,7 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
-        response.spdm_encode(&mut self.common, writer);
+        let _ = response.spdm_encode(&mut self.common, writer);
         true
     }
 }
@@ -80,7 +80,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let session_request = &mut [0u8; 1024];
         let mut writer = Writer::init(session_request);
@@ -88,7 +88,7 @@ mod tests_responder {
             end_session_request_attributes:
                 SpdmEndSessionRequestAttributes::PRESERVE_NEGOTIATED_STATE,
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         let rsp_session_id = 0xffu16;

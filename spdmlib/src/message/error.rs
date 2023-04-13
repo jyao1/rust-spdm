@@ -4,6 +4,7 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
@@ -38,7 +39,13 @@ enum_builder! {
 pub struct SpdmErrorResponseNoneExtData {}
 
 impl SpdmCodec for SpdmErrorResponseNoneExtData {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, _bytes: &mut Writer) {}
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        _bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        Ok(0)
+    }
 
     fn spdm_read(
         _context: &mut common::SpdmContext,
@@ -57,11 +64,13 @@ pub struct SpdmErrorResponseNotReadyExtData {
 }
 
 impl Codec for SpdmErrorResponseNotReadyExtData {
-    fn encode(&self, bytes: &mut Writer) {
-        self.rdt_exponent.encode(bytes);
-        self.request_code.encode(bytes);
-        self.token.encode(bytes);
-        self.rdtm.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.rdt_exponent.encode(bytes)?;
+        cnt += self.request_code.encode(bytes)?;
+        cnt += self.token.encode(bytes)?;
+        cnt += self.rdtm.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmErrorResponseNotReadyExtData> {
@@ -79,11 +88,29 @@ impl Codec for SpdmErrorResponseNotReadyExtData {
 }
 
 impl SpdmCodec for SpdmErrorResponseNotReadyExtData {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.rdt_exponent.encode(bytes);
-        self.request_code.encode(bytes);
-        self.token.encode(bytes);
-        self.rdtm.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .rdt_exponent
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .request_code
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .token
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .rdtm
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -111,10 +138,15 @@ pub struct SpdmErrorResponseVendorExtData {
 }
 
 impl SpdmCodec for SpdmErrorResponseVendorExtData {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
         for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
+            d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(self.data_size as usize)
     }
 
     fn spdm_read(
@@ -161,21 +193,34 @@ pub struct SpdmErrorResponsePayload {
 }
 
 impl SpdmCodec for SpdmErrorResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.error_code.encode(bytes); // param1
-        self.error_data.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .error_code
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .error_data
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
         match &self.extended_data {
             SpdmErrorResponseExtData::SpdmErrorExtDataNotReady(extended_data) => {
-                extended_data.spdm_encode(context, bytes);
+                cnt += extended_data.spdm_encode(context, bytes)?;
             }
             SpdmErrorResponseExtData::SpdmErrorExtDataVendorDefined(extended_data) => {
-                extended_data.spdm_encode(context, bytes);
+                cnt += extended_data.spdm_encode(context, bytes)?;
             }
             SpdmErrorResponseExtData::SpdmErrorExtDataNone(extended_data) => {
-                extended_data.spdm_encode(context, bytes);
+                cnt += extended_data.spdm_encode(context, bytes)?;
             }
         }
+
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -235,7 +280,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
         let spdm_error_response_not_ready_ext_data =
@@ -257,7 +302,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
         let response_vendor_ext_data =
@@ -275,7 +320,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
         let response_vendor_ext_data =
@@ -356,7 +401,7 @@ mod tests {
     ) -> SpdmErrorResponsePayload {
         let u8_slice = &mut [0u8; 100];
         let mut writer = Writer::init(u8_slice);
-        value.spdm_encode(context, &mut writer);
+        assert!(value.spdm_encode(context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
 
         SpdmErrorResponsePayload::spdm_read(context, &mut reader).unwrap()

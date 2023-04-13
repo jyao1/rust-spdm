@@ -36,8 +36,7 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
         };
-        response.spdm_encode(&mut self.common, writer);
-        true
+        response.spdm_encode(&mut self.common, writer).is_ok()
     }
 }
 #[cfg(all(test,))]
@@ -84,7 +83,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         context.handle_spdm_heartbeat(session_id, bytes);
     }

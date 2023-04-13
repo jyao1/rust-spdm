@@ -112,7 +112,7 @@ impl<'a> RequesterContext<'a> {
                 opaque,
             }),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
+        request.spdm_encode(&mut self.common, &mut writer)?;
         Ok((key_exchange_context, writer.used()))
     }
 

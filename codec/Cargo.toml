@@ -1,9 +1,10 @@
 [package]
 name = "codec"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     "Xiaoyu Lu <xiaoyux.lu@intel.com>",
-    "Jiewen Yao <jiewen.yao@intel.com>"
+    "Jiewen Yao <jiewen.yao@intel.com>",
+    "Longlong Yang <longlong.yang@intel.com>"
     ]
 edition = "2018"
 

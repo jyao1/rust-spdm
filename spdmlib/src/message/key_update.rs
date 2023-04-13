@@ -4,6 +4,7 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
 
@@ -24,9 +25,21 @@ pub struct SpdmKeyUpdateRequestPayload {
 }
 
 impl SpdmCodec for SpdmKeyUpdateRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.key_update_operation.encode(bytes); // param1
-        self.tag.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .key_update_operation
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .tag
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -50,9 +63,21 @@ pub struct SpdmKeyUpdateResponsePayload {
 }
 
 impl SpdmCodec for SpdmKeyUpdateResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.key_update_operation.encode(bytes); // param1
-        self.tag.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .key_update_operation
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .tag
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -90,7 +115,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(2, reader.left());
         let key_request_payload =
@@ -113,7 +138,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(2, reader.left());
         let key_response_payload =

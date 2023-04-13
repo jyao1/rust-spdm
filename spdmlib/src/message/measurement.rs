@@ -5,6 +5,7 @@
 use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{SpdmMeasurementRecordStructure, SpdmNonceStruct, SpdmSignatureStruct};
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
@@ -25,8 +26,8 @@ bitflags! {
 }
 
 impl Codec for SpdmMeasurementAttributes {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmMeasurementAttributes> {
@@ -54,16 +55,34 @@ pub struct SpdmGetMeasurementsRequestPayload {
 }
 
 impl SpdmCodec for SpdmGetMeasurementsRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.measurement_attributes.encode(bytes); // param1
-        self.measurement_operation.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .measurement_attributes
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .measurement_operation
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
         if self
             .measurement_attributes
             .contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED)
         {
-            self.nonce.encode(bytes);
-            self.slot_id.encode(bytes);
+            cnt += self
+                .nonce
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += self
+                .slot_id
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -106,28 +125,45 @@ pub struct SpdmMeasurementsResponsePayload {
 }
 
 impl SpdmCodec for SpdmMeasurementsResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
         //When Param2 in the requested measurement operation is 0 , this
         //parameter shall return the total number of measurement indices on
         //the device. Otherwise, this field is reserved.
         if self.number_of_measurement == 1 {
-            0_u8.encode(bytes); // param1
+            cnt += 0_u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
         } else {
-            self.number_of_measurement.encode(bytes); // param1
+            cnt += self
+                .number_of_measurement
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
         }
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12
             && context.config_info.runtime_content_change_support
         {
-            (self.slot_id | self.content_changed.bits()).encode(bytes); // param2
+            cnt += (self.slot_id | self.content_changed.bits())
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
         } else {
-            self.slot_id.encode(bytes); // param 2
+            cnt += self
+                .slot_id
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param 2
         }
-        self.measurement_record.spdm_encode(context, bytes);
-        self.nonce.encode(bytes);
-        self.opaque.spdm_encode(context, bytes);
+        cnt += self.measurement_record.spdm_encode(context, bytes)?;
+        cnt += self
+            .nonce
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self.opaque.spdm_encode(context, bytes)?;
         if context.runtime_info.need_measurement_signature {
-            self.signature.spdm_encode(context, bytes);
+            cnt += self.signature.spdm_encode(context, bytes)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -177,7 +213,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementAttributes::SIGNATURE_REQUESTED;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -202,7 +238,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(48, reader.left());
         let get_measurements =
@@ -236,7 +272,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(48, reader.left());
         let get_measurements =
@@ -274,9 +310,10 @@ mod tests {
         };
         let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
         let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
-        for i in 0..5 {
-            spdm_measurement_block_structure
-                .spdm_encode(&mut context, &mut measurement_record_data_writer);
+        for _i in 0..5 {
+            assert!(spdm_measurement_block_structure
+                .spdm_encode(&mut context, &mut measurement_record_data_writer)
+                .is_ok());
         }
         let value = SpdmMeasurementsResponsePayload {
             number_of_measurement: 100u8,
@@ -303,7 +340,7 @@ mod tests {
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_signature = true;
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
 
         assert_eq!(1000, reader.left());
@@ -336,7 +373,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
 
         context.runtime_info.need_measurement_signature = false;
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(1000, reader.left());
         measurements_response =

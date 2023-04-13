@@ -307,13 +307,14 @@ pub struct SpdmStatus {
 }
 
 impl Codec for SpdmStatus {
-    fn encode(&self, bytes: &mut codec::Writer) {
+    fn encode(&self, bytes: &mut codec::Writer) -> Result<usize, codec::EncodeErr> {
         let mut sc = 0u32;
         sc += (((self.severity as u8) & 0x0F) as u32) << 28;
         sc += <StatusCode as TryInto<u24>>::try_into(self.status_code)
             .unwrap() //due to the design of encode, panic is allowed
             .get();
-        sc.encode(bytes);
+        sc.encode(bytes)?;
+        Ok(4)
     }
 
     fn read(r: &mut codec::Reader) -> Option<Self> {
@@ -337,7 +338,7 @@ impl SpdmStatus {
     /// return the u32 encoding
     pub fn get_u32(&self) -> u32 {
         let mut r = [0u8; 4];
-        self.encode(&mut Writer::init(&mut r));
+        let _ = self.encode(&mut Writer::init(&mut r));
         u32::from_le_bytes(r)
     }
 

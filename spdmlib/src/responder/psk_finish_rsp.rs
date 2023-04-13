@@ -170,7 +170,7 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmPskFinishResponse(SpdmPskFinishResponsePayload {}),
         };
 
-        response.spdm_encode(&mut self.common, writer);
+        response.spdm_encode(&mut self.common, writer)?;
 
         #[cfg(feature = "hashed-transcript-data")]
         let session = self

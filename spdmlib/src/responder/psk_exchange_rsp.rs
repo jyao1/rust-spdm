@@ -144,8 +144,11 @@ impl<'a> ResponderContext<'a> {
             }),
         };
 
-        response.spdm_encode(&mut self.common, writer);
-        let used = writer.used();
+        let used = if let Ok(sz) = response.spdm_encode(&mut self.common, writer) {
+            sz
+        } else {
+            panic!("Failed to encode!");
+        };
 
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = used - base_hash_size;
@@ -321,7 +324,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let challenge = &mut [0u8; 1024];
         let mut writer = Writer::init(challenge);
@@ -346,7 +349,7 @@ mod tests_responder {
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
             &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
         );
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);

@@ -106,8 +106,8 @@ bitflags! {
 }
 
 impl Codec for SpdmMeasurementSpecification {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmMeasurementSpecification> {
@@ -169,8 +169,8 @@ impl SpdmMeasurementHashAlgo {
     }
 }
 impl Codec for SpdmMeasurementHashAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmMeasurementHashAlgo> {
@@ -241,8 +241,8 @@ impl SpdmBaseAsymAlgo {
 }
 
 impl Codec for SpdmBaseAsymAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmBaseAsymAlgo> {
@@ -302,8 +302,8 @@ impl SpdmBaseHashAlgo {
 }
 
 impl Codec for SpdmBaseHashAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmBaseHashAlgo> {
@@ -337,10 +337,12 @@ pub struct SpdmExtAlgStruct {
 }
 
 impl Codec for SpdmExtAlgStruct {
-    fn encode(&self, bytes: &mut Writer) {
-        self.registry_id.encode(bytes);
-        self.reserved.encode(bytes);
-        self.algorithm_id.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.registry_id.encode(bytes)?;
+        cnt += self.reserved.encode(bytes)?;
+        cnt += self.algorithm_id.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmExtAlgStruct> {
@@ -402,8 +404,8 @@ impl SpdmDheAlgo {
 }
 
 impl Codec for SpdmDheAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmDheAlgo> {
@@ -471,8 +473,8 @@ impl SpdmAeadAlgo {
 }
 
 impl Codec for SpdmAeadAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmAeadAlgo> {
@@ -537,8 +539,8 @@ impl SpdmReqAsymAlgo {
 }
 
 impl Codec for SpdmReqAsymAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmReqAsymAlgo> {
@@ -570,8 +572,8 @@ impl SpdmKeyScheduleAlgo {
 }
 
 impl Codec for SpdmKeyScheduleAlgo {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmKeyScheduleAlgo> {
@@ -584,7 +586,9 @@ impl Codec for SpdmKeyScheduleAlgo {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmUnknownAlgo {}
 impl Codec for SpdmUnknownAlgo {
-    fn encode(&self, _bytes: &mut Writer) {}
+    fn encode(&self, _bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        Ok(0)
+    }
 
     fn read(_r: &mut Reader) -> Option<SpdmUnknownAlgo> {
         Some(SpdmUnknownAlgo {})
@@ -626,33 +630,35 @@ pub struct SpdmAlgStruct {
 }
 
 impl Codec for SpdmAlgStruct {
-    fn encode(&self, bytes: &mut Writer) {
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
         // DSP0274 Table: Algorithm request structure
         assert_eq!((self.alg_fixed_count + 2) % 4, 0);
         assert_eq!(self.alg_ext_count, 0);
-        self.alg_type.encode(bytes);
+        cnt += self.alg_type.encode(bytes)?;
         let alg_count = ((self.alg_fixed_count as u32) << 4) as u8;
-        alg_count.encode(bytes);
+        cnt += alg_count.encode(bytes)?;
 
         if self.alg_fixed_count == 2 {
             match &self.alg_supported {
                 SpdmAlg::SpdmAlgoDhe(alg_supported) => {
-                    alg_supported.encode(bytes);
+                    cnt += alg_supported.encode(bytes)?;
                 }
                 SpdmAlg::SpdmAlgoAead(alg_supported) => {
-                    alg_supported.encode(bytes);
+                    cnt += alg_supported.encode(bytes)?;
                 }
                 SpdmAlg::SpdmAlgoReqAsym(alg_supported) => {
-                    alg_supported.encode(bytes);
+                    cnt += alg_supported.encode(bytes)?;
                 }
                 SpdmAlg::SpdmAlgoKeySchedule(alg_supported) => {
-                    alg_supported.encode(bytes);
+                    cnt += alg_supported.encode(bytes)?;
                 }
                 SpdmAlg::SpdmAlgoUnknown(alg_supported) => {
-                    alg_supported.encode(bytes);
+                    cnt += alg_supported.encode(bytes)?;
                 }
             }
         }
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmAlgStruct> {
@@ -706,10 +712,11 @@ pub struct SpdmNonceStruct {
 }
 
 impl Codec for SpdmNonceStruct {
-    fn encode(&self, bytes: &mut Writer) {
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
         for d in self.data.iter() {
-            d.encode(bytes);
+            d.encode(bytes)?;
         }
+        Ok(SPDM_NONCE_SIZE)
     }
     fn read(r: &mut Reader) -> Option<SpdmNonceStruct> {
         let mut data = [0u8; SPDM_NONCE_SIZE];
@@ -726,10 +733,11 @@ pub struct SpdmRandomStruct {
 }
 
 impl Codec for SpdmRandomStruct {
-    fn encode(&self, bytes: &mut Writer) {
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
         for d in self.data.iter() {
-            d.encode(bytes);
+            d.encode(bytes)?;
         }
+        Ok(SPDM_RANDOM_SIZE)
     }
     fn read(r: &mut Reader) -> Option<SpdmRandomStruct> {
         let mut data = [0u8; SPDM_RANDOM_SIZE];
@@ -868,18 +876,20 @@ impl Default for SpdmDmtfMeasurementStructure {
     }
 }
 impl Codec for SpdmDmtfMeasurementStructure {
-    fn encode(&self, bytes: &mut Writer) {
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
         let type_value = self.r#type.get_u8();
         let representation_value = self.representation.get_u8();
         let final_value = type_value + representation_value;
-        final_value.encode(bytes);
+        cnt += final_value.encode(bytes)?;
 
         // TBD: Check measurement_hash
 
-        self.value_size.encode(bytes);
+        cnt += self.value_size.encode(bytes)?;
         for v in self.value.iter().take(self.value_size as usize) {
-            v.encode(bytes);
+            cnt += v.encode(bytes)?;
         }
+        Ok(cnt)
     }
     fn read(r: &mut Reader) -> Option<SpdmDmtfMeasurementStructure> {
         let final_value = u8::read(r)?;
@@ -941,11 +951,13 @@ pub struct SpdmMeasurementBlockStructure {
     pub measurement: SpdmDmtfMeasurementStructure,
 }
 impl Codec for SpdmMeasurementBlockStructure {
-    fn encode(&self, bytes: &mut Writer) {
-        self.index.encode(bytes);
-        self.measurement_specification.encode(bytes);
-        self.measurement_size.encode(bytes);
-        self.measurement.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.index.encode(bytes)?;
+        cnt += self.measurement_specification.encode(bytes)?;
+        cnt += self.measurement_size.encode(bytes)?;
+        cnt += self.measurement.encode(bytes)?;
+        Ok(cnt)
     }
     fn read(r: &mut Reader) -> Option<SpdmMeasurementBlockStructure> {
         let index = u8::read(r)?;
@@ -1147,7 +1159,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementSpecification::all();
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -1162,7 +1174,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -1177,7 +1189,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -1191,7 +1203,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -1209,7 +1221,7 @@ mod tests {
             reserved: 100,
             algorithm_id: 200,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         let spdm_ext_alg_struct = SpdmExtAlgStruct::read(&mut reader).unwrap();
@@ -1230,7 +1242,7 @@ mod tests {
             reserved: 100,
             algorithm_id: 200,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_err());
         let mut reader = Reader::init(u8_slice);
 
         assert_eq!(SpdmExtAlgStruct::read(&mut reader).is_none(), true);
@@ -1241,7 +1253,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmDheAlgo::FFDHE_2048;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -1256,7 +1268,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmAeadAlgo::AES_128_GCM;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -1270,7 +1282,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmReqAsymAlgo::TPM_ALG_RSASSA_2048;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -1284,7 +1296,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -1298,7 +1310,7 @@ mod tests {
         let u8_slice = &mut [0u8; 32];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmNonceStruct { data: [100u8; 32] };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
         let spdm_nonce_struct = SpdmNonceStruct::read(&mut reader).unwrap();
@@ -1314,7 +1326,7 @@ mod tests {
         let u8_slice = &mut [0u8; 32];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmRandomStruct { data: [100u8; 32] };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(32, reader.left());
         let spdm_random_struct = SpdmRandomStruct::read(&mut reader).unwrap();
@@ -1334,7 +1346,7 @@ mod tests {
             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
             alg_ext_count: 0,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
@@ -1359,7 +1371,7 @@ mod tests {
             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
             alg_ext_count: 0,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
@@ -1383,7 +1395,7 @@ mod tests {
             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
             alg_ext_count: 100,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
     }
     #[test]
     fn test_case3_spdm_alg_struct() {
@@ -1396,7 +1408,7 @@ mod tests {
             alg_supported: SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo {}),
             alg_ext_count: 0,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
@@ -1618,7 +1630,7 @@ mod tests {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmUnknownAlgo {};
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         SpdmUnknownAlgo::read(&mut reader);
     }

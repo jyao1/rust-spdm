@@ -33,8 +33,11 @@ impl<'a> RequesterContext<'a> {
                 end_session_request_attributes: SpdmEndSessionRequestAttributes::empty(),
             }),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        writer.used()
+        if let Ok(sz) = request.spdm_encode(&mut self.common, &mut writer) {
+            sz
+        } else {
+            0
+        }
     }
 
     pub fn handle_spdm_end_session_response(

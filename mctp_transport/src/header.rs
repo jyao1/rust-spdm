@@ -32,8 +32,8 @@ pub struct MctpMessageHeader {
 }
 
 impl Codec for MctpMessageHeader {
-    fn encode(&self, bytes: &mut Writer) {
-        self.r#type.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.r#type.encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<MctpMessageHeader> {
@@ -61,7 +61,9 @@ impl SpdmTransportEncap for MctpTransportEncap {
                 MctpMessageType::MctpMessageTypeSpdm
             },
         };
-        mctp_header.encode(&mut writer);
+        mctp_header
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_ENCAP_FAIL)?;
         let header_size = writer.used();
         if transport_buffer.len() < header_size + payload_len {
             return Err(SPDM_STATUS_ENCAP_FAIL);
@@ -116,7 +118,9 @@ impl SpdmTransportEncap for MctpTransportEncap {
                 r#type: MctpMessageType::MctpMessageTypeSpdm,
             }
         };
-        mctp_header.encode(&mut writer);
+        mctp_header
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_ENCAP_APP_FAIL)?;
         let header_size = writer.used();
         if app_buffer.len() < header_size + payload_len {
             return Err(SPDM_STATUS_ENCAP_APP_FAIL);
@@ -173,7 +177,7 @@ mod tests {
         let value = MctpMessageHeader {
             r#type: MctpMessageType::MctpMessageTypeMctpControl,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(1, reader.left());
         let mctp_message_header = MctpMessageHeader::read(&mut reader).unwrap();
@@ -223,7 +227,7 @@ mod tests {
         let value = MctpMessageHeader {
             r#type: MctpMessageType::MctpMessageTypeSpdm,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let status = mctp_transport_encap
             .decap(transport_buffer, &mut spdm_buffer)
@@ -235,7 +239,7 @@ mod tests {
         let value = MctpMessageHeader {
             r#type: MctpMessageType::MctpMessageTypeSecuredMctp,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let status = mctp_transport_encap
             .decap(transport_buffer, &mut spdm_buffer)
@@ -277,7 +281,7 @@ mod tests {
         let value = MctpMessageHeader {
             r#type: MctpMessageType::MctpMessageTypeSpdm,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let status = mctp_transport_encap
             .decap_app(transport_buffer, &mut spdm_buffer)

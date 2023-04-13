@@ -164,8 +164,11 @@ impl<'a> ResponderContext<'a> {
             ),
         };
 
-        response.spdm_encode(&mut self.common, writer);
-        let used = writer.used();
+        let used = if let Ok(sz) = response.spdm_encode(&mut self.common, writer) {
+            sz
+        } else {
+            panic!("Failed to encode!");
+        };
 
         #[cfg(feature = "hashed-transcript-data")]
         let message_m = match session_id {
@@ -429,7 +432,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let measurements_struct = &mut [0u8; 1024];
         let mut writer = Writer::init(measurements_struct);
@@ -445,7 +448,7 @@ mod tests_responder {
             //such like value.spdm_encode().
             slot_id: 0xaau8,
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
@@ -566,7 +569,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let measurements_struct = &mut [0u8; 1024];
         let mut writer = Writer::init(measurements_struct);
@@ -582,7 +585,7 @@ mod tests_responder {
             //such like value.spdm_encode().
             slot_id: 0xaau8,
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);

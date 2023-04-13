@@ -103,7 +103,7 @@ impl<'a> ResponderContext<'a> {
                 cert_chain,
             }),
         };
-        response.spdm_encode(&mut self.common, writer);
+        let _ = response.spdm_encode(&mut self.common, writer);
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         self.common
@@ -159,7 +159,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestGetCertificate,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let capabilities = &mut [0u8; 1024];
         let mut writer = Writer::init(capabilities);
         let value = SpdmGetCertificateRequestPayload {
@@ -167,7 +167,7 @@ mod tests_responder {
             offset: 100,
             length: 600,
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&capabilities[0..1022]);

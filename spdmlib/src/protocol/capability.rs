@@ -21,8 +21,8 @@ bitflags! {
 }
 
 impl Codec for SpdmRequestCapabilityFlags {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmRequestCapabilityFlags> {
@@ -65,8 +65,8 @@ bitflags! {
 }
 
 impl Codec for SpdmResponseCapabilityFlags {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmResponseCapabilityFlags> {

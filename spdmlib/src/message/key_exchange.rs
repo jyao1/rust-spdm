@@ -5,6 +5,7 @@
 use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmRandomStruct,
     SpdmSignatureStruct,
@@ -28,22 +29,43 @@ pub struct SpdmKeyExchangeRequestPayload {
 }
 
 impl SpdmCodec for SpdmKeyExchangeRequestPayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.measurement_summary_hash_type.encode(bytes); // param1
-        self.slot_id.encode(bytes); // param2
-        self.req_session_id.encode(bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .measurement_summary_hash_type
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .slot_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .req_session_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            self.session_policy.encode(bytes);
+            cnt += self
+                .session_policy
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         } else {
-            0u8.encode(bytes); // reserved
+            cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
         }
 
-        0u8.encode(bytes); // reserved
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
 
-        self.random.encode(bytes);
-        self.exchange.spdm_encode(context, bytes);
-        self.opaque.spdm_encode(context, bytes);
+        cnt += self
+            .random
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self.exchange.spdm_encode(context, bytes)?;
+        cnt += self.opaque.spdm_encode(context, bytes)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -82,8 +104,8 @@ bitflags! {
 }
 
 impl Codec for SpdmKeyExchangeMutAuthAttributes {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmKeyExchangeMutAuthAttributes> {
@@ -108,21 +130,42 @@ pub struct SpdmKeyExchangeResponsePayload {
 }
 
 impl SpdmCodec for SpdmKeyExchangeResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.heartbeat_period.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.rsp_session_id.encode(bytes);
-        self.mut_auth_req.encode(bytes);
-        self.req_slot_id.encode(bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .heartbeat_period
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .rsp_session_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .mut_auth_req
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .req_slot_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.random.encode(bytes);
-        self.exchange.spdm_encode(context, bytes);
+        cnt += self
+            .random
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self.exchange.spdm_encode(context, bytes)?;
         if context.runtime_info.need_measurement_summary_hash {
-            self.measurement_summary_hash.spdm_encode(context, bytes);
+            cnt += self.measurement_summary_hash.spdm_encode(context, bytes)?;
         }
-        self.opaque.spdm_encode(context, bytes);
-        self.signature.spdm_encode(context, bytes);
-        self.verify_data.spdm_encode(context, bytes);
+        cnt += self.opaque.spdm_encode(context, bytes)?;
+        cnt += self.signature.spdm_encode(context, bytes)?;
+        cnt += self.verify_data.spdm_encode(context, bytes)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -177,7 +220,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ;
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -214,7 +257,7 @@ mod tests {
 
         context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(680, reader.left());
         let exchange_request_payload =
@@ -279,7 +322,7 @@ mod tests {
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
         context.runtime_info.need_measurement_summary_hash = true;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(1256, reader.left());
         let exchange_request_payload =
@@ -357,7 +400,7 @@ mod tests {
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096;
         context.runtime_info.need_measurement_summary_hash = false;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(1256, reader.left());
         let exchange_request_payload =

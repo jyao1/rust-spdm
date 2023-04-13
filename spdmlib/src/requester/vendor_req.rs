@@ -30,8 +30,7 @@ impl<'a> RequesterContext<'a> {
                 },
             ),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+        let used = request.spdm_encode(&mut self.common, &mut writer)?;
 
         match session_id {
             Some(session_id) => {

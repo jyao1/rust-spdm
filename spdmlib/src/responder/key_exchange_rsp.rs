@@ -164,8 +164,7 @@ impl<'a> ResponderContext<'a> {
             }),
         };
 
-        response.spdm_encode(&mut self.common, writer);
-        let used = writer.used();
+        let used = response.spdm_encode(&mut self.common, writer)?;
 
         // generate signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;

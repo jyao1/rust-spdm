@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::{common, error::SpdmStatus};
 use codec::{Codec, Reader, Writer};
 
 bitflags! {
@@ -14,8 +15,8 @@ bitflags! {
 }
 
 impl Codec for SpdmEndSessionRequestAttributes {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmEndSessionRequestAttributes> {
@@ -31,9 +32,18 @@ pub struct SpdmEndSessionRequestPayload {
 }
 
 impl SpdmCodec for SpdmEndSessionRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.end_session_request_attributes.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .end_session_request_attributes
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -53,9 +63,14 @@ impl SpdmCodec for SpdmEndSessionRequestPayload {
 pub struct SpdmEndSessionResponsePayload {}
 
 impl SpdmCodec for SpdmEndSessionResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(2)
     }
 
     fn spdm_read(
@@ -84,7 +99,7 @@ mod tests {
         let u8_slice = &mut [0u8; 1];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmEndSessionRequestAttributes::all();
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(
@@ -104,7 +119,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_end_session_request_payload =
@@ -123,7 +138,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         SpdmEndSessionResponsePayload::spdm_read(&mut context, &mut reader);
     }

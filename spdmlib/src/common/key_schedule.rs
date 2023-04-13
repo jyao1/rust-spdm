@@ -263,7 +263,7 @@ impl SpdmKeySchedule {
         version[SPDM_VERSION_VALUE_MINOR_INDEX] = (spdm_version.get_u8() & 0x0F) + b'0';
 
         let mut writer = Writer::init(buffer);
-        length.encode(&mut writer);
+        length.encode(&mut writer).ok()?;
         writer.extend_from_slice(&version[..]);
         writer.extend_from_slice(label);
         if let Some(context) = context {

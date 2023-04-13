@@ -4,6 +4,7 @@
 
 use crate::common::SpdmContext;
 use crate::config;
+use crate::error::{SpdmResult, SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmCertChain, SpdmCertChainData, SpdmDheExchangeStruct, SpdmDigestStruct,
     SpdmDmtfMeasurementRepresentation, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
@@ -17,9 +18,8 @@ use alloc::boxed::Box;
 
 pub trait SpdmCodec: Debug + Sized {
     /// Encode yourself by appending onto `bytes`.
-    /// TBD: Encode may fail if the caller encodes too many data that exceeds the max size of preallocated slice.
-    /// Should we assert() here? or return to caller to let the caller handle it?
-    fn spdm_encode(&self, _context: &mut SpdmContext, _bytes: &mut Writer);
+    /// return Ok(usize) or Err(SpdmStatus)
+    fn spdm_encode(&self, _context: &mut SpdmContext, _bytes: &mut Writer) -> SpdmResult<usize>;
 
     /// Decode yourself by fiddling with the `Reader`.
     /// Return Some if it worked, None if not.
@@ -34,11 +34,16 @@ pub trait SpdmCodec: Debug + Sized {
 }
 
 impl SpdmCodec for SpdmDigestStruct {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
         assert_eq!(self.data_size, context.get_hash_size());
         for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
+            d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(self.data_size as usize)
     }
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmDigestStruct> {
         let data_size = context.get_hash_size();
@@ -51,11 +56,16 @@ impl SpdmCodec for SpdmDigestStruct {
 }
 
 impl SpdmCodec for SpdmSignatureStruct {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
         assert_eq!(self.data_size, context.get_asym_key_size());
         for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
+            d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(self.data_size as usize)
     }
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmSignatureStruct> {
         let data_size = context.get_asym_key_size();
@@ -67,12 +77,20 @@ impl SpdmCodec for SpdmSignatureStruct {
     }
 }
 impl SpdmCodec for SpdmCertChain {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
         let length = self.cert_chain.data_size + self.root_hash.data_size + 4_u16;
-        length.encode(bytes);
-        0u16.encode(bytes);
+        cnt += length.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.root_hash.spdm_encode(context, bytes);
+        cnt += self
+            .root_hash
+            .spdm_encode(context, bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         for d in self
             .cert_chain
@@ -80,8 +98,9 @@ impl SpdmCodec for SpdmCertChain {
             .iter()
             .take(self.cert_chain.data_size as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmCertChain> {
         let length = u16::read(r)?;
@@ -103,17 +122,29 @@ impl SpdmCodec for SpdmCertChain {
 }
 
 impl SpdmCodec for SpdmMeasurementRecordStructure {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
-        self.number_of_blocks.encode(bytes);
-        self.measurement_record_length.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .number_of_blocks
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .measurement_record_length
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         for d in self
             .measurement_record_data
             .iter()
             .take(self.measurement_record_length.get() as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -140,10 +171,15 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
 }
 
 impl SpdmCodec for SpdmDheExchangeStruct {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
         for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
+            d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(self.data_size as usize)
     }
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmDheExchangeStruct> {
         let data_size = context.get_dhe_key_size();
@@ -156,18 +192,29 @@ impl SpdmCodec for SpdmDheExchangeStruct {
 }
 
 impl SpdmCodec for SpdmDmtfMeasurementStructure {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
         let type_value = self.r#type.get_u8();
         let representation_value = self.representation.get_u8();
         let final_value = type_value + representation_value;
-        final_value.encode(bytes);
+        cnt += final_value
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         // TBD: Check measurement_hash
 
-        self.value_size.encode(bytes);
+        cnt += self
+            .value_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for v in self.value.iter().take(self.value_size as usize) {
-            v.encode(bytes);
+            cnt += v.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(
         _context: &mut SpdmContext,
@@ -225,11 +272,29 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
 }
 
 impl SpdmCodec for SpdmMeasurementBlockStructure {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        self.index.encode(bytes);
-        self.measurement_specification.encode(bytes);
-        self.measurement_size.encode(bytes);
-        self.measurement.spdm_encode(context, bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .index
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .measurement_specification
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .measurement_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .measurement
+            .spdm_encode(context, bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
     fn spdm_read(
         context: &mut SpdmContext,

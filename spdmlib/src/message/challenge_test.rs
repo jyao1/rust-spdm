@@ -24,7 +24,7 @@ fn test_challenge_struct() {
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
         nonce: SpdmNonceStruct::default(),
     };
-    request.spdm_encode(context, writer);
+    assert!(request.spdm_encode(context, writer).is_ok());
     assert_eq!(writer.used(), 34);
 
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_256;

@@ -106,8 +106,7 @@ impl<'a> RequesterContext<'a> {
                 opaque,
             }),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        Ok(writer.used())
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     pub fn handle_spdm_psk_exchange_response(

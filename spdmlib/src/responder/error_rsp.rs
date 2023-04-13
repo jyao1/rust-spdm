@@ -26,7 +26,7 @@ impl<'a> ResponderContext<'a> {
                 ),
             }),
         };
-        error.spdm_encode(&mut self.common, writer);
+        let _ = error.spdm_encode(&mut self.common, writer);
     }
 
     pub fn send_spdm_error(&mut self, error_code: SpdmErrorCode, error_data: u8) {

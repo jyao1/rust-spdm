@@ -5,6 +5,7 @@
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{gen_array_clone, SpdmVersion};
 use codec::{Codec, Reader, Writer};
 
@@ -12,9 +13,14 @@ use codec::{Codec, Reader, Writer};
 pub struct SpdmGetVersionRequestPayload {}
 
 impl SpdmCodec for SpdmGetVersionRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(2)
     }
 
     fn spdm_read(
@@ -35,9 +41,11 @@ pub struct SpdmVersionStruct {
 }
 
 impl Codec for SpdmVersionStruct {
-    fn encode(&self, bytes: &mut Writer) {
-        self.update.encode(bytes);
-        self.version.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.update.encode(bytes)?;
+        cnt += self.version.encode(bytes)?;
+        Ok(cnt)
     }
     fn read(r: &mut Reader) -> Option<SpdmVersionStruct> {
         let update = u8::read(r)?;
@@ -53,20 +61,29 @@ pub struct SpdmVersionResponsePayload {
 }
 
 impl SpdmCodec for SpdmVersionResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
-        0u8.encode(bytes); // reserved
-        self.version_number_entry_count.encode(bytes);
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
+        cnt += self
+            .version_number_entry_count
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         for version in self
             .versions
             .iter()
             .take(self.version_number_entry_count as usize)
         {
-            version.encode(bytes);
+            cnt += version.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -123,7 +140,7 @@ mod tests {
             update: 0xffu8,
             version: SpdmVersion::SpdmVersion10,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(2, reader.left());
         let spdmversionstruct = SpdmVersionStruct::read(&mut reader).unwrap();
@@ -138,7 +155,7 @@ mod tests {
             update: 100u8,
             version: SpdmVersion::SpdmVersion10,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_err());
         let mut reader = Reader::init(u8_slice);
         let spdmversionstruct = SpdmVersionStruct::read(&mut reader);
         assert_eq!(spdmversionstruct.is_none(), true);
@@ -160,7 +177,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
         let version_response =
@@ -184,7 +201,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         SpdmGetVersionRequestPayload::spdm_read(&mut context, &mut reader);
     }

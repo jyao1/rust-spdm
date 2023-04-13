@@ -30,7 +30,7 @@ fn test_case0_spdm_opaque_struct() {
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(68, reader.left());
     let spdm_opaque_struct = SpdmOpaqueStruct::spdm_read(&mut context, &mut reader).unwrap();
@@ -54,7 +54,7 @@ fn test_case0_spdm_digest_struct() {
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(68, reader.left());
     let spdm_digest_struct = SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
@@ -78,7 +78,7 @@ fn test_case0_spdm_signature_struct() {
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
     context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
 
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(512, reader.left());
     let spdm_signature_struct = SpdmSignatureStruct::spdm_read(&mut context, &mut reader).unwrap();
@@ -107,7 +107,7 @@ fn test_case0_spdm_cert_chain() {
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(4192, reader.left());
     let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context, &mut reader).unwrap();
@@ -139,7 +139,9 @@ fn test_case0_spdm_measurement_record_structure() {
     let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
 
     for _i in 0..5 {
-        spdm_measurement_block_structure.encode(&mut measurement_record_data_writer);
+        assert!(spdm_measurement_block_structure
+            .encode(&mut measurement_record_data_writer)
+            .is_ok());
     }
 
     let value = SpdmMeasurementRecordStructure {
@@ -152,7 +154,7 @@ fn test_case0_spdm_measurement_record_structure() {
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
 
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(512, reader.left());
     let measurement_record =
@@ -179,7 +181,9 @@ fn test_case1_spdm_measurement_record_structure() {
     let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
 
     for _i in 0..5 {
-        spdm_measurement_block_structure.encode(&mut measurement_record_data_writer);
+        assert!(spdm_measurement_block_structure
+            .encode(&mut measurement_record_data_writer)
+            .is_ok());
     }
 
     let value = SpdmMeasurementRecordStructure {
@@ -191,7 +195,7 @@ fn test_case1_spdm_measurement_record_structure() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
 }
 #[test]
 fn test_case0_spdm_dhe_exchange_struct() {
@@ -208,7 +212,7 @@ fn test_case0_spdm_dhe_exchange_struct() {
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
     context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
 
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(512, reader.left());
     let spdm_dhe_exchange_struct =
@@ -246,7 +250,7 @@ fn test_case0_spdm_dmtf_measurement_structure() {
         }
         let u8_slice = &mut [0u8; 68];
         let mut writer = Writer::init(u8_slice);
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(68, reader.left());
         let spdm_dmtf_measurement_structure =
@@ -285,7 +289,7 @@ fn test_case0_spdm_measurement_block_structure() {
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-    value.spdm_encode(&mut context, &mut writer);
+    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
     assert_eq!(80, reader.left());
     let spdm_block_structure =

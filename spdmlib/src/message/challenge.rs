@@ -5,6 +5,7 @@
 use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmSignatureStruct,
 };
@@ -18,10 +19,25 @@ pub struct SpdmChallengeRequestPayload {
 }
 
 impl SpdmCodec for SpdmChallengeRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.slot_id.encode(bytes); // param1
-        self.measurement_summary_hash_type.encode(bytes); // param2
-        self.nonce.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .slot_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .measurement_summary_hash_type
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .nonce
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -60,17 +76,29 @@ pub struct SpdmChallengeAuthResponsePayload {
 }
 
 impl SpdmCodec for SpdmChallengeAuthResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
         let param1 = self.slot_id + self.challenge_auth_attribute.bits();
-        param1.encode(bytes);
-        self.slot_mask.encode(bytes); // param2
-        self.cert_chain_hash.spdm_encode(context, bytes);
-        self.nonce.encode(bytes);
+        cnt += param1.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .slot_mask
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self.cert_chain_hash.spdm_encode(context, bytes)?;
+        cnt += self
+            .nonce
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         if context.runtime_info.need_measurement_summary_hash {
-            self.measurement_summary_hash.spdm_encode(context, bytes);
+            cnt += self.measurement_summary_hash.spdm_encode(context, bytes)?;
         }
-        self.opaque.spdm_encode(context, bytes);
-        self.signature.spdm_encode(context, bytes);
+        cnt += self.opaque.spdm_encode(context, bytes)?;
+        cnt += self.signature.spdm_encode(context, bytes)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -129,7 +157,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(34, reader.left());
         let spdm_challenge_request_payload =
@@ -180,7 +208,7 @@ mod tests {
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT0;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
 
         assert_eq!(800, reader.left());
@@ -244,7 +272,7 @@ mod tests {
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
         assert_eq!(800, writer.left());
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         assert_eq!(124, writer.left());
 
         let mut reader = Reader::init(u8_slice);

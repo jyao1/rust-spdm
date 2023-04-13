@@ -80,7 +80,7 @@ impl<'a> ResponderContext<'a> {
                 ),
             }),
         };
-        response.spdm_encode(&mut self.common, writer);
+        let _ = response.spdm_encode(&mut self.common, writer);
 
         let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
         let cert_chain_hash = crypto::hash::hash_all(
@@ -150,7 +150,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         context.handle_spdm_digest(bytes, None);
