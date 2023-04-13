@@ -67,7 +67,7 @@ impl<'a> ResponderContext<'a> {
             }),
         };
 
-        response.spdm_encode(&mut self.common, writer);
+        let _ = response.spdm_encode(&mut self.common, writer);
         self.common
             .runtime_info
             .message_a
@@ -106,7 +106,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         context.handle_spdm_version(bytes);
 

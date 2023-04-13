@@ -19,7 +19,7 @@ fn test_certificate_struct() {
         offset: 0,
         length: 1024,
     };
-    request.spdm_encode(context, writer);
+    assert!(request.spdm_encode(context, writer).is_ok());
     assert_eq!(writer.used(), 6);
 
     let u8_slice = &mut [0u8; 1024];

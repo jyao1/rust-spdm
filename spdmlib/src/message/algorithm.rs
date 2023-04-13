@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::*;
 use crate::config;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::protocol::*;
+use crate::{common, error::SpdmStatus};
 
 use codec::{Codec, Reader, Writer};
 
@@ -22,35 +23,56 @@ pub struct SpdmNegotiateAlgorithmsRequestPayload {
 }
 
 impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.alg_struct_count.encode(bytes); // param1
-        0u8.encode(bytes); // param1
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .alg_struct_count
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
 
         let mut length: u16 = 32;
         for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
             length += 2 + algo.alg_fixed_count as u16;
         }
-        length.encode(bytes);
+        cnt += length.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.measurement_specification.encode(bytes);
+        cnt += self
+            .measurement_specification
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.other_params_support.encode(bytes); //OtherParamsSupport
+        cnt += self
+            .other_params_support
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; //OtherParamsSupport
 
-        self.base_asym_algo.encode(bytes);
-        self.base_hash_algo.encode(bytes);
+        cnt += self
+            .base_asym_algo
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .base_hash_algo
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for _i in 0..12 {
-            0u8.encode(bytes); // reserved2
+            cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved2
         }
 
-        0u8.encode(bytes); // ext_asym_count
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // ext_asym_count
 
-        0u8.encode(bytes); // ext_hash_count
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // ext_hash_count
 
-        0u16.encode(bytes); // reserved3
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved3
 
         for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
-            algo.encode(bytes);
+            cnt += algo.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -125,36 +147,60 @@ pub struct SpdmAlgorithmsResponsePayload {
 }
 
 impl SpdmCodec for SpdmAlgorithmsResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.alg_struct_count.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .alg_struct_count
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
         let mut length: u16 = 36;
         for alg in self.alg_struct.iter().take(self.alg_struct_count as usize) {
             length += 2 + alg.alg_fixed_count as u16;
         }
-        length.encode(bytes);
+        cnt += length.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.measurement_specification_sel.encode(bytes);
+        cnt += self
+            .measurement_specification_sel
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.other_params_selection.encode(bytes);
+        cnt += self
+            .other_params_selection
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.measurement_hash_algo.encode(bytes);
-        self.base_asym_sel.encode(bytes);
-        self.base_hash_sel.encode(bytes);
+        cnt += self
+            .measurement_hash_algo
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .base_asym_sel
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .base_hash_sel
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for _i in 0..12 {
-            0u8.encode(bytes); // reserved2
+            cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved2
         }
 
-        0u8.encode(bytes); // ext_asym_count
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // ext_asym_count
 
-        0u8.encode(bytes); // ext_hash_count
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // ext_hash_count
 
-        0u16.encode(bytes); // reserved3
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved3
 
         for algo in self.alg_struct.iter().take(self.alg_struct_count as usize) {
-            algo.encode(bytes);
+            cnt += algo.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -273,7 +319,7 @@ mod tests {
         let provision_info = SpdmProvisionInfo::default();
         let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(48, reader.left());
         let spdm_sturct_data =
@@ -328,7 +374,7 @@ mod tests {
         let provision_info = SpdmProvisionInfo::default();
         let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(48, reader.left());
         let spdm_sturct_data =
@@ -364,7 +410,7 @@ mod tests {
         let provision_info = SpdmProvisionInfo::default();
         let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         u8_slice[26] = 1;
         u8_slice[31] = 1;
         let mut reader = Reader::init(u8_slice);
@@ -407,7 +453,7 @@ mod tests {
         context.config_info.base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048;
         context.config_info.base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(50, reader.left());
         let spdm_sturct_data =
@@ -462,7 +508,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
 
         u8_slice[30] = 1;
         u8_slice[35] = 1;
@@ -496,7 +542,7 @@ mod tests {
         let provision_info = SpdmProvisionInfo::default();
         let mut context = SpdmContext::new(device_io, transport_encap, config_info, provision_info);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(50, reader.left());
         let spdm_sturct_data =

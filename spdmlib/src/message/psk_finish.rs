@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::protocol::SpdmDigestStruct;
+use crate::{common, error::SpdmStatus};
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -13,10 +14,16 @@ pub struct SpdmPskFinishRequestPayload {
 }
 
 impl SpdmCodec for SpdmPskFinishRequestPayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.verify_data.spdm_encode(context, bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self.verify_data.spdm_encode(context, bytes)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -35,9 +42,14 @@ impl SpdmCodec for SpdmPskFinishRequestPayload {
 pub struct SpdmPskFinishResponsePayload {}
 
 impl SpdmCodec for SpdmPskFinishResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(2)
     }
 
     fn spdm_read(
@@ -77,7 +89,7 @@ mod tests {
 
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(80, reader.left());
         let psk_finish_request =
@@ -97,7 +109,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         SpdmPskFinishResponsePayload::spdm_read(&mut context, &mut reader);
     }

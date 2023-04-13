@@ -7,3 +7,5 @@
 
 mod header;
 pub use header::*;
+
+extern crate codec;

@@ -29,10 +29,12 @@ pub struct SpdmSocketHeader {
 }
 
 impl Codec for SpdmSocketHeader {
-    fn encode(&self, bytes: &mut Writer) {
-        self.command.encode(bytes);
-        self.transport_type.encode(bytes);
-        self.payload_size.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.command.encode(bytes)?;
+        cnt += self.transport_type.encode(bytes)?;
+        cnt += self.payload_size.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmSocketHeader> {
@@ -106,7 +108,7 @@ pub fn send_message(
         transport_type: transport_type.to_be(),
         payload_size: (payload_size as u32).to_be(),
     };
-    header.encode(&mut writer);
+    assert!(header.encode(&mut writer).is_ok());
     let used = writer.used();
     assert_eq!(used, SOCKET_HEADER_LEN);
 
@@ -134,7 +136,7 @@ mod tests {
             transport_type: 0x200u32,
             payload_size: 0x300u32,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(16, reader.left());

@@ -32,8 +32,8 @@ macro_rules! enum_builder {
             }
         }
         impl Codec for $enum_name {
-            fn encode(&self, bytes: &mut Writer) {
-                self.get_u8().encode(bytes);
+            fn encode(&self, bytes: &mut Writer) -> Result<usize, $crate::codec::EncodeErr> {
+                self.get_u8().encode(bytes)
             }
 
             fn read(r: &mut Reader) -> Option<Self> {
@@ -72,8 +72,8 @@ macro_rules! enum_builder {
             }
         }
         impl Codec for $enum_name {
-            fn encode(&self, bytes: &mut Writer) {
-                self.get_u16().encode(bytes);
+            fn encode(&self, bytes: &mut Writer) -> Result<usize, $crate::codec::EncodeErr> {
+                self.get_u16().encode(bytes)
             }
 
             fn read(r: &mut Reader) -> Option<Self> {
@@ -112,8 +112,8 @@ macro_rules! enum_builder {
                 }
             }
             impl Codec for $enum_name {
-                fn encode(&self, bytes: &mut Writer) {
-                    self.get_u32().encode(bytes);
+                fn encode(&self, bytes: &mut Writer) -> Result<usize, $crate::codec::EncodeErr> {
+                    self.get_u32().encode(bytes)
                 }
 
                 fn read(r: &mut Reader) -> Option<Self> {

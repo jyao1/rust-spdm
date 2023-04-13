@@ -6,6 +6,7 @@ use crate::common;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use crate::config::MAX_SPDM_OPAQUE_SIZE;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
 };
@@ -21,14 +22,37 @@ pub struct SpdmPskExchangeRequestPayload {
 }
 
 impl SpdmCodec for SpdmPskExchangeRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.measurement_summary_hash_type.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.req_session_id.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .measurement_summary_hash_type
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .req_session_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.psk_hint.data_size.encode(bytes);
-        self.psk_context.data_size.encode(bytes);
-        self.opaque.data_size.encode(bytes);
+        cnt += self
+            .psk_hint
+            .data_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .psk_context
+            .data_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .opaque
+            .data_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         for d in self
             .psk_hint
@@ -36,7 +60,7 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
             .iter()
             .take(self.psk_hint.data_size as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
         for d in self
             .psk_context
@@ -44,11 +68,12 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
             .iter()
             .take(self.psk_context.data_size as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
         for d in self.opaque.data.iter().take(self.opaque.data_size as usize) {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -105,17 +130,36 @@ pub struct SpdmPskExchangeResponsePayload {
 }
 
 impl SpdmCodec for SpdmPskExchangeResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.heartbeat_period.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.rsp_session_id.encode(bytes);
-        0u16.encode(bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .heartbeat_period
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .rsp_session_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        self.psk_context.data_size.encode(bytes);
-        self.opaque.data_size.encode(bytes);
+        cnt += self
+            .psk_context
+            .data_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .opaque
+            .data_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         if context.runtime_info.need_measurement_summary_hash {
-            self.measurement_summary_hash.spdm_encode(context, bytes);
+            cnt += self.measurement_summary_hash.spdm_encode(context, bytes)?;
         }
         for d in self
             .psk_context
@@ -123,12 +167,13 @@ impl SpdmCodec for SpdmPskExchangeResponsePayload {
             .iter()
             .take(self.psk_context.data_size as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
         for d in self.opaque.data.iter().take(self.opaque.data_size as usize) {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
-        self.verify_data.spdm_encode(context, bytes);
+        cnt += self.verify_data.spdm_encode(context, bytes)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -213,7 +258,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(180, reader.left());
         let psk_exchange_request =
@@ -259,7 +304,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(180, reader.left());
         let psk_exchange_request =
@@ -311,7 +356,7 @@ mod tests {
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         context.runtime_info.need_measurement_summary_hash = true;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(280, reader.left());
         let psk_exchange_response =
@@ -338,7 +383,7 @@ mod tests {
 
         context.runtime_info.need_measurement_summary_hash = false;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(420, reader.left());
         let psk_exchange_response =
@@ -380,7 +425,7 @@ mod tests {
 
         context.runtime_info.need_measurement_summary_hash = true;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(280, reader.left());
         let psk_exchange_response =

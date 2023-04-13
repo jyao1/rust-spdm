@@ -103,12 +103,14 @@ impl<'a> Writer<'a> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EncodeErr;
+
 /// Things we can encode and read from a Reader.
 pub trait Codec: Debug + Sized {
     /// Encode yourself by appending onto `bytes`.
-    /// TBD: Encode may fail if the caller encodes too many data that exceeds the max size of preallocated slice.
-    /// Should we assert() here? or return to caller to let the caller handle it?
-    fn encode(&self, bytes: &mut Writer);
+    /// Return Ok(encoded size) or Err(())
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr>;
 
     /// Decode yourself by fiddling with the `Reader`.
     /// Return Some if it worked, None if not.
@@ -128,8 +130,9 @@ pub fn decode_u8(bytes: &[u8]) -> Option<u8> {
 }
 
 impl Codec for u8 {
-    fn encode(&self, bytes: &mut Writer) {
-        bytes.push(*self);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr> {
+        bytes.push(*self).ok_or(EncodeErr)?;
+        Ok(1)
     }
     fn read(r: &mut Reader) -> Option<u8> {
         r.take(1).and_then(decode_u8)
@@ -146,10 +149,11 @@ pub fn decode_u16(bytes: &[u8]) -> Option<u16> {
 }
 
 impl Codec for u16 {
-    fn encode(&self, bytes: &mut Writer) {
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr> {
         let mut b16 = [0u8; 2];
         put_u16(*self, &mut b16);
-        bytes.extend_from_slice(&b16);
+        bytes.extend_from_slice(&b16).ok_or(EncodeErr)?;
+        Ok(2)
     }
 
     fn read(r: &mut Reader) -> Option<u16> {
@@ -180,10 +184,11 @@ impl u24 {
 }
 
 impl Codec for u24 {
-    fn encode(&self, bytes: &mut Writer) {
-        bytes.push(self.0 as u8);
-        bytes.push((self.0 >> 8) as u8);
-        bytes.push((self.0 >> 16) as u8);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr> {
+        bytes.push(self.0 as u8).ok_or(EncodeErr)?;
+        bytes.push((self.0 >> 8) as u8).ok_or(EncodeErr)?;
+        bytes.push((self.0 >> 16) as u8).ok_or(EncodeErr)?;
+        Ok(3)
     }
 
     fn read(r: &mut Reader) -> Option<u24> {
@@ -201,11 +206,12 @@ pub fn decode_u32(bytes: &[u8]) -> Option<u32> {
 }
 
 impl Codec for u32 {
-    fn encode(&self, bytes: &mut Writer) {
-        bytes.push(*self as u8);
-        bytes.push((*self >> 8) as u8);
-        bytes.push((*self >> 16) as u8);
-        bytes.push((*self >> 24) as u8);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr> {
+        bytes.push(*self as u8).ok_or(EncodeErr)?;
+        bytes.push((*self >> 8) as u8).ok_or(EncodeErr)?;
+        bytes.push((*self >> 16) as u8).ok_or(EncodeErr)?;
+        bytes.push((*self >> 24) as u8).ok_or(EncodeErr)?;
+        Ok(4)
     }
 
     fn read(r: &mut Reader) -> Option<u32> {
@@ -238,10 +244,11 @@ pub fn decode_u64(bytes: &[u8]) -> Option<u64> {
 }
 
 impl Codec for u64 {
-    fn encode(&self, bytes: &mut Writer) {
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr> {
         let mut b64 = [0u8; 8];
         put_u64(*self, &mut b64);
-        bytes.extend_from_slice(&b64);
+        bytes.extend_from_slice(&b64).ok_or(EncodeErr)?;
+        Ok(8)
     }
 
     fn read(r: &mut Reader) -> Option<u64> {
@@ -250,8 +257,11 @@ impl Codec for u64 {
 }
 
 impl Codec for u128 {
-    fn encode(&self, bytes: &mut Writer) {
-        bytes.extend_from_slice(&u128::to_le_bytes(*self));
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, EncodeErr> {
+        bytes
+            .extend_from_slice(&u128::to_le_bytes(*self))
+            .ok_or(EncodeErr)?;
+        Ok(16)
     }
 
     fn read(r: &mut Reader) -> Option<Self> {
@@ -275,7 +285,7 @@ mod tests {
         {
             let mut writer = Writer::init(u8_slice);
             let value = 100u64;
-            value.encode(&mut writer);
+            assert_eq!(value.encode(&mut writer), Ok(8));
         }
 
         let mut reader = Reader::init(u8_slice);
@@ -287,7 +297,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut witer = Writer::init(u8_slice);
         let value = 100u32;
-        value.encode(&mut witer);
+        assert_eq!(value.encode(&mut witer), Ok(4));
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -298,7 +308,7 @@ mod tests {
         let u8_slice = &mut [0u8; 2];
         let mut witer = Writer::init(u8_slice);
         let value = 10u16;
-        value.encode(&mut witer);
+        assert_eq!(value.encode(&mut witer), Ok(2));
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(2, reader.left());
@@ -309,7 +319,7 @@ mod tests {
         let u8_slice = &mut [0u8; 3];
         let mut witer = Writer::init(u8_slice);
         let value = u24::new(100);
-        value.encode(&mut witer);
+        assert_eq!(value.encode(&mut witer), Ok(3));
         let mut reader = Reader::init(u8_slice);
         assert_eq!(3, reader.left());
         assert_eq!(u24::read(&mut reader).unwrap().0, u24::new(100).0);
@@ -324,7 +334,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut witer = Writer::init(u8_slice);
         let value = 100u8;
-        value.encode(&mut witer);
+        assert_eq!(value.encode(&mut witer), Ok(1));
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(u8::read(&mut reader).unwrap(), 100);
@@ -334,7 +344,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut witer = Writer::init(u8_slice);
         let value = 0xAA5555AAu32;
-        value.encode(&mut witer);
+        assert_eq!(value.encode(&mut witer), Ok(4));
         let mut reader = Reader::init(u8_slice);
         let rust_ret = reader.rest();
         assert_eq!(rust_ret[0], 0xAA);
@@ -365,7 +375,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut witer = Writer::init(u8_slice);
         let value = 0xAA5555AAu32;
-        value.encode(&mut witer);
+        assert_eq!(value.encode(&mut witer), Ok(4));
         assert_eq!(u32::read_bytes(u8_slice).unwrap(), 0xAA5555AAu32);
     }
     #[test]

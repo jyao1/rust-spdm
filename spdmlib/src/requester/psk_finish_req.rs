@@ -52,8 +52,7 @@ impl<'a> RequesterContext<'a> {
                 },
             }),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        let send_used = writer.used();
+        let send_used = request.spdm_encode(&mut self.common, &mut writer)?;
 
         // generate HMAC with finished_key
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;

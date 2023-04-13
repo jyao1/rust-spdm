@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::{SpdmCodec, SpdmContext};
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::*;
 use codec::enum_builder;
 use codec::{Codec, Reader, Writer};
@@ -102,9 +103,11 @@ pub struct SpdmMessageHeader {
 }
 
 impl Codec for SpdmMessageHeader {
-    fn encode(&self, bytes: &mut Writer) {
-        self.version.encode(bytes);
-        self.request_response_code.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.version.encode(bytes)?;
+        cnt += self.request_response_code.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmMessageHeader> {
@@ -125,9 +128,11 @@ pub struct SpdmMessageGeneralPayload {
 }
 
 impl Codec for SpdmMessageGeneralPayload {
-    fn encode(&self, bytes: &mut Writer) {
-        self.param1.encode(bytes);
-        self.param2.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.param1.encode(bytes)?;
+        cnt += self.param2.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmMessageGeneralPayload> {
@@ -138,9 +143,14 @@ impl Codec for SpdmMessageGeneralPayload {
 }
 
 impl SpdmCodec for SpdmMessageGeneralPayload {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(2)
     }
 
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmMessageGeneralPayload> {
@@ -391,121 +401,130 @@ impl SpdmMessage {
 }
 
 impl SpdmCodec for SpdmMessage {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        self.header.encode(bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .header
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         match &self.payload {
             SpdmMessagePayload::SpdmMessageGeneral(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmGetVersionRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmVersionResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmGetCapabilitiesRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmCapabilitiesResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmNegotiateAlgorithmsRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmAlgorithmsResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmGetDigestsRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmDigestsResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmGetCertificateRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmCertificateResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmChallengeRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmChallengeAuthResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmGetMeasurementsRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmMeasurementsResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmKeyExchangeRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmKeyExchangeResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmFinishRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmFinishResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmPskExchangeRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmPskExchangeResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmPskFinishRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmPskFinishResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmEndSessionRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmEndSessionResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmHeartbeatRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmHeartbeatResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             SpdmMessagePayload::SpdmKeyUpdateRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmKeyUpdateResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
 
             // Add new SPDM command here.
             SpdmMessagePayload::SpdmErrorResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmVendorDefinedRequest(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmVendorDefinedResponse(payload) => {
-                payload.spdm_encode(context, bytes);
+                cnt += payload.spdm_encode(context, bytes)?;
             }
         }
+        Ok(cnt)
     }
 
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmMessage> {
@@ -536,7 +555,7 @@ mod tests {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -943,8 +962,8 @@ mod tests {
 
         let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
         let mut writer = Writer::init(&mut measurement_record_data);
-        for i in 0..5 {
-            spdm_measurement_block_structure.encode(&mut writer);
+        for _i in 0..5 {
+            assert!(spdm_measurement_block_structure.encode(&mut writer).is_ok());
         }
 
         let value = SpdmMessage {
@@ -1478,7 +1497,7 @@ mod tests {
         create_spdm_context!(context);
         let u8_slice = &mut [0u8; 1000];
         let mut writer = Writer::init(u8_slice);
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         let spdm_message = SpdmMessage::spdm_read(&mut context, &mut reader);
         assert_eq!(spdm_message.is_none(), true);

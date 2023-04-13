@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::{common, error::SpdmStatus};
 use codec::{Codec, Reader, Writer};
 
 pub(crate) const MAX_SPDM_CERT_PORTION_LEN: usize = 512;
@@ -16,11 +17,26 @@ pub struct SpdmGetCertificateRequestPayload {
 }
 
 impl SpdmCodec for SpdmGetCertificateRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.slot_id.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.offset.encode(bytes);
-        self.length.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .slot_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .offset
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .length
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -59,15 +75,30 @@ impl Default for SpdmCertificateResponsePayload {
 }
 
 impl SpdmCodec for SpdmCertificateResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.slot_id.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.portion_length.encode(bytes);
-        self.remainder_length.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .slot_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .portion_length
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .remainder_length
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         for d in self.cert_chain.iter().take(self.portion_length as usize) {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -113,7 +144,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_get_certificate_request_payload =
@@ -135,7 +166,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(520, reader.left());
         let spdm_get_certificate_request_payload =

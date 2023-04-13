@@ -68,8 +68,7 @@ impl<'a> ResponderContext<'a> {
                 tag: key_update_req.tag,
             }),
         };
-        response.spdm_encode(&mut self.common, writer);
-        true
+        response.spdm_encode(&mut self.common, writer).is_ok()
     }
 }
 
@@ -137,7 +136,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let key_exchange: &mut [u8; 1024] = &mut [0u8; 1024];
         let mut writer = Writer::init(key_exchange);
@@ -145,7 +144,7 @@ mod tests_responder {
             key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateSingleKey,
             tag: 100u8,
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
@@ -206,7 +205,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let key_exchange: &mut [u8; 1024] = &mut [0u8; 1024];
         let mut writer = Writer::init(key_exchange);
@@ -214,7 +213,7 @@ mod tests_responder {
             key_update_operation: SpdmKeyUpdateOperation::SpdmUpdateAllKeys,
             tag: 100u8,
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);

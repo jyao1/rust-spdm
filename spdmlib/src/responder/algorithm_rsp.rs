@@ -184,7 +184,7 @@ impl<'a> ResponderContext<'a> {
                 ],
             }),
         };
-        response.spdm_encode(&mut self.common, writer);
+        let _ = response.spdm_encode(&mut self.common, writer);
         self.common
             .runtime_info
             .message_a
@@ -242,7 +242,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let negotiate_algorithms = &mut [0u8; 1024];
         let mut writer = Writer::init(negotiate_algorithms);
@@ -262,7 +262,7 @@ mod tests_responder {
                 config::MAX_SPDM_ALG_STRUCT_COUNT,
             ),
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);

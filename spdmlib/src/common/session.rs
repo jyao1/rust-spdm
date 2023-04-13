@@ -6,6 +6,7 @@ use super::key_schedule::SpdmKeySchedule;
 use crate::config;
 use crate::crypto;
 use crate::error::SpdmResult;
+use crate::error::SPDM_STATUS_BUFFER_TOO_SMALL;
 use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_DECODE_AEAD_FAIL;
 use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
@@ -889,22 +890,29 @@ impl SpdmSession {
         let mut writer = Writer::init(&mut aad_buffer);
         let app_length = app_buffer.len() as u16;
         let length = cipher_text_size as u16 + tag_size as u16;
-        session_id.encode(&mut writer);
+        session_id
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_BUFFER_TOO_SMALL)?;
         if transport_param.sequence_number_count != 0 {
             let sequence_number = secret_param.sequence_number;
             for i in 0..transport_param.sequence_number_count {
                 let s = ((sequence_number >> (8 * i)) & 0xFF) as u8;
-                s.encode(&mut writer);
+                s.encode(&mut writer)
+                    .map_err(|_| SPDM_STATUS_BUFFER_TOO_SMALL)?;
             }
         }
-        length.encode(&mut writer);
+        length
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_BUFFER_TOO_SMALL)?;
         let aad_size = writer.used();
         assert_eq!(aad_size, 6 + transport_param.sequence_number_count as usize);
 
         let mut plain_text_buf =
             [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE + core::mem::size_of::<u16>()]; // app length + app buffer
         let mut writer = Writer::init(&mut plain_text_buf);
-        app_length.encode(&mut writer);
+        app_length
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_BUFFER_TOO_SMALL)?;
         let head_size = writer.used();
         assert_eq!(head_size, 2);
         plain_text_buf[head_size..(head_size + app_buffer.len())].copy_from_slice(app_buffer);
@@ -1081,7 +1089,7 @@ mod tests_session {
         assert!(!status);
 
         let mut witer = Writer::init(&mut send_buffer);
-        session_id.encode(&mut witer);
+        assert!(session_id.encode(&mut witer).is_ok());
         let status = session
             .decode_msg(
                 &send_buffer[0..100],

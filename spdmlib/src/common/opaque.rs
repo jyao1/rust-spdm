@@ -4,7 +4,10 @@
 
 use super::spdm_codec::SpdmCodec;
 use super::*;
-use crate::config;
+use crate::{
+    config,
+    error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL},
+};
 use codec::{Codec, Reader, Writer};
 
 pub const MAX_SECURE_SPDM_VERSION_COUNT: usize = 0x02;
@@ -118,9 +121,19 @@ pub struct SecuredMessageVersion {
 }
 
 impl SpdmCodec for SecuredMessageVersion {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
-        ((self.update_version_number << 4) + self.alpha).encode(bytes);
-        ((self.major_version << 4) + self.minor_version).encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += ((self.update_version_number << 4) + self.alpha)
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += ((self.major_version << 4) + self.minor_version)
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SecuredMessageVersion> {
         let update_version_number_alpha = u8::read(r)?;
@@ -163,11 +176,22 @@ pub struct SecuredMessageVersionList {
 }
 
 impl SpdmCodec for SecuredMessageVersionList {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        self.version_count.encode(bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .version_count
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for index in 0..self.version_count as usize {
-            self.versions_list[index].spdm_encode(context, bytes);
+            cnt += self.versions_list[index]
+                .spdm_encode(context, bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SecuredMessageVersionList> {
         let version_count = u8::read(r)?;
@@ -201,12 +225,23 @@ impl Default for OpaqueElementHeader {
 }
 
 impl SpdmCodec for OpaqueElementHeader {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
-        self.id.encode(bytes);
-        self.vendor_len.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self.id.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .vendor_len
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for index in 0..self.vendor_len as usize {
-            self.vendor_id[index].encode(bytes);
+            cnt += self.vendor_id[index]
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<OpaqueElementHeader> {
         let id = u8::read(r)?;
@@ -232,20 +267,38 @@ pub struct SecuredMessageGeneralOpaqueDataHeader {
 }
 
 impl SpdmCodec for SecuredMessageGeneralOpaqueDataHeader {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
         if context
             .negotiate_info
             .opaque_data_support
             .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
         {
-            self.total_elements.encode(bytes);
-            0u8.encode(bytes); // reserved 3 bytes, 1 byte here required by cargo clippy
+            cnt += self
+                .total_elements
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved 3 bytes, 1 byte here required by cargo clippy
         } else {
-            self.spec_id.encode(bytes);
-            self.opaque_version.encode(bytes);
-            self.total_elements.encode(bytes);
+            cnt += self
+                .spec_id
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += self
+                .opaque_version
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += self
+                .total_elements
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
-        0u16.encode(bytes); // reserved 2 bytes
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved 2 bytes
+        Ok(cnt)
     }
     fn spdm_read(
         context: &mut SpdmContext,
@@ -285,13 +338,22 @@ pub struct OpaqueElementDMTFVersionSelection {
 }
 
 impl SpdmCodec for OpaqueElementDMTFVersionSelection {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // ID: Shall be zero to indicate DMTF.
-        0u8.encode(bytes); // VendorLen: Shall be zero. Note: DMTF does not have a vendor registry.
-        4u16.encode(bytes); // OpaqueElementDataLen: Shall be the length of the remaining bytes excluding the AlignPadding.
-        1u8.encode(bytes); // SMDataVersion: Shall identify the format of the remaining bytes. The value shall be one.
-        0u8.encode(bytes); // SMDataID: Shall be a value of zero to indicate Secured Message version selection.
-        self.selected_version.spdm_encode(context, bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // ID: Shall be zero to indicate DMTF.
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // VendorLen: Shall be zero. Note: DMTF does not have a vendor registry.
+        cnt += 4u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // OpaqueElementDataLen: Shall be the length of the remaining bytes excluding the AlignPadding.
+        cnt += 1u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // SMDataVersion: Shall identify the format of the remaining bytes. The value shall be one.
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // SMDataID: Shall be a value of zero to indicate Secured Message version selection.
+        cnt += self
+            .selected_version
+            .spdm_encode(context, bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
     fn spdm_read(
         context: &mut SpdmContext,
@@ -314,22 +376,30 @@ pub struct OpaqueElementDMTFSupportedVersion {
 }
 
 impl SpdmCodec for OpaqueElementDMTFSupportedVersion {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // ID: Shall be zero to indicate DMTF.
-        0u8.encode(bytes); // VendorLen: Shall be zero. Note: DMTF does not have a vendor registry.
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // ID: Shall be zero to indicate DMTF.
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // VendorLen: Shall be zero. Note: DMTF does not have a vendor registry.
         let opaque_element_data_len: u16 = 3 + 2 * self.secured_msg_vers.version_count as u16; // SMDataVersion + SMDataID + self.secured_msg_vers.version_count + 2 * count
-        opaque_element_data_len.encode(bytes); // OpaqueElementDataLen: Shall be the length of the remaining bytes excluding the AlignPadding.
-        1u8.encode(bytes); // SMDataVersion: Shall identify the format of the remaining bytes. The value shall be one.
-        1u8.encode(bytes); // SMDataID: Shall be a value of one to indicate Supported version list.
-        self.secured_msg_vers.spdm_encode(context, bytes);
+        cnt += opaque_element_data_len
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // OpaqueElementDataLen: Shall be the length of the remaining bytes excluding the AlignPadding.
+        cnt += 1u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // SMDataVersion: Shall identify the format of the remaining bytes. The value shall be one.
+        cnt += 1u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // SMDataID: Shall be a value of one to indicate Supported version list.
+        cnt += self.secured_msg_vers.spdm_encode(context, bytes)?;
 
         // padding
         let filled = bytes.used();
         let aligned_len = (filled + 3) & (!3);
         let align_padding = aligned_len - filled;
         for _i in 0..align_padding {
-            0u8.encode(bytes);
+            cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(
         context: &mut SpdmContext,
@@ -362,15 +432,25 @@ pub struct SecuredMessageDMTFVersionSelection {
 }
 
 impl SpdmCodec for SecuredMessageDMTFVersionSelection {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        self.secured_message_general_opaque_data_header
-            .spdm_encode(context, bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .secured_message_general_opaque_data_header
+            .spdm_encode(context, bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for index in 0..self
             .secured_message_general_opaque_data_header
             .total_elements as usize
         {
-            self.opaque_element_dmtf_version_selection_list[index].spdm_encode(context, bytes);
+            cnt += self.opaque_element_dmtf_version_selection_list[index]
+                .spdm_encode(context, bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(
         context: &mut SpdmContext,
@@ -404,15 +484,25 @@ pub struct SecuredMessageDMTFSupportedVersion {
 }
 
 impl SpdmCodec for SecuredMessageDMTFSupportedVersion {
-    fn spdm_encode(&self, context: &mut SpdmContext, bytes: &mut Writer) {
-        self.secured_message_general_opaque_data_header
-            .spdm_encode(context, bytes);
+    fn spdm_encode(
+        &self,
+        context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .secured_message_general_opaque_data_header
+            .spdm_encode(context, bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for index in 0..self
             .secured_message_general_opaque_data_header
             .total_elements as usize
         {
-            self.opaque_element_dmtf_supported_version_list[index].spdm_encode(context, bytes);
+            cnt += self.opaque_element_dmtf_supported_version_list[index]
+                .spdm_encode(context, bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(
         context: &mut SpdmContext,
@@ -458,11 +548,20 @@ impl Default for SpdmOpaqueStruct {
 }
 
 impl SpdmCodec for SpdmOpaqueStruct {
-    fn spdm_encode(&self, _context: &mut SpdmContext, bytes: &mut Writer) {
-        self.data_size.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .data_size
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         for d in self.data.iter().take(self.data_size as usize) {
-            d.encode(bytes);
+            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
         let data_size = u16::read(r)?;
@@ -517,8 +616,8 @@ bitflags! {
 }
 
 impl Codec for SpdmOpaqueSupport {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmOpaqueSupport> {

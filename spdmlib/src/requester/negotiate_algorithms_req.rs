@@ -79,8 +79,11 @@ impl<'a> RequesterContext<'a> {
                 },
             ),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        writer.used()
+        if let Ok(sz) = request.spdm_encode(&mut self.common, &mut writer) {
+            sz
+        } else {
+            0
+        }
     }
 
     pub fn handle_spdm_algorithm_response(

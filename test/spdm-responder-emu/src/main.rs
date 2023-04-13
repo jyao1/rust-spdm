@@ -367,7 +367,7 @@ pub fn send_pci_discovery(
         data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
         payload_length: 4,
     };
-    pcidoe_header.encode(&mut writer);
+    assert!(pcidoe_header.encode(&mut writer).is_ok());
     let header_size = writer.used();
     transport_buffer[header_size..(header_size + payload_len)].copy_from_slice(payload);
     let _buffer_size = spdm_emu::spdm_emu::send_message(

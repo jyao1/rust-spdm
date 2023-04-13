@@ -5,15 +5,21 @@
 use crate::common::spdm_codec::SpdmCodec;
 use crate::common::{self};
 use crate::config;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmRespondIfReadyRequestPayload {}
 
 impl SpdmCodec for SpdmRespondIfReadyRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(2)
     }
 
     fn spdm_read(
@@ -31,9 +37,14 @@ impl SpdmCodec for SpdmRespondIfReadyRequestPayload {
 pub struct SpdmRespondIfReadyRespondPayload {}
 
 impl SpdmCodec for SpdmRespondIfReadyRespondPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(2)
     }
 
     fn spdm_read(

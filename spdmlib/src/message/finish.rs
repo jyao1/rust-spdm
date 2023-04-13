@@ -4,6 +4,7 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDigestStruct, SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmSignatureStruct,
 };
@@ -17,8 +18,8 @@ bitflags! {
 }
 
 impl Codec for SpdmFinishRequestAttributes {
-    fn encode(&self, bytes: &mut Writer) {
-        self.bits().encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        self.bits().encode(bytes)
     }
 
     fn read(r: &mut Reader) -> Option<SpdmFinishRequestAttributes> {
@@ -37,16 +38,28 @@ pub struct SpdmFinishRequestPayload {
 }
 
 impl SpdmCodec for SpdmFinishRequestPayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        self.finish_request_attributes.encode(bytes); // param1
-        self.req_slot_id.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += self
+            .finish_request_attributes
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .req_slot_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
         if self
             .finish_request_attributes
             .contains(SpdmFinishRequestAttributes::SIGNATURE_INCLUDED)
         {
-            self.signature.spdm_encode(context, bytes);
+            cnt += self.signature.spdm_encode(context, bytes)?;
         }
-        self.verify_data.spdm_encode(context, bytes);
+        cnt += self.verify_data.spdm_encode(context, bytes)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -76,9 +89,14 @@ pub struct SpdmFinishResponsePayload {
 }
 
 impl SpdmCodec for SpdmFinishResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
         let in_clear_text = context
             .negotiate_info
             .req_capabilities_sel
@@ -88,8 +106,9 @@ impl SpdmCodec for SpdmFinishResponsePayload {
                 .rsp_capabilities_sel
                 .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
         if in_clear_text {
-            self.verify_data.spdm_encode(context, bytes);
+            cnt += self.verify_data.spdm_encode(context, bytes)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -150,7 +169,7 @@ mod tests {
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(680, reader.left());
         let spdm_finish_request_payload =
@@ -191,7 +210,7 @@ mod tests {
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(680, reader.left());
         let spdm_finish_request_payload =
@@ -225,7 +244,7 @@ mod tests {
         context.negotiate_info.rsp_capabilities_sel =
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(68, reader.left());
         let spdm_read = SpdmFinishResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
@@ -253,7 +272,7 @@ mod tests {
             SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         context.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::KEY_UPD_CAP;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(68, reader.left());
         let spdm_read = SpdmFinishResponsePayload::spdm_read(&mut context, &mut reader).unwrap();

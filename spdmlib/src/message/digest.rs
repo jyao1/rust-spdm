@@ -4,6 +4,7 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{gen_array_clone, SpdmDigestStruct, SPDM_MAX_SLOT_NUMBER};
 use codec::{Codec, Reader, Writer};
 
@@ -11,9 +12,15 @@ use codec::{Codec, Reader, Writer};
 pub struct SpdmGetDigestsRequestPayload {}
 
 impl SpdmCodec for SpdmGetDigestsRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -35,9 +42,17 @@ pub struct SpdmDigestsResponsePayload {
 }
 
 impl SpdmCodec for SpdmDigestsResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        self.slot_mask.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += self
+            .slot_mask
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
         let mut count = 0u8;
         for i in 0..8 {
@@ -51,8 +66,9 @@ impl SpdmCodec for SpdmDigestsResponsePayload {
         }
 
         for digest in self.digests.iter().take(count as usize) {
-            digest.spdm_encode(context, bytes);
+            cnt += digest.spdm_encode(context, bytes)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -118,7 +134,7 @@ mod tests {
 
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(514, reader.left());
         let spdm_digests_response_payload =
@@ -149,7 +165,7 @@ mod tests {
         create_spdm_context!(context);
 
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
@@ -163,7 +179,7 @@ mod tests {
         create_spdm_context!(context);
 
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     }
     #[test]
     fn test_case0_spdm_get_digests_request_payload() {
@@ -173,7 +189,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         SpdmGetDigestsRequestPayload::spdm_read(&mut context, &mut reader);
     }

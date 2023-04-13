@@ -268,7 +268,9 @@ mod tests_requester {
                 end_session_request_attributes: SpdmEndSessionRequestAttributes::empty(),
             }),
         };
-        request.spdm_encode(&mut requester.common, &mut writer);
+        assert!(request
+            .spdm_encode(&mut requester.common, &mut writer)
+            .is_ok());
         let used = writer.used();
 
         let status = requester

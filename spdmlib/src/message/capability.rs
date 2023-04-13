@@ -2,9 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::message::*;
+use crate::{common, error::SpdmStatus};
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -17,19 +18,37 @@ pub struct SpdmGetCapabilitiesRequestPayload {
 }
 
 impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
-        0u8.encode(bytes); // reserved
-        self.ct_exponent.encode(bytes);
-        0u16.encode(bytes); // reserved2
-        self.flags.encode(bytes);
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
+        cnt += self
+            .ct_exponent
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved2
+        cnt += self
+            .flags
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            self.data_transfer_size.encode(bytes);
-            self.max_spdm_msg_size.encode(bytes);
+            cnt += self
+                .data_transfer_size
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += self
+                .max_spdm_msg_size
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -77,19 +96,38 @@ pub struct SpdmCapabilitiesResponsePayload {
 }
 
 impl SpdmCodec for SpdmCapabilitiesResponsePayload {
-    fn spdm_encode(&self, context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
+    fn spdm_encode(
+        &self,
+        context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
-        0u8.encode(bytes); // reserved
-        self.ct_exponent.encode(bytes);
-        0u16.encode(bytes); // reserved2
-        self.flags.encode(bytes);
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
+        cnt += self
+            .ct_exponent
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved2
+        cnt += self
+            .flags
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
         if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            self.data_transfer_size.encode(bytes);
-            self.max_spdm_msg_size.encode(bytes);
+            cnt += self
+                .data_transfer_size
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += self
+                .max_spdm_msg_size
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         }
+
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -142,7 +180,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmResponseCapabilityFlags::all();
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -169,7 +207,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmResponseCapabilityFlags::empty();
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -183,7 +221,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmRequestCapabilityFlags::all();
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -213,7 +251,7 @@ mod tests {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmRequestCapabilityFlags::empty();
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
@@ -236,7 +274,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_get_capabilities_request_payload =
@@ -261,7 +299,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_get_capabilities_request_payload =
@@ -281,7 +319,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         SpdmGetCapabilitiesRequestPayload::spdm_read(&mut context, &mut reader);
@@ -300,7 +338,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_capabilities_response_payload =
@@ -325,7 +363,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_capabilities_response_payload =
@@ -345,7 +383,7 @@ mod tests {
 
         create_spdm_context!(context);
 
-        value.spdm_encode(&mut context, &mut writer);
+        assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(12, reader.left());
         let spdm_capabilities_response_payload =
@@ -361,7 +399,7 @@ mod tests {
     fn new_spdm_response_capability_flags(value: SpdmResponseCapabilityFlags) {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
@@ -374,7 +412,7 @@ mod tests {
     fn new_spdm_request_capability_flags(value: SpdmRequestCapabilityFlags) {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(

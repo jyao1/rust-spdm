@@ -35,8 +35,12 @@ impl<'a> ResponderContext<'a> {
                 },
             ),
         };
-        response.spdm_encode(&mut self.common, &mut writer);
-        let used = writer.used();
+
+        let used = if let Ok(sz) = response.spdm_encode(&mut self.common, &mut writer) {
+            sz
+        } else {
+            panic!("Failed to encode!");
+        };
 
         match session_id {
             Some(session_id) => {

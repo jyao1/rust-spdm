@@ -33,10 +33,11 @@ pub struct PciDoeMessageHeader {
 }
 
 impl Codec for PciDoeMessageHeader {
-    fn encode(&self, bytes: &mut Writer) {
-        self.vendor_id.encode(bytes);
-        self.data_object_type.encode(bytes);
-        0u8.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.vendor_id.encode(bytes)?;
+        cnt += self.data_object_type.encode(bytes)?;
+        cnt += 0u8.encode(bytes)?;
         let mut length = (self.payload_length + 8) >> 2;
         if length > 0x100000 {
             // TODO: check 0x100000
@@ -49,7 +50,8 @@ impl Codec for PciDoeMessageHeader {
         if length == 0x100000 {
             length = 0;
         }
-        length.encode(bytes);
+        cnt += length.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<PciDoeMessageHeader> {
@@ -94,7 +96,9 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
             },
             payload_length: aligned_payload_len as u32,
         };
-        pcidoe_header.encode(&mut writer);
+        pcidoe_header
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_ENCAP_FAIL)?;
         let header_size = writer.used();
         if transport_buffer.len() < header_size + aligned_payload_len {
             return Err(SPDM_STATUS_ENCAP_FAIL);
@@ -175,7 +179,7 @@ mod tests_header {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
             payload_length: 100,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
         let pcidoemessageheader = PciDoeMessageHeader::read(&mut reader).unwrap();
@@ -199,7 +203,7 @@ mod tests_header {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
             payload_length: 0xffff8,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         let pcidoemessageheader = PciDoeMessageHeader::read(&mut reader).unwrap();
         assert_eq!(pcidoemessageheader.payload_length, 0xffff8);
@@ -213,7 +217,7 @@ mod tests_header {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
             payload_length: 0,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         let pcidoemessageheader = PciDoeMessageHeader::read(&mut reader).unwrap();
         assert_eq!(2, reader.left());
@@ -229,7 +233,7 @@ mod tests_header {
             payload_length: 0x100,
         };
 
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
         assert_eq!(0, writer.left());
 
         let mut reader = Reader::init(u8_slice);
@@ -248,7 +252,7 @@ mod tests_header {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
             payload_length: 0xffffffff,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
     }
     #[test]
     #[should_panic]
@@ -260,6 +264,6 @@ mod tests_header {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeDoeDiscovery,
             payload_length: 0xf00000,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
     }
 }

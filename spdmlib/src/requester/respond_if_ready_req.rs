@@ -24,9 +24,8 @@ impl<'a> RequesterContext<'a> {
                 param2: extend_error_data.token,
             }),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
+        let used = request.spdm_encode(&mut self.common, &mut writer)?;
 
-        let used = writer.used();
         self.send_message(&send_buffer[..used])?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];

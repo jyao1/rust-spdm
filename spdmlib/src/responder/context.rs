@@ -363,7 +363,7 @@ mod tests_responder {
                 tag: 100u8,
             }),
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
         let used = writer.used();
         let status = context
             .send_secured_message(session_id, &send_buffer[0..used], false)
@@ -395,7 +395,7 @@ mod tests_responder {
                 SpdmKeyUpdateResponsePayload::default(),
             ),
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
         let used = writer.used();
         let status = context
             .send_secured_message(session_id, &send_buffer[0..used], false)
@@ -411,7 +411,7 @@ mod tests_responder {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm,
             payload_length: 100,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -442,7 +442,7 @@ mod tests_responder {
             data_object_type: PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm,
             payload_length: 100,
         };
-        value.encode(&mut writer);
+        assert!(value.encode(&mut writer).is_ok());
 
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -520,7 +520,7 @@ mod tests_responder {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: dispatch_secured_data(i, true),
             };
-            value.encode(&mut writer);
+            assert!(value.encode(&mut writer).is_ok());
             let status_secured = context.dispatch_secured_message(session_id, bytes);
             assert!(status_secured);
         }
@@ -531,7 +531,7 @@ mod tests_responder {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: dispatch_secured_data(i, false),
             };
-            value.encode(&mut writer);
+            assert!(value.encode(&mut writer).is_ok());
             let status_secured = context.dispatch_secured_message(session_id, bytes);
             assert!(!status_secured);
         }
@@ -542,7 +542,7 @@ mod tests_responder {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: dispatc_data(i, true),
             };
-            value.encode(&mut writer);
+            assert!(value.encode(&mut writer).is_ok());
             let status = context.dispatch_message(bytes);
             assert!(status);
         }
@@ -553,7 +553,7 @@ mod tests_responder {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code: dispatc_data(i, false),
             };
-            value.encode(&mut writer);
+            assert!(value.encode(&mut writer).is_ok());
             let status = context.dispatch_message(bytes);
             assert!(!status);
         }

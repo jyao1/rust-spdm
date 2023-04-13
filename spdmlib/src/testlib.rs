@@ -167,10 +167,11 @@ pub struct PciDoeMessageHeader {
 }
 
 impl Codec for PciDoeMessageHeader {
-    fn encode(&self, bytes: &mut Writer) {
-        self.vendor_id.encode(bytes);
-        self.data_object_type.encode(bytes);
-        0u8.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.vendor_id.encode(bytes)?;
+        cnt += self.data_object_type.encode(bytes)?;
+        cnt += 0u8.encode(bytes)?;
         let mut length = (self.payload_length + 8) >> 2;
         if length > 0x100000 {
             panic!();
@@ -178,7 +179,8 @@ impl Codec for PciDoeMessageHeader {
         if length == 0x100000 {
             length = 0;
         }
-        length.encode(bytes);
+        cnt += length.encode(bytes)?;
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<PciDoeMessageHeader> {

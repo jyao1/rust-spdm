@@ -88,8 +88,7 @@ impl<'a> RequesterContext<'a> {
                 },
             ),
         };
-        request.spdm_encode(&mut self.common, &mut writer);
-        Ok(writer.used())
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     pub fn reset_l1l2(&mut self, session_id: Option<u32>) -> SpdmResult {

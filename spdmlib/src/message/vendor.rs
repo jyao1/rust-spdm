@@ -5,7 +5,9 @@
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
 use crate::config;
-use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
+use crate::error::{
+    SpdmResult, SpdmStatus, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_STATE_LOCAL,
+};
 use codec::{enum_builder, Codec, Reader, Writer};
 
 use conquer_once::spin::OnceCell;
@@ -55,11 +57,13 @@ pub struct VendorIDStruct {
 }
 
 impl Codec for VendorIDStruct {
-    fn encode(&self, bytes: &mut Writer) {
-        self.len.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.len.encode(bytes)?;
         for d in self.vendor_id.iter().take(self.len as usize) {
-            d.encode(bytes);
+            cnt += d.encode(bytes)?;
         }
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<VendorIDStruct> {
@@ -83,15 +87,17 @@ pub struct VendorDefinedReqPayloadStruct {
     pub vendor_defined_req_payload: [u8; MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE],
 }
 impl Codec for VendorDefinedReqPayloadStruct {
-    fn encode(&self, bytes: &mut Writer) {
-        self.req_length.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.req_length.encode(bytes)?;
         for d in self
             .vendor_defined_req_payload
             .iter()
             .take(self.req_length as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes)?;
         }
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<VendorDefinedReqPayloadStruct> {
@@ -117,15 +123,17 @@ pub struct VendorDefinedRspPayloadStruct {
 }
 
 impl Codec for VendorDefinedRspPayloadStruct {
-    fn encode(&self, bytes: &mut Writer) {
-        self.rsp_length.encode(bytes);
+    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
+        let mut cnt = 0usize;
+        cnt += self.rsp_length.encode(bytes)?;
         for d in self
             .vendor_defined_rsp_payload
             .iter()
             .take(self.rsp_length as usize)
         {
-            d.encode(bytes);
+            cnt += d.encode(bytes)?;
         }
+        Ok(cnt)
     }
 
     fn read(r: &mut Reader) -> Option<VendorDefinedRspPayloadStruct> {
@@ -152,12 +160,27 @@ pub struct SpdmVendorDefinedRequestPayload {
 }
 
 impl SpdmCodec for SpdmVendorDefinedRequestPayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.standard_id.encode(bytes); //Standard ID
-        self.vendor_id.encode(bytes);
-        self.req_payload.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .standard_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; //Standard ID
+        cnt += self
+            .vendor_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .req_payload
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
@@ -186,12 +209,27 @@ pub struct SpdmVendorDefinedResponsePayload {
 }
 
 impl SpdmCodec for SpdmVendorDefinedResponsePayload {
-    fn spdm_encode(&self, _context: &mut common::SpdmContext, bytes: &mut Writer) {
-        0u8.encode(bytes); // param1
-        0u8.encode(bytes); // param2
-        self.standard_id.encode(bytes); //Standard ID
-        self.vendor_id.encode(bytes);
-        self.rsp_payload.encode(bytes);
+    fn spdm_encode(
+        &self,
+        _context: &mut common::SpdmContext,
+        bytes: &mut Writer,
+    ) -> Result<usize, SpdmStatus> {
+        let mut cnt = 0usize;
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
+        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
+        cnt += self
+            .standard_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?; //Standard ID
+        cnt += self
+            .vendor_id
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        cnt += self
+            .rsp_payload
+            .encode(bytes)
+            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        Ok(cnt)
     }
 
     fn spdm_read(
