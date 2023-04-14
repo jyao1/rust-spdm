@@ -11,7 +11,7 @@ use std::{fs, fs::File};
 
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmConfig {
-    max_version_count: usize,
+    spdm_version_config: SpdmVersionConfig,
     algo_config: SpdmAlgoConfig,
     cert_config: SpdmCertConfig,
     max_opaque_size: usize,
@@ -25,10 +25,23 @@ struct SpdmConfig {
     secure_spdm_version: u8,
 }
 
+#[derive(Debug, PartialEq, Deserialize)]
+struct SpdmVersionConfig {
+    pub is_spdm_version_10_supported: bool,
+    pub is_spdm_version_11_supported: bool,
+    pub is_spdm_version_12_supported: bool,
+}
+
 impl SpdmConfig {
     fn validate_content(&self) {
         // All rust fixed-size arrays require non-negative compile-time constant sizes.
         // This will be checked by the compiler thus no need to check again here.
+
+        // check for spdm version
+        assert!(
+            self.spdm_version_config.is_spdm_version_11_supported
+                || self.spdm_version_config.is_spdm_version_12_supported
+        );
 
         // Check if meet SPDM requirements.
         assert!(self.max_opaque_size < 1024);
@@ -71,8 +84,16 @@ macro_rules! TEMPLATE {
 // It is not intended for manual editing.
 // Please kindly configure via etc/config.json instead.
 
-/// This is used in SpdmVersionResponsePayload
-pub const MAX_SPDM_VERSION_COUNT: usize = {ver_cnt};
+/// =========== Configurable Constant from etc/config.json =============
+pub const USER_IS_SPDM_VERSION_10_SUPPORTED: bool = {is_spdm_version_10_supported};
+pub const USER_IS_SPDM_VERSION_11_SUPPORTED: bool = {is_spdm_version_11_supported};
+pub const USER_IS_SPDM_VERSION_12_SUPPORTED: bool = {is_spdm_version_12_supported};
+pub const USER_SPDM_VERSION_COUNT: usize = {spdm_version_cnt};
+
+/// =========== Not Configurable Constant derived from config.json and spdm spec. =============
+pub const MAX_SPDM_VERSION_COUNT: usize = 3;
+pub const MAX_GET_VERSION_REQUEST_MESSAGE_BUFFER_SIZE: usize = 4;
+pub const MAX_VERSION_RESPONSE_MESSAGE_BUFFER_SIZE: usize = 6 + 2 * MAX_SPDM_VERSION_COUNT;
 
 /// This is used in SpdmNegotiateAlgorithmsRequestPayload / SpdmAlgorithmsResponsePayload
 pub const MAX_SPDM_EXTEND_ASYM_ALGO_COUNT: usize = {ext_asym_algo_cnt};
@@ -141,12 +162,26 @@ fn main() {
     // Do sanity checks.
     spdm_config.validate_content();
 
+    let mut spdm_version_cnt = 0;
+    if spdm_config.spdm_version_config.is_spdm_version_10_supported {
+        spdm_version_cnt += 1;
+    }
+    if spdm_config.spdm_version_config.is_spdm_version_11_supported {
+        spdm_version_cnt += 1;
+    }
+    if spdm_config.spdm_version_config.is_spdm_version_12_supported {
+        spdm_version_cnt += 1;
+    }
+
     // Generate config .rs file from the template and JSON inputs, then write to fs.
     let mut to_generate = Vec::new();
     write!(
         &mut to_generate,
         TEMPLATE!(),
-        ver_cnt = spdm_config.max_version_count,
+        is_spdm_version_10_supported = spdm_config.spdm_version_config.is_spdm_version_10_supported,
+        is_spdm_version_11_supported = spdm_config.spdm_version_config.is_spdm_version_11_supported,
+        is_spdm_version_12_supported = spdm_config.spdm_version_config.is_spdm_version_12_supported,
+        spdm_version_cnt = spdm_version_cnt,
         ext_asym_algo_cnt = spdm_config.algo_config.max_ext_asym_algo_count,
         ext_hash_algo_cnt = spdm_config.algo_config.max_ext_hash_algo_count,
         algo_struct_cnt = spdm_config.algo_config.max_algo_struct_count,

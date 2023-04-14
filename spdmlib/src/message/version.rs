@@ -76,12 +76,13 @@ impl SpdmCodec for SpdmVersionResponsePayload {
             .encode(bytes)
             .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        for version in self
-            .versions
-            .iter()
-            .take(self.version_number_entry_count as usize)
-        {
-            cnt += version.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        for version in self.versions.iter() {
+            match version.version {
+                SpdmVersion::Unknown(_) => continue,
+                _ => {
+                    cnt += version.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+                }
+            }
         }
         Ok(cnt)
     }
@@ -105,7 +106,7 @@ impl SpdmCodec for SpdmVersionResponsePayload {
         let mut versions = gen_array_clone(
             SpdmVersionStruct {
                 update: 0,
-                version: SpdmVersion::SpdmVersion10,
+                version: SpdmVersion::Unknown(0),
             },
             config::MAX_SPDM_VERSION_COUNT,
         );
@@ -164,7 +165,7 @@ mod tests {
     fn test_case0_spdm_key_exchange_request_payload() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmVersionResponsePayload {
+        let mut value = SpdmVersionResponsePayload {
             version_number_entry_count: 2u8,
             versions: gen_array_clone(
                 SpdmVersionStruct {
@@ -174,6 +175,8 @@ mod tests {
                 config::MAX_SPDM_VERSION_COUNT,
             ),
         };
+
+        value.versions[2].version = SpdmVersion::Unknown(0);
 
         create_spdm_context!(context);
 
