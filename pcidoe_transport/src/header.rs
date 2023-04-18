@@ -39,15 +39,10 @@ impl Codec for PciDoeMessageHeader {
         cnt += self.data_object_type.encode(bytes)?;
         cnt += 0u8.encode(bytes)?;
         let mut length = (self.payload_length + 8) >> 2;
-        if length > 0x100000 {
-            // TODO: check 0x100000
-            // ECN - Data Object Exchange - 12 Mar 2020.pdf
-            // ECN - Data Object Exchange - 12 Mar 2020.docx Page 3 of 13
-            // 6.xx.1 Data Objects Length 0-17bit?
-            // should max_length be 0x40000???
+        if length > 0x40000 {
             panic!();
         }
-        if length == 0x100000 {
+        if length == 0x40000 {
             length = 0;
         }
         cnt += length.encode(bytes)?;
