@@ -183,6 +183,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             rsp_provision_info1,
         );
 
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
 
@@ -216,6 +217,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             req_provision_info1,
         );
 
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
 
@@ -232,6 +234,11 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
+        requester.common.peer_info.peer_cert_chain[0]
+            .as_mut()
+            .unwrap()
+            .cert_chain = REQ_CERT_CHAIN_DATA;
+
         requester.common.reset_runtime_info();
 
         let mut total_number = 0;
@@ -258,6 +265,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             rsp_provision_info2,
         );
 
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
         responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
 
@@ -291,6 +299,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             req_provision_info2,
         );
 
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         requester.common.negotiate_info.req_ct_exponent_sel = 0;
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
 
