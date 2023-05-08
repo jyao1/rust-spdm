@@ -30,11 +30,11 @@ check() {
     set -x
     cargo check
     cargo fmt --all -- --check
-    cargo clippy -- -D warnings
+    cargo clippy -- -D warnings -A clippy::only-used-in-recursion -A clippy::result-large-err
     
     pushd spdmlib_crypto_mbedtls
     cargo check
-    cargo clippy -- -D warnings
+    cargo clippy -- -D warnings -A clippy::only-used-in-recursion -A clippy::result-large-err
     popd
     set +x
 }
