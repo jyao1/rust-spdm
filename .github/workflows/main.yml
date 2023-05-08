@@ -57,7 +57,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2022-08-08
+          toolchain: nightly-2022-11-21
           override: true
           components: rust-src, rustfmt, clippy
       - name: Cache
