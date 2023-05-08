@@ -127,12 +127,6 @@ fn decrypt(
     if cipher_text_size == 5 {
         plain_text.copy_from_slice(&[3, 0, 17, 105, 2]);
         Ok(cipher_text_size)
-    } else if cipher_text_size == 140 {
-        // To simply fake a session to fuzz measurement in session,
-        // the secured message in seed `measurement_req_session.raw` was not actual encrypted.
-        // So if it's a secured measurement message, do nothing and use cipher text as plain text.
-        plain_text.copy_from_slice(cipher_text);
-        Ok(cipher_text_size)
     } else {
         let mut o_key: ring::aead::OpeningKey<OneNonceSequence> = make_key(algorithm, key, nonce);
         match o_key.open_in_place(ring::aead::Aad::from(aad), &mut in_out) {

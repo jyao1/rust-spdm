@@ -2,13 +2,51 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::spdmlib::crypto::SpdmAead;
 use fuzzlib::{
     spdmlib::common::session::{SpdmSession, SpdmSessionState},
     spdmlib::message::SpdmMeasurementOperation,
     *,
 };
+use spdmlib::error::SpdmResult;
 use spdmlib::message::*;
 use spdmlib::protocol::*;
+
+fn fake_encrypt(
+    aead_algo: SpdmAeadAlgo,
+    key: &[u8],
+    iv: &[u8],
+    aad: &[u8],
+    plain_text: &[u8],
+    tag: &mut [u8],
+    cipher_text: &mut [u8],
+) -> SpdmResult<(usize, usize)> {
+    let plain_text_size = plain_text.len();
+    let cipher_text_size = cipher_text.len();
+    if cipher_text_size != plain_text_size {
+        panic!("cipher_text len invalid");
+    }
+    cipher_text.copy_from_slice(plain_text);
+    Ok((plain_text_size, tag.len()))
+}
+
+fn fake_decrypt(
+    aead_algo: SpdmAeadAlgo,
+    key: &[u8],
+    iv: &[u8],
+    aad: &[u8],
+    cipher_text: &[u8],
+    tag: &[u8],
+    plain_text: &mut [u8],
+) -> SpdmResult<usize> {
+    let plain_text_size = plain_text.len();
+    let cipher_text_size = cipher_text.len();
+    if cipher_text_size != plain_text_size {
+        panic!("cipher_text len invalid");
+    }
+    plain_text.copy_from_slice(cipher_text);
+    Ok(cipher_text_size)
+}
 
 fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -526,7 +564,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             rsp_provision_info6,
         );
 
-        spdmlib::crypto::aead::register(FUZZ_AEAD.clone());
+        spdmlib::crypto::aead::register(SpdmAead {
+            encrypt_cb: fake_encrypt,
+            decrypt_cb: fake_decrypt,
+        });
 
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder.common.negotiate_info.req_ct_exponent_sel = 0;
