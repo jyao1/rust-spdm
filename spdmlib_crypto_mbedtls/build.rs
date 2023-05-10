@@ -18,7 +18,7 @@ fn mbedtls_support() {
         .file("src/dhe_impl.c")
         .file("src/asym_verify_impl.c")
         .file("src/cert_operation_impl.c");
-    if !(os == "uefi" || os == "windows") {
+    if !(os == "none" || os == "uefi" || os == "windows") {
         b.pic(true);
     }
     b.compile("spdmcrypto");

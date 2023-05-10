@@ -23,7 +23,7 @@ cargo test
 popd
 ```
 
-## Build library for x86_64-unknown-uefi target
+## Build library for x86_64-unknown-none target
 
 ```
 export CFLAGS="-I`pwd`/../include -nostdlibinc -isystem -ffunction-sections -fdata-sections --target=x86_64-unknown-windows-gnu -U_MSC_VER -U__MINGW32__"
