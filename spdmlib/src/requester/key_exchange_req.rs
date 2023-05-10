@@ -31,8 +31,11 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
 
+        let req_session_id = self.common.get_next_half_session_id(true)?;
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let (key_exchange_context, send_used) = self.encode_spdm_key_exchange(
+            req_session_id,
             &mut send_buffer,
             slot_id,
             measurement_summary_hash_type,
@@ -43,7 +46,7 @@ impl<'a> RequesterContext<'a> {
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_message(&mut receive_buffer, false)?;
         self.handle_spdm_key_exhcange_response(
-            0,
+            req_session_id,
             slot_id,
             &send_buffer[..send_used],
             &receive_buffer[..receive_used],
@@ -54,13 +57,12 @@ impl<'a> RequesterContext<'a> {
 
     pub fn encode_spdm_key_exchange(
         &mut self,
+        req_session_id: u16,
         buf: &mut [u8],
         slot_id: u8,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult<(Box<dyn crypto::SpdmDheKeyExchange>, usize)> {
         let mut writer = Writer::init(buf);
-
-        let req_session_id = self.common.get_next_half_session_id(true)?;
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
         crypto::rand::get_random(&mut random)?;
@@ -118,7 +120,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_key_exhcange_response(
         &mut self,
-        session_id: u32,
+        req_session_id: u16,
         slot_id: u8,
         send_buffer: &[u8],
         receive_buffer: &[u8],
@@ -274,7 +276,7 @@ impl<'a> RequesterContext<'a> {
                             );
 
                             let session_id = ((key_exchange_rsp.rsp_session_id as u32) << 16)
-                                + INITIAL_SESSION_ID as u32;
+                                + req_session_id as u32;
                             let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
                             let session = self
                                 .common
@@ -356,7 +358,7 @@ impl<'a> RequesterContext<'a> {
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
                         let rm = self.spdm_handle_error_response_main(
-                            Some(session_id),
+                            None,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestKeyExchange,
                             SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
@@ -364,7 +366,7 @@ impl<'a> RequesterContext<'a> {
                         let receive_buffer = rm.receive_buffer;
                         let used = rm.used;
                         self.handle_spdm_key_exhcange_response(
-                            session_id,
+                            req_session_id,
                             slot_id,
                             send_buffer,
                             &receive_buffer[..used],

@@ -200,6 +200,89 @@ mod tests_requester {
     }
 
     #[test]
+    fn test_case0_get_next_half_session() {
+        let (rsp_config_info, rsp_provision_info) = create_info();
+        let (req_config_info, req_provision_info) = create_info();
+
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+
+        let status = requester.init_connection().is_ok();
+        assert!(status);
+
+        let status = requester.send_receive_spdm_digest(None).is_ok();
+        assert!(status);
+
+        let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
+        assert!(status);
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert_eq!(result.unwrap(), 0xfffdfffd);
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert_eq!(result.unwrap(), 0xfffcfffc);
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert_eq!(result.unwrap(), 0xfffbfffb);
+
+        let result = requester.start_session(
+            true,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert_eq!(result.unwrap(), 0xfffafffa);
+
+        let result = requester.end_session(0xfffbfffb);
+        assert!(result.is_ok());
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert_eq!(result.unwrap(), 0xfffbfffb);
+
+        let result = requester.start_session(
+            false,
+            0,
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn test_case0_receive_secured_message() {
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
