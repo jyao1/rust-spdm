@@ -123,9 +123,10 @@ impl SpdmMeasurementSpecification {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmMeasurementSpecification::empty();
     }
 
     pub fn is_no_more_than_one_selected(&self) -> bool {
@@ -212,9 +213,10 @@ impl SpdmBaseAsymAlgo {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmBaseAsymAlgo::empty();
     }
     pub fn get_size(&self) -> u16 {
         match *self {
@@ -276,9 +278,10 @@ impl SpdmBaseHashAlgo {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmBaseHashAlgo::empty();
     }
     pub fn get_size(&self) -> u16 {
         match *self {
@@ -378,9 +381,10 @@ impl SpdmDheAlgo {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmDheAlgo::empty();
     }
     pub fn get_size(&self) -> u16 {
         match *self {
@@ -430,9 +434,10 @@ impl SpdmAeadAlgo {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmAeadAlgo::empty();
     }
     pub fn get_key_size(&self) -> u16 {
         match *self {
@@ -510,9 +515,10 @@ impl SpdmReqAsymAlgo {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmReqAsymAlgo::empty();
     }
     pub fn get_size(&self) -> u16 {
         match *self {
@@ -559,9 +565,10 @@ impl SpdmKeyScheduleAlgo {
         for v in prio_table.iter() {
             if self.bits() & v.bits() != 0 {
                 *self = *v;
-                break;
+                return;
             }
         }
+        *self = SpdmKeyScheduleAlgo::empty();
     }
 }
 
