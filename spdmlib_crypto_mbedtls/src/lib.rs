@@ -17,7 +17,7 @@ pub mod hkdf_impl;
 pub mod hmac_impl;
 pub mod rand_impl;
 
-#[cfg(target_os = "uefi")]
+#[cfg(any(target_os = "uefi", target_os = "none"))]
 mod platform_support;
 
 #[no_mangle]
