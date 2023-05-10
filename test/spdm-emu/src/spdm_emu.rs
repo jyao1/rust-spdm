@@ -11,7 +11,6 @@ use spdmlib::config;
 pub const SOCKET_HEADER_LEN: usize = 12;
 pub const USE_PCIDOE: bool = true; // align with DMTF spdm_emu
 pub const USE_ECDSA: bool = true;
-pub const USE_ECDH: bool = true;
 
 pub const SOCKET_TRANSPORT_TYPE_MCTP: u32 = 0x01;
 pub const SOCKET_TRANSPORT_TYPE_PCI_DOE: u32 = 0x02;
