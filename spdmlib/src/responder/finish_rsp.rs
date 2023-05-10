@@ -55,6 +55,16 @@ impl<'a> ResponderContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = read_used - base_hash_size;
 
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
+
+        if session.get_use_psk() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return false;
+        }
+
         #[cfg(not(feature = "hashed-transcript-data"))]
         let mut message_f = ManagedBuffer::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -62,11 +72,6 @@ impl<'a> ResponderContext<'a> {
             panic!("message_f add the message error");
         }
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let session = self
-            .common
-            .get_immutable_session_via_id(session_id)
-            .unwrap();
         #[cfg(not(feature = "hashed-transcript-data"))]
         let message_k = &session.runtime_info.message_k.clone();
         #[cfg(not(feature = "hashed-transcript-data"))]

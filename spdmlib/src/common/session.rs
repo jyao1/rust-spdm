@@ -195,6 +195,10 @@ impl SpdmSession {
         self.use_psk = use_psk;
     }
 
+    pub fn get_use_psk(&self) -> bool {
+        self.use_psk
+    }
+
     pub fn set_dhe_secret(
         &mut self,
         spdm_version: SpdmVersion,
