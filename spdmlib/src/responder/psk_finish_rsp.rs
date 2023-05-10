@@ -68,17 +68,22 @@ impl<'a> ResponderContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = read_used - base_hash_size;
 
+        let session = self
+            .common
+            .get_session_via_id(session_id)
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
+
+        if !session.get_use_psk() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
+        }
+
         #[cfg(not(feature = "hashed-transcript-data"))]
         let mut message_f = ManagedBuffer::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             return Err(SPDM_STATUS_BUFFER_FULL);
         }
-
-        let session = self
-            .common
-            .get_session_via_id(session_id)
-            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
 
         #[cfg(feature = "hashed-transcript-data")]
         crypto::hash::hash_ctx_update(
