@@ -372,13 +372,7 @@ bitflags! {
 
 impl SpdmDheAlgo {
     pub fn prioritize(&mut self, peer: SpdmDheAlgo) {
-        let prio_table = [
-            SpdmDheAlgo::SECP_384_R1,
-            SpdmDheAlgo::SECP_256_R1,
-            SpdmDheAlgo::FFDHE_4096,
-            SpdmDheAlgo::FFDHE_3072,
-            SpdmDheAlgo::FFDHE_2048,
-        ];
+        let prio_table = [SpdmDheAlgo::SECP_384_R1, SpdmDheAlgo::SECP_256_R1];
 
         *self &= peer;
         for v in prio_table.iter() {
