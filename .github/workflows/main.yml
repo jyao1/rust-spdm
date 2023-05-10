@@ -68,8 +68,6 @@ jobs:
         env:
           CC_x86_64_unknown_none: clang
           AR_x86_64_unknown_none: llvm-ar
-          CC_x86_64_unknown_uefi: clang
-          AR_x86_64_unknown_uefi: llvm-ar
         run: |
           ./sh_script/build.sh -c
           ./sh_script/build.sh
@@ -79,8 +77,6 @@ jobs:
         env:
           CC_x86_64_unknown_none: clang
           AR_x86_64_unknown_none: llvm-ar
-          CC_x86_64_unknown_uefi: clang
-          AR_x86_64_unknown_uefi: llvm-ar
           RUN_REQUESTER_FEATURES: ${{ matrix.run_requester_features }}
           RUN_RESPONDER_FEATURES: ${{ matrix.run_responder_features }}
         run: |
