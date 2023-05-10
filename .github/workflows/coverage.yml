@@ -9,8 +9,6 @@ on:
   workflow_dispatch:
 env:
   AS: nasm
-  AR_x86_64_unknown_uefi: llvm-ar
-  CC_x86_64_unknown_uefi: clang
   AR_x86_64_unknown_none: llvm-ar
   CC_x86_64_unknown_none: clang
   RUST_TOOLCHAIN: nightly-2022-05-15
@@ -78,7 +76,7 @@ jobs:
         run: |
           rustup component add rust-src
           pushd spdmlib
-          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring"
 
       - name: set core_pattern for core
         run: |

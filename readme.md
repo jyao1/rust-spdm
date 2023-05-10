@@ -40,22 +40,22 @@ Please make sure clang can be found in PATH.
 Please make sure perl can be found in PATH.
 
 
-For OS build, unset env (CC and AR):
-
+Unset env (CC and AR):
 ```
 set CC=
 set AR=
 ```
-For `no_std` builds, set the following environment variables:
+Set the following environment variables:
 ```
-set AR_x86_64_unknown_uefi=llvm-ar
-set CC_x86_64_unknown_uefi=clang
+set AR_x86_64_unknown_none=llvm-ar
+set CC_x86_64_unknown_none=clang
 ```
 
 Replace ```set``` with ```export``` if you use Linux or the like.
 
 ### Build OS application
 
+Enter linux shell or mingw shell (e.g. git bash) in windows.
 ```
 cargo clippy
 cargo fmt
@@ -65,7 +65,7 @@ cargo build
 ### Build `no_std` spdm
 ```
 pushd spdmlib
-cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-uefi --release --no-default-features --features="spdm-ring"
+cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring"
 ```
 
 ### Run emulator
