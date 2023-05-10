@@ -4,7 +4,7 @@
 
 #![allow(unused)]
 
-use super::{USE_ECDH, USE_ECDSA};
+use super::USE_ECDSA;
 use spdmlib::common;
 use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::config;
@@ -45,11 +45,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
             SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
         },
         base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        dhe_algo: if USE_ECDH {
-            SpdmDheAlgo::SECP_384_R1
-        } else {
-            SpdmDheAlgo::FFDHE_3072
-        },
+        dhe_algo: SpdmDheAlgo::SECP_384_R1,
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
@@ -139,11 +135,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
             SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
         },
         base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        dhe_algo: if USE_ECDH {
-            SpdmDheAlgo::SECP_384_R1
-        } else {
-            SpdmDheAlgo::FFDHE_3072
-        },
+        dhe_algo: SpdmDheAlgo::SECP_384_R1,
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
