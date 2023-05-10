@@ -120,7 +120,7 @@ impl Default for SpdmSession {
 impl SpdmSession {
     pub fn new() -> Self {
         SpdmSession {
-            session_id: 0,
+            session_id: INVALID_SESSION_ID,
             use_psk: false,
             session_state: SpdmSessionState::default(),
             crypto_param: SpdmSessionCryptoParam::default(),
@@ -153,7 +153,7 @@ impl SpdmSession {
     }
 
     pub fn set_default(&mut self) {
-        self.session_id = 0;
+        self.session_id = INVALID_SESSION_ID;
         self.use_psk = false;
         self.session_state = SpdmSessionState::default();
         self.crypto_param = SpdmSessionCryptoParam::default();
@@ -173,7 +173,7 @@ impl SpdmSession {
     }
 
     pub fn setup(&mut self, session_id: u32) -> SpdmResult {
-        if self.session_id == 0 {
+        if self.session_id == INVALID_SESSION_ID {
             self.set_default();
             self.session_id = session_id;
             Ok(())

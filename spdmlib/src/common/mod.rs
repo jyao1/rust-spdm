@@ -12,7 +12,7 @@ use crate::{crypto, protocol::*};
 pub use opaque::*;
 pub use spdm_codec::SpdmCodec;
 
-use crate::config;
+use crate::config::{self, MAX_SPDM_SESSION_COUNT};
 use crate::error::{
     SpdmResult, SPDM_STATUS_DECAP_FAIL, SPDM_STATUS_INVALID_PARAMETER,
     SPDM_STATUS_SESSION_NUMBER_EXCEED,
@@ -42,6 +42,8 @@ pub const INVALID_SLOT: u8 = 0xFF;
 
 /// used to as the first next_half_session_id
 pub const INITIAL_SESSION_ID: u16 = 0xFFFD;
+pub const INVALID_HALF_SESSION_ID: u16 = 0x0;
+pub const INVALID_SESSION_ID: u32 = 0x0;
 
 pub trait SpdmDeviceIo {
     fn send(&mut self, buffer: &[u8]) -> SpdmResult;
@@ -193,22 +195,16 @@ impl<'a> SpdmContext<'a> {
     }
 
     pub fn get_next_half_session_id(&self, is_requester: bool) -> SpdmResult<u16> {
-        let session_status = self.get_session_status();
-        let mut next_half_session_id = INITIAL_SESSION_ID;
-        for id_state in session_status.iter() {
-            if id_state.1 == SpdmSessionState::SpdmSessionEstablished {
-                let session_id = id_state.0;
-                let shift = if is_requester { 0 } else { 16 };
-                let half_session_id = ((session_id & (0xFFFF << shift)) >> shift) as u16;
-                if half_session_id < next_half_session_id {
-                    next_half_session_id = half_session_id - 1;
-                    if next_half_session_id == 0 {
-                        return Err(SPDM_STATUS_SESSION_NUMBER_EXCEED);
-                    }
-                }
+        let shift = if is_requester { 0 } else { 16 };
+
+        for (index, s) in self.session.iter().enumerate().take(MAX_SPDM_SESSION_COUNT) {
+            if ((s.get_session_id() & (0xFFFF << shift)) >> shift) as u16 == INVALID_HALF_SESSION_ID
+            {
+                return Ok(INITIAL_SESSION_ID - index as u16);
             }
         }
-        Ok(next_half_session_id)
+
+        Err(SPDM_STATUS_SESSION_NUMBER_EXCEED)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
