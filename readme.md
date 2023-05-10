@@ -5,7 +5,29 @@
 
 A rust version SPDM implementation.
 
-It is derived from https://github.com/DMTF/libspdm.
+## Features
+
+### Specification
+
+DSP0274 Security Protocol and Data Model (SPDM) Specification (version 1.0.1, version 1.1.2 and version 1.2.1)
+
+DSP0277 Secured Messages using SPDM Specification (version 1.1.0)
+
+### Implemented Requests and Responses
+
+SPDM 1.0: GET_VERSION, GET_CAPABILITIES, NEGOTIATE_ALGORITHMS, GET_DIGESTS, GET_CERTIFICATE, CHALLENGE, and GET_MEASUREMENTS.
+
+SPDM 1.1: KEY_EXCHANGE, FINISH, PSK_EXCHANGE, PSK_FINISH, END_SESSION, HEARTBEAT, KEY_UPDATE messages.
+
+SPDM 1.2: N/A. New SPDM 1.2 messages are not supported yet.
+
+### Cryptographic Algorithm Support
+
+It depends on crypto wrapper. Current support algorithms:
+* Hash: SHA2(256/384/512)
+* Signature: RSA-SSA(2048/3072/4096) / RSA-PSS(2048/3072/4096) / ECDSA (P256/P384)
+* KeyExchange: ECDHE(P256/P384)
+* AEAD: AES_GCM(128/256) / ChaCha20Poly1305
 
 ## Documentation
 All documents are put at [doc](./doc/) folder.
