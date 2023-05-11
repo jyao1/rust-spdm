@@ -69,7 +69,8 @@ impl<'a> ResponderContext<'a> {
         let mut message_f = ManagedBuffer::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
-            panic!("message_f add the message error");
+            error!("message_f add the message error");
+            return false;
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -129,7 +130,8 @@ impl<'a> ResponderContext<'a> {
                 .append_message(finish_req.verify_data.as_ref())
                 .is_none()
             {
-                panic!("message_f add the message error");
+                error!("message_f add the message error");
+                return false;
             }
 
             #[cfg(feature = "hashed-transcript-data")]
@@ -184,7 +186,8 @@ impl<'a> ResponderContext<'a> {
                 .append_message(&writer.used_slice()[..temp_used])
                 .is_none()
             {
-                panic!("message_f add the message error");
+                error!("message_f add the message error");
+                return false;
             }
 
             #[cfg(feature = "hashed-transcript-data")]
