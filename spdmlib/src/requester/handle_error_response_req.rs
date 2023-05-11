@@ -7,49 +7,12 @@ use codec::{Codec, Reader};
 use crate::common::session::SpdmSessionState;
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUSY_PEER, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_MSG_SIZE, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_NOT_READY_PEER,
-    SPDM_STATUS_SESSION_MSG_ERROR,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_NOT_READY_PEER, SPDM_STATUS_SESSION_MSG_ERROR,
 };
 use crate::message::*;
 use crate::requester::RequesterContext;
-use crate::time::sleep;
 
 impl<'a> RequesterContext<'a> {
-    fn spdm_handle_response_not_ready(
-        &mut self,
-        _session_id: Option<u32>,
-        response: &[u8],
-        original_request_code: SpdmRequestResponseCode,
-        expected_response_code: SpdmRequestResponseCode,
-    ) -> SpdmResult<ReceivedMessage> {
-        if response.len()
-            != core::mem::size_of::<SpdmMessageHeader>()
-                + core::mem::size_of::<SpdmMessageGeneralPayload>()
-                + core::mem::size_of::<SpdmErrorResponseNotReadyExtData>()
-        {
-            Err(SPDM_STATUS_INVALID_MSG_SIZE)
-        } else {
-            let extoff = core::mem::size_of::<SpdmMessageHeader>()
-                + core::mem::size_of::<SpdmMessageGeneralPayload>();
-            let mut extend_error_data_reader = Reader::init(&response[extoff..]);
-            let extend_error_data = if let Some(eed) =
-                SpdmErrorResponseNotReadyExtData::read(&mut extend_error_data_reader)
-            {
-                eed
-            } else {
-                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
-            };
-
-            if extend_error_data.request_code != original_request_code.get_u8() {
-                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
-            }
-
-            sleep(2 << extend_error_data.rdt_exponent);
-
-            self.spdm_requester_respond_if_ready(expected_response_code, extend_error_data)
-        }
-    }
-
     fn spdm_handle_simple_error_response(
         &mut self,
         session_id: Option<u32>,
@@ -80,8 +43,8 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         response: &[u8],
-        original_request_code: SpdmRequestResponseCode,
-        expected_response_code: SpdmRequestResponseCode,
+        _original_request_code: SpdmRequestResponseCode,
+        _expected_response_code: SpdmRequestResponseCode,
     ) -> SpdmResult<ReceivedMessage> {
         let mut spdm_message_header_reader = Reader::init(response);
         let spdm_message_header =
@@ -118,15 +81,6 @@ impl<'a> RequesterContext<'a> {
                 let _ = session.teardown(sid);
             }
             Err(SPDM_STATUS_SESSION_MSG_ERROR)
-        } else if spdm_message_general_payload.param1
-            == SpdmErrorCode::SpdmErrorResponseNotReady.get_u8()
-        {
-            self.spdm_handle_response_not_ready(
-                session_id,
-                response,
-                original_request_code,
-                expected_response_code,
-            )
         } else {
             self.spdm_handle_simple_error_response(session_id, spdm_message_general_payload.param1)
         }

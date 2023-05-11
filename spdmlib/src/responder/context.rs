@@ -141,10 +141,7 @@ impl<'a> ResponderContext<'a> {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
-                    self.handle_spdm_respond_if_ready(bytes);
-                    true
-                }
+                SpdmRequestResponseCode::SpdmRequestResponseIfReady => false,
                 SpdmRequestResponseCode::SpdmRequestGetVersion => false,
                 SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
                 SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
@@ -232,10 +229,7 @@ impl<'a> ResponderContext<'a> {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
-                    self.handle_spdm_respond_if_ready(bytes);
-                    true
-                }
+                SpdmRequestResponseCode::SpdmRequestResponseIfReady => false,
                 SpdmRequestResponseCode::SpdmRequestGetVersion => {
                     self.handle_spdm_version(bytes);
                     true

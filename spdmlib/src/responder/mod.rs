@@ -17,7 +17,6 @@ mod key_update_rsp;
 mod measurement_rsp;
 mod psk_exchange_rsp;
 mod psk_finish_rsp;
-mod respond_if_ready_rsp;
 mod version_rsp;
 
 mod error_rsp;
