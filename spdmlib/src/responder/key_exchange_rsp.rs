@@ -35,7 +35,16 @@ impl<'a> ResponderContext<'a> {
         writer: &mut Writer,
     ) -> SpdmResult {
         let mut reader = Reader::init(bytes);
-        SpdmMessageHeader::read(&mut reader);
+        let message_header = SpdmMessageHeader::read(&mut reader);
+        if let Some(message_header) = message_header {
+            if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
+                return Ok(());
+            }
+        } else {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return Ok(());
+        }
 
         let key_exchange_req =
             SpdmKeyExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);

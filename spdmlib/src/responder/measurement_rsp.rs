@@ -39,7 +39,16 @@ impl<'a> ResponderContext<'a> {
         writer: &mut Writer,
     ) {
         let mut reader = Reader::init(bytes);
-        SpdmMessageHeader::read(&mut reader);
+        let message_header = SpdmMessageHeader::read(&mut reader);
+        if let Some(message_header) = message_header {
+            if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
+                return;
+            }
+        } else {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
 
         let get_measurements =
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut self.common, &mut reader);
@@ -421,6 +430,7 @@ mod tests_responder {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.measurement_hash_sel =
@@ -558,6 +568,7 @@ mod tests_responder {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.measurement_hash_sel =

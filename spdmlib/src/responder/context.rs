@@ -491,6 +491,7 @@ mod tests_responder {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.measurement_hash_sel =

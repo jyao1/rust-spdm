@@ -26,7 +26,16 @@ impl<'a> ResponderContext<'a> {
 
     pub fn write_spdm_challenge_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
-        SpdmMessageHeader::read(&mut reader);
+        let message_header = SpdmMessageHeader::read(&mut reader);
+        if let Some(message_header) = message_header {
+            if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
+                return;
+            }
+        } else {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
 
         let challenge = SpdmChallengeRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(challenge) = challenge {
