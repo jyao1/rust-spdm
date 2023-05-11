@@ -17,11 +17,11 @@ impl<'a> ResponderContext<'a> {
 
     pub fn write_spdm_capability_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
-        let header = SpdmMessageHeader::read(&mut reader);
+        let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(SpdmMessageHeader {
             version,
             request_response_code: _,
-        }) = header
+        }) = message_header
         {
             self.common.negotiate_info.spdm_version_sel = version;
         } else {

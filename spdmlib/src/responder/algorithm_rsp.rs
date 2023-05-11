@@ -18,7 +18,16 @@ impl<'a> ResponderContext<'a> {
 
     pub fn write_spdm_algorithm(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
-        SpdmMessageHeader::read(&mut reader);
+        let message_header = SpdmMessageHeader::read(&mut reader);
+        if let Some(message_header) = message_header {
+            if message_header.version != self.common.negotiate_info.spdm_version_sel {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
+                return;
+            }
+        } else {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
 
         let other_params_support;
 
@@ -239,7 +248,7 @@ mod tests_responder {
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
-            version: SpdmVersion::SpdmVersion10,
+            version: SpdmVersion::SpdmVersion11,
             request_response_code: SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
         };
         assert!(value.encode(&mut writer).is_ok());
@@ -278,7 +287,7 @@ mod tests_responder {
 
         let mut reader = Reader::init(u8_slice);
         let spdm_message_header = SpdmMessageHeader::read(&mut reader).unwrap();
-        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message_header.request_response_code,
             SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms
