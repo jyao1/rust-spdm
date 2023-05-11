@@ -501,14 +501,14 @@ bitflags! {
 impl SpdmReqAsymAlgo {
     pub fn prioritize(&mut self, peer: SpdmReqAsymAlgo) {
         let prio_table = [
+            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
+            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
             SpdmReqAsymAlgo::TPM_ALG_RSAPSS_4096,
             SpdmReqAsymAlgo::TPM_ALG_RSAPSS_3072,
             SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
             SpdmReqAsymAlgo::TPM_ALG_RSASSA_4096,
             SpdmReqAsymAlgo::TPM_ALG_RSASSA_3072,
             SpdmReqAsymAlgo::TPM_ALG_RSASSA_2048,
-            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
-            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
         ];
 
         *self &= peer;
