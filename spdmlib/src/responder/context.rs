@@ -172,7 +172,7 @@ impl<'a> ResponderContext<'a> {
                 SpdmRequestResponseCode::SpdmRequestPskExchange => false,
 
                 SpdmRequestResponseCode::SpdmRequestPskFinish => {
-                    let _ = self.handle_spdm_psk_finish(session_id, bytes);
+                    self.handle_spdm_psk_finish(session_id, bytes);
                     true
                 }
 
@@ -187,7 +187,7 @@ impl<'a> ResponderContext<'a> {
                 }
 
                 SpdmRequestResponseCode::SpdmRequestEndSession => {
-                    let _ = self.handle_spdm_end_session(session_id, bytes);
+                    self.handle_spdm_end_session(session_id, bytes);
                     true
                 }
                 SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
