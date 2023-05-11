@@ -544,7 +544,7 @@ mod tests_requester {
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
+        let _ = crypto::hash::hash_ctx_update(
             responder
                 .common
                 .runtime_info
@@ -585,7 +585,7 @@ mod tests_requester {
         );
 
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
+        let _ = crypto::hash::hash_ctx_update(
             requester
                 .common
                 .runtime_info
