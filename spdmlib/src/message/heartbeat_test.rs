@@ -3,11 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use super::*;
-use crate::{
-    common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo},
-    testlib::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo},
-};
-use byteorder::{ByteOrder, LittleEndian};
+use crate::common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
 use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
 #[test]
