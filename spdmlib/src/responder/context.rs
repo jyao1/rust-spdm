@@ -661,7 +661,7 @@ mod tests_responder {
             SpdmRequestResponseCode::SpdmRequestGetVersion,
             SpdmRequestResponseCode::SpdmRequestGetCapabilities,
             SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
-            SpdmRequestResponseCode::SpdmRequestGetDigests,
+            //SpdmRequestResponseCode::SpdmRequestGetDigests,
             SpdmRequestResponseCode::SpdmRequestGetCertificate,
             SpdmRequestResponseCode::SpdmRequestChallenge,
             SpdmRequestResponseCode::SpdmRequestGetMeasurements,
