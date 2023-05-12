@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use super::app_message_handler::dispatch_secured_app_message_cb;
-use crate::common::{SpdmDeviceIo, SpdmTransportEncap};
+use crate::common::{session::SpdmSessionState, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
 use crate::error::SpdmResult;
 use crate::message::*;
@@ -139,77 +139,82 @@ impl<'a> ResponderContext<'a> {
 
     fn dispatch_secured_message(&mut self, session_id: u32, bytes: &[u8]) -> bool {
         let mut reader = Reader::init(bytes);
-        match SpdmMessageHeader::read(&mut reader) {
-            Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmRequestResponseIfReady => false,
-                SpdmRequestResponseCode::SpdmRequestGetVersion => false,
-                SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
-                SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
-                SpdmRequestResponseCode::SpdmRequestGetDigests => {
-                    self.handle_spdm_digest(bytes, Some(session_id));
-                    true
-                }
-                SpdmRequestResponseCode::SpdmRequestGetCertificate => {
-                    self.handle_spdm_certificate(bytes, Some(session_id));
-                    true
-                }
-                SpdmRequestResponseCode::SpdmRequestChallenge => false,
-                SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
-                    self.handle_spdm_measurement(Some(session_id), bytes);
-                    true
-                }
 
-                SpdmRequestResponseCode::SpdmRequestKeyExchange => false,
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
 
-                SpdmRequestResponseCode::SpdmRequestFinish => {
-                    self.handle_spdm_finish(session_id, bytes);
-                    true
-                }
+        match session.get_session_state() {
+            SpdmSessionState::SpdmSessionHandshaking => {
+                match SpdmMessageHeader::read(&mut reader) {
+                    Some(message_header) => match message_header.request_response_code {
+                        SpdmRequestResponseCode::SpdmRequestFinish => {
+                            self.handle_spdm_finish(session_id, bytes);
+                            true
+                        }
 
-                SpdmRequestResponseCode::SpdmRequestPskExchange => false,
+                        SpdmRequestResponseCode::SpdmRequestPskFinish => {
+                            self.handle_spdm_psk_finish(session_id, bytes);
+                            true
+                        }
+                        _ => false,
+                    },
+                    None => false,
+                }
+            }
+            SpdmSessionState::SpdmSessionEstablished => {
+                match SpdmMessageHeader::read(&mut reader) {
+                    Some(message_header) => match message_header.request_response_code {
+                        SpdmRequestResponseCode::SpdmRequestGetDigests => {
+                            self.handle_spdm_digest(bytes, Some(session_id));
+                            true
+                        }
+                        SpdmRequestResponseCode::SpdmRequestGetCertificate => {
+                            self.handle_spdm_certificate(bytes, Some(session_id));
+                            true
+                        }
+                        SpdmRequestResponseCode::SpdmRequestGetMeasurements => {
+                            self.handle_spdm_measurement(Some(session_id), bytes);
+                            true
+                        }
 
-                SpdmRequestResponseCode::SpdmRequestPskFinish => {
-                    self.handle_spdm_psk_finish(session_id, bytes);
-                    true
-                }
+                        SpdmRequestResponseCode::SpdmRequestHeartbeat => {
+                            self.handle_spdm_heartbeat(session_id, bytes);
+                            true
+                        }
 
-                SpdmRequestResponseCode::SpdmRequestHeartbeat => {
-                    self.handle_spdm_heartbeat(session_id, bytes);
-                    true
-                }
+                        SpdmRequestResponseCode::SpdmRequestKeyUpdate => {
+                            self.handle_spdm_key_update(session_id, bytes);
+                            true
+                        }
 
-                SpdmRequestResponseCode::SpdmRequestKeyUpdate => {
-                    self.handle_spdm_key_update(session_id, bytes);
-                    true
-                }
+                        SpdmRequestResponseCode::SpdmRequestEndSession => {
+                            self.handle_spdm_end_session(session_id, bytes);
+                            true
+                        }
+                        SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
+                            self.handle_spdm_vendor_defined_request(Some(session_id), bytes);
+                            true
+                        }
 
-                SpdmRequestResponseCode::SpdmRequestEndSession => {
-                    self.handle_spdm_end_session(session_id, bytes);
-                    true
+                        SpdmRequestResponseCode::SpdmRequestGetVersion => false,
+                        SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
+                        SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
+                        SpdmRequestResponseCode::SpdmRequestChallenge => false,
+                        SpdmRequestResponseCode::SpdmRequestKeyExchange => false,
+                        SpdmRequestResponseCode::SpdmRequestPskExchange => false,
+                        SpdmRequestResponseCode::SpdmRequestFinish => false,
+                        SpdmRequestResponseCode::SpdmRequestPskFinish => false,
+                        SpdmRequestResponseCode::SpdmRequestResponseIfReady => false,
+
+                        _ => false,
+                    },
+                    None => false,
                 }
-                SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
-                    self.handle_spdm_vendor_defined_request(Some(session_id), bytes);
-                    true
-                }
-                SpdmRequestResponseCode::SpdmResponseDigests => false,
-                SpdmRequestResponseCode::SpdmResponseCertificate => false,
-                SpdmRequestResponseCode::SpdmResponseChallengeAuth => false,
-                SpdmRequestResponseCode::SpdmResponseVersion => false,
-                SpdmRequestResponseCode::SpdmResponseMeasurements => false,
-                SpdmRequestResponseCode::SpdmResponseCapabilities => false,
-                SpdmRequestResponseCode::SpdmResponseAlgorithms => false,
-                SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => false,
-                SpdmRequestResponseCode::SpdmResponseFinishRsp => false,
-                SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => false,
-                SpdmRequestResponseCode::SpdmResponsePskFinishRsp => false,
-                SpdmRequestResponseCode::SpdmResponseHeartbeatAck => false,
-                SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => false,
-                SpdmRequestResponseCode::SpdmResponseEndSessionAck => false,
-                SpdmRequestResponseCode::SpdmResponseError => false,
-                SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => false,
-                SpdmRequestResponseCode::Unknown(_) => false,
-            },
-            None => false,
+            }
+            SpdmSessionState::SpdmSessionNotStarted => false,
+            SpdmSessionState::Unknown(_) => false,
         }
     }
 
@@ -263,8 +268,6 @@ impl<'a> ResponderContext<'a> {
                     matches!(self.handle_spdm_key_exchange(bytes), Ok(_))
                 }
 
-                SpdmRequestResponseCode::SpdmRequestFinish => false,
-
                 SpdmRequestResponseCode::SpdmRequestPskExchange => {
                     matches!(self.handle_spdm_psk_exchange(bytes), Ok(_))
                 }
@@ -274,30 +277,13 @@ impl<'a> ResponderContext<'a> {
                     true
                 }
 
+                SpdmRequestResponseCode::SpdmRequestFinish => false,
                 SpdmRequestResponseCode::SpdmRequestPskFinish => false,
-
                 SpdmRequestResponseCode::SpdmRequestHeartbeat => false,
-
                 SpdmRequestResponseCode::SpdmRequestKeyUpdate => false,
-
                 SpdmRequestResponseCode::SpdmRequestEndSession => false,
-                SpdmRequestResponseCode::SpdmResponseDigests => false,
-                SpdmRequestResponseCode::SpdmResponseCertificate => false,
-                SpdmRequestResponseCode::SpdmResponseChallengeAuth => false,
-                SpdmRequestResponseCode::SpdmResponseVersion => false,
-                SpdmRequestResponseCode::SpdmResponseMeasurements => false,
-                SpdmRequestResponseCode::SpdmResponseCapabilities => false,
-                SpdmRequestResponseCode::SpdmResponseAlgorithms => false,
-                SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp => false,
-                SpdmRequestResponseCode::SpdmResponseFinishRsp => false,
-                SpdmRequestResponseCode::SpdmResponsePskExchangeRsp => false,
-                SpdmRequestResponseCode::SpdmResponsePskFinishRsp => false,
-                SpdmRequestResponseCode::SpdmResponseHeartbeatAck => false,
-                SpdmRequestResponseCode::SpdmResponseKeyUpdateAck => false,
-                SpdmRequestResponseCode::SpdmResponseEndSessionAck => false,
-                SpdmRequestResponseCode::SpdmResponseError => false,
-                SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse => false,
-                SpdmRequestResponseCode::Unknown(_) => false,
+
+                _ => false,
             },
             None => false,
         }
