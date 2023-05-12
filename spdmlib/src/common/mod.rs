@@ -471,7 +471,7 @@ impl<'a> SpdmContext<'a> {
 
 #[derive(Debug, Default)]
 pub struct SpdmConfigInfo {
-    pub spdm_version: [SpdmVersion; config::MAX_SPDM_VERSION_COUNT],
+    pub spdm_version: [SpdmVersion; MAX_SPDM_VERSION_COUNT],
     pub req_capabilities: SpdmRequestCapabilityFlags,
     pub rsp_capabilities: SpdmResponseCapabilityFlags,
     pub req_ct_exponent: u8,
