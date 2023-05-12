@@ -38,7 +38,11 @@ impl<'a> RequesterContext<'a> {
             None => self.receive_message(&mut receive_buffer, false)?,
         };
 
-        self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])
+        self.handle_spdm_digest_response(
+            session_id,
+            &send_buffer[..send_used],
+            &receive_buffer[..used],
+        )
     }
 
     pub fn encode_spdm_digest(&mut self, buf: &mut [u8]) -> usize {
@@ -59,7 +63,7 @@ impl<'a> RequesterContext<'a> {
 
     pub fn handle_spdm_digest_response(
         &mut self,
-        session_id: u32,
+        session_id: Option<u32>,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult {
@@ -77,35 +81,44 @@ impl<'a> RequesterContext<'a> {
                         if let Some(digests) = digests {
                             debug!("!!! digests : {:02x?}\n", digests);
 
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                let message_b = &mut self.common.runtime_info.message_b;
-                                message_b
-                                    .append_message(send_buffer)
-                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
-                                message_b
-                                    .append_message(&receive_buffer[..used])
-                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
-                            }
+                            match session_id {
+                                None => {
+                                    #[cfg(not(feature = "hashed-transcript-data"))]
+                                    {
+                                        let message_b = &mut self.common.runtime_info.message_b;
+                                        message_b.append_message(send_buffer).map_or_else(
+                                            || Err(SPDM_STATUS_BUFFER_FULL),
+                                            |_| Ok(()),
+                                        )?;
+                                        message_b
+                                            .append_message(&receive_buffer[..used])
+                                            .map_or_else(
+                                                || Err(SPDM_STATUS_BUFFER_FULL),
+                                                |_| Ok(()),
+                                            )?;
+                                    }
 
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                crypto::hash::hash_ctx_update(
-                                    self.common
-                                        .runtime_info
-                                        .digest_context_m1m2
-                                        .as_mut()
-                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                    send_buffer,
-                                )?;
-                                crypto::hash::hash_ctx_update(
-                                    self.common
-                                        .runtime_info
-                                        .digest_context_m1m2
-                                        .as_mut()
-                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                    &receive_buffer[..used],
-                                )?;
+                                    #[cfg(feature = "hashed-transcript-data")]
+                                    {
+                                        crypto::hash::hash_ctx_update(
+                                            self.common
+                                                .runtime_info
+                                                .digest_context_m1m2
+                                                .as_mut()
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+                                            send_buffer,
+                                        )?;
+                                        crypto::hash::hash_ctx_update(
+                                            self.common
+                                                .runtime_info
+                                                .digest_context_m1m2
+                                                .as_mut()
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+                                            &receive_buffer[..used],
+                                        )?;
+                                    }
+                                }
+                                Some(_session_id) => {}
                             }
 
                             Ok(())
@@ -116,7 +129,7 @@ impl<'a> RequesterContext<'a> {
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
                         let rm = self.spdm_handle_error_response_main(
-                            Some(session_id),
+                            session_id,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetDigests,
                             SpdmRequestResponseCode::SpdmResponseDigests,

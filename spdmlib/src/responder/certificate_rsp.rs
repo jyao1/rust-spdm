@@ -12,7 +12,7 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_certificate(&mut self, bytes: &[u8], session_id: Option<u32>) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_certificate_response(bytes, &mut writer);
+        self.write_spdm_certificate_response(session_id, bytes, &mut writer);
 
         if let Some(session_id) = session_id {
             let _ = self.send_secured_message(session_id, writer.used_slice(), false);
@@ -21,7 +21,12 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
-    fn write_spdm_certificate_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    fn write_spdm_certificate_response(
+        &mut self,
+        session_id: Option<u32>,
+        bytes: &[u8],
+        writer: &mut Writer,
+    ) {
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
@@ -48,28 +53,33 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        if self
-            .common
-            .runtime_info
-            .message_b
-            .append_message(&bytes[..reader.used()])
-            .is_none()
-        {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
-        }
+        match session_id {
+            None => {
+                #[cfg(not(feature = "hashed-transcript-data"))]
+                if self
+                    .common
+                    .runtime_info
+                    .message_b
+                    .append_message(&bytes[..reader.used()])
+                    .is_none()
+                {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                    return;
+                }
 
-        #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
-            self.common
-                .runtime_info
-                .digest_context_m1m2
-                .as_mut()
-                .unwrap(),
-            &bytes[..reader.used()],
-        )
-        .unwrap();
+                #[cfg(feature = "hashed-transcript-data")]
+                crypto::hash::hash_ctx_update(
+                    self.common
+                        .runtime_info
+                        .digest_context_m1m2
+                        .as_mut()
+                        .unwrap(),
+                    &bytes[..reader.used()],
+                )
+                .unwrap();
+            }
+            Some(_session_id) => {}
+        }
 
         let get_certificate = get_certificate.unwrap();
         let slot_id = get_certificate.slot_id;
@@ -114,21 +124,26 @@ impl<'a> ResponderContext<'a> {
         };
         let _ = response.spdm_encode(&mut self.common, writer);
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        self.common
-            .runtime_info
-            .message_b
-            .append_message(writer.used_slice());
-        #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
-            self.common
-                .runtime_info
-                .digest_context_m1m2
-                .as_mut()
-                .unwrap(),
-            writer.used_slice(),
-        )
-        .unwrap();
+        match session_id {
+            None => {
+                #[cfg(not(feature = "hashed-transcript-data"))]
+                self.common
+                    .runtime_info
+                    .message_b
+                    .append_message(writer.used_slice());
+                #[cfg(feature = "hashed-transcript-data")]
+                crypto::hash::hash_ctx_update(
+                    self.common
+                        .runtime_info
+                        .digest_context_m1m2
+                        .as_mut()
+                        .unwrap(),
+                    writer.used_slice(),
+                )
+                .unwrap();
+            }
+            Some(_session_id) => {}
+        }
     }
 }
 
