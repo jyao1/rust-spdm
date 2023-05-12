@@ -18,16 +18,8 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        if self.write_spdm_finish_response(session_id, bytes, &mut writer) {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
-            // change state after message is sent.
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            session.set_session_state(
-                crate::common::session::SpdmSessionState::SpdmSessionEstablished,
-            );
-        } else {
-            let _ = self.send_message(writer.used_slice());
-        }
+        self.write_spdm_finish_response(session_id, bytes, &mut writer);
+        let _ = self.send_secured_message(session_id, writer.used_slice(), false);
     }
 
     // Return true on success, false otherwise.
@@ -36,17 +28,17 @@ impl<'a> ResponderContext<'a> {
         session_id: u32,
         bytes: &[u8],
         writer: &mut Writer,
-    ) -> bool {
+    ) {
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
             if message_header.version != self.common.negotiate_info.spdm_version_sel {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
-                return true;
+                return;
             }
         } else {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return true;
+            return;
         }
 
         let finish_req = SpdmFinishRequestPayload::spdm_read(&mut self.common, &mut reader);
@@ -55,7 +47,7 @@ impl<'a> ResponderContext<'a> {
         } else {
             error!("!!! finish req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return false;
+            return;
         }
         let finish_req = finish_req.unwrap();
         let read_used = reader.used();
@@ -71,7 +63,7 @@ impl<'a> ResponderContext<'a> {
 
         if session.get_use_psk() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return false;
+            return;
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -79,7 +71,8 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             error!("message_f add the message error");
-            return false;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -91,8 +84,8 @@ impl<'a> ResponderContext<'a> {
                 .calc_rsp_transcript_data(false, message_k, Some(&message_f));
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return false;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.as_ref().unwrap();
@@ -128,8 +121,8 @@ impl<'a> ResponderContext<'a> {
                 .is_err()
             {
                 error!("verify_hmac_with_request_finished_key fail");
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorDecryptError, 0, writer);
+                return;
             } else {
                 info!("verify_hmac_with_request_finished_key pass");
             }
@@ -140,7 +133,8 @@ impl<'a> ResponderContext<'a> {
                 .is_none()
             {
                 error!("message_f add the message error");
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
             }
 
             #[cfg(feature = "hashed-transcript-data")]
@@ -196,7 +190,8 @@ impl<'a> ResponderContext<'a> {
                 .is_none()
             {
                 error!("message_f add the message error");
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
             }
 
             #[cfg(feature = "hashed-transcript-data")]
@@ -212,10 +207,8 @@ impl<'a> ResponderContext<'a> {
                     .calc_rsp_transcript_data(false, message_k, Some(&message_f));
             #[cfg(not(feature = "hashed-transcript-data"))]
             if transcript_data.is_err() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                let session = self.common.get_session_via_id(session_id).unwrap();
-                let _ = session.teardown(session_id);
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
             }
             #[cfg(not(feature = "hashed-transcript-data"))]
             let transcript_data = transcript_data.unwrap();
@@ -240,16 +233,14 @@ impl<'a> ResponderContext<'a> {
             let hmac =
                 session.generate_hmac_with_response_finished_key(message_hash.unwrap().as_ref());
             if hmac.is_err() {
-                let _ = session.teardown(session_id);
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
             }
             let hmac = hmac.unwrap();
             #[cfg(not(feature = "hashed-transcript-data"))]
             if message_f.append_message(hmac.as_ref()).is_none() {
-                let _ = session.teardown(session_id);
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
             } else {
                 session.runtime_info.message_f = message_f.clone();
             }
@@ -266,10 +257,8 @@ impl<'a> ResponderContext<'a> {
         } else {
             #[cfg(not(feature = "hashed-transcript-data"))]
             if message_f.append_message(writer.used_slice()).is_none() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                let session = self.common.get_session_via_id(session_id).unwrap();
-                let _ = session.teardown(session_id);
-                return false;
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
             } else {
                 let session = self.common.get_session_via_id(session_id).unwrap();
                 session.runtime_info.message_f = message_f.clone();
@@ -298,17 +287,13 @@ impl<'a> ResponderContext<'a> {
         );
         #[cfg(feature = "hashed-transcript-data")]
         if th2.is_none() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            let _ = session.teardown(session_id);
-            return false;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         if th2.is_err() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            let _ = session.teardown(session_id);
-            return false;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
         let th2 = th2.unwrap();
         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
@@ -317,8 +302,6 @@ impl<'a> ResponderContext<'a> {
         session
             .generate_data_secret(spdm_version_sel, &th2)
             .unwrap();
-
-        true
     }
 }
 

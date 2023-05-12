@@ -50,7 +50,24 @@ impl<'a> ResponderContext<'a> {
             false,
             is_app_message,
         )?;
-        self.common.device_io.send(&transport_buffer[..used])
+        let result = self.common.device_io.send(&transport_buffer[..used]);
+        if result.is_ok() {
+            let opcode = send_buffer[1];
+            // change state after message is sent.
+            if opcode == SpdmRequestResponseCode::SpdmResponseEndSessionAck.get_u8() {
+                let session = self.common.get_session_via_id(session_id).unwrap();
+                let _ = session.teardown(session_id);
+            }
+            if opcode == SpdmRequestResponseCode::SpdmResponseFinishRsp.get_u8()
+                || opcode == SpdmRequestResponseCode::SpdmResponsePskFinishRsp.get_u8()
+            {
+                let session = self.common.get_session_via_id(session_id).unwrap();
+                session.set_session_state(
+                    crate::common::session::SpdmSessionState::SpdmSessionEstablished,
+                );
+            }
+        }
+        result
     }
 
     pub fn process_message(

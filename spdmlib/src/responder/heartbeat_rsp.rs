@@ -10,22 +10,21 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_heartbeat(&mut self, session_id: u32, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        if self.write_spdm_heartbeat_response(bytes, &mut writer) {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
-        }
+        self.write_spdm_heartbeat_response(bytes, &mut writer);
+        let _ = self.send_secured_message(session_id, writer.used_slice(), false);
     }
 
-    pub fn write_spdm_heartbeat_response(&mut self, bytes: &[u8], writer: &mut Writer) -> bool {
+    pub fn write_spdm_heartbeat_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
             if message_header.version != self.common.negotiate_info.spdm_version_sel {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
-                return true;
+                return;
             }
         } else {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return true;
+            return;
         }
 
         let heartbeat_req = SpdmHeartbeatRequestPayload::spdm_read(&mut self.common, &mut reader);
@@ -33,7 +32,8 @@ impl<'a> ResponderContext<'a> {
             debug!("!!! heartbeat req : {:02x?}\n", heartbeat_req);
         } else {
             error!("!!! heartbeat req : fail !!!\n");
-            return false;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
         }
 
         info!("send spdm heartbeat rsp\n");
@@ -45,7 +45,7 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmHeartbeatResponse(SpdmHeartbeatResponsePayload {}),
         };
-        response.spdm_encode(&mut self.common, writer).is_ok()
+        let _ = response.spdm_encode(&mut self.common, writer);
     }
 }
 #[cfg(all(test,))]
