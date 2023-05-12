@@ -7,12 +7,11 @@ use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER,
 };
 #[cfg(feature = "hashed-transcript-data")]
 use crate::error::{
     SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
+    SPDM_STATUS_INVALID_STATE_LOCAL,
 };
 use crate::message::*;
 use crate::requester::*;
@@ -22,25 +21,21 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm digest\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_digest(&mut send_buffer);
-        if session_id.is_none() {
-            self.send_message(&send_buffer[..send_used])?;
-        } else {
-            self.send_secured_message(
-                session_id.ok_or(SPDM_STATUS_INVALID_PARAMETER)?,
-                &send_buffer[..send_used],
-                false,
-            )?;
+        match session_id {
+            Some(session_id) => {
+                self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
+            }
+            None => {
+                self.send_message(&send_buffer[..send_used])?;
+            }
         }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = if session_id.is_none() {
-            self.receive_message(&mut receive_buffer, false)?
-        } else {
-            self.receive_secured_message(
-                session_id.ok_or(SPDM_STATUS_INVALID_PARAMETER)?,
-                &mut receive_buffer,
-                false,
-            )?
+        let used = match session_id {
+            Some(session_id) => {
+                self.receive_secured_message(session_id, &mut receive_buffer, false)?
+            }
+            None => self.receive_message(&mut receive_buffer, false)?,
         };
 
         self.handle_spdm_digest_response(0, &send_buffer[..send_used], &receive_buffer[..used])

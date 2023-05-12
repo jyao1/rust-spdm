@@ -25,10 +25,23 @@ impl<'a> RequesterContext<'a> {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
-        self.send_message(&send_buffer[..send_used])?;
+        match session_id {
+            Some(session_id) => {
+                self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
+            }
+            None => {
+                self.send_message(&send_buffer[..send_used])?;
+            }
+        }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let used = self.receive_message(&mut receive_buffer, false)?;
+        let used = match session_id {
+            Some(session_id) => {
+                self.receive_secured_message(session_id, &mut receive_buffer, false)?
+            }
+            None => self.receive_message(&mut receive_buffer, false)?,
+        };
+
         self.handle_spdm_certificate_partial_response(
             session_id,
             slot_id,
