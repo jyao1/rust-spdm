@@ -4,9 +4,8 @@
 
 use crate::common;
 use crate::common::spdm_codec::SpdmCodec;
-use crate::config;
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
-use crate::protocol::{gen_array_clone, SpdmVersion};
+use crate::protocol::{gen_array_clone, SpdmVersion, MAX_SPDM_VERSION_COUNT};
 use codec::{Codec, Reader, Writer};
 
 #[derive(Debug, Clone, Default)]
@@ -57,7 +56,7 @@ impl Codec for SpdmVersionStruct {
 #[derive(Debug, Clone, Default)]
 pub struct SpdmVersionResponsePayload {
     pub version_number_entry_count: u8,
-    pub versions: [SpdmVersionStruct; config::MAX_SPDM_VERSION_COUNT],
+    pub versions: [SpdmVersionStruct; MAX_SPDM_VERSION_COUNT],
 }
 
 impl SpdmCodec for SpdmVersionResponsePayload {
@@ -97,7 +96,7 @@ impl SpdmCodec for SpdmVersionResponsePayload {
         let version_number_entry_count = u8::read(r)?;
 
         if version_number_entry_count < 1
-            || version_number_entry_count > config::MAX_SPDM_VERSION_COUNT as u8
+            || version_number_entry_count > MAX_SPDM_VERSION_COUNT as u8
         {
             return None;
         }
@@ -107,7 +106,7 @@ impl SpdmCodec for SpdmVersionResponsePayload {
                 update: 0,
                 version: SpdmVersion::SpdmVersion10,
             },
-            config::MAX_SPDM_VERSION_COUNT,
+            MAX_SPDM_VERSION_COUNT,
         );
         for version in versions
             .iter_mut()
@@ -171,7 +170,7 @@ mod tests {
                     update: 100u8,
                     version: SpdmVersion::SpdmVersion10,
                 },
-                config::MAX_SPDM_VERSION_COUNT,
+                MAX_SPDM_VERSION_COUNT,
             ),
         };
 
