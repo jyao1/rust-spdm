@@ -13,7 +13,6 @@ enum_builder! {
     EnumName: SpdmErrorCode;
     EnumVal{
         SpdmErrorInvalidRequest => 0x1,
-        SpdmErrorInvalidSession => 0x2,
         SpdmErrorBusy => 0x3,
         SpdmErrorUnexpectedRequest => 0x4,
         SpdmErrorUnspecified => 0x5,
