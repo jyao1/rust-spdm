@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
+use fuzzlib::{spdmlib::protocol::SpdmVersion, *};
 use spdmlib::protocol::SpdmBaseHashAlgo;
 
 fn fuzz_handle_spdm_certificate(data: &[u8]) {
@@ -26,6 +26,7 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
         provision_info,
     );
 
+    context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
     #[cfg(feature = "hashed-transcript-data")]
