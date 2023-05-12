@@ -132,7 +132,7 @@ impl SpdmSession {
             runtime_info: SpdmSessionRuntimeInfo::default(),
             key_schedule: SpdmKeySchedule::new(),
             heartbeat_period: 0,
-            secure_spdm_version_sel: config::SECURE_SPDM_VERSION,
+            secure_spdm_version_sel: DMTF_SECURE_SPDM_VERSION_11,
         }
     }
 
@@ -165,7 +165,7 @@ impl SpdmSession {
         self.runtime_info = SpdmSessionRuntimeInfo::default();
         self.key_schedule = SpdmKeySchedule::default();
         self.heartbeat_period = 0;
-        self.secure_spdm_version_sel = config::SECURE_SPDM_VERSION;
+        self.secure_spdm_version_sel = DMTF_SECURE_SPDM_VERSION_11;
     }
 
     pub fn get_session_id(&self) -> u32 {

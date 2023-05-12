@@ -75,32 +75,37 @@ impl<'a> ResponderContext<'a> {
                     return;
                 }
                 for index in 0..secured_message_version_list.version_count as usize {
-                    if secured_message_version_list.versions_list[index].get_secure_spdm_version()
-                        == self.common.config_info.secure_spdm_version
-                    {
-                        if self
-                            .common
-                            .negotiate_info
-                            .opaque_data_support
-                            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+                    for local_version in self.common.config_info.secure_spdm_version {
+                        if secured_message_version_list.versions_list[index]
+                            .get_secure_spdm_version()
+                            == local_version
                         {
-                            return_opaque.data_size =
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
-                                    .len() as u16;
-                            return_opaque.data[..(return_opaque.data_size as usize)]
-                                .copy_from_slice(
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
-                                    .as_ref(),
-                            );
-                        } else {
-                            return_opaque.data_size =
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
-                                    .len() as u16;
-                            return_opaque.data[..(return_opaque.data_size as usize)]
-                                .copy_from_slice(
-                                crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
-                                    .as_ref(),
-                            );
+                            if self
+                                .common
+                                .negotiate_info
+                                .opaque_data_support
+                                .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+                            {
+                                return_opaque.data_size =
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                        .len() as u16;
+                                return_opaque.data[..(return_opaque.data_size as usize)]
+                                    .copy_from_slice(
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                        .as_ref(),
+                                );
+                            } else {
+                                return_opaque.data_size =
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                        .len() as u16;
+                                return_opaque.data[..(return_opaque.data_size as usize)]
+                                    .copy_from_slice(
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                        .as_ref(),
+                                );
+                            }
+                            return_opaque.data[return_opaque.data_size as usize - 1] =
+                                local_version;
                         }
                     }
                 }
@@ -343,13 +348,13 @@ impl<'a> ResponderContext<'a> {
         writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref()); // impl AsRef<[u8]> for SpdmDigestStruct
 
         let heartbeat_period = self.common.config_info.heartbeat_period;
-        let secure_spdm_version_sel = self.common.config_info.secure_spdm_version;
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         session.heartbeat_period = heartbeat_period;
         if return_opaque.data_size != 0 {
-            session.secure_spdm_version_sel = secure_spdm_version_sel;
+            session.secure_spdm_version_sel =
+                return_opaque.data[return_opaque.data_size as usize - 1];
         }
     }
 

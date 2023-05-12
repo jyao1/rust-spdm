@@ -489,8 +489,8 @@ pub struct SpdmConfigInfo {
     pub runtime_content_change_support: bool,
     pub data_transfer_size: u32,
     pub max_spdm_msg_size: u32,
-    pub heartbeat_period: u8,    // used by responder only
-    pub secure_spdm_version: u8, // used by responder only
+    pub heartbeat_period: u8, // used by responder only
+    pub secure_spdm_version: [u8; MAX_SECURE_SPDM_VERSION_COUNT], // used by responder only
 }
 
 #[derive(Debug, Default)]

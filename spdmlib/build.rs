@@ -21,7 +21,6 @@ struct SpdmConfig {
     data_transfer_size: usize,
     max_spdm_msg_size: usize,
     heartbeat_period_value: u8,
-    secure_spdm_version: u8,
 }
 
 impl SpdmConfig {
@@ -102,9 +101,6 @@ pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
 /// 0 represents either Heartbeat is not supported or
 /// heartbeat is not desired on a session
 pub const HEARTBEAT_PERIOD: u8 = {heartbeat_period};
-
-/// This is used by responder
-pub const SECURE_SPDM_VERSION: u8 = {secure_spdm_version};
 "
 };
 }
@@ -144,7 +140,6 @@ fn main() {
             .vendor_defined_config
             .max_vendor_defined_vendor_id_len,
         heartbeat_period = spdm_config.heartbeat_period_value,
-        secure_spdm_version = spdm_config.secure_spdm_version,
     )
     .expect("Failed to generate configuration code from the template and JSON config");
 
