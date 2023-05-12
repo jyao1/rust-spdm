@@ -10,26 +10,21 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_end_session(&mut self, session_id: u32, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        if self.write_spdm_end_session_response(bytes, &mut writer) {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            let _ = session.teardown(session_id);
-        } else {
-            let _ = self.send_message(writer.used_slice());
-        }
+        self.write_spdm_end_session_response(bytes, &mut writer);
+        let _ = self.send_secured_message(session_id, writer.used_slice(), false);
     }
 
-    pub fn write_spdm_end_session_response(&mut self, bytes: &[u8], writer: &mut Writer) -> bool {
+    pub fn write_spdm_end_session_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
             if message_header.version != self.common.negotiate_info.spdm_version_sel {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
-                return true;
+                return;
             }
         } else {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return true;
+            return;
         }
 
         let end_session_req =
@@ -38,7 +33,8 @@ impl<'a> ResponderContext<'a> {
             debug!("!!! end_session req : {:02x?}\n", end_session_req);
         } else {
             error!("!!! end_session req : fail !!!\n");
-            return false;
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
         }
 
         info!("send spdm end_session rsp\n");
@@ -51,7 +47,6 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmEndSessionResponse(SpdmEndSessionResponsePayload {}),
         };
         let _ = response.spdm_encode(&mut self.common, writer);
-        true
     }
 }
 
