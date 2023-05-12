@@ -679,7 +679,7 @@ mod tests {
                             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
                             alg_ext_count: 0,
                         },
-                        config::MAX_SPDM_ALG_STRUCT_COUNT,
+                        4,
                     ),
                 },
             ),
@@ -734,7 +734,7 @@ mod tests {
                         alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
                         alg_ext_count: 0,
                     },
-                    MAX_SPDM_ALG_STRUCT_COUNT,
+                    4,
                 ),
             }),
         };

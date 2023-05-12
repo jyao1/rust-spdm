@@ -12,7 +12,6 @@ use std::{fs, fs::File};
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmConfig {
     max_version_count: usize,
-    algo_config: SpdmAlgoConfig,
     cert_config: SpdmCertConfig,
     max_opaque_size: usize,
     psk_config: SpdmPskConfig,
@@ -35,14 +34,6 @@ impl SpdmConfig {
 
         // TODO: add more sanity checks if needed.
     }
-}
-
-#[derive(Debug, PartialEq, Deserialize)]
-struct SpdmAlgoConfig {
-    max_ext_asym_algo_count: usize,
-    max_ext_hash_algo_count: usize,
-    max_algo_struct_count: usize,
-    max_ext_algo_struct_count: usize,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -73,12 +64,6 @@ macro_rules! TEMPLATE {
 
 /// This is used in SpdmVersionResponsePayload
 pub const MAX_SPDM_VERSION_COUNT: usize = {ver_cnt};
-
-/// This is used in SpdmNegotiateAlgorithmsRequestPayload / SpdmAlgorithmsResponsePayload
-pub const MAX_SPDM_EXTEND_ASYM_ALGO_COUNT: usize = {ext_asym_algo_cnt};
-pub const MAX_SPDM_EXTEND_HASH_ALGO_COUNT: usize = {ext_hash_algo_cnt};
-pub const MAX_SPDM_ALG_STRUCT_COUNT: usize = {algo_struct_cnt};
-pub const MAX_SPDM_EXTEND_ALG_STRUCT_COUNT: usize = {ext_algo_struct_cnt};
 
 /// This is used in SpdmCertChainData without SpdmCertChainHeader.
 pub const MAX_SPDM_CERT_CHAIN_DATA_SIZE: usize = {cert_chain_data_sz}; // 0x1000;
@@ -147,10 +132,6 @@ fn main() {
         &mut to_generate,
         TEMPLATE!(),
         ver_cnt = spdm_config.max_version_count,
-        ext_asym_algo_cnt = spdm_config.algo_config.max_ext_asym_algo_count,
-        ext_hash_algo_cnt = spdm_config.algo_config.max_ext_hash_algo_count,
-        algo_struct_cnt = spdm_config.algo_config.max_algo_struct_count,
-        ext_algo_struct_cnt = spdm_config.algo_config.max_ext_algo_struct_count,
         cert_chain_data_sz = spdm_config.cert_config.max_cert_chain_data_size,
         opaque_sz = spdm_config.max_opaque_size,
         psk_ctx_sz = spdm_config.psk_config.max_psk_context_size,
