@@ -7,6 +7,7 @@
 use super::USE_ECDSA;
 use spdmlib::common;
 use spdmlib::common::SpdmOpaqueSupport;
+use spdmlib::common::{DMTF_SECURE_SPDM_VERSION_10, DMTF_SECURE_SPDM_VERSION_11};
 use spdmlib::config;
 use spdmlib::protocol::*;
 use std::path::PathBuf;
@@ -143,7 +144,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
         max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
         heartbeat_period: config::HEARTBEAT_PERIOD,
-        secure_spdm_version: config::SECURE_SPDM_VERSION,
+        secure_spdm_version: [DMTF_SECURE_SPDM_VERSION_10, DMTF_SECURE_SPDM_VERSION_11],
         ..Default::default()
     };
 
