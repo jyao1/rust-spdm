@@ -38,7 +38,7 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
 
         context.common.reset_runtime_info();
 
-        let _ = context.handle_spdm_key_exchange(data);
+        context.handle_spdm_key_exchange(data);
     }
 
     {
@@ -72,7 +72,7 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.common.session[2].setup(4294901758).unwrap();
         context.common.session[3].setup(4294901758).unwrap();
 
-        let _ = context.handle_spdm_key_exchange(data);
+        context.handle_spdm_key_exchange(data);
     }
 
     {
@@ -100,7 +100,7 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.common.provision_info.my_cert_chain_data = None;
         context.common.reset_runtime_info();
 
-        let _ = context.handle_spdm_key_exchange(data);
+        context.handle_spdm_key_exchange(data);
     }
 }
 fn main() {
