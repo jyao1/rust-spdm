@@ -224,6 +224,11 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle certificate response'
+    // - description: '<p>Request certificate and receive partial certificate.</p>'
+    // -
     {
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
@@ -238,6 +243,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         );
 
         responder.common.reset_runtime_info();
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -258,6 +264,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             req_config_info4,
             req_provision_info4,
         );
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
