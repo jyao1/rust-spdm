@@ -1,10 +1,8 @@
 // Copyright (c) 2020 Intel Corporation
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
-
 use fuzzlib::*;
 use spdmlib::protocol::*;
-// use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -37,6 +35,7 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
         None,
         None,
     ];
+    responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
     #[cfg(feature = "hashed-transcript-data")]
@@ -56,6 +55,7 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
         req_provision_info,
     );
 
+    requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
     #[cfg(feature = "hashed-transcript-data")]

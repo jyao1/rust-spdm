@@ -2,26 +2,20 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::{spdmlib::crypto, *};
+use fuzzlib::*;
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_digest(data: &[u8]) {
-    let (config_info, provision_info) = rsp_create_info();
-    let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-    let mctp_transport_encap = &mut MctpTransportEncap {};
-
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
+    let (config_info, provision_info) = rsp_create_info();
+    let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
     let mut context = responder::ResponderContext::new(
         &mut socket_io_transport,
-        if USE_PCIDOE {
-            pcidoe_transport_encap
-        } else {
-            mctp_transport_encap
-        },
+        pcidoe_transport_encap,
         config_info,
         provision_info,
     );
@@ -39,6 +33,7 @@ fn fuzz_handle_spdm_digest(data: &[u8]) {
         None,
         None,
     ];
+    context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     #[cfg(feature = "hashed-transcript-data")]
     {

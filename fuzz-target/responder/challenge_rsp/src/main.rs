@@ -36,6 +36,7 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
         None,
         None,
     ];
+    context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     #[cfg(feature = "hashed-transcript-data")]
