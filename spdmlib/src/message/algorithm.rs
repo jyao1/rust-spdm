@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::spdm_codec::*;
-use crate::config;
 use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::protocol::*;
 use crate::{common, error::SpdmStatus};
@@ -19,7 +18,7 @@ pub struct SpdmNegotiateAlgorithmsRequestPayload {
     pub base_asym_algo: SpdmBaseAsymAlgo,
     pub base_hash_algo: SpdmBaseHashAlgo,
     pub alg_struct_count: u8,
-    pub alg_struct: [SpdmAlgStruct; config::MAX_SPDM_ALG_STRUCT_COUNT],
+    pub alg_struct: [SpdmAlgStruct; 4],
 }
 
 impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
@@ -106,8 +105,7 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
 
         u16::read(r)?; // reserved3
 
-        let mut alg_struct =
-            gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
+        let mut alg_struct = gen_array_clone(SpdmAlgStruct::default(), 4);
         for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
             *algo = SpdmAlgStruct::read(r)?;
         }
@@ -143,7 +141,7 @@ pub struct SpdmAlgorithmsResponsePayload {
     pub base_asym_sel: SpdmBaseAsymAlgo,
     pub base_hash_sel: SpdmBaseHashAlgo,
     pub alg_struct_count: u8,
-    pub alg_struct: [SpdmAlgStruct; config::MAX_SPDM_ALG_STRUCT_COUNT],
+    pub alg_struct: [SpdmAlgStruct; 4],
 }
 
 impl SpdmCodec for SpdmAlgorithmsResponsePayload {
@@ -256,8 +254,7 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 
         u16::read(r)?; // reserved3
 
-        let mut alg_struct =
-            gen_array_clone(SpdmAlgStruct::default(), config::MAX_SPDM_ALG_STRUCT_COUNT);
+        let mut alg_struct = gen_array_clone(SpdmAlgStruct::default(), 4);
         for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
             *algo = SpdmAlgStruct::read(r)?;
         }
@@ -310,7 +307,7 @@ mod tests {
                     alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
                     alg_ext_count: 0,
                 },
-                config::MAX_SPDM_ALG_STRUCT_COUNT,
+                4,
             ),
         };
         let transport_encap = &mut TransportEncap {};
@@ -362,10 +359,7 @@ mod tests {
             base_asym_algo: SpdmBaseAsymAlgo::empty(),
             base_hash_algo: SpdmBaseHashAlgo::empty(),
             alg_struct_count: 0,
-            alg_struct: gen_array_clone(
-                SpdmAlgStruct::default(),
-                config::MAX_SPDM_ALG_STRUCT_COUNT,
-            ),
+            alg_struct: gen_array_clone(SpdmAlgStruct::default(), 4),
         };
 
         let transport_encap = &mut TransportEncap {};
@@ -398,10 +392,7 @@ mod tests {
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 0,
-            alg_struct: gen_array_clone(
-                SpdmAlgStruct::default(),
-                config::MAX_SPDM_ALG_STRUCT_COUNT,
-            ),
+            alg_struct: gen_array_clone(SpdmAlgStruct::default(), 4),
         };
 
         let transport_encap = &mut TransportEncap {};
@@ -438,7 +429,7 @@ mod tests {
                     alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
                     alg_ext_count: 0,
                 },
-                config::MAX_SPDM_ALG_STRUCT_COUNT,
+                4,
             ),
         };
 
@@ -500,10 +491,7 @@ mod tests {
             base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 0,
-            alg_struct: gen_array_clone(
-                SpdmAlgStruct::default(),
-                config::MAX_SPDM_ALG_STRUCT_COUNT,
-            ),
+            alg_struct: gen_array_clone(SpdmAlgStruct::default(), 4),
         };
 
         create_spdm_context!(context);
@@ -530,10 +518,7 @@ mod tests {
             base_asym_sel: SpdmBaseAsymAlgo::empty(),
             base_hash_sel: SpdmBaseHashAlgo::empty(),
             alg_struct_count: 0,
-            alg_struct: gen_array_clone(
-                SpdmAlgStruct::default(),
-                config::MAX_SPDM_ALG_STRUCT_COUNT,
-            ),
+            alg_struct: gen_array_clone(SpdmAlgStruct::default(), 4),
         };
 
         let transport_encap = &mut TransportEncap {};
