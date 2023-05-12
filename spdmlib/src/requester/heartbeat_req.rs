@@ -114,7 +114,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         responder.common.session[0]
-            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -138,7 +138,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         requester.common.session[0]
-            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
         let status = requester.send_receive_spdm_heartbeat(session_id).is_ok();
         assert!(status);

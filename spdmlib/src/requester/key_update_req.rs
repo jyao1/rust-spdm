@@ -188,7 +188,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         responder.common.session[0]
-            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
         let dhe_secret = SpdmDheFinalKeyStruct {
             data_size: 48,
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
@@ -230,7 +230,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         requester.common.session[0]
-            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
         let dhe_secret = SpdmDheFinalKeyStruct {
             data_size: 48,
             data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),

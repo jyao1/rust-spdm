@@ -311,7 +311,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         responder.common.session[0]
-            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
         responder.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
@@ -348,7 +348,7 @@ mod tests_requester {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         requester.common.session[0]
-            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
+            .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
         requester.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
         );
