@@ -164,31 +164,23 @@ impl<'a> ResponderContext<'a> {
                 alg_struct: [
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                        alg_fixed_count: 2,
                         alg_supported: SpdmAlg::SpdmAlgoDhe(self.common.negotiate_info.dhe_sel),
-                        alg_ext_count: 0,
                     },
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
-                        alg_fixed_count: 2,
                         alg_supported: SpdmAlg::SpdmAlgoAead(self.common.negotiate_info.aead_sel),
-                        alg_ext_count: 0,
                     },
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
-                        alg_fixed_count: 2,
                         alg_supported: SpdmAlg::SpdmAlgoReqAsym(
                             self.common.negotiate_info.req_asym_sel,
                         ),
-                        alg_ext_count: 0,
                     },
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
-                        alg_fixed_count: 2,
                         alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
                             self.common.negotiate_info.key_schedule_sel,
                         ),
-                        alg_ext_count: 0,
                     },
                 ],
             }),
@@ -264,9 +256,7 @@ mod tests_responder {
             alg_struct: gen_array_clone(
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                    alg_fixed_count: 2,
                     alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
-                    alg_ext_count: 0,
                 },
                 4,
             ),
@@ -317,12 +307,10 @@ mod tests_responder {
                 spdm_sturct_data.alg_struct[index].alg_type,
                 SpdmAlgType::SpdmAlgTypeDHE
             );
-            assert_eq!(spdm_sturct_data.alg_struct[index].alg_fixed_count, 2);
             assert_eq!(
                 spdm_sturct_data.alg_struct[1].alg_supported,
                 SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
             );
-            assert_eq!(spdm_sturct_data.alg_struct[index].alg_ext_count, 0);
         }
 
         let u8_slice = &u8_slice[46..];
@@ -353,42 +341,34 @@ mod tests_responder {
             assert_eq!(payload.alg_struct_count, 4);
 
             assert_eq!(payload.alg_struct[0].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-            assert_eq!(payload.alg_struct[0].alg_fixed_count, 2);
             assert_eq!(
                 payload.alg_struct[0].alg_supported,
                 SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::empty())
             );
-            assert_eq!(payload.alg_struct[0].alg_ext_count, 0);
 
             assert_eq!(payload.alg_struct[1].alg_type, SpdmAlgType::SpdmAlgTypeAEAD);
-            assert_eq!(payload.alg_struct[1].alg_fixed_count, 2);
             assert_eq!(
                 payload.alg_struct[1].alg_supported,
                 SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::empty())
             );
-            assert_eq!(payload.alg_struct[1].alg_ext_count, 0);
 
             assert_eq!(
                 payload.alg_struct[2].alg_type,
                 SpdmAlgType::SpdmAlgTypeReqAsym
             );
-            assert_eq!(payload.alg_struct[2].alg_fixed_count, 2);
             assert_eq!(
                 payload.alg_struct[2].alg_supported,
                 SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::empty())
             );
-            assert_eq!(payload.alg_struct[2].alg_ext_count, 0);
 
             assert_eq!(
                 payload.alg_struct[3].alg_type,
                 SpdmAlgType::SpdmAlgTypeKeySchedule
             );
-            assert_eq!(payload.alg_struct[3].alg_fixed_count, 2);
             assert_eq!(
                 payload.alg_struct[3].alg_supported,
                 SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::empty())
             );
-            assert_eq!(payload.alg_struct[3].alg_ext_count, 0);
         }
     }
 }

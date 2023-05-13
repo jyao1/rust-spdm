@@ -27,18 +27,20 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
         cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param1
         cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // param2
 
-        cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
-        cnt += self
-            .ct_exponent
-            .encode(bytes)
-            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved2
-        cnt += self
-            .flags
-            .encode(bytes)
-            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion11.get_u8() {
+            cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved
+            cnt += self
+                .ct_exponent
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved2
+            cnt += self
+                .flags
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        }
 
-        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
             cnt += self
                 .data_transfer_size
                 .encode(bytes)
@@ -58,32 +60,32 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
         u8::read(r)?; // param1
         u8::read(r)?; // param2
 
-        u8::read(r)?; // reserved
-        let ct_exponent = u8::read(r)?;
-        u16::read(r)?; // reserved2
-        let flags = SpdmRequestCapabilityFlags::read(r)?;
+        let mut ct_exponent = 0;
+        let mut flags = SpdmRequestCapabilityFlags::default();
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion11.get_u8() {
+            u8::read(r)?; // reserved
+            ct_exponent = u8::read(r)?;
+            u16::read(r)?; // reserved2
+            flags = SpdmRequestCapabilityFlags::read(r)?;
+        }
 
-        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            let data_transfer_size = u32::read(r)?;
-            let max_spdm_msg_size = u32::read(r)?;
-            if data_transfer_size < 42 || max_spdm_msg_size < 42 {
+        let mut data_transfer_size = 0;
+        let mut max_spdm_msg_size = 0;
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
+            data_transfer_size = u32::read(r)?;
+            max_spdm_msg_size = u32::read(r)?;
+            if data_transfer_size < 42 || max_spdm_msg_size < data_transfer_size {
                 log::error!("responder: data_transfer_size or max_spdm_msg_size < 42");
                 return None;
             }
-            Some(SpdmGetCapabilitiesRequestPayload {
-                ct_exponent,
-                flags,
-                data_transfer_size,
-                max_spdm_msg_size,
-            })
-        } else {
-            Some(SpdmGetCapabilitiesRequestPayload {
-                ct_exponent,
-                flags,
-                data_transfer_size: 0,
-                max_spdm_msg_size: 0,
-            })
         }
+
+        Some(SpdmGetCapabilitiesRequestPayload {
+            ct_exponent,
+            flags,
+            data_transfer_size,
+            max_spdm_msg_size,
+        })
     }
 }
 
@@ -116,7 +118,7 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
             .encode(bytes)
             .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
             cnt += self
                 .data_transfer_size
                 .encode(bytes)
@@ -142,7 +144,7 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
         u16::read(r)?; // reserved2
         let flags = SpdmResponseCapabilityFlags::read(r)?;
 
-        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
             let data_transfer_size = u32::read(r)?;
             let max_spdm_msg_size = u32::read(r)?;
             if data_transfer_size < 42 || max_spdm_msg_size < 42 {
@@ -273,6 +275,7 @@ mod tests {
         };
 
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
@@ -298,6 +301,7 @@ mod tests {
         };
 
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
@@ -318,6 +322,7 @@ mod tests {
         let value = SpdmGetCapabilitiesRequestPayload::default();
 
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
@@ -337,6 +342,7 @@ mod tests {
         };
 
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
@@ -362,6 +368,7 @@ mod tests {
         };
 
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
@@ -382,6 +389,7 @@ mod tests {
         let value = SpdmCapabilitiesResponsePayload::default();
 
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);

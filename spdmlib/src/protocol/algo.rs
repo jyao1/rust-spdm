@@ -592,38 +592,33 @@ impl Default for SpdmAlg {
 #[derive(Debug, Clone, Default)]
 pub struct SpdmAlgStruct {
     pub alg_type: SpdmAlgType,
-    pub alg_fixed_count: u8,
     pub alg_supported: SpdmAlg,
-    pub alg_ext_count: u8, // for output only. Always treat as 0 on input.
 }
 
 impl Codec for SpdmAlgStruct {
     fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
         let mut cnt = 0usize;
         // DSP0274 Table: Algorithm request structure
-        assert_eq!((self.alg_fixed_count + 2) % 4, 0);
-        assert_eq!(self.alg_ext_count, 0);
+        let alg_fixed_count = 2u8;
         cnt += self.alg_type.encode(bytes)?;
-        let alg_count = ((self.alg_fixed_count as u32) << 4) as u8;
+        let alg_count = ((alg_fixed_count as u32) << 4) as u8;
         cnt += alg_count.encode(bytes)?;
 
-        if self.alg_fixed_count == 2 {
-            match &self.alg_supported {
-                SpdmAlg::SpdmAlgoDhe(alg_supported) => {
-                    cnt += alg_supported.encode(bytes)?;
-                }
-                SpdmAlg::SpdmAlgoAead(alg_supported) => {
-                    cnt += alg_supported.encode(bytes)?;
-                }
-                SpdmAlg::SpdmAlgoReqAsym(alg_supported) => {
-                    cnt += alg_supported.encode(bytes)?;
-                }
-                SpdmAlg::SpdmAlgoKeySchedule(alg_supported) => {
-                    cnt += alg_supported.encode(bytes)?;
-                }
-                SpdmAlg::SpdmAlgoUnknown(alg_supported) => {
-                    cnt += alg_supported.encode(bytes)?;
-                }
+        match &self.alg_supported {
+            SpdmAlg::SpdmAlgoDhe(alg_supported) => {
+                cnt += alg_supported.encode(bytes)?;
+            }
+            SpdmAlg::SpdmAlgoAead(alg_supported) => {
+                cnt += alg_supported.encode(bytes)?;
+            }
+            SpdmAlg::SpdmAlgoReqAsym(alg_supported) => {
+                cnt += alg_supported.encode(bytes)?;
+            }
+            SpdmAlg::SpdmAlgoKeySchedule(alg_supported) => {
+                cnt += alg_supported.encode(bytes)?;
+            }
+            SpdmAlg::SpdmAlgoUnknown(alg_supported) => {
+                cnt += alg_supported.encode(bytes)?;
             }
         }
         Ok(cnt)
@@ -634,6 +629,12 @@ impl Codec for SpdmAlgStruct {
         let alg_count = u8::read(r)?;
         let alg_fixed_count = ((alg_count as u32 >> 4) & 0xF) as u8;
         let alg_ext_count = alg_count & 0xF;
+        if alg_fixed_count != 2 {
+            return None;
+        }
+        if alg_ext_count != 0 {
+            return None;
+        }
 
         let alg_supported = match alg_type {
             SpdmAlgType::SpdmAlgTypeDHE => Some(SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::read(r)?)),
@@ -644,20 +645,14 @@ impl Codec for SpdmAlgStruct {
             SpdmAlgType::SpdmAlgTypeKeySchedule => {
                 Some(SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::read(r)?))
             }
-            _ => Some(SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo {})),
+            _ => return None,
         };
 
         let alg_supported = alg_supported?;
 
-        for _ in 0..(alg_ext_count as usize) {
-            SpdmExtAlgStruct::read(r)?;
-        }
-
         Some(SpdmAlgStruct {
             alg_type,
-            alg_fixed_count,
             alg_supported,
-            alg_ext_count,
         })
     }
 }
@@ -1314,9 +1309,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmAlgStruct {
             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-            alg_fixed_count: 2,
             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
-            alg_ext_count: 0,
         };
         assert!(value.encode(&mut writer).is_ok());
 
@@ -1325,71 +1318,27 @@ mod tests {
         let spdm_alg_struct = SpdmAlgStruct::read(&mut reader).unwrap();
         assert_eq!(4, reader.left());
         assert_eq!(spdm_alg_struct.alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-        assert_eq!(spdm_alg_struct.alg_fixed_count, 2);
-        assert_eq!(spdm_alg_struct.alg_ext_count, 0);
         assert_eq!(
             spdm_alg_struct.alg_supported,
             SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
         );
     }
-    #[test]
-    #[should_panic]
-    fn test_case1_spdm_alg_struct() {
-        let u8_slice = &mut [0u8; 8];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmAlgStruct {
-            alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-            alg_fixed_count: 0,
-            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
-            alg_ext_count: 0,
-        };
-        assert!(value.encode(&mut writer).is_ok());
 
-        let mut reader = Reader::init(u8_slice);
-        assert_eq!(8, reader.left());
-        let spdm_alg_struct = SpdmAlgStruct::read(&mut reader).unwrap();
-        assert_eq!(spdm_alg_struct.alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-        assert_eq!(spdm_alg_struct.alg_fixed_count, 0);
-        assert_eq!(spdm_alg_struct.alg_ext_count, 0);
-        assert_eq!(
-            spdm_alg_struct.alg_supported,
-            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
-        );
-    }
-    #[test]
-    #[should_panic]
-    fn test_case2_spdm_alg_struct() {
-        let u8_slice = &mut [0u8; 8];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmAlgStruct {
-            alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-            alg_fixed_count: 0,
-            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
-            alg_ext_count: 100,
-        };
-        assert!(value.encode(&mut writer).is_ok());
-    }
     #[test]
     fn test_case3_spdm_alg_struct() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
-        let spdmalg = SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo {});
         let value = SpdmAlgStruct {
             alg_type: SpdmAlgType::Unknown(1),
-            alg_fixed_count: 2,
             alg_supported: SpdmAlg::SpdmAlgoUnknown(SpdmUnknownAlgo {}),
-            alg_ext_count: 0,
         };
         assert!(value.encode(&mut writer).is_ok());
 
         let mut reader = Reader::init(u8_slice);
         assert_eq!(8, reader.left());
-        let spdm_alg_struct = SpdmAlgStruct::read(&mut reader).unwrap();
+        let spdm_alg_struct = SpdmAlgStruct::read(&mut reader);
 
-        assert_eq!(spdm_alg_struct.alg_type, SpdmAlgType::Unknown(1));
-        assert_eq!(spdm_alg_struct.alg_fixed_count, 2);
-        assert_eq!(spdm_alg_struct.alg_ext_count, 0);
-        assert_eq!(spdm_alg_struct.alg_supported, spdmalg);
+        assert!(spdm_alg_struct.is_none());
     }
     #[test]
     fn test_case0_spdm_digest_struct() {

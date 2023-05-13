@@ -112,10 +112,12 @@ mod tests_responder {
             config_info,
             provision_info,
         );
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
-            version: SpdmVersion::SpdmVersion10,
+            version: SpdmVersion::SpdmVersion11,
             request_response_code: SpdmRequestResponseCode::SpdmRequestGetCapabilities,
         };
         assert!(value.encode(&mut writer).is_ok());
@@ -151,7 +153,7 @@ mod tests_responder {
         }
         let mut reader = Reader::init(u8_slice);
         let spdm_message_header = SpdmMessageHeader::read(&mut reader).unwrap();
-        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(spdm_message_header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message_header.request_response_code,
             SpdmRequestResponseCode::SpdmRequestGetCapabilities
@@ -169,7 +171,7 @@ mod tests_responder {
         let mut reader = Reader::init(spdm_message_slice);
         let spdm_message: SpdmMessage =
             SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
-        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion10);
+        assert_eq!(spdm_message.header.version, SpdmVersion::SpdmVersion11);
         assert_eq!(
             spdm_message.header.request_response_code,
             SpdmRequestResponseCode::SpdmResponseCapabilities

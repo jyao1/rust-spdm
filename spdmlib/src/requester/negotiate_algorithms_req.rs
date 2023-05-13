@@ -49,31 +49,23 @@ impl<'a> RequesterContext<'a> {
                     alg_struct: [
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                            alg_fixed_count: 2,
                             alg_supported: SpdmAlg::SpdmAlgoDhe(self.common.config_info.dhe_algo),
-                            alg_ext_count: 0,
                         },
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
-                            alg_fixed_count: 2,
                             alg_supported: SpdmAlg::SpdmAlgoAead(self.common.config_info.aead_algo),
-                            alg_ext_count: 0,
                         },
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
-                            alg_fixed_count: 2,
                             alg_supported: SpdmAlg::SpdmAlgoReqAsym(
                                 self.common.config_info.req_asym_algo,
                             ),
-                            alg_ext_count: 0,
                         },
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
-                            alg_fixed_count: 2,
                             alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
                                 self.common.config_info.key_schedule_algo,
                             ),
-                            alg_ext_count: 0,
                         },
                     ],
                 },

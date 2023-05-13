@@ -619,6 +619,7 @@ mod tests {
             ),
         };
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -647,6 +648,7 @@ mod tests {
             ),
         };
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -675,9 +677,7 @@ mod tests {
                     alg_struct: gen_array_clone(
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                            alg_fixed_count: 2,
                             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
-                            alg_ext_count: 0,
                         },
                         4,
                     ),
@@ -685,6 +685,7 @@ mod tests {
             ),
         };
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -704,12 +705,10 @@ mod tests {
             assert_eq!(payload.alg_struct_count, 4);
             for i in 0..4 {
                 assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-                assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
                 assert_eq!(
                     payload.alg_struct[1].alg_supported,
                     SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
                 );
-                assert_eq!(payload.alg_struct[i].alg_ext_count, 0);
             }
         }
     }
@@ -730,15 +729,14 @@ mod tests {
                 alg_struct: gen_array_clone(
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeDHE,
-                        alg_fixed_count: 2,
                         alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
-                        alg_ext_count: 0,
                     },
                     4,
                 ),
             }),
         };
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         context.config_info.measurement_specification = SpdmMeasurementSpecification::DMTF;
         context.config_info.measurement_hash_algo = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
@@ -764,12 +762,10 @@ mod tests {
             assert_eq!(payload.alg_struct_count, 4);
             for i in 0..4 {
                 assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-                assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
                 assert_eq!(
                     payload.alg_struct[1].alg_supported,
                     SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
                 );
-                assert_eq!(payload.alg_struct[i].alg_ext_count, 0);
             }
         }
     }
