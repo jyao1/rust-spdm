@@ -110,22 +110,22 @@ mod tests {
 
     #[test]
     fn test_case0_spdm_digests_response_payload() {
-        let u8_slice = &mut [0u8; 514];
+        let u8_slice = &mut [0u8; 2 + SPDM_MAX_SLOT_NUMBER * SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
 
         let mut value = SpdmDigestsResponsePayload {
             slot_mask: 0b11111111,
-            slot_count: 8,
+            slot_count: SPDM_MAX_SLOT_NUMBER as u8,
             digests: gen_array_clone(
                 SpdmDigestStruct {
-                    data_size: 64,
+                    data_size: SPDM_MAX_HASH_SIZE as u16,
                     data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
                 },
                 SPDM_MAX_SLOT_NUMBER,
             ),
         };
-        for i in 0..8 {
-            for j in 0..64 {
+        for i in 0..SPDM_MAX_SLOT_NUMBER {
+            for j in 0..SPDM_MAX_HASH_SIZE {
                 value.digests[i].data[j] = (i * j) as u8;
             }
         }
@@ -136,13 +136,13 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(514, reader.left());
+        assert_eq!(2 + SPDM_MAX_SLOT_NUMBER * SPDM_MAX_HASH_SIZE, reader.left());
         let spdm_digests_response_payload =
             SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_digests_response_payload.slot_mask, 0b11111111);
-        assert_eq!(spdm_digests_response_payload.slot_count, 8);
-        for i in 0..8 {
-            for j in 0..64 {
+        assert_eq!(spdm_digests_response_payload.slot_count, SPDM_MAX_SLOT_NUMBER as u8);
+        for i in 0..SPDM_MAX_SLOT_NUMBER {
+            for j in 0..SHA512_DIGEST_SIZE {
                 assert_eq!(spdm_digests_response_payload.digests[i].data_size, 64u16);
                 assert_eq!(
                     spdm_digests_response_payload.digests[i].data[j],
@@ -155,7 +155,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_case1_spdm_digests_response_payload() {
-        let u8_slice = &mut [0u8; 10];
+        let u8_slice = &mut [0u8; 2];
         let mut writer = Writer::init(u8_slice);
         let mut value = SpdmDigestsResponsePayload::default();
         value.slot_mask = 0b00000000;
@@ -169,7 +169,7 @@ mod tests {
         let mut reader = Reader::init(u8_slice);
         SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
-        let u8_slice = &mut [0u8; 10];
+        let u8_slice = &mut [0u8; 2];
         let mut writer = Writer::init(u8_slice);
         let mut value = SpdmDigestsResponsePayload::default();
         value.slot_mask = 0b00011111;
@@ -183,7 +183,7 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_get_digests_request_payload() {
-        let u8_slice = &mut [0u8; 8];
+        let u8_slice = &mut [0u8; 2];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetDigestsRequestPayload {};
 

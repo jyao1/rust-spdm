@@ -160,7 +160,7 @@ mod tests {
         assert_eq!(spdmversionstruct.is_none(), true);
     }
     #[test]
-    fn test_case0_spdm_key_exchange_request_payload() {
+    fn test_case0_spdm_version_response_payload() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmVersionResponsePayload {

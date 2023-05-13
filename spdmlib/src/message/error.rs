@@ -34,6 +34,8 @@ enum_builder! {
     }
 }
 
+pub const SPDM_ERROR_VENDOR_EXT_DATA_SIZE: usize = 32;
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SpdmErrorResponseNoneExtData {}
 
@@ -292,28 +294,28 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_error_response_vendor_ext_data() {
-        let u8_slice = &mut [0u8; 32];
+        let u8_slice = &mut [0u8; SPDM_ERROR_VENDOR_EXT_DATA_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmErrorResponseVendorExtData {
-            data_size: 32,
-            data: [100u8; 32],
+            data_size: SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8,
+            data: [100u8; SPDM_ERROR_VENDOR_EXT_DATA_SIZE],
         };
 
         create_spdm_context!(context);
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(32, reader.left());
+        assert_eq!(SPDM_ERROR_VENDOR_EXT_DATA_SIZE, reader.left());
         let response_vendor_ext_data =
             SpdmErrorResponseVendorExtData::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(response_vendor_ext_data.data_size, 32);
-        for i in 0..32 {
+        for i in 0..SPDM_ERROR_VENDOR_EXT_DATA_SIZE {
             assert_eq!(response_vendor_ext_data.data[i], 100u8);
         }
     }
     #[test]
     fn test_case1_spdm_error_response_vendor_ext_data() {
-        let u8_slice = &mut [0u8; 32];
+        let u8_slice = &mut [0u8; SPDM_ERROR_VENDOR_EXT_DATA_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmErrorResponseVendorExtData::default();
 
@@ -321,11 +323,11 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(32, reader.left());
+        assert_eq!(SPDM_ERROR_VENDOR_EXT_DATA_SIZE, reader.left());
         let response_vendor_ext_data =
             SpdmErrorResponseVendorExtData::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(response_vendor_ext_data.data_size, 32);
-        for i in 0..32 {
+        assert_eq!(response_vendor_ext_data.data_size, SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8);
+        for i in 0..SPDM_ERROR_VENDOR_EXT_DATA_SIZE {
             assert_eq!(response_vendor_ext_data.data[i], 0);
         }
     }
@@ -378,8 +380,8 @@ mod tests {
         if let SpdmErrorResponseExtData::SpdmErrorExtDataVendorDefined(extended_data) =
             &spdm_error_response_payload.extended_data
         {
-            assert_eq!(extended_data.data_size, 32);
-            for i in 0..32 {
+            assert_eq!(extended_data.data_size, SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8);
+            for i in 0..SPDM_ERROR_VENDOR_EXT_DATA_SIZE {
                 assert_eq!(extended_data.data[i], 100u8);
             }
         }
@@ -398,7 +400,7 @@ mod tests {
         value: SpdmErrorResponsePayload,
         context: &mut common::SpdmContext,
     ) -> SpdmErrorResponsePayload {
-        let u8_slice = &mut [0u8; 100];
+        let u8_slice = &mut [0u8; 4 + SPDM_ERROR_VENDOR_EXT_DATA_SIZE];
         let mut writer = Writer::init(u8_slice);
         assert!(value.spdm_encode(context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);

@@ -235,23 +235,23 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
-    fn test_case0_spdm_key_exchange_request_payload() {
-        let u8_slice = &mut [0u8; 180];
+    fn test_case0_spdm_psk_exchange_request_payload() {
+        let u8_slice = &mut [0u8; 10 + MAX_SPDM_PSK_HINT_SIZE + MAX_SPDM_PSK_CONTEXT_SIZE + MAX_SPDM_OPAQUE_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskExchangeRequestPayload {
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             req_session_id: 100u16,
             psk_hint: SpdmPskHintStruct {
-                data_size: 32,
+                data_size: MAX_SPDM_PSK_HINT_SIZE as u16,
                 data: [100u8; MAX_SPDM_PSK_HINT_SIZE],
             },
             psk_context: SpdmPskContextStruct {
-                data_size: 64,
+                data_size: MAX_SPDM_PSK_CONTEXT_SIZE as u16,
                 data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: 64,
+                data_size: MAX_SPDM_OPAQUE_SIZE as u16,
                 data: [100u8; MAX_SPDM_OPAQUE_SIZE],
             },
         };
@@ -260,7 +260,7 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(180, reader.left());
+        assert_eq!(10 + MAX_SPDM_PSK_HINT_SIZE + MAX_SPDM_PSK_CONTEXT_SIZE + MAX_SPDM_OPAQUE_SIZE, reader.left());
         let psk_exchange_request =
             SpdmPskExchangeRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
 
@@ -268,21 +268,23 @@ mod tests {
             psk_exchange_request.measurement_summary_hash_type,
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
         );
-        assert_eq!(psk_exchange_request.psk_hint.data_size, 32);
-        assert_eq!(psk_exchange_request.psk_context.data_size, 64);
-        assert_eq!(psk_exchange_request.opaque.data_size, 64);
-        for i in 0..32 {
+        assert_eq!(psk_exchange_request.psk_hint.data_size, MAX_SPDM_PSK_HINT_SIZE as u16);
+        assert_eq!(psk_exchange_request.psk_context.data_size, MAX_SPDM_PSK_CONTEXT_SIZE as u16);
+        assert_eq!(psk_exchange_request.opaque.data_size, MAX_SPDM_OPAQUE_SIZE as u16);
+        for i in 0..MAX_SPDM_PSK_HINT_SIZE {
             assert_eq!(psk_exchange_request.psk_hint.data[i], 100);
         }
-        for i in 0..64 {
+        for i in 0..MAX_SPDM_PSK_CONTEXT_SIZE {
             assert_eq!(psk_exchange_request.psk_context.data[i], 100);
+        }
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(psk_exchange_request.opaque.data[i], 100);
         }
-        assert_eq!(10, reader.left());
+        assert_eq!(0, reader.left());
     }
     #[test]
-    fn test_case1_spdm_key_exchange_request_payload() {
-        let u8_slice = &mut [0u8; 180];
+    fn test_case1_spdm_psk_exchange_request_payload() {
+        let u8_slice = &mut [0u8; 10];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskExchangeRequestPayload {
             measurement_summary_hash_type:
@@ -306,7 +308,7 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(180, reader.left());
+        assert_eq!(10, reader.left());
         let psk_exchange_request =
             SpdmPskExchangeRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
 
@@ -317,36 +319,38 @@ mod tests {
         assert_eq!(psk_exchange_request.psk_hint.data_size, 0);
         assert_eq!(psk_exchange_request.psk_context.data_size, 0);
         assert_eq!(psk_exchange_request.opaque.data_size, 0);
-        for i in 0..32 {
+        for i in 0..MAX_SPDM_PSK_HINT_SIZE {
             assert_eq!(psk_exchange_request.psk_hint.data[i], 0);
         }
-        for i in 0..64 {
+        for i in 0..MAX_SPDM_PSK_CONTEXT_SIZE {
             assert_eq!(psk_exchange_request.psk_context.data[i], 0);
+        }
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(psk_exchange_request.opaque.data[i], 0);
         }
-        assert_eq!(170, reader.left());
+        assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case0_spdm_psk_exchange_response_payload() {
-        let u8_slice = &mut [0u8; 280];
+        let u8_slice = &mut [0u8; 10 + SPDM_MAX_HASH_SIZE + MAX_SPDM_PSK_CONTEXT_SIZE + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskExchangeResponsePayload {
             heartbeat_period: 0xaau8,
             rsp_session_id: 0xaa55u16,
             measurement_summary_hash: SpdmDigestStruct {
-                data_size: 64,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
             psk_context: SpdmPskContextStruct {
-                data_size: 64,
+                data_size: MAX_SPDM_PSK_CONTEXT_SIZE as u16,
                 data: [100u8; MAX_SPDM_PSK_CONTEXT_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: 64,
+                data_size: MAX_SPDM_OPAQUE_SIZE as u16,
                 data: [100u8; MAX_SPDM_OPAQUE_SIZE],
             },
             verify_data: SpdmDigestStruct {
-                data_size: 64,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
@@ -358,52 +362,58 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(280, reader.left());
+        assert_eq!(10 + SPDM_MAX_HASH_SIZE + MAX_SPDM_PSK_CONTEXT_SIZE + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_HASH_SIZE, reader.left());
         let psk_exchange_response =
             SpdmPskExchangeResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
         assert_eq!(psk_exchange_response.heartbeat_period, 0xaau8);
         assert_eq!(psk_exchange_response.rsp_session_id, 0xaa55u16);
 
-        assert_eq!(psk_exchange_response.measurement_summary_hash.data_size, 64);
-        assert_eq!(psk_exchange_response.psk_context.data_size, 64);
-        assert_eq!(psk_exchange_response.opaque.data_size, 64);
-        assert_eq!(psk_exchange_response.verify_data.data_size, 64);
+        assert_eq!(psk_exchange_response.measurement_summary_hash.data_size, SHA512_DIGEST_SIZE as u16);
+        assert_eq!(psk_exchange_response.psk_context.data_size, MAX_SPDM_PSK_CONTEXT_SIZE as u16);
+        assert_eq!(psk_exchange_response.opaque.data_size, MAX_SPDM_OPAQUE_SIZE as u16);
+        assert_eq!(psk_exchange_response.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
 
-        for i in 0..64 {
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_exchange_response.measurement_summary_hash.data[i], 100);
+        }
+        for i in 0..MAX_SPDM_PSK_CONTEXT_SIZE {
             assert_eq!(psk_exchange_response.psk_context.data[i], 100);
+        }
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(psk_exchange_response.opaque.data[i], 100);
+        }
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_exchange_response.verify_data.data[i], 100u8);
         }
-        assert_eq!(14, reader.left());
+        assert_eq!(0, reader.left());
 
-        let u8_slice = &mut [0u8; 420];
+        let u8_slice = &mut [0u8; 10 + MAX_SPDM_PSK_CONTEXT_SIZE + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
 
         context.runtime_info.need_measurement_summary_hash = false;
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(420, reader.left());
+        assert_eq!(10 + MAX_SPDM_PSK_CONTEXT_SIZE + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_HASH_SIZE, reader.left());
         let psk_exchange_response =
             SpdmPskExchangeResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
         assert_eq!(psk_exchange_response.measurement_summary_hash.data_size, 0);
-        for i in 0..64 {
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_exchange_response.measurement_summary_hash.data[i], 0);
         }
-        assert_eq!(218, reader.left());
+        assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case1_spdm_psk_exchange_response_payload() {
-        let u8_slice = &mut [0u8; 280];
+        let u8_slice = &mut [0u8; 10 + SPDM_MAX_HASH_SIZE + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskExchangeResponsePayload {
             heartbeat_period: 0xaau8,
             rsp_session_id: 0xaa55u16,
             measurement_summary_hash: SpdmDigestStruct {
-                data_size: 64,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
             psk_context: SpdmPskContextStruct {
@@ -415,7 +425,7 @@ mod tests {
                 data: [100u8; MAX_SPDM_OPAQUE_SIZE],
             },
             verify_data: SpdmDigestStruct {
-                data_size: 64,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
@@ -427,24 +437,30 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(280, reader.left());
+        assert_eq!(10 + SPDM_MAX_HASH_SIZE + SPDM_MAX_HASH_SIZE, reader.left());
         let psk_exchange_response =
             SpdmPskExchangeResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
         assert_eq!(psk_exchange_response.heartbeat_period, 0xaau8);
         assert_eq!(psk_exchange_response.rsp_session_id, 0xaa55u16);
 
-        assert_eq!(psk_exchange_response.measurement_summary_hash.data_size, 64);
+        assert_eq!(psk_exchange_response.measurement_summary_hash.data_size, SHA512_DIGEST_SIZE as u16);
         assert_eq!(psk_exchange_response.psk_context.data_size, 0);
         assert_eq!(psk_exchange_response.opaque.data_size, 0);
-        assert_eq!(psk_exchange_response.verify_data.data_size, 64);
+        assert_eq!(psk_exchange_response.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
 
-        for i in 0..64 {
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_exchange_response.measurement_summary_hash.data[i], 100);
+        }
+        for i in 0..MAX_SPDM_PSK_CONTEXT_SIZE {
             assert_eq!(psk_exchange_response.psk_context.data[i], 0);
+        }
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(psk_exchange_response.opaque.data[i], 0);
+        }
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_exchange_response.verify_data.data[i], 100);
         }
-        assert_eq!(142, reader.left());
+        assert_eq!(0, reader.left());
     }
 }

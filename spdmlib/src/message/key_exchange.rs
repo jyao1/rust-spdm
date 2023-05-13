@@ -248,7 +248,7 @@ mod tests {
                 data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: 64u16,
+                data_size: crate::config::MAX_SPDM_OPAQUE_SIZE as u16,
                 data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
             },
         };
@@ -268,15 +268,15 @@ mod tests {
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
         );
         assert_eq!(exchange_request_payload.slot_id, 100);
-        for i in 0..32 {
+        for i in 0..SPDM_RANDOM_SIZE {
             assert_eq!(exchange_request_payload.random.data[i], 100);
         }
         assert_eq!(exchange_request_payload.exchange.data_size, ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
         for i in 0..ECDSA_ECC_NIST_P384_KEY_SIZE {
             assert_eq!(exchange_request_payload.exchange.data[i], 100);
         }
-        assert_eq!(exchange_request_payload.opaque.data_size, 64);
-        for i in 0..64 {
+        assert_eq!(exchange_request_payload.opaque.data_size, crate::config::MAX_SPDM_OPAQUE_SIZE as u16);
+        for i in 0..crate::config::MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(exchange_request_payload.opaque.data[i], 100);
         }
     }
@@ -298,19 +298,19 @@ mod tests {
                 data: [0xa5u8; SPDM_MAX_DHE_KEY_SIZE],
             },
             measurement_summary_hash: SpdmDigestStruct {
-                data_size: 64u16,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([0x11u8; SPDM_MAX_HASH_SIZE]),
             },
             opaque: SpdmOpaqueStruct {
-                data_size: 64u16,
+                data_size: crate::config::MAX_SPDM_OPAQUE_SIZE as u16,
                 data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
             },
             signature: SpdmSignatureStruct {
-                data_size: 512u16,
+                data_size: SPDM_MAX_ASYM_KEY_SIZE as u16,
                 data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
             },
             verify_data: SpdmDigestStruct {
-                data_size: 64u16,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([0x33u8; SPDM_MAX_HASH_SIZE]),
             },
         };
@@ -335,7 +335,7 @@ mod tests {
             SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ
         );
         assert_eq!(exchange_request_payload.req_slot_id, 100);
-        for i in 0..32 {
+        for i in 0..SPDM_RANDOM_SIZE {
             assert_eq!(exchange_request_payload.random.data[i], 100);
         }
 
@@ -344,30 +344,34 @@ mod tests {
             assert_eq!(exchange_request_payload.exchange.data[i], 0xa5);
         }
 
-        assert_eq!(exchange_request_payload.signature.data_size, 512);
-        for i in 0..512 {
+        assert_eq!(exchange_request_payload.signature.data_size, RSAPSS_4096_KEY_SIZE as u16);
+        for i in 0..RSAPSS_4096_KEY_SIZE {
             assert_eq!(exchange_request_payload.signature.data[i], 0x5a);
         }
 
         assert_eq!(
             exchange_request_payload.measurement_summary_hash.data_size,
-            64
+            SHA512_DIGEST_SIZE as u16
         );
-        assert_eq!(exchange_request_payload.verify_data.data_size, 64);
-        assert_eq!(exchange_request_payload.opaque.data_size, 64);
-        for i in 0..64 {
+        assert_eq!(exchange_request_payload.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
+        assert_eq!(exchange_request_payload.opaque.data_size, crate::config::MAX_SPDM_OPAQUE_SIZE as u16);
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(
                 exchange_request_payload.measurement_summary_hash.data[i],
                 0x11
             );
+        }
+        for i in 0..crate::config::MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(exchange_request_payload.opaque.data[i], 0x22);
+        }
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(exchange_request_payload.verify_data.data[i], 0x33);
         }
         assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case1_spdm_key_exchange_response_payload() {
-        let u8_slice = &mut [0u8; 6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + SPDM_MAX_HASH_SIZE + 2 + crate::config::MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE + SPDM_MAX_HASH_SIZE];
+        let u8_slice = &mut [0u8; 6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + 2 + crate::config::MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmKeyExchangeResponsePayload {
             heartbeat_period: 100u8,
@@ -383,15 +387,15 @@ mod tests {
             },
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
-                data_size: 64u16,
+                data_size: crate::config::MAX_SPDM_OPAQUE_SIZE as u16,
                 data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
             },
             signature: SpdmSignatureStruct {
-                data_size: 512u16,
+                data_size: SPDM_MAX_ASYM_KEY_SIZE as u16,
                 data: [0x5au8; SPDM_MAX_ASYM_KEY_SIZE],
             },
             verify_data: SpdmDigestStruct {
-                data_size: 64u16,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([0x33u8; SPDM_MAX_HASH_SIZE]),
             },
         };
@@ -405,7 +409,7 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + SPDM_MAX_HASH_SIZE + 2 + crate::config::MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE + SPDM_MAX_HASH_SIZE, reader.left());
+        assert_eq!(6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + 2 + crate::config::MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE + SPDM_MAX_HASH_SIZE, reader.left());
         let exchange_request_payload =
             SpdmKeyExchangeResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
@@ -416,7 +420,7 @@ mod tests {
             SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ
         );
         assert_eq!(exchange_request_payload.req_slot_id, 100);
-        for i in 0..32 {
+        for i in 0..SPDM_RANDOM_SIZE {
             assert_eq!(exchange_request_payload.random.data[i], 100);
         }
 
@@ -425,8 +429,8 @@ mod tests {
             assert_eq!(exchange_request_payload.exchange.data[i], 0xa5);
         }
 
-        assert_eq!(exchange_request_payload.signature.data_size, 512);
-        for i in 0..512 {
+        assert_eq!(exchange_request_payload.signature.data_size, RSAPSS_4096_KEY_SIZE as u16);
+        for i in 0..RSAPSS_4096_KEY_SIZE {
             assert_eq!(exchange_request_payload.signature.data[i], 0x5a);
         }
 
@@ -434,14 +438,18 @@ mod tests {
             exchange_request_payload.measurement_summary_hash.data_size,
             0
         );
-        assert_eq!(exchange_request_payload.verify_data.data_size, 64);
-        assert_eq!(exchange_request_payload.opaque.data_size, 64);
-        for i in 0..64 {
+        assert_eq!(exchange_request_payload.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
+        assert_eq!(exchange_request_payload.opaque.data_size, crate::config::MAX_SPDM_OPAQUE_SIZE as u16);
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(exchange_request_payload.measurement_summary_hash.data[i], 0);
+        }
+        for i in 0..crate::config::MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(exchange_request_payload.opaque.data[i], 0x22);
+        }
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(exchange_request_payload.verify_data.data[i], 0x33);
         }
-        assert_eq!(64, reader.left());
+        assert_eq!(0, reader.left());
     }
 }
 

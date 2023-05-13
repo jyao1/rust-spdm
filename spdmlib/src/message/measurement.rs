@@ -225,7 +225,7 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_get_measurements_request_payload() {
-        let u8_slice = &mut [0u8; 48];
+        let u8_slice = &mut [0u8; 2 + SPDM_NONCE_SIZE + 1];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetMeasurementsRequestPayload {
             measurement_attributes: SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
@@ -240,7 +240,7 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(48, reader.left());
+        assert_eq!(2 + SPDM_NONCE_SIZE + 1, reader.left());
         let get_measurements =
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(
@@ -252,14 +252,14 @@ mod tests {
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
         );
         assert_eq!(get_measurements.slot_id, 0xaau8);
-        for i in 0..32 {
+        for i in 0..SPDM_NONCE_SIZE {
             assert_eq!(get_measurements.nonce.data[i], 100u8);
         }
-        assert_eq!(13, reader.left());
+        assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case1_spdm_get_measurements_request_payload() {
-        let u8_slice = &mut [0u8; 48];
+        let u8_slice = &mut [0u8; 2];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetMeasurementsRequestPayload {
             measurement_attributes: SpdmMeasurementAttributes::empty(),
@@ -274,7 +274,7 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(48, reader.left());
+        assert_eq!(2, reader.left());
         let get_measurements =
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(
@@ -286,25 +286,25 @@ mod tests {
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
         );
         assert_eq!(get_measurements.slot_id, 0);
-        for i in 0..32 {
+        for i in 0..SPDM_NONCE_SIZE {
             assert_eq!(get_measurements.nonce.data[i], 0);
         }
-        assert_eq!(46, reader.left());
+        assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case0_spdm_measurements_response_payload() {
         create_spdm_context!(context);
 
-        let u8_slice = &mut [0u8; 1000];
+        let u8_slice = &mut [0u8; 6 + 5 * (7 + SPDM_MAX_HASH_SIZE) + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE];
         let mut writer = Writer::init(u8_slice);
         let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
             index: 100u8,
             measurement_specification: SpdmMeasurementSpecification::DMTF,
-            measurement_size: 67u16,
+            measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
             measurement: SpdmDmtfMeasurementStructure {
                 r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
                 representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                value_size: 64u16,
+                value_size: SPDM_MAX_HASH_SIZE as u16,
                 value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
             },
         };
@@ -328,11 +328,11 @@ mod tests {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: 64,
+                data_size: MAX_SPDM_OPAQUE_SIZE as u16,
                 data: [100u8; MAX_SPDM_OPAQUE_SIZE],
             },
             signature: SpdmSignatureStruct {
-                data_size: 512,
+                data_size: SPDM_MAX_ASYM_KEY_SIZE as u16,
                 data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
             },
         };
@@ -343,7 +343,7 @@ mod tests {
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
 
-        assert_eq!(1000, reader.left());
+        assert_eq!(6 + 5 * (7 + SPDM_MAX_HASH_SIZE) + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE, reader.left());
         let mut measurements_response =
             SpdmMeasurementsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(measurements_response.number_of_measurement, 100);
@@ -354,40 +354,40 @@ mod tests {
         );
 
         assert_eq!(measurements_response.measurement_record.number_of_blocks, 5);
-        for i in 0..32 {
+        for i in 0..SPDM_NONCE_SIZE {
             assert_eq!(measurements_response.nonce.data[i], 100);
         }
 
-        assert_eq!(measurements_response.opaque.data_size, 64);
-        for i in 0..64 {
+        assert_eq!(measurements_response.opaque.data_size, MAX_SPDM_OPAQUE_SIZE as u16);
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(measurements_response.opaque.data[i], 100);
         }
 
-        assert_eq!(measurements_response.signature.data_size, 512);
-        for i in 0..512 {
+        assert_eq!(measurements_response.signature.data_size, RSASSA_4096_KEY_SIZE as u16);
+        for i in 0..RSASSA_4096_KEY_SIZE {
             assert_eq!(measurements_response.signature.data[i], 100);
         }
-        assert_eq!(29, reader.left());
+        assert_eq!(0, reader.left());
 
-        let u8_slice = &mut [0u8; 1000];
+        let u8_slice = &mut [0u8; 6 + 5 * (7 + SPDM_MAX_HASH_SIZE) + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE];
         let mut writer = Writer::init(u8_slice);
 
         context.runtime_info.need_measurement_signature = false;
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(1000, reader.left());
+        assert_eq!(6 + 5 * (7 + SPDM_MAX_HASH_SIZE) + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE, reader.left());
         measurements_response =
             SpdmMeasurementsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
 
         assert_eq!(measurements_response.signature.data_size, 0);
 
-        for i in 0..32 {
+        for i in 0..SPDM_NONCE_SIZE {
             assert_eq!(measurements_response.nonce.data[i], 100);
         }
-        for i in 0..512 {
+        for i in 0..RSASSA_4096_KEY_SIZE {
             assert_eq!(measurements_response.signature.data[i], 0);
         }
-        assert_eq!(541, reader.left());
+        assert_eq!(0, reader.left());
     }
 }
 

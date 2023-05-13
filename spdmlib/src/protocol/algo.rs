@@ -1275,15 +1275,15 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_nonce_struct() {
-        let u8_slice = &mut [0u8; 32];
+        let u8_slice = &mut [0u8; SPDM_NONCE_SIZE];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmNonceStruct { data: [100u8; 32] };
+        let value = SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] };
         assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(32, reader.left());
+        assert_eq!(SPDM_NONCE_SIZE, reader.left());
         let spdm_nonce_struct = SpdmNonceStruct::read(&mut reader).unwrap();
 
-        for i in 0..32 {
+        for i in 0..SPDM_NONCE_SIZE {
             assert_eq!(spdm_nonce_struct.data[i], 100);
         }
         assert_eq!(0, reader.left());
@@ -1291,15 +1291,15 @@ mod tests {
 
     #[test]
     fn test_case0_spdm_random_struct() {
-        let u8_slice = &mut [0u8; 32];
+        let u8_slice = &mut [0u8; SPDM_RANDOM_SIZE];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmRandomStruct { data: [100u8; 32] };
+        let value = SpdmRandomStruct { data: [100u8; SPDM_RANDOM_SIZE] };
         assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(32, reader.left());
+        assert_eq!(SPDM_RANDOM_SIZE, reader.left());
         let spdm_random_struct = SpdmRandomStruct::read(&mut reader).unwrap();
 
-        for i in 0..32 {
+        for i in 0..SPDM_RANDOM_SIZE {
             assert_eq!(spdm_random_struct.data[i], 100);
         }
         assert_eq!(0, reader.left());
@@ -1412,7 +1412,7 @@ mod tests {
         let bytes_mut = bytes::BytesMut::new();
         let spdm_signature_struct = SpdmSignatureStruct::from(bytes_mut);
         assert_eq!(spdm_signature_struct.data_size, 0);
-        for i in 0..512 {
+        for i in 0..SPDM_MAX_ASYM_KEY_SIZE {
             assert_eq!(spdm_signature_struct.data[i], 0);
         }
     }
