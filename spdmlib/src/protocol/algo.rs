@@ -1277,7 +1277,9 @@ mod tests {
     fn test_case0_spdm_nonce_struct() {
         let u8_slice = &mut [0u8; SPDM_NONCE_SIZE];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] };
+        let value = SpdmNonceStruct {
+            data: [100u8; SPDM_NONCE_SIZE],
+        };
         assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(SPDM_NONCE_SIZE, reader.left());
@@ -1293,7 +1295,9 @@ mod tests {
     fn test_case0_spdm_random_struct() {
         let u8_slice = &mut [0u8; SPDM_RANDOM_SIZE];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmRandomStruct { data: [100u8; SPDM_RANDOM_SIZE] };
+        let value = SpdmRandomStruct {
+            data: [100u8; SPDM_RANDOM_SIZE],
+        };
         assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(SPDM_RANDOM_SIZE, reader.left());

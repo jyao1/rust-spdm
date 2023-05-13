@@ -140,7 +140,10 @@ mod tests {
         let spdm_digests_response_payload =
             SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_digests_response_payload.slot_mask, 0b11111111);
-        assert_eq!(spdm_digests_response_payload.slot_count, SPDM_MAX_SLOT_NUMBER as u8);
+        assert_eq!(
+            spdm_digests_response_payload.slot_count,
+            SPDM_MAX_SLOT_NUMBER as u8
+        );
         for i in 0..SPDM_MAX_SLOT_NUMBER {
             for j in 0..SHA512_DIGEST_SIZE {
                 assert_eq!(spdm_digests_response_payload.digests[i].data_size, 64u16);

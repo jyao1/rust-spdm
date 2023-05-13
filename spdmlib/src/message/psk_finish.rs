@@ -95,7 +95,10 @@ mod tests {
         let psk_finish_request =
             SpdmPskFinishRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
 
-        assert_eq!(psk_finish_request.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
+        assert_eq!(
+            psk_finish_request.verify_data.data_size,
+            SHA512_DIGEST_SIZE as u16
+        );
         for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_finish_request.verify_data.data[i], 100u8);
         }

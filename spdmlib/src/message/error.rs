@@ -326,7 +326,10 @@ mod tests {
         assert_eq!(SPDM_ERROR_VENDOR_EXT_DATA_SIZE, reader.left());
         let response_vendor_ext_data =
             SpdmErrorResponseVendorExtData::spdm_read(&mut context, &mut reader).unwrap();
-        assert_eq!(response_vendor_ext_data.data_size, SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8);
+        assert_eq!(
+            response_vendor_ext_data.data_size,
+            SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8
+        );
         for i in 0..SPDM_ERROR_VENDOR_EXT_DATA_SIZE {
             assert_eq!(response_vendor_ext_data.data[i], 0);
         }
@@ -380,7 +383,10 @@ mod tests {
         if let SpdmErrorResponseExtData::SpdmErrorExtDataVendorDefined(extended_data) =
             &spdm_error_response_payload.extended_data
         {
-            assert_eq!(extended_data.data_size, SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8);
+            assert_eq!(
+                extended_data.data_size,
+                SPDM_ERROR_VENDOR_EXT_DATA_SIZE as u8
+            );
             for i in 0..SPDM_ERROR_VENDOR_EXT_DATA_SIZE {
                 assert_eq!(extended_data.data[i], 100u8);
             }
