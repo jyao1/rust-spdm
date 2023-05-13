@@ -72,21 +72,21 @@ impl<'a> RequesterContext<'a> {
             .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
         {
             opaque = SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1
                     .len() as u16,
                 ..Default::default()
             };
             opaque.data[..(opaque.data_size as usize)].copy_from_slice(
-                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1.as_ref(),
+                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1.as_ref(),
             );
         } else {
             opaque = SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277
                     .len() as u16,
                 ..Default::default()
             };
             opaque.data[..(opaque.data_size as usize)].copy_from_slice(
-                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0.as_ref(),
+                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277.as_ref(),
             );
         }
 

@@ -36,7 +36,7 @@ pub const DMTF_SUPPORTED_SECURE_SPDM_VERSION_LIST: [SecuredMessageVersion;
 pub const DMTF_SECURE_SPDM_VERSION_SELECTION: SecuredMessageVersion =
     SecuredMessageVersion::from_secure_spdm_version(DMTF_SECURE_SPDM_VERSION_10);
 
-pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0: [u8; 20] = [
+pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277: [u8; 20] = [
     0x46,
     0x54,
     0x4d,
@@ -59,7 +59,7 @@ pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT0: [u8; 20] = [
     PADDING,
 ];
 
-pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0: [u8; 16] = [
+pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277: [u8; 16] = [
     0x46,
     0x54,
     0x4d,
@@ -78,7 +78,7 @@ pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0: [u8; 16] = [
     DMTF_SECURE_SPDM_VERSION_11,
 ];
 
-pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1: [u8; 16] = [
+pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1: [u8; 16] = [
     OPAQUE_LIST_TOTAL_ELEMENTS,
     RESERVED,
     RESERVED,
@@ -97,7 +97,7 @@ pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1: [u8; 16] = [
     PADDING,
 ];
 
-pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1: [u8; 12] = [
+pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0274_FMT1: [u8; 12] = [
     OPAQUE_LIST_TOTAL_ELEMENTS,
     RESERVED,
     RESERVED,
@@ -610,7 +610,6 @@ impl SpdmOpaqueStruct {
 bitflags! {
     #[derive(Default)]
     pub struct SpdmOpaqueSupport: u8 {
-        const OPAQUE_DATA_FMT0 = 0b0000_0001;
         const OPAQUE_DATA_FMT1 = 0b0000_0010;
     }
 }
