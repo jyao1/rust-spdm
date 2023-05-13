@@ -23,7 +23,6 @@ pub const RSAPSS_4096_KEY_SIZE: usize = 512;
 
 pub const ECDSA_ECC_NIST_P256_KEY_SIZE: usize = 32 * 2;
 pub const ECDSA_ECC_NIST_P384_KEY_SIZE: usize = 48 * 2;
-pub const ECDSA_ECC_NIST_P521_KEY_SIZE: usize = 66 * 2;
 
 pub const SECP_256_R1_KEY_SIZE: usize = 32 * 2;
 pub const SECP_384_R1_KEY_SIZE: usize = 48 * 2;
@@ -178,7 +177,6 @@ bitflags! {
         const TPM_ALG_RSASSA_4096 = 0b0010_0000;
         const TPM_ALG_RSAPSS_4096 = 0b0100_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P384 = 0b1000_0000;
-        const TPM_ALG_ECDSA_ECC_NIST_P521 = 0b0000_0001_0000_0000;
     }
 }
 
@@ -214,7 +212,6 @@ impl SpdmBaseAsymAlgo {
             SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096 => RSAPSS_4096_KEY_SIZE as u16,
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256 => ECDSA_ECC_NIST_P256_KEY_SIZE as u16,
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => ECDSA_ECC_NIST_P384_KEY_SIZE as u16,
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => ECDSA_ECC_NIST_P521_KEY_SIZE as u16,
             _ => {
                 panic!("invalid AsymAlgo");
             }
@@ -466,7 +463,6 @@ bitflags! {
         const TPM_ALG_RSASSA_4096 = 0b0010_0000;
         const TPM_ALG_RSAPSS_4096 = 0b0100_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P384 = 0b1000_0000;
-        const TPM_ALG_ECDSA_ECC_NIST_P521 = 0b0000_0001_0000_0000;
     }
 }
 
@@ -502,7 +498,6 @@ impl SpdmReqAsymAlgo {
             SpdmReqAsymAlgo::TPM_ALG_RSAPSS_4096 => RSAPSS_4096_KEY_SIZE as u16,
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256 => ECDSA_ECC_NIST_P256_KEY_SIZE as u16,
             SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => ECDSA_ECC_NIST_P384_KEY_SIZE as u16,
-            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => ECDSA_ECC_NIST_P521_KEY_SIZE as u16,
             _ => {
                 panic!("invalid ReqAsymAlgo");
             }
@@ -1467,8 +1462,6 @@ mod tests {
         value = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         assert_eq!(value.get_size(), ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
 
-        value = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521;
-        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P521_KEY_SIZE as u16);
         value = SpdmBaseAsymAlgo::empty();
         value.get_size();
     }
@@ -1570,9 +1563,6 @@ mod tests {
 
         value = SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         assert_eq!(value.get_size(), ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
-
-        value = SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521;
-        assert_eq!(value.get_size(), ECDSA_ECC_NIST_P521_KEY_SIZE as u16);
 
         value = SpdmReqAsymAlgo::empty();
         value.get_size();

@@ -39,9 +39,6 @@ fn asym_verify(
             let der_sign_size = ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature);
             &der_signature[0..der_sign_size]
         }
-        SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P521 => {
-            panic!("unsupported asym algo")
-        }
         SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048
         | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072
         | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096
