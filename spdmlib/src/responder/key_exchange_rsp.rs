@@ -87,20 +87,20 @@ impl<'a> ResponderContext<'a> {
                                 .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
                             {
                                 return_opaque.data_size =
-                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0274_FMT1
                                         .len() as u16;
                                 return_opaque.data[..(return_opaque.data_size as usize)]
                                     .copy_from_slice(
-                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT1
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0274_FMT1
                                         .as_ref(),
                                 );
                             } else {
                                 return_opaque.data_size =
-                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277
                                         .len() as u16;
                                 return_opaque.data[..(return_opaque.data_size as usize)]
                                     .copy_from_slice(
-                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_FMT0
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277
                                         .as_ref(),
                                 );
                             }
@@ -486,13 +486,13 @@ mod tests_responder {
             },
             exchange: SpdmDheExchangeStruct::from(public_key),
             opaque: SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1
                     .len() as u16,
                 data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
             },
         };
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
-            &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_FMT1,
+            &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1,
         );
         value.spdm_encode(&mut context.common, &mut writer);
 
