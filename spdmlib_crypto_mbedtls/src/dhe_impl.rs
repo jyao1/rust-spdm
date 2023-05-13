@@ -28,9 +28,6 @@ fn generate_key_pair(
         SpdmDheAlgo::SECP_256_R1 => SpdmDheKeyExchangeP256::generate_key_pair(),
         SpdmDheAlgo::SECP_384_R1 => SpdmDheKeyExchangeP384::generate_key_pair(),
         SpdmDheAlgo::SECP_521_R1 => None,
-        SpdmDheAlgo::FFDHE_2048 => None,
-        SpdmDheAlgo::FFDHE_3072 => None,
-        SpdmDheAlgo::FFDHE_4096 => None,
         _ => None,
     }
 }
@@ -234,9 +231,6 @@ mod tests {
     fn test_case1_dhe() {
         for dhe_algo in [
             SpdmDheAlgo::SECP_521_R1,
-            SpdmDheAlgo::FFDHE_2048,
-            SpdmDheAlgo::FFDHE_3072,
-            SpdmDheAlgo::FFDHE_4096,
             SpdmDheAlgo::empty(),
         ]
         .iter()

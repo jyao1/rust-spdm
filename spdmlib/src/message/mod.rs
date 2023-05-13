@@ -676,7 +676,7 @@ mod tests {
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                             alg_fixed_count: 2,
-                            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                             alg_ext_count: 0,
                         },
                         4,
@@ -707,7 +707,7 @@ mod tests {
                 assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
                 assert_eq!(
                     payload.alg_struct[1].alg_supported,
-                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
                 );
                 assert_eq!(payload.alg_struct[i].alg_ext_count, 0);
             }
@@ -731,7 +731,7 @@ mod tests {
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                         alg_fixed_count: 2,
-                        alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                        alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                         alg_ext_count: 0,
                     },
                     4,
@@ -767,7 +767,7 @@ mod tests {
                 assert_eq!(payload.alg_struct[i].alg_fixed_count, 2);
                 assert_eq!(
                     payload.alg_struct[1].alg_supported,
-                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
                 );
                 assert_eq!(payload.alg_struct[i].alg_ext_count, 0);
             }
@@ -1043,7 +1043,7 @@ mod tests {
                     data: [100u8; SPDM_RANDOM_SIZE],
                 },
                 exchange: SpdmDheExchangeStruct {
-                    data_size: 512u16,
+                    data_size: SPDM_MAX_DHE_KEY_SIZE as u16,
                     data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
                 },
                 opaque: SpdmOpaqueStruct {
@@ -1053,7 +1053,7 @@ mod tests {
             }),
         };
         create_spdm_context!(context);
-        context.negotiate_info.dhe_sel = SpdmDheAlgo::FFDHE_4096;
+        context.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -1069,8 +1069,8 @@ mod tests {
             for i in 0..32 {
                 assert_eq!(payload.random.data[i], 100);
             }
-            assert_eq!(payload.exchange.data_size, 512);
-            for i in 0..512 {
+            assert_eq!(payload.exchange.data_size, ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
+            for i in 0..ECDSA_ECC_NIST_P384_KEY_SIZE {
                 assert_eq!(payload.exchange.data[i], 100);
             }
             assert_eq!(payload.opaque.data_size, 64);

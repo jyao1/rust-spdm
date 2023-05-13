@@ -265,7 +265,7 @@ mod tests_responder {
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                     alg_fixed_count: 2,
-                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+                    alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                     alg_ext_count: 0,
                 },
                 4,
@@ -320,7 +320,7 @@ mod tests_responder {
             assert_eq!(spdm_sturct_data.alg_struct[index].alg_fixed_count, 2);
             assert_eq!(
                 spdm_sturct_data.alg_struct[1].alg_supported,
-                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
             );
             assert_eq!(spdm_sturct_data.alg_struct[index].alg_ext_count, 0);
         }
