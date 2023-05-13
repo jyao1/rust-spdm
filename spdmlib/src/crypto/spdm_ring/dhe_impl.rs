@@ -19,7 +19,6 @@ fn generate_key_pair(
     match dhe_algo {
         SpdmDheAlgo::SECP_256_R1 => SpdmDheKeyExchangeP256::generate_key_pair(),
         SpdmDheAlgo::SECP_384_R1 => SpdmDheKeyExchangeP384::generate_key_pair(),
-        SpdmDheAlgo::SECP_521_R1 => None,
         _ => None,
     }
 }
@@ -131,7 +130,6 @@ mod tests {
     #[test]
     fn test_case1_dhe() {
         for dhe_algo in [
-            SpdmDheAlgo::SECP_521_R1,
             SpdmDheAlgo::empty(),
         ]
         .iter()

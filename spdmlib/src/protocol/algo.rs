@@ -27,7 +27,6 @@ pub const ECDSA_ECC_NIST_P521_KEY_SIZE: usize = 66 * 2;
 
 pub const SECP_256_R1_KEY_SIZE: usize = 32 * 2;
 pub const SECP_384_R1_KEY_SIZE: usize = 48 * 2;
-pub const SECP_521_R1_KEY_SIZE: usize = 66 * 2;
 
 pub const AEAD_AES_128_GCM_KEY_SIZE: usize = 16;
 pub const AEAD_AES_256_GCM_KEY_SIZE: usize = 32;
@@ -347,7 +346,6 @@ bitflags! {
     pub struct SpdmDheAlgo: u16 {
         const SECP_256_R1 = 0b0000_1000;
         const SECP_384_R1 = 0b0001_0000;
-        const SECP_521_R1 = 0b0010_0000;
     }
 }
 
@@ -368,7 +366,6 @@ impl SpdmDheAlgo {
         match *self {
             SpdmDheAlgo::SECP_256_R1 => SECP_256_R1_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_384_R1 => SECP_384_R1_KEY_SIZE as u16,
-            SpdmDheAlgo::SECP_521_R1 => SECP_521_R1_KEY_SIZE as u16,
             _ => {
                 panic!("invalid DheAlgo");
             }
@@ -1483,9 +1480,6 @@ mod tests {
 
         value = SpdmDheAlgo::SECP_384_R1;
         assert_eq!(value.get_size(), SECP_384_R1_KEY_SIZE as u16);
-
-        value = SpdmDheAlgo::SECP_521_R1;
-        assert_eq!(value.get_size(), SECP_521_R1_KEY_SIZE as u16);
 
         value = SpdmDheAlgo::empty();
         value.get_size();
