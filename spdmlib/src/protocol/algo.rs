@@ -28,10 +28,6 @@ pub const ECDSA_ECC_NIST_P256_KEY_SIZE: usize = 32 * 2;
 pub const ECDSA_ECC_NIST_P384_KEY_SIZE: usize = 48 * 2;
 pub const ECDSA_ECC_NIST_P521_KEY_SIZE: usize = 66 * 2;
 
-pub const FFDHE_2048_KEY_SIZE: usize = 256;
-pub const FFDHE_3072_KEY_SIZE: usize = 384;
-pub const FFDHE_4096_KEY_SIZE: usize = 512;
-
 pub const SECP_256_R1_KEY_SIZE: usize = 32 * 2;
 pub const SECP_384_R1_KEY_SIZE: usize = 48 * 2;
 pub const SECP_521_R1_KEY_SIZE: usize = 66 * 2;
@@ -56,7 +52,7 @@ pub const SPDM_NONCE_SIZE: usize = 32;
 pub const SPDM_RANDOM_SIZE: usize = 32;
 pub const SPDM_MAX_HASH_SIZE: usize = 64;
 pub const SPDM_MAX_ASYM_KEY_SIZE: usize = 512;
-pub const SPDM_MAX_DHE_KEY_SIZE: usize = 512;
+pub const SPDM_MAX_DHE_KEY_SIZE: usize = SECP_384_R1_KEY_SIZE;
 pub const SPDM_MAX_AEAD_KEY_SIZE: usize = 32;
 pub const SPDM_MAX_AEAD_IV_SIZE: usize = 12;
 
@@ -364,9 +360,6 @@ impl Codec for SpdmExtAlgStruct {
 bitflags! {
     #[derive(Default)]
     pub struct SpdmDheAlgo: u16 {
-        const FFDHE_2048 = 0b0000_0001;
-        const FFDHE_3072 = 0b0000_0010;
-        const FFDHE_4096 = 0b0000_0100;
         const SECP_256_R1 = 0b0000_1000;
         const SECP_384_R1 = 0b0001_0000;
         const SECP_521_R1 = 0b0010_0000;
@@ -388,9 +381,6 @@ impl SpdmDheAlgo {
     }
     pub fn get_size(&self) -> u16 {
         match *self {
-            SpdmDheAlgo::FFDHE_2048 => FFDHE_2048_KEY_SIZE as u16,
-            SpdmDheAlgo::FFDHE_3072 => FFDHE_3072_KEY_SIZE as u16,
-            SpdmDheAlgo::FFDHE_4096 => FFDHE_4096_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_256_R1 => SECP_256_R1_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_384_R1 => SECP_384_R1_KEY_SIZE as u16,
             SpdmDheAlgo::SECP_521_R1 => SECP_521_R1_KEY_SIZE as u16,
@@ -1253,13 +1243,13 @@ mod tests {
     fn test_case0_spdm_dhe_algo() {
         let u8_slice = &mut [0u8; 4];
         let mut writer = Writer::init(u8_slice);
-        let value = SpdmDheAlgo::FFDHE_2048;
+        let value = SpdmDheAlgo::SECP_256_R1;
         assert!(value.encode(&mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(4, reader.left());
         assert_eq!(
             SpdmDheAlgo::read(&mut reader).unwrap(),
-            SpdmDheAlgo::FFDHE_2048
+            SpdmDheAlgo::SECP_256_R1
         );
         assert_eq!(2, reader.left());
     }
@@ -1344,7 +1334,7 @@ mod tests {
         let value = SpdmAlgStruct {
             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
             alg_fixed_count: 2,
-            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
             alg_ext_count: 0,
         };
         assert!(value.encode(&mut writer).is_ok());
@@ -1358,7 +1348,7 @@ mod tests {
         assert_eq!(spdm_alg_struct.alg_ext_count, 0);
         assert_eq!(
             spdm_alg_struct.alg_supported,
-            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
         );
     }
     #[test]
@@ -1369,7 +1359,7 @@ mod tests {
         let value = SpdmAlgStruct {
             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
             alg_fixed_count: 0,
-            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
             alg_ext_count: 0,
         };
         assert!(value.encode(&mut writer).is_ok());
@@ -1382,7 +1372,7 @@ mod tests {
         assert_eq!(spdm_alg_struct.alg_ext_count, 0);
         assert_eq!(
             spdm_alg_struct.alg_supported,
-            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048)
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
         );
     }
     #[test]
@@ -1393,7 +1383,7 @@ mod tests {
         let value = SpdmAlgStruct {
             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
             alg_fixed_count: 0,
-            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::FFDHE_2048),
+            alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
             alg_ext_count: 100,
         };
         assert!(value.encode(&mut writer).is_ok());
@@ -1512,16 +1502,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "invalid DheAlgo")]
     fn test_case1_spdm_dhe_algo() {
-        let mut value = SpdmDheAlgo::FFDHE_2048;
-        assert_eq!(value.get_size(), FFDHE_2048_KEY_SIZE as u16);
-
-        value = SpdmDheAlgo::FFDHE_3072;
-        assert_eq!(value.get_size(), FFDHE_3072_KEY_SIZE as u16);
-
-        value = SpdmDheAlgo::FFDHE_4096;
-        assert_eq!(value.get_size(), FFDHE_4096_KEY_SIZE as u16);
-
-        value = SpdmDheAlgo::SECP_256_R1;
+        let mut value = SpdmDheAlgo::SECP_256_R1;
         assert_eq!(value.get_size(), SECP_256_R1_KEY_SIZE as u16);
 
         value = SpdmDheAlgo::SECP_384_R1;
