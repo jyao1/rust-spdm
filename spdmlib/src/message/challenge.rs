@@ -138,9 +138,9 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
+    use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
     use crate::common::SpdmOpaqueSupport;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
-    use crate::config::*;
     use crate::protocol::*;
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 

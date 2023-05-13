@@ -4,11 +4,12 @@
 
 use super::spdm_codec::SpdmCodec;
 use super::*;
-use crate::{
-    config,
-    error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL},
-};
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use codec::{Codec, Reader, Writer};
+
+/// This is used in SpdmOpaqueStruct <- SpdmChallengeAuthResponsePayload / SpdmMeasurementsResponsePayload
+/// It should be smaller than 1024
+pub const MAX_SPDM_OPAQUE_SIZE: usize = 64;
 
 pub const MAX_SECURE_SPDM_VERSION_COUNT: usize = 0x02;
 pub const MAX_VENDOR_ID_LENGTH: usize = 0xFF;
@@ -536,13 +537,13 @@ impl SpdmCodec for SecuredMessageDMTFSupportedVersion {
 #[derive(Debug, Clone)]
 pub struct SpdmOpaqueStruct {
     pub data_size: u16,
-    pub data: [u8; config::MAX_SPDM_OPAQUE_SIZE],
+    pub data: [u8; MAX_SPDM_OPAQUE_SIZE],
 }
 impl Default for SpdmOpaqueStruct {
     fn default() -> SpdmOpaqueStruct {
         SpdmOpaqueStruct {
             data_size: 0,
-            data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+            data: [0u8; MAX_SPDM_OPAQUE_SIZE],
         }
     }
 }
@@ -565,10 +566,10 @@ impl SpdmCodec for SpdmOpaqueStruct {
     }
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmOpaqueStruct> {
         let data_size = u16::read(r)?;
-        if data_size > config::MAX_SPDM_OPAQUE_SIZE as u16 {
+        if data_size > MAX_SPDM_OPAQUE_SIZE as u16 {
             return None;
         }
-        let mut data = [0u8; config::MAX_SPDM_OPAQUE_SIZE];
+        let mut data = [0u8; MAX_SPDM_OPAQUE_SIZE];
         for d in data.iter_mut().take(data_size as usize) {
             *d = u8::read(r)?;
         }

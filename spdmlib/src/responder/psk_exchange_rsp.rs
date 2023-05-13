@@ -300,6 +300,7 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
+    use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
     use crate::config::MAX_SPDM_PSK_HINT_SIZE;
     use crate::message::SpdmMessageHeader;
     use crate::testlib::*;
@@ -355,7 +356,7 @@ mod tests_responder {
                 data_size:
                     crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1
                         .len() as u16,
-                data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+                data: [0u8; MAX_SPDM_OPAQUE_SIZE],
             },
         };
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
