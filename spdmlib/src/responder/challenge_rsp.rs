@@ -293,7 +293,9 @@ mod tests_responder {
             slot_id: 100,
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
-            nonce: SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] },
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
         };
         assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
@@ -305,7 +307,13 @@ mod tests_responder {
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let data = context.common.runtime_info.message_c.as_ref();
-            let u8_slice = &mut [0u8; 4 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + SPDM_MAX_HASH_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE];
+            let u8_slice = &mut [0u8; 4
+                + SPDM_MAX_HASH_SIZE
+                + SPDM_NONCE_SIZE
+                + SPDM_MAX_HASH_SIZE
+                + 2
+                + MAX_SPDM_OPAQUE_SIZE
+                + SPDM_MAX_ASYM_KEY_SIZE];
             for (i, data) in data.iter().enumerate() {
                 u8_slice[i] = *data;
             }
@@ -359,7 +367,10 @@ mod tests_responder {
                     payload.challenge_auth_attribute,
                     SpdmChallengeAuthAttribute::empty()
                 );
-                assert_eq!(payload.measurement_summary_hash.data_size, SHA384_DIGEST_SIZE);
+                assert_eq!(
+                    payload.measurement_summary_hash.data_size,
+                    SHA384_DIGEST_SIZE
+                );
                 assert_eq!(payload.opaque.data_size, 0);
                 assert_eq!(payload.signature.data_size, SECP_384_R1_KEY_SIZE);
                 for i in 0..SHA384_DIGEST_SIZE {

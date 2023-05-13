@@ -171,7 +171,10 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(2 + SPDM_MAX_ASYM_KEY_SIZE + SPDM_MAX_HASH_SIZE, reader.left());
+        assert_eq!(
+            2 + SPDM_MAX_ASYM_KEY_SIZE + SPDM_MAX_HASH_SIZE,
+            reader.left()
+        );
         let spdm_finish_request_payload =
             SpdmFinishRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(
@@ -179,11 +182,17 @@ mod tests {
             SpdmFinishRequestAttributes::SIGNATURE_INCLUDED
         );
         assert_eq!(spdm_finish_request_payload.req_slot_id, 100);
-        assert_eq!(spdm_finish_request_payload.signature.data_size, RSASSA_4096_KEY_SIZE as u16);
+        assert_eq!(
+            spdm_finish_request_payload.signature.data_size,
+            RSASSA_4096_KEY_SIZE as u16
+        );
         for i in 0..RSASSA_4096_KEY_SIZE {
             assert_eq!(spdm_finish_request_payload.signature.data[i], 0xa5u8);
         }
-        assert_eq!(spdm_finish_request_payload.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
+        assert_eq!(
+            spdm_finish_request_payload.verify_data.data_size,
+            SHA512_DIGEST_SIZE as u16
+        );
         for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(spdm_finish_request_payload.verify_data.data[i], 0x5au8);
         }

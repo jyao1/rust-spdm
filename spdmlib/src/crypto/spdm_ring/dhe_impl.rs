@@ -129,11 +129,7 @@ mod tests {
     }
     #[test]
     fn test_case1_dhe() {
-        for dhe_algo in [
-            SpdmDheAlgo::empty(),
-        ]
-        .iter()
-        {
+        for dhe_algo in [SpdmDheAlgo::empty()].iter() {
             assert_eq!(generate_key_pair(*dhe_algo).is_none(), true);
         }
     }

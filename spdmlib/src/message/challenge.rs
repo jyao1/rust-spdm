@@ -152,7 +152,9 @@ mod tests {
             slot_id: 100,
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-            nonce: SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] },
+            nonce: SpdmNonceStruct {
+                data: [100u8; SPDM_NONCE_SIZE],
+            },
         };
 
         create_spdm_context!(context);
@@ -174,7 +176,13 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_challenge_auth_response_payload() {
-        let u8_slice = &mut [0u8; 2 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + SPDM_MAX_HASH_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE];
+        let u8_slice = &mut [0u8; 2
+            + SPDM_MAX_HASH_SIZE
+            + SPDM_NONCE_SIZE
+            + SPDM_MAX_HASH_SIZE
+            + 2
+            + MAX_SPDM_OPAQUE_SIZE
+            + SPDM_MAX_ASYM_KEY_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmChallengeAuthResponsePayload {
             slot_id: 0x0f,
@@ -211,7 +219,15 @@ mod tests {
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
 
-        assert_eq!(2 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + SPDM_MAX_HASH_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE, reader.left());
+        assert_eq!(
+            2 + SPDM_MAX_HASH_SIZE
+                + SPDM_NONCE_SIZE
+                + SPDM_MAX_HASH_SIZE
+                + 2
+                + MAX_SPDM_OPAQUE_SIZE
+                + SPDM_MAX_ASYM_KEY_SIZE,
+            reader.left()
+        );
         let spdm_read_data =
             SpdmChallengeAuthResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(0, reader.left());
@@ -222,10 +238,19 @@ mod tests {
             SpdmChallengeAuthAttribute::BASIC_MUT_AUTH_REQ
         );
 
-        assert_eq!(spdm_read_data.cert_chain_hash.data_size, SHA512_DIGEST_SIZE as u16);
-        assert_eq!(spdm_read_data.measurement_summary_hash.data_size, SHA512_DIGEST_SIZE as u16);
+        assert_eq!(
+            spdm_read_data.cert_chain_hash.data_size,
+            SHA512_DIGEST_SIZE as u16
+        );
+        assert_eq!(
+            spdm_read_data.measurement_summary_hash.data_size,
+            SHA512_DIGEST_SIZE as u16
+        );
         assert_eq!(spdm_read_data.opaque.data_size, MAX_SPDM_OPAQUE_SIZE as u16);
-        assert_eq!(spdm_read_data.signature.data_size, RSASSA_4096_KEY_SIZE as u16);
+        assert_eq!(
+            spdm_read_data.signature.data_size,
+            RSASSA_4096_KEY_SIZE as u16
+        );
 
         for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(spdm_read_data.cert_chain_hash.data[i], 0xAAu8);
@@ -245,7 +270,12 @@ mod tests {
     }
     #[test]
     fn test_case1_spdm_challenge_auth_response_payload() {
-        let u8_slice = &mut [0u8; 2 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE];
+        let u8_slice = &mut [0u8; 2
+            + SPDM_MAX_HASH_SIZE
+            + SPDM_NONCE_SIZE
+            + 2
+            + MAX_SPDM_OPAQUE_SIZE
+            + SPDM_MAX_ASYM_KEY_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmChallengeAuthResponsePayload {
             slot_id: 0x0f,
@@ -275,13 +305,27 @@ mod tests {
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
 
-        assert_eq!(2 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE, writer.left());
+        assert_eq!(
+            2 + SPDM_MAX_HASH_SIZE
+                + SPDM_NONCE_SIZE
+                + 2
+                + MAX_SPDM_OPAQUE_SIZE
+                + SPDM_MAX_ASYM_KEY_SIZE,
+            writer.left()
+        );
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         assert_eq!(0, writer.left());
 
         let mut reader = Reader::init(u8_slice);
 
-        assert_eq!(2 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE, reader.left());
+        assert_eq!(
+            2 + SPDM_MAX_HASH_SIZE
+                + SPDM_NONCE_SIZE
+                + 2
+                + MAX_SPDM_OPAQUE_SIZE
+                + SPDM_MAX_ASYM_KEY_SIZE,
+            reader.left()
+        );
         let spdm_read_data =
             SpdmChallengeAuthResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(0, reader.left());

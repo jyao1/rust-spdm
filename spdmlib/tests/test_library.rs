@@ -2,21 +2,21 @@ mod common;
 
 use codec::{u24, Codec};
 use codec::{Reader, Writer};
+use common::testlib::*;
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
 use spdmlib::config::{
     MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
 };
+use spdmlib::protocol::*;
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
     SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmSignatureStruct,
-    SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
-    ECDSA_ECC_NIST_P384_KEY_SIZE
+    ECDSA_ECC_NIST_P384_KEY_SIZE, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE,
+    SPDM_MAX_HASH_SIZE,
 };
 use spdmlib::protocol::{SpdmDmtfMeasurementRepresentation, SpdmMeasurementBlockStructure};
-use spdmlib::protocol::*;
-use common::testlib::*;
 
 #[test]
 fn test_case0_spdm_opaque_struct() {
@@ -110,13 +110,22 @@ fn test_case0_spdm_cert_chain() {
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
-    assert_eq!(4 + SPDM_MAX_HASH_SIZE + MAX_SPDM_CERT_CHAIN_DATA_SIZE, reader.left());
+    assert_eq!(
+        4 + SPDM_MAX_HASH_SIZE + MAX_SPDM_CERT_CHAIN_DATA_SIZE,
+        reader.left()
+    );
     let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_cert_chain.root_hash.data_size, SHA512_DIGEST_SIZE as u16);
+    assert_eq!(
+        spdm_cert_chain.root_hash.data_size,
+        SHA512_DIGEST_SIZE as u16
+    );
     for i in 0..SHA512_DIGEST_SIZE {
         assert_eq!(spdm_cert_chain.root_hash.data[i], 100);
     }
-    assert_eq!(spdm_cert_chain.cert_chain.data_size, MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16);
+    assert_eq!(
+        spdm_cert_chain.cert_chain.data_size,
+        MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16
+    );
     for i in 0..MAX_SPDM_CERT_CHAIN_DATA_SIZE {
         assert_eq!(spdm_cert_chain.cert_chain.data[i], 100);
     }
@@ -218,7 +227,10 @@ fn test_case0_spdm_dhe_exchange_struct() {
     assert_eq!(SPDM_MAX_DHE_KEY_SIZE, reader.left());
     let spdm_dhe_exchange_struct =
         SpdmDheExchangeStruct::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_dhe_exchange_struct.data_size, ECDSA_ECC_NIST_P384_KEY_SIZE as u16);
+    assert_eq!(
+        spdm_dhe_exchange_struct.data_size,
+        ECDSA_ECC_NIST_P384_KEY_SIZE as u16
+    );
     for i in 0..ECDSA_ECC_NIST_P384_KEY_SIZE {
         assert_eq!(spdm_dhe_exchange_struct.data[i], 100);
     }
@@ -263,7 +275,10 @@ fn test_case0_spdm_dmtf_measurement_structure() {
                 representation[i]
             );
         }
-        assert_eq!(spdm_dmtf_measurement_structure.value_size, SPDM_MAX_HASH_SIZE as u16);
+        assert_eq!(
+            spdm_dmtf_measurement_structure.value_size,
+            SPDM_MAX_HASH_SIZE as u16
+        );
         for j in 0..SPDM_MAX_HASH_SIZE {
             assert_eq!(spdm_dmtf_measurement_structure.value[j], 100);
         }
@@ -300,7 +315,10 @@ fn test_case0_spdm_measurement_block_structure() {
         spdm_block_structure.measurement_specification,
         SpdmMeasurementSpecification::DMTF
     );
-    assert_eq!(spdm_block_structure.measurement_size, 3 + SPDM_MAX_HASH_SIZE as u16);
+    assert_eq!(
+        spdm_block_structure.measurement_size,
+        3 + SPDM_MAX_HASH_SIZE as u16
+    );
     assert_eq!(
         spdm_block_structure.measurement.r#type,
         SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
@@ -309,7 +327,10 @@ fn test_case0_spdm_measurement_block_structure() {
         spdm_block_structure.measurement.representation,
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
     );
-    assert_eq!(spdm_block_structure.measurement.value_size, SPDM_MAX_HASH_SIZE as u16);
+    assert_eq!(
+        spdm_block_structure.measurement.value_size,
+        SPDM_MAX_HASH_SIZE as u16
+    );
     for i in 0..SPDM_MAX_HASH_SIZE {
         assert_eq!(spdm_block_structure.measurement.value[i], 100);
     }

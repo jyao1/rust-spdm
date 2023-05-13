@@ -172,7 +172,10 @@ mod tests {
         let spdm_get_certificate_request_payload =
             SpdmCertificateResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_get_certificate_request_payload.slot_id, 100);
-        assert_eq!(spdm_get_certificate_request_payload.portion_length, MAX_SPDM_CERT_PORTION_LEN as u16);
+        assert_eq!(
+            spdm_get_certificate_request_payload.portion_length,
+            MAX_SPDM_CERT_PORTION_LEN as u16
+        );
         assert_eq!(spdm_get_certificate_request_payload.remainder_length, 100);
         for i in 0..MAX_SPDM_CERT_PORTION_LEN {
             assert_eq!(spdm_get_certificate_request_payload.cert_chain[i], 100u8);

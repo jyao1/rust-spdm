@@ -486,8 +486,9 @@ mod tests_responder {
             },
             exchange: SpdmDheExchangeStruct::from(public_key),
             opaque: SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1
-                    .len() as u16,
+                data_size:
+                    crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1
+                        .len() as u16,
                 data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
             },
         };
