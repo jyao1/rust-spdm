@@ -309,35 +309,6 @@ enum_builder! {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct SpdmExtAlgStruct {
-    pub registry_id: SpdmStandardId,
-    pub reserved: u8,
-    pub algorithm_id: u16,
-}
-
-impl Codec for SpdmExtAlgStruct {
-    fn encode(&self, bytes: &mut Writer) -> Result<usize, codec::EncodeErr> {
-        let mut cnt = 0usize;
-        cnt += self.registry_id.encode(bytes)?;
-        cnt += self.reserved.encode(bytes)?;
-        cnt += self.algorithm_id.encode(bytes)?;
-        Ok(cnt)
-    }
-
-    fn read(r: &mut Reader) -> Option<SpdmExtAlgStruct> {
-        let registry_id = SpdmStandardId::read(r)?;
-        let reserved = u8::read(r)?;
-        let algorithm_id = u16::read(r)?;
-
-        Some(SpdmExtAlgStruct {
-            registry_id,
-            reserved,
-            algorithm_id,
-        })
-    }
-}
-
 bitflags! {
     #[derive(Default)]
     pub struct SpdmDheAlgo: u16 {
@@ -1173,42 +1144,6 @@ mod tests {
             SpdmBaseHashAlgo::read(&mut reader).unwrap(),
             SpdmBaseHashAlgo::TPM_ALG_SHA_256
         );
-        assert_eq!(0, reader.left());
-    }
-    #[test]
-    fn test_case0_spdm_ext_alg_struct() {
-        let u8_slice = &mut [0u8; 4];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmExtAlgStruct {
-            registry_id: SpdmStandardId::SpdmStandardIdDMTF,
-            reserved: 100,
-            algorithm_id: 200,
-        };
-        assert!(value.encode(&mut writer).is_ok());
-        let mut reader = Reader::init(u8_slice);
-        assert_eq!(4, reader.left());
-        let spdm_ext_alg_struct = SpdmExtAlgStruct::read(&mut reader).unwrap();
-        assert_eq!(
-            spdm_ext_alg_struct.registry_id,
-            SpdmStandardId::SpdmStandardIdDMTF
-        );
-        assert_eq!(spdm_ext_alg_struct.reserved, 100);
-        assert_eq!(spdm_ext_alg_struct.algorithm_id, 200);
-        assert_eq!(0, reader.left());
-    }
-    #[test]
-    fn test_case1_spdm_ext_alg_struct() {
-        let u8_slice = &mut [0u8; 2];
-        let mut writer = Writer::init(u8_slice);
-        let value = SpdmExtAlgStruct {
-            registry_id: SpdmStandardId::SpdmStandardIdDMTF,
-            reserved: 100,
-            algorithm_id: 200,
-        };
-        assert!(value.encode(&mut writer).is_err());
-        let mut reader = Reader::init(u8_slice);
-
-        assert_eq!(SpdmExtAlgStruct::read(&mut reader).is_none(), true);
         assert_eq!(0, reader.left());
     }
     #[test]
