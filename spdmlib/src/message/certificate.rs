@@ -134,7 +134,7 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
-    fn test_case0_spdm_get_capabilities_request_payload() {
+    fn test_case0_spdm_get_certificate_request_payload() {
         let u8_slice = &mut [0u8; 12];
         let mut writer = Writer::init(u8_slice);
         let mut value = SpdmGetCertificateRequestPayload::default();
