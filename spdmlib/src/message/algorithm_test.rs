@@ -11,6 +11,8 @@ use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 #[test]
 fn test_negotiate_struct() {
     create_spdm_context!(context);
+    context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+
     // 0. [Positive] test
     let u8_slice = &mut [0u8; 256];
     u8_slice[2] = 4;
