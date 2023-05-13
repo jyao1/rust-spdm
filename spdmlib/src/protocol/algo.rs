@@ -13,9 +13,6 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 pub const SHA256_DIGEST_SIZE: usize = 32;
 pub const SHA384_DIGEST_SIZE: usize = 48;
 pub const SHA512_DIGEST_SIZE: usize = 64;
-pub const SHA3_256_DIGEST_SIZE: usize = 32;
-pub const SHA3_384_DIGEST_SIZE: usize = 48;
-pub const SHA3_512_DIGEST_SIZE: usize = 64;
 
 pub const RSASSA_2048_KEY_SIZE: usize = 256;
 pub const RSASSA_3072_KEY_SIZE: usize = 384;
@@ -137,9 +134,6 @@ bitflags! {
         const TPM_ALG_SHA_256 = 0b0000_0010;
         const TPM_ALG_SHA_384 = 0b0000_0100;
         const TPM_ALG_SHA_512 = 0b0000_1000;
-        const TPM_ALG_SHA3_256 = 0b0001_0000;
-        const TPM_ALG_SHA3_384 = 0b0010_0000;
-        const TPM_ALG_SHA3_512 = 0b0100_0000;
     }
 }
 
@@ -147,11 +141,8 @@ impl SpdmMeasurementHashAlgo {
     pub fn get_size(&self) -> u16 {
         match *self {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_256 => SHA256_DIGEST_SIZE as u16,
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA3_256 => SHA3_256_DIGEST_SIZE as u16,
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384 => SHA384_DIGEST_SIZE as u16,
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA3_384 => SHA3_384_DIGEST_SIZE as u16,
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_512 => SHA512_DIGEST_SIZE as u16,
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512 => SHA3_512_DIGEST_SIZE as u16,
             SpdmMeasurementHashAlgo::RAW_BIT_STREAM => 0u16,
             _ => {
                 panic!("invalid MeasurementHashAlgo");
@@ -256,9 +247,6 @@ bitflags! {
         const TPM_ALG_SHA_256 = 0b0000_0001;
         const TPM_ALG_SHA_384 = 0b0000_0010;
         const TPM_ALG_SHA_512 = 0b0000_0100;
-        const TPM_ALG_SHA3_256 = 0b0000_1000;
-        const TPM_ALG_SHA3_384 = 0b0001_0000;
-        const TPM_ALG_SHA3_512 = 0b0010_0000;
     }
 }
 
@@ -282,11 +270,8 @@ impl SpdmBaseHashAlgo {
     pub fn get_size(&self) -> u16 {
         match *self {
             SpdmBaseHashAlgo::TPM_ALG_SHA_256 => SHA256_DIGEST_SIZE as u16,
-            SpdmBaseHashAlgo::TPM_ALG_SHA3_256 => SHA3_256_DIGEST_SIZE as u16,
             SpdmBaseHashAlgo::TPM_ALG_SHA_384 => SHA384_DIGEST_SIZE as u16,
-            SpdmBaseHashAlgo::TPM_ALG_SHA3_384 => SHA3_384_DIGEST_SIZE as u16,
             SpdmBaseHashAlgo::TPM_ALG_SHA_512 => SHA512_DIGEST_SIZE as u16,
-            SpdmBaseHashAlgo::TPM_ALG_SHA3_512 => SHA3_512_DIGEST_SIZE as u16,
             _ => {
                 panic!("invalid HashAlgo");
             }
@@ -1446,20 +1431,11 @@ mod tests {
         let mut value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_256;
         assert_eq!(value.get_size(), SHA256_DIGEST_SIZE as u16);
 
-        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA3_256;
-        assert_eq!(value.get_size(), SHA3_256_DIGEST_SIZE as u16);
-
         value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         assert_eq!(value.get_size(), SHA384_DIGEST_SIZE as u16);
 
-        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA3_384;
-        assert_eq!(value.get_size(), SHA3_384_DIGEST_SIZE as u16);
-
         value = SpdmMeasurementHashAlgo::TPM_ALG_SHA_512;
         assert_eq!(value.get_size(), SHA512_DIGEST_SIZE as u16);
-
-        value = SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512;
-        assert_eq!(value.get_size(), SHA3_512_DIGEST_SIZE as u16);
 
         value = SpdmMeasurementHashAlgo::RAW_BIT_STREAM;
         assert_eq!(value.get_size(), 0u16);

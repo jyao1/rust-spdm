@@ -141,43 +141,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
 
         context.handle_spdm_psk_finish(4294901758, data);
     }
-    {
-        // negotiate info modify TPM_ALG_SHA3_384, err 46 lines
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
-            config_info4,
-            provision_info4,
-        );
-
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA3_384;
-        // context.common.session = [SpdmSession::new(); 4];
-        context.common.session[0] = SpdmSession::new();
-        context.common.session[0].setup(4294901758).unwrap();
-        context.common.session[0].set_crypto_param(
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            SpdmDheAlgo::SECP_384_R1,
-            SpdmAeadAlgo::AES_256_GCM,
-            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        );
-        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-            dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-            context.common.session[0]
-                .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-                .unwrap();
-            context.common.session[0].runtime_info.digest_context_th =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
-        context.handle_spdm_psk_finish(4294901758, data);
-    }
 }
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
