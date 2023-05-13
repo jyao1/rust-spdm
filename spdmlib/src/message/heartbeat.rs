@@ -68,7 +68,7 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
-    fn test_case0_spdm_error_response_not_ready_ext_data() {
+    fn test_case0_spdm_heartbeat_response_payload() {
         let u8_slice = &mut [0u8; 8];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmHeartbeatResponsePayload {};

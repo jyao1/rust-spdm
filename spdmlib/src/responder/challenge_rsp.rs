@@ -266,7 +266,7 @@ mod tests_responder {
             provision_info,
         );
         context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
-            data_size: 512u16,
+            data_size: config::MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16,
             data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
 
@@ -279,7 +279,7 @@ mod tests_responder {
         context.common.runtime_info.digest_context_m1m2 =
             Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
 
-        let spdm_message_header = &mut [0u8; 1024];
+        let spdm_message_header = &mut [0u8; 2];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {
             version: SpdmVersion::SpdmVersion10,
@@ -287,25 +287,25 @@ mod tests_responder {
         };
         assert!(value.encode(&mut writer).is_ok());
 
-        let challenge = &mut [0u8; 1024];
+        let challenge = &mut [0u8; 2 + SPDM_NONCE_SIZE];
         let mut writer = Writer::init(challenge);
         let value = SpdmChallengeRequestPayload {
             slot_id: 100,
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
-            nonce: SpdmNonceStruct { data: [100u8; 32] },
+            nonce: SpdmNonceStruct { data: [100u8; SPDM_NONCE_SIZE] },
         };
         assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
-        let bytes = &mut [0u8; 1024];
-        bytes.copy_from_slice(&spdm_message_header[0..]);
-        bytes[2..].copy_from_slice(&challenge[0..1022]);
+        let bytes = &mut [0u8; 4 + SPDM_NONCE_SIZE];
+        bytes[0..2].copy_from_slice(&spdm_message_header[0..]);
+        bytes[2..4 + SPDM_NONCE_SIZE].copy_from_slice(&challenge[0..2 + SPDM_NONCE_SIZE]);
         context.handle_spdm_challenge(bytes);
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             let data = context.common.runtime_info.message_c.as_ref();
-            let u8_slice = &mut [0u8; 1024];
+            let u8_slice = &mut [0u8; 4 + SPDM_MAX_HASH_SIZE + SPDM_NONCE_SIZE + SPDM_MAX_HASH_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE + SPDM_MAX_ASYM_KEY_SIZE];
             for (i, data) in data.iter().enumerate() {
                 u8_slice[i] = *data;
             }
@@ -327,11 +327,11 @@ mod tests_responder {
                 spdm_challenge_request_payload.measurement_summary_hash_type,
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
             );
-            for i in 0..32 {
+            for i in 0..SPDM_NONCE_SIZE {
                 assert_eq!(spdm_challenge_request_payload.nonce.data[i], 100u8);
             }
 
-            let spdm_message_slice = &u8_slice[36..];
+            let spdm_message_slice = &u8_slice[4 + SPDM_NONCE_SIZE..];
             let mut reader = Reader::init(spdm_message_slice);
             let spdm_message: SpdmMessage =
                 SpdmMessage::spdm_read(&mut context.common, &mut reader).unwrap();
@@ -359,10 +359,10 @@ mod tests_responder {
                     payload.challenge_auth_attribute,
                     SpdmChallengeAuthAttribute::empty()
                 );
-                assert_eq!(payload.measurement_summary_hash.data_size, 48);
+                assert_eq!(payload.measurement_summary_hash.data_size, SHA384_DIGEST_SIZE);
                 assert_eq!(payload.opaque.data_size, 0);
-                assert_eq!(payload.signature.data_size, 96);
-                for i in 0..32 {
+                assert_eq!(payload.signature.data_size, SECP_384_R1_KEY_SIZE);
+                for i in 0..SHA384_DIGEST_SIZE {
                     assert_eq!(payload.measurement_summary_hash.data[i], 0xaau8);
                 }
                 for (i, data) in cert_chain_hash.data.iter().enumerate() {

@@ -75,12 +75,12 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
-    fn test_case0_spdm_key_exchange_request_payload() {
-        let u8_slice = &mut [0u8; 80];
+    fn test_case0_spdm_psk_finish_request_payload() {
+        let u8_slice = &mut [0u8; 2 + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskFinishRequestPayload {
             verify_data: SpdmDigestStruct {
-                data_size: 64,
+                data_size: SPDM_MAX_HASH_SIZE as u16,
                 data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
@@ -91,19 +91,19 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(80, reader.left());
+        assert_eq!(2 + SPDM_MAX_HASH_SIZE, reader.left());
         let psk_finish_request =
             SpdmPskFinishRequestPayload::spdm_read(&mut context, &mut reader).unwrap();
 
-        assert_eq!(psk_finish_request.verify_data.data_size, 64);
-        for i in 0..64 {
+        assert_eq!(psk_finish_request.verify_data.data_size, SHA512_DIGEST_SIZE as u16);
+        for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(psk_finish_request.verify_data.data[i], 100u8);
         }
-        assert_eq!(14, reader.left());
+        assert_eq!(0, reader.left());
     }
     #[test]
     fn test_case0_spdm_psk_finish_response_payload() {
-        let u8_slice = &mut [0u8; 8];
+        let u8_slice = &mut [0u8; 2];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskFinishResponsePayload {};
 

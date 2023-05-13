@@ -270,7 +270,7 @@ mod tests {
                     SpdmMeasurementBlockStructure::read_bytes(&v.measurement_record_data).unwrap();
                 assert_eq!(
                     deadbeefsha512,
-                    &spdm_measurement_block_structure.measurement.value[0..64]
+                    &spdm_measurement_block_structure.measurement.value[0..SHA512_DIGEST_SIZE]
                 );
             }
             None => {

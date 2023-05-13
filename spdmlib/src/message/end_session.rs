@@ -95,7 +95,7 @@ mod tests {
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
     #[test]
-    fn test_case0_spdm_response_capability_flags() {
+    fn test_case0_spdm_end_session_request_attributes() {
         let u8_slice = &mut [0u8; 1];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmEndSessionRequestAttributes::all();

@@ -15,15 +15,15 @@ use spdmlib::protocol::{
     ECDSA_ECC_NIST_P384_KEY_SIZE
 };
 use spdmlib::protocol::{SpdmDmtfMeasurementRepresentation, SpdmMeasurementBlockStructure};
-
+use spdmlib::protocol::*;
 use common::testlib::*;
 
 #[test]
 fn test_case0_spdm_opaque_struct() {
-    let u8_slice = &mut [0u8; 68];
+    let u8_slice = &mut [0u8; 2 + MAX_SPDM_OPAQUE_SIZE];
     let mut writer = Writer::init(u8_slice);
     let value = SpdmOpaqueStruct {
-        data_size: 64,
+        data_size: MAX_SPDM_OPAQUE_SIZE as u16,
         data: [100u8; MAX_SPDM_OPAQUE_SIZE],
     };
 
@@ -33,21 +33,21 @@ fn test_case0_spdm_opaque_struct() {
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
-    assert_eq!(68, reader.left());
+    assert_eq!(2 + MAX_SPDM_OPAQUE_SIZE, reader.left());
     let spdm_opaque_struct = SpdmOpaqueStruct::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_opaque_struct.data_size, 64);
-    for i in 0..64 {
+    assert_eq!(spdm_opaque_struct.data_size, MAX_SPDM_OPAQUE_SIZE as u16);
+    for i in 0..MAX_SPDM_OPAQUE_SIZE {
         assert_eq!(spdm_opaque_struct.data[i], 100);
     }
-    assert_eq!(2, reader.left());
+    assert_eq!(0, reader.left());
 }
 
 #[test]
 fn test_case0_spdm_digest_struct() {
-    let u8_slice = &mut [0u8; 68];
+    let u8_slice = &mut [0u8; SPDM_MAX_HASH_SIZE];
     let mut writer = Writer::init(u8_slice);
     let value = SpdmDigestStruct {
-        data_size: 64,
+        data_size: SPDM_MAX_HASH_SIZE as u16,
         data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
     };
 
@@ -57,20 +57,20 @@ fn test_case0_spdm_digest_struct() {
     context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
-    assert_eq!(68, reader.left());
+    assert_eq!(SPDM_MAX_HASH_SIZE, reader.left());
     let spdm_digest_struct = SpdmDigestStruct::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_digest_struct.data_size, 64);
-    for i in 0..64 {
+    assert_eq!(spdm_digest_struct.data_size, SPDM_MAX_HASH_SIZE as u16);
+    for i in 0..SPDM_MAX_HASH_SIZE {
         assert_eq!(spdm_digest_struct.data[i], 100u8);
     }
-    assert_eq!(4, reader.left());
+    assert_eq!(0, reader.left());
 }
 #[test]
 fn test_case0_spdm_signature_struct() {
-    let u8_slice = &mut [0u8; 512];
+    let u8_slice = &mut [0u8; SPDM_MAX_ASYM_KEY_SIZE];
     let mut writer = Writer::init(u8_slice);
     let value = SpdmSignatureStruct {
-        data_size: 512,
+        data_size: SPDM_MAX_ASYM_KEY_SIZE as u16,
         data: [100u8; SPDM_MAX_ASYM_KEY_SIZE],
     };
 
@@ -81,24 +81,24 @@ fn test_case0_spdm_signature_struct() {
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
-    assert_eq!(512, reader.left());
+    assert_eq!(SPDM_MAX_ASYM_KEY_SIZE, reader.left());
     let spdm_signature_struct = SpdmSignatureStruct::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_signature_struct.data_size, 512);
-    for i in 0..512 {
+    assert_eq!(spdm_signature_struct.data_size, RSASSA_4096_KEY_SIZE as u16);
+    for i in 0..RSASSA_4096_KEY_SIZE {
         assert_eq!(spdm_signature_struct.data[i], 100);
     }
 }
 #[test]
 fn test_case0_spdm_cert_chain() {
-    let u8_slice = &mut [0u8; 4192];
+    let u8_slice = &mut [0u8; 4 + SPDM_MAX_HASH_SIZE + MAX_SPDM_CERT_CHAIN_DATA_SIZE];
     let mut writer = Writer::init(u8_slice);
     let value = SpdmCertChain {
         root_hash: SpdmDigestStruct {
-            data_size: 64,
+            data_size: SPDM_MAX_HASH_SIZE as u16,
             data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
         },
         cert_chain: SpdmCertChainData {
-            data_size: 4096u16,
+            data_size: MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16,
             data: [100u8; MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         },
     };
@@ -110,14 +110,14 @@ fn test_case0_spdm_cert_chain() {
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
-    assert_eq!(4192, reader.left());
+    assert_eq!(4 + SPDM_MAX_HASH_SIZE + MAX_SPDM_CERT_CHAIN_DATA_SIZE, reader.left());
     let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_cert_chain.root_hash.data_size, 64);
-    for i in 0..64 {
+    assert_eq!(spdm_cert_chain.root_hash.data_size, SHA512_DIGEST_SIZE as u16);
+    for i in 0..SHA512_DIGEST_SIZE {
         assert_eq!(spdm_cert_chain.root_hash.data[i], 100);
     }
-    assert_eq!(spdm_cert_chain.cert_chain.data_size, 4096);
-    for i in 0..4096 {
+    assert_eq!(spdm_cert_chain.cert_chain.data_size, MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16);
+    for i in 0..MAX_SPDM_CERT_CHAIN_DATA_SIZE {
         assert_eq!(spdm_cert_chain.cert_chain.data[i], 100);
     }
 }
@@ -128,11 +128,11 @@ fn test_case0_spdm_measurement_record_structure() {
     let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
         index: 100u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_size: 67u16,
+        measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            value_size: 64u16,
+            value_size: SPDM_MAX_HASH_SIZE as u16,
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
@@ -170,11 +170,11 @@ fn test_case1_spdm_measurement_record_structure() {
     let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
         index: 100u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_size: 67u16,
+        measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            value_size: 64u16,
+            value_size: SPDM_MAX_HASH_SIZE as u16,
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
@@ -238,7 +238,7 @@ fn test_case0_spdm_dmtf_measurement_structure() {
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
     ];
-    value.value_size = 64u16;
+    value.value_size = SPDM_MAX_HASH_SIZE as u16;
     value.value = [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -249,11 +249,11 @@ fn test_case0_spdm_dmtf_measurement_structure() {
         if i < 2 {
             value.representation = representation[i];
         }
-        let u8_slice = &mut [0u8; 68];
+        let u8_slice = &mut [0u8; 3 + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(68, reader.left());
+        assert_eq!(3 + SPDM_MAX_HASH_SIZE, reader.left());
         let spdm_dmtf_measurement_structure =
             SpdmDmtfMeasurementStructure::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_dmtf_measurement_structure.r#type, r#type[i]);
@@ -263,25 +263,25 @@ fn test_case0_spdm_dmtf_measurement_structure() {
                 representation[i]
             );
         }
-        assert_eq!(spdm_dmtf_measurement_structure.value_size, 64);
-        for j in 0..64 {
+        assert_eq!(spdm_dmtf_measurement_structure.value_size, SPDM_MAX_HASH_SIZE as u16);
+        for j in 0..SPDM_MAX_HASH_SIZE {
             assert_eq!(spdm_dmtf_measurement_structure.value[j], 100);
         }
-        assert_eq!(1, reader.left());
+        assert_eq!(0, reader.left());
     }
 }
 #[test]
 fn test_case0_spdm_measurement_block_structure() {
-    let u8_slice = &mut [0u8; 80];
+    let u8_slice = &mut [0u8; 4 + 3 + SPDM_MAX_HASH_SIZE];
     let mut writer = Writer::init(u8_slice);
     let value = SpdmMeasurementBlockStructure {
         index: 100u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_size: 100u16,
+        measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            value_size: 64,
+            value_size: SPDM_MAX_HASH_SIZE as u16,
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
@@ -292,7 +292,7 @@ fn test_case0_spdm_measurement_block_structure() {
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
-    assert_eq!(80, reader.left());
+    assert_eq!(4 + 3 + SPDM_MAX_HASH_SIZE, reader.left());
     let spdm_block_structure =
         SpdmMeasurementBlockStructure::spdm_read(&mut context, &mut reader).unwrap();
     assert_eq!(spdm_block_structure.index, 100);
@@ -300,7 +300,7 @@ fn test_case0_spdm_measurement_block_structure() {
         spdm_block_structure.measurement_specification,
         SpdmMeasurementSpecification::DMTF
     );
-    assert_eq!(spdm_block_structure.measurement_size, 100);
+    assert_eq!(spdm_block_structure.measurement_size, 3 + SPDM_MAX_HASH_SIZE as u16);
     assert_eq!(
         spdm_block_structure.measurement.r#type,
         SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom
@@ -309,9 +309,9 @@ fn test_case0_spdm_measurement_block_structure() {
         spdm_block_structure.measurement.representation,
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
     );
-    assert_eq!(spdm_block_structure.measurement.value_size, 64);
-    for i in 0..64 {
+    assert_eq!(spdm_block_structure.measurement.value_size, SPDM_MAX_HASH_SIZE as u16);
+    for i in 0..SPDM_MAX_HASH_SIZE {
         assert_eq!(spdm_block_structure.measurement.value[i], 100);
     }
-    assert_eq!(9, reader.left());
+    assert_eq!(0, reader.left());
 }

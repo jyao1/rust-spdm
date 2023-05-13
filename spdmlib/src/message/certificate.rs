@@ -156,11 +156,11 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_certificate_response_payload() {
-        let u8_slice = &mut [0u8; 520];
+        let u8_slice = &mut [0u8; 6 + MAX_SPDM_CERT_PORTION_LEN];
         let mut writer = Writer::init(u8_slice);
         let mut value = SpdmCertificateResponsePayload::default();
         value.slot_id = 100;
-        value.portion_length = 512;
+        value.portion_length = MAX_SPDM_CERT_PORTION_LEN as u16;
         value.remainder_length = 100;
         value.cert_chain = [100u8; MAX_SPDM_CERT_PORTION_LEN];
 
@@ -168,13 +168,13 @@ mod tests {
 
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
-        assert_eq!(520, reader.left());
+        assert_eq!(6 + MAX_SPDM_CERT_PORTION_LEN, reader.left());
         let spdm_get_certificate_request_payload =
             SpdmCertificateResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_get_certificate_request_payload.slot_id, 100);
-        assert_eq!(spdm_get_certificate_request_payload.portion_length, 512);
+        assert_eq!(spdm_get_certificate_request_payload.portion_length, MAX_SPDM_CERT_PORTION_LEN as u16);
         assert_eq!(spdm_get_certificate_request_payload.remainder_length, 100);
-        for i in 0..512 {
+        for i in 0..MAX_SPDM_CERT_PORTION_LEN {
             assert_eq!(spdm_get_certificate_request_payload.cert_chain[i], 100u8);
         }
     }
