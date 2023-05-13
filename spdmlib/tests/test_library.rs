@@ -5,9 +5,7 @@ use codec::{Reader, Writer};
 use common::testlib::*;
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
-use spdmlib::config::{
-    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN, MAX_SPDM_OPAQUE_SIZE,
-};
+use spdmlib::config::{MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN};
 use spdmlib::protocol::*;
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,

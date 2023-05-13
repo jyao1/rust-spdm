@@ -211,6 +211,7 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
+    use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
     use crate::protocol::*;
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
@@ -232,11 +233,8 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_key_exchange_request_payload() {
-        let u8_slice = &mut [0u8; 6
-            + SPDM_RANDOM_SIZE
-            + SPDM_MAX_DHE_KEY_SIZE
-            + 2
-            + crate::config::MAX_SPDM_OPAQUE_SIZE];
+        let u8_slice =
+            &mut [0u8; 6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE];
         let mut writer = Writer::init(u8_slice);
         let value = SpdmKeyExchangeRequestPayload {
             measurement_summary_hash_type:
@@ -252,8 +250,8 @@ mod tests {
                 data: [100u8; SPDM_MAX_DHE_KEY_SIZE],
             },
             opaque: SpdmOpaqueStruct {
-                data_size: crate::config::MAX_SPDM_OPAQUE_SIZE as u16,
-                data: [100u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data_size: MAX_SPDM_OPAQUE_SIZE as u16,
+                data: [100u8; MAX_SPDM_OPAQUE_SIZE],
             },
         };
 
@@ -264,7 +262,7 @@ mod tests {
         assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
         let mut reader = Reader::init(u8_slice);
         assert_eq!(
-            6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + 2 + crate::config::MAX_SPDM_OPAQUE_SIZE,
+            6 + SPDM_RANDOM_SIZE + SPDM_MAX_DHE_KEY_SIZE + 2 + MAX_SPDM_OPAQUE_SIZE,
             reader.left()
         );
         let exchange_request_payload =
@@ -287,9 +285,9 @@ mod tests {
         }
         assert_eq!(
             exchange_request_payload.opaque.data_size,
-            crate::config::MAX_SPDM_OPAQUE_SIZE as u16
+            MAX_SPDM_OPAQUE_SIZE as u16
         );
-        for i in 0..crate::config::MAX_SPDM_OPAQUE_SIZE {
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(exchange_request_payload.opaque.data[i], 100);
         }
     }
@@ -301,7 +299,7 @@ mod tests {
             + SPDM_MAX_DHE_KEY_SIZE
             + SPDM_MAX_HASH_SIZE
             + 2
-            + crate::config::MAX_SPDM_OPAQUE_SIZE
+            + MAX_SPDM_OPAQUE_SIZE
             + SPDM_MAX_ASYM_KEY_SIZE
             + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
@@ -322,8 +320,8 @@ mod tests {
                 data: Box::new([0x11u8; SPDM_MAX_HASH_SIZE]),
             },
             opaque: SpdmOpaqueStruct {
-                data_size: crate::config::MAX_SPDM_OPAQUE_SIZE as u16,
-                data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data_size: MAX_SPDM_OPAQUE_SIZE as u16,
+                data: [0x22u8; MAX_SPDM_OPAQUE_SIZE],
             },
             signature: SpdmSignatureStruct {
                 data_size: SPDM_MAX_ASYM_KEY_SIZE as u16,
@@ -349,7 +347,7 @@ mod tests {
                 + SPDM_MAX_DHE_KEY_SIZE
                 + SPDM_MAX_HASH_SIZE
                 + 2
-                + crate::config::MAX_SPDM_OPAQUE_SIZE
+                + MAX_SPDM_OPAQUE_SIZE
                 + SPDM_MAX_ASYM_KEY_SIZE
                 + SPDM_MAX_HASH_SIZE,
             reader.left()
@@ -394,7 +392,7 @@ mod tests {
         );
         assert_eq!(
             exchange_request_payload.opaque.data_size,
-            crate::config::MAX_SPDM_OPAQUE_SIZE as u16
+            MAX_SPDM_OPAQUE_SIZE as u16
         );
         for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(
@@ -402,7 +400,7 @@ mod tests {
                 0x11
             );
         }
-        for i in 0..crate::config::MAX_SPDM_OPAQUE_SIZE {
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(exchange_request_payload.opaque.data[i], 0x22);
         }
         for i in 0..SHA512_DIGEST_SIZE {
@@ -416,7 +414,7 @@ mod tests {
             + SPDM_RANDOM_SIZE
             + SPDM_MAX_DHE_KEY_SIZE
             + 2
-            + crate::config::MAX_SPDM_OPAQUE_SIZE
+            + MAX_SPDM_OPAQUE_SIZE
             + SPDM_MAX_ASYM_KEY_SIZE
             + SPDM_MAX_HASH_SIZE];
         let mut writer = Writer::init(u8_slice);
@@ -434,8 +432,8 @@ mod tests {
             },
             measurement_summary_hash: SpdmDigestStruct::default(),
             opaque: SpdmOpaqueStruct {
-                data_size: crate::config::MAX_SPDM_OPAQUE_SIZE as u16,
-                data: [0x22u8; crate::config::MAX_SPDM_OPAQUE_SIZE],
+                data_size: MAX_SPDM_OPAQUE_SIZE as u16,
+                data: [0x22u8; MAX_SPDM_OPAQUE_SIZE],
             },
             signature: SpdmSignatureStruct {
                 data_size: SPDM_MAX_ASYM_KEY_SIZE as u16,
@@ -460,7 +458,7 @@ mod tests {
             6 + SPDM_RANDOM_SIZE
                 + SPDM_MAX_DHE_KEY_SIZE
                 + 2
-                + crate::config::MAX_SPDM_OPAQUE_SIZE
+                + MAX_SPDM_OPAQUE_SIZE
                 + SPDM_MAX_ASYM_KEY_SIZE
                 + SPDM_MAX_HASH_SIZE,
             reader.left()
@@ -505,12 +503,12 @@ mod tests {
         );
         assert_eq!(
             exchange_request_payload.opaque.data_size,
-            crate::config::MAX_SPDM_OPAQUE_SIZE as u16
+            MAX_SPDM_OPAQUE_SIZE as u16
         );
         for i in 0..SHA512_DIGEST_SIZE {
             assert_eq!(exchange_request_payload.measurement_summary_hash.data[i], 0);
         }
-        for i in 0..crate::config::MAX_SPDM_OPAQUE_SIZE {
+        for i in 0..MAX_SPDM_OPAQUE_SIZE {
             assert_eq!(exchange_request_payload.opaque.data[i], 0x22);
         }
         for i in 0..SHA512_DIGEST_SIZE {

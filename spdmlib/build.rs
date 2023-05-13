@@ -12,7 +12,6 @@ use std::{fs, fs::File};
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmConfig {
     cert_config: SpdmCertConfig,
-    max_opaque_size: usize,
     psk_config: SpdmPskConfig,
     vendor_defined_config: SpdmVendorDefinedConfig,
     max_session_count: usize,
@@ -27,9 +26,7 @@ impl SpdmConfig {
         // All rust fixed-size arrays require non-negative compile-time constant sizes.
         // This will be checked by the compiler thus no need to check again here.
 
-        // Check if meet SPDM requirements.
-        assert!(self.max_opaque_size < 1024);
-
+        assert!(true);
         // TODO: add more sanity checks if needed.
     }
 }
@@ -62,10 +59,6 @@ macro_rules! TEMPLATE {
 
 /// This is used in SpdmCertChainData without SpdmCertChainHeader.
 pub const MAX_SPDM_CERT_CHAIN_DATA_SIZE: usize = {cert_chain_data_sz}; // 0x1000;
-
-/// This is used in SpdmOpaqueStruct <- SpdmChallengeAuthResponsePayload / SpdmMeasurementsResponsePayload
-/// It should be smaller than 1024
-pub const MAX_SPDM_OPAQUE_SIZE: usize = {opaque_sz};
 
 /// This is used in SpdmPskExchangeRequestPayload / SpdmPskExchangeResponsePayload
 /// It should be no smaller than negoatiated DIGEST SIZE.
@@ -124,7 +117,6 @@ fn main() {
         &mut to_generate,
         TEMPLATE!(),
         cert_chain_data_sz = spdm_config.cert_config.max_cert_chain_data_size,
-        opaque_sz = spdm_config.max_opaque_size,
         psk_ctx_sz = spdm_config.psk_config.max_psk_context_size,
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,

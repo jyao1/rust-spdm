@@ -202,6 +202,7 @@ mod testlib;
 #[cfg(all(test,))]
 mod tests {
     use super::*;
+    use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
     use crate::config::{self, *};
     use crate::protocol::*;

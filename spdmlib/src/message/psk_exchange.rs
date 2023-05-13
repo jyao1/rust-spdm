@@ -3,9 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common;
-use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::opaque::{SpdmOpaqueStruct, MAX_SPDM_OPAQUE_SIZE};
 use crate::common::spdm_codec::SpdmCodec;
-use crate::config::MAX_SPDM_OPAQUE_SIZE;
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,

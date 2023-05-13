@@ -3,7 +3,6 @@
     "cert_config": {
         "max_cert_chain_data_size": 4096
     },
-    "max_opaque_size": 64,
     "psk_config": {
         "max_psk_context_size": 64,
         "max_psk_hint_size": 32

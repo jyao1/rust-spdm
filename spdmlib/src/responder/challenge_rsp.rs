@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::opaque::SpdmOpaqueStruct;
+use crate::common::opaque::{SpdmOpaqueStruct, MAX_SPDM_OPAQUE_SIZE};
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
 use crate::crypto;
@@ -109,7 +109,7 @@ impl<'a> ResponderContext<'a> {
                     },
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,
-                        data: [0u8; config::MAX_SPDM_OPAQUE_SIZE],
+                        data: [0u8; MAX_SPDM_OPAQUE_SIZE],
                     },
                     signature: SpdmSignatureStruct {
                         data_size: self.common.negotiate_info.base_asym_sel.get_size(),
