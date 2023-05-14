@@ -3,11 +3,10 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::{
-    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_CERT,
-    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
+    SPDM_STATUS_INVALID_CERT, SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER,
+    SPDM_STATUS_INVALID_STATE_LOCAL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -18,6 +17,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
+        total_size: u16,
         offset: u16,
         length: u16,
     ) -> SpdmResult<(u16, u16)> {
@@ -25,6 +25,9 @@ impl<'a> RequesterContext<'a> {
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
+        if send_used == 0 {
+            return Err(SPDM_STATUS_BUFFER_FULL);
+        }
         match session_id {
             Some(session_id) => {
                 self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
@@ -45,7 +48,8 @@ impl<'a> RequesterContext<'a> {
         self.handle_spdm_certificate_partial_response(
             session_id,
             slot_id,
-            offset,
+            total_size,
+            (offset, length),
             &send_buffer[..send_used],
             &receive_buffer[..used],
         )
@@ -83,10 +87,13 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
-        offset: u16,
+        total_size: u16,
+        param: (u16, u16),
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult<(u16, u16)> {
+        let offset = param.0;
+        let length = param.1;
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
@@ -102,9 +109,17 @@ impl<'a> RequesterContext<'a> {
                         let used = reader.used();
                         if let Some(certificate) = certificate {
                             debug!("!!! certificate : {:02x?}\n", certificate);
-                            if certificate.portion_length as usize > MAX_SPDM_CERT_PORTION_LEN
+                            if certificate.portion_length as usize > length as usize
                                 || (offset + certificate.portion_length) as usize
                                     > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
+                            {
+                                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
+                            }
+                            if total_size != 0
+                                && total_size
+                                    != offset
+                                        + certificate.portion_length
+                                        + certificate.remainder_length
                             {
                                 return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                             }
@@ -195,7 +210,8 @@ impl<'a> RequesterContext<'a> {
                         self.handle_spdm_certificate_partial_response(
                             session_id,
                             slot_id,
-                            offset,
+                            total_size,
+                            (offset, length),
                             send_buffer,
                             &receive_buffer[..used],
                         )
@@ -214,16 +230,25 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut offset = 0u16;
         let mut length = MAX_SPDM_CERT_PORTION_LEN as u16;
+        let mut total_size = 0u16;
         while length != 0 {
-            let (portion_length, remainder_length) =
-                self.send_receive_spdm_certificate_partial(session_id, slot_id, offset, length)?;
+            let (portion_length, remainder_length) = self.send_receive_spdm_certificate_partial(
+                session_id, slot_id, total_size, offset, length,
+            )?;
+            if total_size == 0 {
+                total_size = portion_length + remainder_length;
+            }
             offset += portion_length;
             length = remainder_length;
             if length > MAX_SPDM_CERT_PORTION_LEN as u16 {
                 length = MAX_SPDM_CERT_PORTION_LEN as u16;
             }
         }
-        self.verify_spdm_certificate_chain(slot_id)
+        if total_size != 0 {
+            self.verify_spdm_certificate_chain(slot_id)
+        } else {
+            Err(SPDM_STATUS_INVALID_CERT)
+        }
     }
 
     pub fn verify_spdm_certificate_chain(&mut self, slot_id: u8) -> SpdmResult {
