@@ -5,7 +5,9 @@ use codec::{Reader, Writer};
 use common::testlib::*;
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
-use spdmlib::config::{MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN};
+use spdmlib::config::{
+    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_RECORD_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN,
+};
 use spdmlib::protocol::*;
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,
@@ -143,7 +145,7 @@ fn test_case0_spdm_measurement_record_structure() {
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
-    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_RECORD_SIZE];
     let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
 
     for _i in 0..5 {
@@ -185,7 +187,7 @@ fn test_case1_spdm_measurement_record_structure() {
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
-    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
+    let mut measurement_record_data = [0u8; MAX_SPDM_MEASUREMENT_RECORD_SIZE];
     let mut measurement_record_data_writer = Writer::init(&mut measurement_record_data);
 
     for _i in 0..5 {
