@@ -299,20 +299,16 @@ impl<'a> RequesterContext<'a> {
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let rm = self.spdm_handle_error_response_main(
+                        let status = self.spdm_handle_error_response_main(
                             None,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestPskExchange,
                             SpdmRequestResponseCode::SpdmResponsePskExchangeRsp,
-                        )?;
-                        let receive_buffer = rm.receive_buffer;
-                        let used = rm.used;
-                        self.handle_spdm_psk_exchange_response(
-                            half_session_id,
-                            measurement_summary_hash_type,
-                            send_buffer,
-                            &receive_buffer[..used],
-                        )
+                        );
+                        match status {
+                            Err(status) => Err(status),
+                            Ok(()) => Err(SPDM_STATUS_ERROR_PEER),
+                        }
                     }
                     _ => Err(SPDM_STATUS_ERROR_PEER),
                 }

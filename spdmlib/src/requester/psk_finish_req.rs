@@ -239,21 +239,13 @@ impl<'a> RequesterContext<'a> {
                             Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
-                    SpdmRequestResponseCode::SpdmResponseError => {
-                        let rm = self.spdm_handle_error_response_main(
+                    SpdmRequestResponseCode::SpdmResponseError => self
+                        .spdm_handle_error_response_main(
                             Some(session_id),
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestPskFinish,
                             SpdmRequestResponseCode::SpdmResponsePskFinishRsp,
-                        )?;
-                        let receive_buffer = rm.receive_buffer;
-                        let used = rm.used;
-                        self.handle_spdm_psk_finish_response(
-                            session_id,
-                            message_f,
-                            &receive_buffer[..used],
-                        )
-                    }
+                        ),
                     _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }

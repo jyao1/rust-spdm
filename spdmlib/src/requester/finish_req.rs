@@ -345,23 +345,12 @@ impl<'a> RequesterContext<'a> {
                         Err(SPDM_STATUS_INVALID_MSG_FIELD)
                     }
                 }
-                SpdmRequestResponseCode::SpdmResponseError => {
-                    let rm = self.spdm_handle_error_response_main(
-                        Some(session_id),
-                        receive_buffer,
-                        SpdmRequestResponseCode::SpdmRequestFinish,
-                        SpdmRequestResponseCode::SpdmResponseFinishRsp,
-                    )?;
-                    let receive_buffer = rm.receive_buffer;
-                    let used = rm.used;
-                    self.handle_spdm_finish_response(
-                        session_id,
-                        slot_id,
-                        base_hash_size,
-                        message_f,
-                        &receive_buffer[..used],
-                    )
-                }
+                SpdmRequestResponseCode::SpdmResponseError => self.spdm_handle_error_response_main(
+                    Some(session_id),
+                    receive_buffer,
+                    SpdmRequestResponseCode::SpdmRequestFinish,
+                    SpdmRequestResponseCode::SpdmResponseFinishRsp,
+                ),
                 _ => Err(SPDM_STATUS_ERROR_PEER),
             },
             None => Err(SPDM_STATUS_INVALID_MSG_FIELD),

@@ -77,15 +77,16 @@ impl<'a> RequesterContext<'a> {
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let rm = self.spdm_handle_error_response_main(
+                        let status = self.spdm_handle_error_response_main(
                             session_id,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
                             SpdmRequestResponseCode::SpdmResponseVendorDefinedResponse,
-                        )?;
-                        let receive_buffer = rm.receive_buffer;
-                        let used = rm.used;
-                        self.handle_spdm_vendor_defined_respond(session_id, &receive_buffer[..used])
+                        );
+                        match status {
+                            Err(status) => Err(status),
+                            Ok(()) => Err(SPDM_STATUS_ERROR_PEER),
+                        }
                     }
                     _ => Err(SPDM_STATUS_ERROR_PEER),
                 }

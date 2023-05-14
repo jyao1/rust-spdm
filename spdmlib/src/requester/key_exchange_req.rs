@@ -361,22 +361,16 @@ impl<'a> RequesterContext<'a> {
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let rm = self.spdm_handle_error_response_main(
+                        let status = self.spdm_handle_error_response_main(
                             None,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestKeyExchange,
                             SpdmRequestResponseCode::SpdmResponseKeyExchangeRsp,
-                        )?;
-                        let receive_buffer = rm.receive_buffer;
-                        let used = rm.used;
-                        self.handle_spdm_key_exhcange_response(
-                            req_session_id,
-                            slot_id,
-                            send_buffer,
-                            &receive_buffer[..used],
-                            measurement_summary_hash_type,
-                            key_exchange_context,
-                        )
+                        );
+                        match status {
+                            Err(status) => Err(status),
+                            Ok(()) => Err(SPDM_STATUS_ERROR_PEER),
+                        }
                     }
                     _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
