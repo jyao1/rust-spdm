@@ -26,7 +26,10 @@ impl SpdmConfig {
         // All rust fixed-size arrays require non-negative compile-time constant sizes.
         // This will be checked by the compiler thus no need to check again here.
 
-        assert!(true);
+        assert!(self.data_transfer_size >= 42);
+        // NOTE: We dont support chunking now. They must be same.
+        assert!(self.max_spdm_msg_size == self.data_transfer_size);
+
         // TODO: add more sanity checks if needed.
     }
 }
