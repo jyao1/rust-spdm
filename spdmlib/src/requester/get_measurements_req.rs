@@ -336,23 +336,16 @@ impl<'a> RequesterContext<'a> {
                         }
                     }
                     SpdmRequestResponseCode::SpdmResponseError => {
-                        let rm = self.spdm_handle_error_response_main(
+                        let status = self.spdm_handle_error_response_main(
                             session_id,
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestGetMeasurements,
                             SpdmRequestResponseCode::SpdmResponseMeasurements,
-                        )?;
-                        let receive_buffer = rm.receive_buffer;
-                        let used = rm.used;
-                        self.handle_spdm_measurement_record_response(
-                            session_id,
-                            slot_id,
-                            measurement_attributes,
-                            measurement_operation,
-                            spdm_measurement_record_structure,
-                            send_buffer,
-                            &receive_buffer[..used],
-                        )
+                        );
+                        match status {
+                            Err(status) => Err(status),
+                            Ok(()) => Err(SPDM_STATUS_ERROR_PEER),
+                        }
                     }
                     _ => Err(SPDM_STATUS_ERROR_PEER),
                 }

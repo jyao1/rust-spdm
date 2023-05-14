@@ -17,7 +17,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: Option<u32>,
         error_code: u8,
-    ) -> SpdmResult<ReceivedMessage> {
+    ) -> SpdmResult {
         /* NOT_READY is treated as error here.
          * Use spdm_handle_error_response_main to handle NOT_READY message in long latency command.*/
         if error_code == SpdmErrorCode::SpdmErrorResponseNotReady.get_u8() {
@@ -45,7 +45,7 @@ impl<'a> RequesterContext<'a> {
         response: &[u8],
         _original_request_code: SpdmRequestResponseCode,
         _expected_response_code: SpdmRequestResponseCode,
-    ) -> SpdmResult<ReceivedMessage> {
+    ) -> SpdmResult {
         let mut spdm_message_header_reader = Reader::init(response);
         let spdm_message_header =
             if let Some(smh) = SpdmMessageHeader::read(&mut spdm_message_header_reader) {

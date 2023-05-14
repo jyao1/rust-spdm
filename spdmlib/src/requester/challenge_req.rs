@@ -147,23 +147,13 @@ impl<'a> RequesterContext<'a> {
                             Err(SPDM_STATUS_INVALID_MSG_FIELD)
                         }
                     }
-                    SpdmRequestResponseCode::SpdmResponseError => {
-                        let rm = self.spdm_handle_error_response_main(
+                    SpdmRequestResponseCode::SpdmResponseError => self
+                        .spdm_handle_error_response_main(
                             Some(session_id),
                             receive_buffer,
                             SpdmRequestResponseCode::SpdmRequestChallenge,
                             SpdmRequestResponseCode::SpdmResponseChallengeAuth,
-                        )?;
-                        let receive_buffer = rm.receive_buffer;
-                        let used = rm.used;
-                        self.handle_spdm_challenge_response(
-                            session_id,
-                            slot_id,
-                            measurement_summary_hash_type,
-                            send_buffer,
-                            &receive_buffer[..used],
-                        )
-                    }
+                        ),
                     _ => Err(SPDM_STATUS_ERROR_PEER),
                 }
             }
