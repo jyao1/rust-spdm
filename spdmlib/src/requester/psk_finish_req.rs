@@ -142,7 +142,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
+        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);
