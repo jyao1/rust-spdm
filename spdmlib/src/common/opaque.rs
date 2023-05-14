@@ -8,8 +8,8 @@ use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use codec::{Codec, Reader, Writer};
 
 /// This is used in SpdmOpaqueStruct <- SpdmChallengeAuthResponsePayload / SpdmMeasurementsResponsePayload
-/// It should be smaller than 1024
-pub const MAX_SPDM_OPAQUE_SIZE: usize = 64;
+/// It should be 1024 according to SPDM spec.
+pub const MAX_SPDM_OPAQUE_SIZE: usize = 1024;
 
 pub const MAX_SECURE_SPDM_VERSION_COUNT: usize = 0x02;
 pub const MAX_VENDOR_ID_LENGTH: usize = 0xFF;
