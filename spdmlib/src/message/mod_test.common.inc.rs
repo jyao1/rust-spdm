@@ -1,4 +1,9 @@
+// Copyright (c) 2021 Intel Corporation
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 use crate::common::{SpdmCodec, SpdmContext, SpdmDeviceIo, SpdmTransportEncap};
+use crate::config::MAX_SPDM_MSG_SIZE;
 use crate::message::SpdmMessage;
 use codec::{Reader, Writer};
 
@@ -17,7 +22,7 @@ macro_rules! create_spdm_context {
 
 #[allow(unused)]
 pub fn new_spdm_message(value: SpdmMessage, mut context: SpdmContext) -> SpdmMessage {
-    let u8_slice = &mut [0u8; 1000];
+    let u8_slice = &mut [0u8; MAX_SPDM_MSG_SIZE];
     let mut writer = Writer::init(u8_slice);
     value.spdm_encode(&mut context, &mut writer);
     let mut reader = Reader::init(u8_slice);
