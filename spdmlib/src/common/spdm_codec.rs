@@ -153,7 +153,9 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
     ) -> Option<SpdmMeasurementRecordStructure> {
         let number_of_blocks = u8::read(r)?;
         let measurement_record_length = u24::read(r)?;
-
+        if measurement_record_length.get() as usize > config::MAX_SPDM_MEASUREMENT_RECORD_SIZE {
+            return None;
+        }
         let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE];
         for d in measurement_record_data
             .iter_mut()
@@ -258,6 +260,9 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         // TBD: Check measurement_hash
 
         let value_size = u16::read(r)?;
+        if value_size as usize > config::MAX_SPDM_MEASUREMENT_VALUE_LEN {
+            return None;
+        }
         let mut value = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
         for v in value.iter_mut().take(value_size as usize) {
             *v = u8::read(r)?;
@@ -302,7 +307,13 @@ impl SpdmCodec for SpdmMeasurementBlockStructure {
     ) -> Option<SpdmMeasurementBlockStructure> {
         let index = u8::read(r)?;
         let measurement_specification = SpdmMeasurementSpecification::read(r)?;
+        if measurement_specification != SpdmMeasurementSpecification::DMTF {
+            return None;
+        }
         let measurement_size = u16::read(r)?;
+        if measurement_size as usize > 3 + config::MAX_SPDM_MEASUREMENT_VALUE_LEN {
+            return None;
+        }
         let measurement = SpdmDmtfMeasurementStructure::spdm_read(context, r)?;
         Some(SpdmMeasurementBlockStructure {
             index,
