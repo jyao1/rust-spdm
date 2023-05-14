@@ -3,6 +3,10 @@
     "cert_config": {
         "max_cert_chain_data_size": 4096
     },
+    "measurement_config": {
+        "max_measurement_record_size": 4096,
+        "max_measurement_val_len": 1024
+    },
     "psk_config": {
         "max_psk_context_size": 64,
         "max_psk_hint_size": 32

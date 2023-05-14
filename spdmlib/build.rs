@@ -12,6 +12,7 @@ use std::{fs, fs::File};
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmConfig {
     cert_config: SpdmCertConfig,
+    measurement_config: SpdmMeasurementConfig,
     psk_config: SpdmPskConfig,
     vendor_defined_config: SpdmVendorDefinedConfig,
     max_session_count: usize,
@@ -26,6 +27,13 @@ impl SpdmConfig {
         // All rust fixed-size arrays require non-negative compile-time constant sizes.
         // This will be checked by the compiler thus no need to check again here.
 
+        assert!(
+            self.measurement_config.max_measurement_record_size
+                >= 7 + self.measurement_config.max_measurement_val_len
+        );
+        assert!(self.measurement_config.max_measurement_val_len >= 32);
+        assert!(self.psk_config.max_psk_context_size >= 32);
+
         assert!(self.data_transfer_size >= 42);
         // NOTE: We dont support chunking now. They must be same.
         assert!(self.max_spdm_msg_size == self.data_transfer_size);
@@ -37,6 +45,12 @@ impl SpdmConfig {
 #[derive(Debug, PartialEq, Deserialize)]
 struct SpdmCertConfig {
     max_cert_chain_data_size: usize,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+struct SpdmMeasurementConfig {
+    max_measurement_record_size: usize,
+    max_measurement_val_len: usize,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -63,6 +77,13 @@ macro_rules! TEMPLATE {
 /// This is used in SpdmCertChainData without SpdmCertChainHeader.
 pub const MAX_SPDM_CERT_CHAIN_DATA_SIZE: usize = {cert_chain_data_sz}; // 0x1000;
 
+/// This is used in SpdmMeasurementsResponsePayload
+pub const MAX_SPDM_MEASUREMENT_RECORD_SIZE: usize = {meas_rec_sz}; // 0x1000
+
+/// This is used in SpdmDmtfMeasurementStructure <- SpdmMeasurementBlockStructure <- SpdmMeasurementsResponsePayload
+/// It should be MAX (MAX MEASUREMENT_MANIFEST_LEN, MAX supported DIGEST SIZE)
+pub const MAX_SPDM_MEASUREMENT_VALUE_LEN: usize = {meas_val_len}; // 0x400
+
 /// This is used in SpdmPskExchangeRequestPayload / SpdmPskExchangeResponsePayload
 /// It should be no smaller than negoatiated DIGEST SIZE.
 pub const MAX_SPDM_PSK_CONTEXT_SIZE: usize = {psk_ctx_sz};
@@ -81,10 +102,6 @@ pub const DATA_TRANSFER_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZ
 
 /// SPDM 1.2
 pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz}; // set to equal to DATA_TRANSFER_SIZE @todo
-
-/// This is used in SpdmMeasurementRecordStructure
-/// It should be MAX_SPDM_MSG_SIZE - (42 + L + OpaqueDataLength + SigLen) + L
-pub const MAX_SPDM_MEASUREMENT_VALUE_LEN: usize = MAX_SPDM_MSG_SIZE - 42 - 0x100 - 96; // 0x100 for OpaqueDataLength
 
 /// This is used in vendor defined message transport
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
@@ -120,6 +137,8 @@ fn main() {
         &mut to_generate,
         TEMPLATE!(),
         cert_chain_data_sz = spdm_config.cert_config.max_cert_chain_data_size,
+        meas_rec_sz = spdm_config.measurement_config.max_measurement_record_size,
+        meas_val_len = spdm_config.measurement_config.max_measurement_val_len,
         psk_ctx_sz = spdm_config.psk_config.max_psk_context_size,
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,

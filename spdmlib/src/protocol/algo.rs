@@ -911,14 +911,14 @@ impl Codec for SpdmMeasurementBlockStructure {
 pub struct SpdmMeasurementRecordStructure {
     pub number_of_blocks: u8,
     pub measurement_record_length: u24,
-    pub measurement_record_data: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+    pub measurement_record_data: [u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE],
 }
 impl Default for SpdmMeasurementRecordStructure {
     fn default() -> SpdmMeasurementRecordStructure {
         SpdmMeasurementRecordStructure {
             number_of_blocks: 0,
             measurement_record_length: u24::new(0),
-            measurement_record_data: [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN],
+            measurement_record_data: [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE],
         }
     }
 }

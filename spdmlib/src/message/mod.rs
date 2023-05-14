@@ -966,7 +966,7 @@ mod tests {
             },
         };
 
-        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+        let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE];
         let mut writer = Writer::init(&mut measurement_record_data);
         for _i in 0..5 {
             assert!(spdm_measurement_block_structure.encode(&mut writer).is_ok());

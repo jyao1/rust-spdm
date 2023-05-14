@@ -129,7 +129,7 @@ fn spdm_measurement_collection_impl(
                 },
             };
 
-            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE];
             let mut writer = Writer::init(&mut measurement_record_data);
             for i in 0..10 {
                 spdm_measurement_block_structure.encode(&mut writer);
@@ -166,7 +166,7 @@ fn spdm_measurement_collection_impl(
                 },
             };
 
-            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
+            let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE];
             let mut writer = Writer::init(&mut measurement_record_data);
             spdm_measurement_block_structure.encode(&mut writer);
 
