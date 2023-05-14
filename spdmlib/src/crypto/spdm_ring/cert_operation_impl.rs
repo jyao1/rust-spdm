@@ -19,6 +19,7 @@ pub static DEFAULT: SpdmCertOperation = SpdmCertOperation {
 fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usize, usize)> {
     let mut offset = 0usize;
     let mut this_index = 0isize;
+    let cert_chain_size = cert_chain.len();
     loop {
         if cert_chain[offset..].len() < 4 || offset > cert_chain.len() {
             return Err(SPDM_STATUS_INVALID_CERT);
@@ -28,12 +29,15 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
         }
         let this_cert_len =
             ((cert_chain[offset + 2] as usize) << 8) + (cert_chain[offset + 3] as usize) + 4;
+        if this_cert_len > cert_chain_size - offset {
+            return Err(SPDM_STATUS_INVALID_CERT);
+        }
         if this_index == index {
             // return the this one
             return Ok((offset, offset + this_cert_len));
         }
         this_index += 1;
-        if (offset + this_cert_len == cert_chain.len()) && (index == -1) {
+        if (offset + this_cert_len == cert_chain_size) && (index == -1) {
             // return the last one
             return Ok((offset, offset + this_cert_len));
         }
