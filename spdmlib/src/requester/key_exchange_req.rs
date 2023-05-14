@@ -11,6 +11,7 @@ use crate::error::SPDM_STATUS_ERROR_PEER;
 use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
 use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::SPDM_STATUS_SESSION_NUMBER_EXCEED;
+use crate::error::SPDM_STATUS_UNSUPPORTED_CAP;
 use crate::error::SPDM_STATUS_VERIF_FAIL;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_PARAMETER};
@@ -74,11 +75,19 @@ impl<'a> RequesterContext<'a> {
         debug!("!!! exchange data : {:02x?}\n", exchange);
 
         let mut opaque;
-        if self
-            .common
-            .negotiate_info
-            .opaque_data_support
-            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            < SpdmVersion::SpdmVersion12.get_u8()
+        {
+            opaque = SpdmOpaqueStruct {
+                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277
+                    .len() as u16,
+                ..Default::default()
+            };
+            opaque.data[..(opaque.data_size as usize)].copy_from_slice(
+                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277.as_ref(),
+            );
+        } else if self.common.negotiate_info.opaque_data_support
+            == SpdmOpaqueSupport::OPAQUE_DATA_FMT1
         {
             opaque = SpdmOpaqueStruct {
                 data_size:
@@ -91,14 +100,7 @@ impl<'a> RequesterContext<'a> {
                     .as_ref(),
             );
         } else {
-            opaque = SpdmOpaqueStruct {
-                data_size: crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277
-                    .len() as u16,
-                ..Default::default()
-            };
-            opaque.data[..(opaque.data_size as usize)].copy_from_slice(
-                crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277.as_ref(),
-            );
+            return Err(SPDM_STATUS_UNSUPPORTED_CAP);
         }
 
         let request = SpdmMessage {

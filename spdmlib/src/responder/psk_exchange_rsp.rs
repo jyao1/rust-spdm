@@ -71,11 +71,21 @@ impl<'a> ResponderContext<'a> {
                             .get_secure_spdm_version()
                             == local_version
                         {
-                            if self
-                                .common
-                                .negotiate_info
-                                .opaque_data_support
-                                .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+                            if self.common.negotiate_info.spdm_version_sel.get_u8()
+                                < SpdmVersion::SpdmVersion12.get_u8()
+                            {
+                                return_opaque.data_size =
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277
+                                        .len() as u16;
+                                return_opaque.data[..(return_opaque.data_size as usize)]
+                                    .copy_from_slice(
+                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277
+                                        .as_ref(),
+                                );
+                                return_opaque.data[return_opaque.data_size as usize - 1] =
+                                    local_version;
+                            } else if self.common.negotiate_info.opaque_data_support
+                                == SpdmOpaqueSupport::OPAQUE_DATA_FMT1
                             {
                                 return_opaque.data_size =
                                     crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0274_FMT1
@@ -85,18 +95,16 @@ impl<'a> ResponderContext<'a> {
                                     crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0274_FMT1
                                         .as_ref(),
                                 );
+                                return_opaque.data[return_opaque.data_size as usize - 1] =
+                                    local_version;
                             } else {
-                                return_opaque.data_size =
-                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277
-                                        .len() as u16;
-                                return_opaque.data[..(return_opaque.data_size as usize)]
-                                    .copy_from_slice(
-                                    crate::common::opaque::RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277
-                                        .as_ref(),
+                                self.write_spdm_error(
+                                    SpdmErrorCode::SpdmErrorUnsupportedRequest,
+                                    0,
+                                    writer,
                                 );
+                                return;
                             }
-                            return_opaque.data[return_opaque.data_size as usize - 1] =
-                                local_version;
                         }
                     }
                 }

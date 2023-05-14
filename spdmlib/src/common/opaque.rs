@@ -4,7 +4,7 @@
 
 use super::spdm_codec::SpdmCodec;
 use super::*;
-use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
+use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_UNSUPPORTED_CAP};
 use codec::{Codec, Reader, Writer};
 
 /// This is used in SpdmOpaqueStruct <- SpdmChallengeAuthResponsePayload / SpdmMeasurementsResponsePayload
@@ -262,8 +262,6 @@ impl SpdmCodec for OpaqueElementHeader {
 
 #[derive(Clone, Debug, Default)]
 pub struct SecuredMessageGeneralOpaqueDataHeader {
-    pub spec_id: u32,
-    pub opaque_version: u8,
     pub total_elements: u8,
 }
 
@@ -274,10 +272,18 @@ impl SpdmCodec for SecuredMessageGeneralOpaqueDataHeader {
         bytes: &mut Writer,
     ) -> Result<usize, SpdmStatus> {
         let mut cnt = 0usize;
-        if context
-            .negotiate_info
-            .opaque_data_support
-            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+        if context.negotiate_info.spdm_version_sel.get_u8() < SpdmVersion::SpdmVersion12.get_u8() {
+            cnt += DMTF_SPEC_ID
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += DMTF_OPAQUE_VERSION
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            cnt += self
+                .total_elements
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        } else if context.negotiate_info.opaque_data_support == SpdmOpaqueSupport::OPAQUE_DATA_FMT1
         {
             cnt += self
                 .total_elements
@@ -285,18 +291,7 @@ impl SpdmCodec for SecuredMessageGeneralOpaqueDataHeader {
                 .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
             cnt += 0u8.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved 3 bytes, 1 byte here required by cargo clippy
         } else {
-            cnt += self
-                .spec_id
-                .encode(bytes)
-                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-            cnt += self
-                .opaque_version
-                .encode(bytes)
-                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-            cnt += self
-                .total_elements
-                .encode(bytes)
-                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            return Err(SPDM_STATUS_UNSUPPORTED_CAP);
         }
         cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?; // reserved 2 bytes
         Ok(cnt)
@@ -305,31 +300,30 @@ impl SpdmCodec for SecuredMessageGeneralOpaqueDataHeader {
         context: &mut SpdmContext,
         r: &mut Reader,
     ) -> Option<SecuredMessageGeneralOpaqueDataHeader> {
-        let mut spec_id: u32 = 0;
-        let mut opaque_version: u8 = 0;
         let total_elements: u8;
 
-        if context
-            .negotiate_info
-            .opaque_data_support
-            .contains(SpdmOpaqueSupport::OPAQUE_DATA_FMT1)
+        if context.negotiate_info.spdm_version_sel.get_u8() < SpdmVersion::SpdmVersion12.get_u8() {
+            let spec_id = u32::read(r)?;
+            if spec_id != DMTF_SPEC_ID {
+                return None;
+            }
+            let opaque_version = u8::read(r)?;
+            if opaque_version != DMTF_OPAQUE_VERSION {
+                return None;
+            }
+            total_elements = u8::read(r)?;
+            u16::read(r)?; // reserved 2 bytes
+        } else if context.negotiate_info.opaque_data_support == SpdmOpaqueSupport::OPAQUE_DATA_FMT1
         {
             total_elements = u8::read(r)?;
             u8::read(r)?; // reserved 3 bytes
             u8::read(r)?;
             u8::read(r)?;
         } else {
-            spec_id = u32::read(r)?;
-            opaque_version = u8::read(r)?;
-            total_elements = u8::read(r)?;
-            u16::read(r)?; // reserved 2 bytes
+            return None;
         }
 
-        Some(SecuredMessageGeneralOpaqueDataHeader {
-            spec_id,
-            opaque_version,
-            total_elements,
-        })
+        Some(SecuredMessageGeneralOpaqueDataHeader { total_elements })
     }
 }
 
