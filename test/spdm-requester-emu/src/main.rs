@@ -268,6 +268,10 @@ fn test_spdm(
             panic!("send_receive_spdm_certificate failed");
         }
 
+        if context.send_receive_spdm_version().is_ok() {
+            panic!("send_receive_spdm_certificate when session existed should failed");
+        }
+
         if context.end_session(session_id).is_err() {
             panic!("end_session failed");
         }
