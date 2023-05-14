@@ -148,10 +148,11 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_finish_response(
         &mut self,
         session_id: u32,
-        slot_id: u8,
+        #[cfg(not(feature = "hashed-transcript-data"))] slot_id: u8,
+        #[cfg(feature = "hashed-transcript-data")] _slot_id: u8,
         base_hash_size: usize,
         #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hashed-transcript-data")] message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
+        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let in_clear_text = self
