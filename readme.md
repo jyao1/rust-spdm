@@ -139,6 +139,10 @@ cargo run -p spdm-requester-emu
 ```
 cargo test
 ```
+or
+```
+cargo test --features "spdmlib/std,spdmlib/spdm-ring"
+```
 
 To run a specific test:
 ```
