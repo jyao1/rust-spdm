@@ -203,7 +203,9 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             req_provision_info3,
         );
         let mut tmp = requester.common.provision_info.peer_root_cert_data.unwrap();
-        tmp.data[1490] = 0;
+        if tmp.data_size > 3 {
+            tmp.data[tmp.data_size as usize - 3] = 0;
+        }
         requester.common.provision_info.peer_root_cert_data = Some(tmp);
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
