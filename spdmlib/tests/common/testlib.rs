@@ -191,6 +191,7 @@ impl Codec for PciDoeMessageHeader {
         let data_object_type = PciDoeDataObjectType::read(r)?;
         u8::read(r)?;
         let mut length = u32::read(r)?;
+        length &= 0x3ffff;
         if length == 0 {
             length = 0x40000;
         }
