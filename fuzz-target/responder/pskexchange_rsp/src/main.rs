@@ -34,16 +34,6 @@ fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-        context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        ];
 
         context.common.reset_runtime_info();
 

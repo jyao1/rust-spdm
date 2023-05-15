@@ -334,19 +334,6 @@ mod tests_responder {
             config_info,
             provision_info,
         );
-        context.common.provision_info.my_cert_chain = [
-            Some(SpdmCertChainBuffer {
-                data_size: 512u16,
-                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-            }),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        ];
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
