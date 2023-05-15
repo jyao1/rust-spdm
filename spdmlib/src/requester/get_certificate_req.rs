@@ -127,30 +127,23 @@ impl<'a> RequesterContext<'a> {
                                 error!("slot id is not match between requester and responder!\n");
                                 return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                             }
-                            if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
-                                if offset != 0 {
-                                    error!("offset invalid!\n");
-                                    return Err(SPDM_STATUS_INVALID_MSG_FIELD);
-                                }
-                                self.common.peer_info.peer_cert_chain[slot_id as usize] =
-                                    Some(SpdmCertChain::default());
-                            }
-                            self.common.peer_info.peer_cert_chain[slot_id as usize]
+
+                            let peer_cert_chain_temp = self
+                                .common
+                                .peer_info
+                                .peer_cert_chain_temp
                                 .as_mut()
-                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?
-                                .cert_chain
-                                .data[(offset as usize)
+                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+
+                            peer_cert_chain_temp.cert_chain.data[(offset as usize)
                                 ..(offset as usize + certificate.portion_length as usize)]
                                 .copy_from_slice(
                                     &certificate.cert_chain
                                         [0..(certificate.portion_length as usize)],
                                 );
 
-                            self.common.peer_info.peer_cert_chain[slot_id as usize]
-                                .as_mut()
-                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?
-                                .cert_chain
-                                .data_size = offset + certificate.portion_length;
+                            peer_cert_chain_temp.cert_chain.data_size =
+                                offset + certificate.portion_length;
 
                             match session_id {
                                 None => {
@@ -225,6 +218,12 @@ impl<'a> RequesterContext<'a> {
         let mut offset = 0u16;
         let mut length = MAX_SPDM_CERT_PORTION_LEN as u16;
         let mut total_size = 0u16;
+
+        if slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
+        self.common.peer_info.peer_cert_chain_temp = Some(SpdmCertChain::default());
         while length != 0 {
             let (portion_length, remainder_length) = self.send_receive_spdm_certificate_partial(
                 session_id, slot_id, total_size, offset, length,
@@ -238,23 +237,33 @@ impl<'a> RequesterContext<'a> {
                 length = MAX_SPDM_CERT_PORTION_LEN as u16;
             }
         }
-        if total_size != 0 {
-            self.verify_spdm_certificate_chain(slot_id)
-        } else {
-            Err(SPDM_STATUS_INVALID_CERT)
+        if total_size == 0 {
+            self.common.peer_info.peer_cert_chain_temp = None;
+            return Err(SPDM_STATUS_INVALID_CERT);
         }
+
+        let result = self.verify_spdm_certificate_chain();
+        if result.is_ok() {
+            self.common.peer_info.peer_cert_chain[slot_id as usize] =
+                self.common.peer_info.peer_cert_chain_temp.clone();
+        }
+        self.common.peer_info.peer_cert_chain_temp = None;
+        result
     }
 
-    pub fn verify_spdm_certificate_chain(&mut self, slot_id: u8) -> SpdmResult {
+    pub fn verify_spdm_certificate_chain(&mut self) -> SpdmResult {
         //
         // 1. Verify the integrity of cert chain
         //
-        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+        if self.common.peer_info.peer_cert_chain_temp.is_none() {
             error!("peer_cert_chain is not populated!\n");
             return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
-        let peer_cert_chain = self.common.peer_info.peer_cert_chain[slot_id as usize]
+        let peer_cert_chain = self
+            .common
+            .peer_info
+            .peer_cert_chain_temp
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
         if peer_cert_chain.cert_chain.data_size
