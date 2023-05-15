@@ -6,6 +6,7 @@ use crate::common::SpdmCodec;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
 use crate::message::*;
+use crate::protocol::SPDM_MAX_SLOT_NUMBER;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
@@ -82,9 +83,19 @@ impl<'a> ResponderContext<'a> {
         }
 
         let get_certificate = get_certificate.unwrap();
-        let slot_id = get_certificate.slot_id;
+        let slot_id = get_certificate.slot_id as usize;
+        if slot_id > SPDM_MAX_SLOT_NUMBER {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+        if self.common.provision_info.my_cert_chain[slot_id].is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
 
-        let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
+        let my_cert_chain = self.common.provision_info.my_cert_chain[slot_id]
+            .as_ref()
+            .unwrap();
 
         let mut length = get_certificate.length;
         if length > MAX_SPDM_CERT_PORTION_LEN as u16 {
@@ -116,7 +127,7 @@ impl<'a> ResponderContext<'a> {
                 request_response_code: SpdmRequestResponseCode::SpdmResponseCertificate,
             },
             payload: SpdmMessagePayload::SpdmCertificateResponse(SpdmCertificateResponsePayload {
-                slot_id,
+                slot_id: slot_id as u8,
                 portion_length,
                 remainder_length,
                 cert_chain,
@@ -169,10 +180,19 @@ mod tests_responder {
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        context.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: 512u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         context.common.runtime_info.digest_context_m1m2 =
             Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());

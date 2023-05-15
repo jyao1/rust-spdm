@@ -377,7 +377,16 @@ mod tests_requester {
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
         responder.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );

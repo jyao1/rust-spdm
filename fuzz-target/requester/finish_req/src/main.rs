@@ -47,7 +47,16 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         responder.common.reset_runtime_info();
 
@@ -124,7 +133,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(0, 4294901758);
+        let _ = requester.send_receive_spdm_finish(None, 4294901758);
     }
 
     {
@@ -164,7 +173,16 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         responder.common.reset_runtime_info();
 
@@ -240,7 +258,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(0, 4294901758);
+        let _ = requester.send_receive_spdm_finish(None, 4294901758);
     }
 
     {
@@ -273,7 +291,16 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         responder.common.reset_runtime_info();
 
@@ -349,7 +376,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
 
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
-        let _ = requester.send_receive_spdm_finish(0, 4294901758);
+        let _ = requester.send_receive_spdm_finish(None, 4294901758);
     }
 }
 

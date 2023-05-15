@@ -234,7 +234,7 @@ mod tests {
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
-            slot_id: 0xaau8,
+            slot_id: 0x7,
         };
 
         create_spdm_context!(context);
@@ -252,7 +252,7 @@ mod tests {
             get_measurements.measurement_operation,
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
         );
-        assert_eq!(get_measurements.slot_id, 0xaau8);
+        assert_eq!(get_measurements.slot_id, 0x7);
         for i in 0..SPDM_NONCE_SIZE {
             assert_eq!(get_measurements.nonce.data[i], 100u8);
         }
@@ -268,7 +268,7 @@ mod tests {
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
-            slot_id: 0xaau8,
+            slot_id: 0x7,
         };
 
         create_spdm_context!(context);

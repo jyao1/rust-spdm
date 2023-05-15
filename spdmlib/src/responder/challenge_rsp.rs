@@ -38,7 +38,7 @@ impl<'a> ResponderContext<'a> {
         }
 
         let challenge = SpdmChallengeRequestPayload::spdm_read(&mut self.common, &mut reader);
-        if let Some(challenge) = challenge {
+        if let Some(challenge) = &challenge {
             debug!("!!! challenge : {:02x?}\n", challenge);
 
             if (challenge.measurement_summary_hash_type
@@ -52,6 +52,17 @@ impl<'a> ResponderContext<'a> {
             }
         } else {
             error!("!!! challenge : fail !!!\n");
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+
+        let challenge = challenge.unwrap();
+        let slot_id = challenge.slot_id as usize;
+        if slot_id > SPDM_MAX_SLOT_NUMBER {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+        if self.common.provision_info.my_cert_chain[slot_id].is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
@@ -84,7 +95,9 @@ impl<'a> ResponderContext<'a> {
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
         let _ = crypto::rand::get_random(&mut nonce);
 
-        let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
+        let my_cert_chain = self.common.provision_info.my_cert_chain[slot_id]
+            .as_ref()
+            .unwrap();
         let cert_chain_hash = crypto::hash::hash_all(
             self.common.negotiate_info.base_hash_sel,
             my_cert_chain.as_ref(),
@@ -98,7 +111,7 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmChallengeAuthResponse(
                 SpdmChallengeAuthResponsePayload {
-                    slot_id: 0x0,
+                    slot_id: slot_id as u8,
                     slot_mask: 0x1,
                     challenge_auth_attribute: SpdmChallengeAuthAttribute::empty(),
                     cert_chain_hash,
@@ -265,10 +278,19 @@ mod tests_responder {
             config_info,
             provision_info,
         );
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-            data_size: (4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE) as u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        context.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: (4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE) as u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;

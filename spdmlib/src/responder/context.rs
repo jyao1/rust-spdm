@@ -506,10 +506,19 @@ mod tests_responder {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        context.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: 512u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         let mut i = 0;
         loop {

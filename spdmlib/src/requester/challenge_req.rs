@@ -19,6 +19,11 @@ impl<'a> RequesterContext<'a> {
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> SpdmResult {
         info!("send spdm challenge\n");
+
+        if slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used =
             self.encode_spdm_challenge(slot_id, measurement_summary_hash_type, &mut send_buffer)?;
@@ -276,10 +281,19 @@ mod tests_requester {
         );
 
         responder.common.reset_runtime_info();
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        responder.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: 512u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;

@@ -89,7 +89,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data =
             self.common
-                .calc_rsp_transcript_data(true, message_k, Some(&message_f));
+                .calc_rsp_transcript_data(true, 0, message_k, Some(&message_f));
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -183,7 +183,7 @@ impl<'a> ResponderContext<'a> {
             session.runtime_info.message_f = message_f.clone();
             th2 = self
                 .common
-                .calc_rsp_transcript_hash(true, message_k, Some(&message_f));
+                .calc_rsp_transcript_hash(true, 0, message_k, Some(&message_f));
             if th2.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;

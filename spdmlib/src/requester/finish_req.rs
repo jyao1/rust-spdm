@@ -7,7 +7,7 @@ use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
 };
 #[cfg(feature = "hashed-transcript-data")]
 use crate::error::{
@@ -23,18 +23,35 @@ use alloc::boxed::Box;
 use crate::common::ManagedBuffer;
 
 impl<'a> RequesterContext<'a> {
-    pub fn send_receive_spdm_finish(&mut self, slot_id: u8, session_id: u32) -> SpdmResult {
+    pub fn send_receive_spdm_finish(
+        &mut self,
+        req_slot_id: Option<u8>,
+        session_id: u32,
+    ) -> SpdmResult {
         info!("send spdm finish\n");
+
+        let req_slot_id = if let Some(req_slot_id) = req_slot_id {
+            if req_slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            }
+            if self.common.provision_info.my_cert_chain[req_slot_id as usize].is_none() {
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            }
+            req_slot_id
+        } else {
+            0
+        };
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let (send_used, base_hash_size, message_f) =
-            self.encode_spdm_finish(session_id, slot_id, &mut send_buffer)?;
+            self.encode_spdm_finish(session_id, req_slot_id, &mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_finish_response(
             session_id,
-            slot_id,
+            req_slot_id,
             base_hash_size,
             message_f,
             &receive_buffer[..receive_used],
@@ -44,7 +61,7 @@ impl<'a> RequesterContext<'a> {
     pub fn encode_spdm_finish(
         &mut self,
         session_id: u32,
-        slot_id: u8,
+        req_slot_id: u8,
         buf: &mut [u8],
     ) -> SpdmResult<(usize, usize, ManagedBuffer)> {
         let mut writer = Writer::init(buf);
@@ -56,7 +73,7 @@ impl<'a> RequesterContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmFinishRequest(SpdmFinishRequestPayload {
                 finish_request_attributes: SpdmFinishRequestAttributes::empty(),
-                req_slot_id: slot_id,
+                req_slot_id,
                 signature: SpdmSignatureStruct::default(),
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
@@ -85,7 +102,7 @@ impl<'a> RequesterContext<'a> {
             let message_k = &session.runtime_info.message_k;
 
             let transcript_data = self.common.calc_req_transcript_data(
-                slot_id,
+                req_slot_id,
                 false,
                 message_k,
                 Some(&message_f),
@@ -148,8 +165,8 @@ impl<'a> RequesterContext<'a> {
     pub fn handle_spdm_finish_response(
         &mut self,
         session_id: u32,
-        #[cfg(not(feature = "hashed-transcript-data"))] slot_id: u8,
-        #[cfg(feature = "hashed-transcript-data")] _slot_id: u8,
+        #[cfg(not(feature = "hashed-transcript-data"))] req_slot_id: u8,
+        #[cfg(feature = "hashed-transcript-data")] _req_slot_id: u8,
         base_hash_size: usize,
         #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
         #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
@@ -197,7 +214,7 @@ impl<'a> RequesterContext<'a> {
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self.common.calc_req_transcript_data(
-                                slot_id,
+                                req_slot_id,
                                 false,
                                 message_k,
                                 Some(&message_f),
@@ -300,7 +317,7 @@ impl<'a> RequesterContext<'a> {
                         // generate the data secret
                         #[cfg(not(feature = "hashed-transcript-data"))]
                         let th2 = self.common.calc_req_transcript_hash(
-                            slot_id,
+                            req_slot_id,
                             false,
                             message_k,
                             Some(&message_f),
@@ -397,7 +414,16 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         responder.common.reset_runtime_info();
 
@@ -495,7 +521,7 @@ mod tests_requester {
                 data: Box::new([0; SPDM_MAX_HASH_SIZE]),
             },
         );
-        let status = requester.send_receive_spdm_finish(0, 4294901758).is_ok();
+        let status = requester.send_receive_spdm_finish(None, 4294901758).is_ok();
         assert!(status);
     }
 }

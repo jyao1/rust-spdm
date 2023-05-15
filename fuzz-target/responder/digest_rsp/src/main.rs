@@ -26,10 +26,19 @@ fn fuzz_handle_spdm_digest(data: &[u8]) {
         provision_info,
     );
 
-    context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-        data_size: 512u16,
-        data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-    });
+    context.common.provision_info.my_cert_chain = [
+        Some(SpdmCertChainBuffer {
+            data_size: 512u16,
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        }),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ];
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     #[cfg(feature = "hashed-transcript-data")]
     {

@@ -76,12 +76,14 @@ impl<'a> ResponderContext<'a> {
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
+        let slot_id = session.get_slot_id();
+        #[cfg(not(feature = "hashed-transcript-data"))]
         let message_k = &session.runtime_info.message_k.clone();
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data =
             &self
                 .common
-                .calc_rsp_transcript_data(false, message_k, Some(&message_f));
+                .calc_rsp_transcript_data(false, slot_id, message_k, Some(&message_f));
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -204,7 +206,7 @@ impl<'a> ResponderContext<'a> {
             #[cfg(not(feature = "hashed-transcript-data"))]
             let transcript_data =
                 self.common
-                    .calc_rsp_transcript_data(false, message_k, Some(&message_f));
+                    .calc_rsp_transcript_data(false, slot_id, message_k, Some(&message_f));
             #[cfg(not(feature = "hashed-transcript-data"))]
             if transcript_data.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -275,7 +277,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let th2 = self
             .common
-            .calc_rsp_transcript_hash(false, message_k, Some(&message_f));
+            .calc_rsp_transcript_hash(false, slot_id, message_k, Some(&message_f));
         #[cfg(feature = "hashed-transcript-data")]
         let th2 = crypto::hash::hash_ctx_finalize(
             session
@@ -359,7 +361,7 @@ mod tests_responder {
         let challenge = &mut [0u8; 1024];
         let mut writer = Writer::init(challenge);
         let value = SpdmChallengeRequestPayload {
-            slot_id: 100,
+            slot_id: 0,
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             nonce: SpdmNonceStruct { data: [100u8; 32] },
@@ -370,7 +372,7 @@ mod tests_responder {
         let mut writer = Writer::init(finish_slic);
         let value = SpdmFinishRequestPayload {
             finish_request_attributes: SpdmFinishRequestAttributes::empty(),
-            req_slot_id: 100,
+            req_slot_id: 0,
             signature: SpdmSignatureStruct {
                 data_size: 512,
                 data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],
@@ -432,8 +434,8 @@ mod tests_responder {
 
         let challenge = &mut [0u8; 1024];
         let mut writer = Writer::init(challenge);
-        let value = SpdmChallengeRequestPayload {
-            slot_id: 100,
+        let value: SpdmChallengeRequestPayload = SpdmChallengeRequestPayload {
+            slot_id: 0,
             measurement_summary_hash_type:
                 SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
             nonce: SpdmNonceStruct { data: [100u8; 32] },
@@ -444,7 +446,7 @@ mod tests_responder {
         let mut writer = Writer::init(finish_slic);
         let value = SpdmFinishRequestPayload {
             finish_request_attributes: SpdmFinishRequestAttributes::SIGNATURE_INCLUDED,
-            req_slot_id: 100,
+            req_slot_id: 0,
             signature: SpdmSignatureStruct {
                 data_size: 96,
                 data: [0xa5u8; SPDM_MAX_ASYM_KEY_SIZE],

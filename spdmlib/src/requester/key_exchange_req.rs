@@ -32,6 +32,10 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
 
+        if slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
         let req_session_id = self.common.get_next_half_session_id(true)?;
 
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
@@ -517,7 +521,16 @@ mod tests_requester {
             rsp_provision_info,
         );
 
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
@@ -547,7 +560,16 @@ mod tests_requester {
                 .unwrap(),
             message_m,
         );
-        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
+        responder.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);

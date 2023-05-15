@@ -94,7 +94,8 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
-        context.common.provision_info.my_cert_chain_data = None;
+        context.common.provision_info.my_cert_chain_data =
+            [None, None, None, None, None, None, None, None];
 
         #[cfg(feature = "hashed-transcript-data")]
         {

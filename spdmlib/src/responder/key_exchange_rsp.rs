@@ -126,6 +126,17 @@ impl<'a> ResponderContext<'a> {
 
         info!("send spdm key_exchange rsp\n");
 
+        let key_exchange_req = key_exchange_req.unwrap();
+        let slot_id = key_exchange_req.slot_id as usize;
+        if slot_id > SPDM_MAX_SLOT_NUMBER {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+        if self.common.provision_info.my_cert_chain[slot_id].is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+
         let (exchange, key_exchange_context) =
             crypto::dhe::generate_key_pair(self.common.negotiate_info.dhe_sel).unwrap();
 
@@ -133,11 +144,10 @@ impl<'a> ResponderContext<'a> {
 
         debug!(
             "!!! exchange data (peer) : {:02x?}\n",
-            &key_exchange_req.as_ref().unwrap().exchange
+            &key_exchange_req.exchange
         );
 
-        let final_key =
-            key_exchange_context.compute_final_key(&key_exchange_req.as_ref().unwrap().exchange);
+        let final_key = key_exchange_context.compute_final_key(&key_exchange_req.exchange);
 
         if final_key.is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -216,7 +226,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         let cert_chain_hash;
         #[cfg(feature = "hashed-transcript-data")]
-        if let Some(hash) = self.common.get_certchain_hash_rsp(false) {
+        if let Some(hash) = self.common.get_certchain_hash_rsp(false, slot_id) {
             cert_chain_hash = hash;
         } else {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -243,9 +253,10 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let signature = self.generate_key_exchange_rsp_signature(&message_k);
+        let signature = self.generate_key_exchange_rsp_signature(slot_id as u8, &message_k);
         #[cfg(feature = "hashed-transcript-data")]
-        let signature = self.generate_key_exchange_rsp_signature(digest_context_th.clone());
+        let signature =
+            self.generate_key_exchange_rsp_signature(slot_id as u8, digest_context_th.clone());
         if signature.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -263,7 +274,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let th1 = self
             .common
-            .calc_rsp_transcript_hash(false, &message_k, None);
+            .calc_rsp_transcript_hash(false, slot_id as u8, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
         let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone());
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -289,10 +300,10 @@ impl<'a> ResponderContext<'a> {
         }
 
         let session = session.unwrap();
-        let session_id =
-            ((rsp_session_id as u32) << 16) + key_exchange_req.unwrap().req_session_id as u32;
+        let session_id = ((rsp_session_id as u32) << 16) + key_exchange_req.req_session_id as u32;
         session.setup(session_id).unwrap();
         session.set_use_psk(false);
+        session.set_slot_id(slot_id as u8);
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
         if session.set_dhe_secret(spdm_version_sel, final_key).is_err() {
@@ -306,9 +317,9 @@ impl<'a> ResponderContext<'a> {
 
         // generate HMAC with finished_key
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = self
-            .common
-            .calc_rsp_transcript_data(false, &message_k, None);
+        let transcript_data =
+            self.common
+                .calc_rsp_transcript_data(false, slot_id as u8, &message_k, None);
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -369,6 +380,7 @@ impl<'a> ResponderContext<'a> {
     #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
+        _slot_id: u8,
         message_k: HashCtx,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
@@ -402,11 +414,12 @@ impl<'a> ResponderContext<'a> {
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
+        slot_id: u8,
         message_k: &ManagedBuffer,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = self
             .common
-            .calc_rsp_transcript_data(false, message_k, None)?;
+            .calc_rsp_transcript_data(false, slot_id, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =
