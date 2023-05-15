@@ -83,7 +83,6 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         my_cert_chain_data: None,
         my_cert_chain: None,
         peer_cert_chain_data: Some(peer_cert_chain_data),
-        peer_cert_chain_root_hash: None,
         default_version: SpdmVersion::SpdmVersion12,
     };
 

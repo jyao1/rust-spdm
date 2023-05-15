@@ -223,7 +223,6 @@ fn handle_message(
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
         peer_cert_chain_data: None,
-        peer_cert_chain_root_hash: None,
         default_version: SpdmVersion::SpdmVersion12,
     };
 
