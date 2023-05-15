@@ -85,6 +85,9 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let mut my_cert_chain_data = SpdmCertChainData {
         ..Default::default()
     };
+    let mut peer_root_cert_data = SpdmCertChainData {
+        ..Default::default()
+    };
 
     let crate_dir = get_test_key_directory();
     let ca_file_path = crate_dir.join("test_key/EcP384/ca.cert.der");
@@ -104,10 +107,13 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     my_cert_chain_data.data[(ca_len + inter_len)..(ca_len + inter_len + leaf_len)]
         .copy_from_slice(leaf_cert.as_ref());
 
+    peer_root_cert_data.data_size = (ca_len) as u16;
+    peer_root_cert_data.data[0..ca_len].copy_from_slice(ca_cert.as_ref());
+
     let provision_info = common::SpdmProvisionInfo {
         my_cert_chain_data: Some(my_cert_chain_data.clone()),
         my_cert_chain: None,
-        peer_cert_chain_data: Some(my_cert_chain_data),
+        peer_root_cert_data: Some(peer_root_cert_data),
         default_version: SpdmVersion::SpdmVersion11,
     };
 

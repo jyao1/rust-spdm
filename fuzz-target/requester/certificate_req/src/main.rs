@@ -153,13 +153,9 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        let mut tmp = requester
-            .common
-            .provision_info
-            .peer_cert_chain_data
-            .unwrap();
+        let mut tmp = requester.common.provision_info.peer_root_cert_data.unwrap();
         tmp.data_size += 1;
-        requester.common.provision_info.peer_cert_chain_data = Some(tmp);
+        requester.common.provision_info.peer_root_cert_data = Some(tmp);
 
         #[cfg(feature = "hashed-transcript-data")]
         {
@@ -206,13 +202,9 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             req_config_info3,
             req_provision_info3,
         );
-        let mut tmp = requester
-            .common
-            .provision_info
-            .peer_cert_chain_data
-            .unwrap();
+        let mut tmp = requester.common.provision_info.peer_root_cert_data.unwrap();
         tmp.data[1490] = 0;
-        requester.common.provision_info.peer_cert_chain_data = Some(tmp);
+        requester.common.provision_info.peer_root_cert_data = Some(tmp);
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;

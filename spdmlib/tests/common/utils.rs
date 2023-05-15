@@ -56,7 +56,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         ..Default::default()
     };
 
-    let mut peer_cert_chain_data = SpdmCertChainData {
+    let mut peer_root_cert_data = SpdmCertChainData {
         ..Default::default()
     };
 
@@ -90,16 +90,13 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         inter_len,
         leaf_len
     );
-    peer_cert_chain_data.data_size = (ca_len + inter_len + leaf_len) as u16;
-    peer_cert_chain_data.data[0..ca_len].copy_from_slice(ca_cert.as_ref());
-    peer_cert_chain_data.data[ca_len..(ca_len + inter_len)].copy_from_slice(inter_cert.as_ref());
-    peer_cert_chain_data.data[(ca_len + inter_len)..(ca_len + inter_len + leaf_len)]
-        .copy_from_slice(leaf_cert.as_ref());
+    peer_root_cert_data.data_size = (ca_len) as u16;
+    peer_root_cert_data.data[0..ca_len].copy_from_slice(ca_cert.as_ref());
 
     let provision_info = common::SpdmProvisionInfo {
         my_cert_chain_data: None,
         my_cert_chain: None,
-        peer_cert_chain_data: Some(peer_cert_chain_data),
+        peer_root_cert_data: Some(peer_root_cert_data),
         default_version: SpdmVersion::SpdmVersion12,
     };
 
@@ -191,7 +188,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     let provision_info = common::SpdmProvisionInfo {
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
-        peer_cert_chain_data: None,
+        peer_root_cert_data: None,
         default_version: SpdmVersion::SpdmVersion12,
     };
 

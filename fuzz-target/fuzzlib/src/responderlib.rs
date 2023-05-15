@@ -86,7 +86,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     let provision_info = common::SpdmProvisionInfo {
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
-        peer_cert_chain_data: None,
+        peer_root_cert_data: None,
         default_version: SpdmVersion::SpdmVersion12,
     };
 

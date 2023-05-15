@@ -246,102 +246,109 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn verify_spdm_certificate_chain(&mut self, slot_id: u8) -> SpdmResult {
-        // verify
-        if let Some(peer_cert_chain_data) = &self.common.provision_info.peer_cert_chain_data {
-            //
-            // Verify cert chain
-            //
-            if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
-                error!("peer_cert_chain is not populated!\n");
-                return Err(SPDM_STATUS_INVALID_PARAMETER);
-            }
-            if self.common.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
-                .data_size
-                <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
-            {
-                return Err(SPDM_STATUS_INVALID_CERT);
-            }
-
-            let data_size = self.common.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
-                .data_size
-                - 4
-                - self.common.negotiate_info.base_hash_sel.get_size();
-            let mut data = [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
-            data[0..(data_size as usize)].copy_from_slice(
-                &self.common.peer_info.peer_cert_chain[slot_id as usize]
-                    .as_ref()
-                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                    .cert_chain
-                    .data[(4usize
-                    + self.common.negotiate_info.base_hash_sel.get_size() as usize)
-                    ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
-                        .as_ref()
-                        .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                        .cert_chain
-                        .data_size as usize)],
-            );
-            let runtime_peer_cert_chain_data = SpdmCertChainData { data_size, data };
-
-            let (root_cert_begin, root_cert_end) =
-                crypto::cert_operation::get_cert_from_cert_chain(
-                    &runtime_peer_cert_chain_data.data
-                        [..(runtime_peer_cert_chain_data.data_size as usize)],
-                    0,
-                )?;
-            let root_cert = &runtime_peer_cert_chain_data.data[root_cert_begin..root_cert_end];
-            let root_hash = if let Some(rh) =
-                crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
-            {
-                rh
-            } else {
-                return Err(SPDM_STATUS_CRYPTO_ERROR);
-            };
-            if root_hash.data[..(root_hash.data_size as usize)]
-                != self.common.peer_info.peer_cert_chain[slot_id as usize]
-                    .as_ref()
-                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                    .cert_chain
-                    .data[4usize
-                    ..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]
-            {
-                error!("root_hash - fail!\n");
-                return Err(SPDM_STATUS_INVALID_CERT);
-            }
-
-            if runtime_peer_cert_chain_data.data_size != peer_cert_chain_data.data_size {
-                error!("cert_chain size - fail!\n");
-                debug!(
-                    "provision cert_chain data size - {:?}\n",
-                    peer_cert_chain_data.data_size
-                );
-                debug!(
-                    "runtime cert_chain data size - {:?}\n",
-                    runtime_peer_cert_chain_data.data_size
-                );
-                return Err(SPDM_STATUS_INVALID_CERT);
-            }
-            if runtime_peer_cert_chain_data.data != peer_cert_chain_data.data {
-                error!("cert_chain data - fail!\n");
-                return Err(SPDM_STATUS_INVALID_CERT);
-            }
-
-            if crypto::cert_operation::verify_cert_chain(
-                &runtime_peer_cert_chain_data.data
-                    [..(runtime_peer_cert_chain_data.data_size as usize)],
-            )
-            .is_err()
-            {
-                error!("cert_chain verification - fail! - TBD later\n");
-                return Err(SPDM_STATUS_INVALID_CERT);
-            }
-            info!("cert_chain verification - pass!\n");
+        //
+        // 1. Verify the integrity of cert chain
+        //
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
+        if self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+            .cert_chain
+            .data_size
+            <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
+        {
+            return Err(SPDM_STATUS_INVALID_CERT);
+        }
+
+        let data_size = self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+            .cert_chain
+            .data_size
+            - 4
+            - self.common.negotiate_info.base_hash_sel.get_size();
+        let mut data = [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
+        data[0..(data_size as usize)].copy_from_slice(
+            &self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                .cert_chain
+                .data[(4usize
+                + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+                ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                    .as_ref()
+                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                    .cert_chain
+                    .data_size as usize)],
+        );
+        let runtime_peer_cert_chain_data = SpdmCertChainData { data_size, data };
+        info!("1. get runtime_peer_cert_chain_data!\n");
+
+        //
+        // 1.1 verify the integrity of the chain
+        //
+        if crypto::cert_operation::verify_cert_chain(
+            &runtime_peer_cert_chain_data.data[..(runtime_peer_cert_chain_data.data_size as usize)],
+        )
+        .is_err()
+        {
+            error!("cert_chain verification - fail! - TBD later\n");
+            return Err(SPDM_STATUS_INVALID_CERT);
+        }
+        info!("1.1. integrity of cert_chain is verified!\n");
+
+        //
+        // 1.2 verify the root cert hash
+        //
+        let (root_cert_begin, root_cert_end) = crypto::cert_operation::get_cert_from_cert_chain(
+            &runtime_peer_cert_chain_data.data[..(runtime_peer_cert_chain_data.data_size as usize)],
+            0,
+        )?;
+        let root_cert = &runtime_peer_cert_chain_data.data[root_cert_begin..root_cert_end];
+        let root_hash = if let Some(rh) =
+            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
+        {
+            rh
+        } else {
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
+        };
+        if root_hash.data[..(root_hash.data_size as usize)]
+            != self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                .cert_chain
+                .data
+                [4usize..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]
+        {
+            error!("root_hash - fail!\n");
+            return Err(SPDM_STATUS_INVALID_CERT);
+        }
+        info!("1.2. root cert hash is verified!\n");
+
+        //
+        // 2. verify the authority of cert chain if provisioned
+        //
+        if let Some(peer_root_cert_data) = &self.common.provision_info.peer_root_cert_data {
+            if root_cert.len() != peer_root_cert_data.data_size as usize {
+                error!("root_cert size - fail!\n");
+                debug!(
+                    "provision root_cert data size - {:?}\n",
+                    peer_root_cert_data.data_size
+                );
+                debug!("runtime root_cert data size - {:?}\n", root_cert.len());
+                return Err(SPDM_STATUS_INVALID_CERT);
+            }
+            if root_cert[..] != peer_root_cert_data.data[..peer_root_cert_data.data_size as usize] {
+                error!("root_cert data - fail!\n");
+                return Err(SPDM_STATUS_INVALID_CERT);
+            }
+            info!("2. root cert is verified!\n");
+        }
+
+        info!("cert_chain verification - pass!\n");
         Ok(())
     }
 }

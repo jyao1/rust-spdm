@@ -583,8 +583,7 @@ pub struct SpdmRuntimeInfo {
 pub struct SpdmProvisionInfo {
     pub my_cert_chain_data: Option<SpdmCertChainData>,
     pub my_cert_chain: Option<SpdmCertChainData>, // use SpdmCertChainData instead of SpdmCertChain for easy command sending.
-    // TBD: union peer. But it is still option.
-    pub peer_cert_chain_data: Option<SpdmCertChainData>,
+    pub peer_root_cert_data: Option<SpdmCertChainData>,
     pub default_version: SpdmVersion,
 }
 
