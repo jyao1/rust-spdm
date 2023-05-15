@@ -124,7 +124,6 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
         my_cert_chain_data: Some(my_cert_chain_data.clone()),
         my_cert_chain: None,
         peer_root_cert_data: Some(peer_root_cert_data),
-        default_version: SpdmVersion::SpdmVersion11,
     };
 
     (config_info, provision_info)
