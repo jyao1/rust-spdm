@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 pub mod fake_device_io;
-pub mod fuzz_aead_impl;
+pub mod fake_aead_impl;
 pub mod fuzz_crypto;
 pub mod requesterlib;
 pub mod responderlib;
@@ -17,7 +17,7 @@ pub use fake_device_io::{
     FakeSpdmDeviceIoReceve, FuzzSpdmDeviceIoReceve, FuzzTmpSpdmDeviceIoReceve,
 };
 
-pub use fuzz_aead_impl::FUZZ_AEAD;
+pub use fake_aead_impl::FAKE_AEAD;
 pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND};
 pub use requesterlib::{certificata_data, req_create_info, RSP_CERT_CHAIN_BUFF};
 pub use responderlib::rsp_create_info;
