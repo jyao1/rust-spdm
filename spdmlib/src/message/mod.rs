@@ -931,6 +931,7 @@ mod tests {
             ),
         };
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(
@@ -1002,6 +1003,7 @@ mod tests {
             ),
         };
         create_spdm_context!(context);
+        context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
