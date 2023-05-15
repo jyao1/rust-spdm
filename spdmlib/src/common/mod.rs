@@ -230,11 +230,9 @@ impl<'a> SpdmContext<'a> {
             let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data_size as usize)];
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
@@ -367,10 +365,8 @@ impl<'a> SpdmContext<'a> {
 
             let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()?
-                .cert_chain
                 .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()?
-                .cert_chain
                 .data_size as usize)];
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
@@ -582,12 +578,12 @@ pub struct SpdmRuntimeInfo {
 #[derive(Default, Clone)]
 pub struct SpdmProvisionInfo {
     pub my_cert_chain_data: Option<SpdmCertChainData>,
-    pub my_cert_chain: Option<SpdmCertChainData>, // use SpdmCertChainData instead of SpdmCertChain for easy command sending.
+    pub my_cert_chain: Option<SpdmCertChainBuffer>,
     pub peer_root_cert_data: Option<SpdmCertChainData>,
 }
 
 #[derive(Default)]
 pub struct SpdmPeerInfo {
-    pub peer_cert_chain: [Option<SpdmCertChain>; 8],
-    pub peer_cert_chain_temp: Option<SpdmCertChain>,
+    pub peer_cert_chain: [Option<SpdmCertChainBuffer>; 8],
+    pub peer_cert_chain_temp: Option<SpdmCertChainBuffer>,
 }

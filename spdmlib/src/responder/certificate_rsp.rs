@@ -169,9 +169,9 @@ mod tests_responder {
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+        context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
             data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
 
         context.common.runtime_info.digest_context_m1m2 =

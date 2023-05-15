@@ -165,9 +165,9 @@ mod tests_requester {
             rsp_config_info,
             rsp_provision_info,
         );
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
             data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.runtime_info.digest_context_m1m2 = Some(

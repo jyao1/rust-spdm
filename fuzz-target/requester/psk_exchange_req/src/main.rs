@@ -42,8 +42,6 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
-        // -- end --
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
@@ -81,8 +79,6 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
-        // -- end --
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,

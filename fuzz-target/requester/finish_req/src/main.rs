@@ -100,8 +100,6 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        // requester.common.peer_info.peer_cert_chain_data.cert_chain = [Some(REQ_CERT_CHAIN_DATA);8 ].clone();
-
         requester.common.reset_runtime_info();
 
         requester.common.session[0] = SpdmSession::new();
@@ -218,8 +216,6 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
-
         requester.common.reset_runtime_info();
 
         requester.common.session[0] = SpdmSession::new();
@@ -328,8 +324,6 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
         requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         requester.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
-
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         requester.common.reset_runtime_info();
 

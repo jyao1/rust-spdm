@@ -126,7 +126,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        // requester.common.peer_info.peer_cert_chain.cert_chain = [Some(REQ_CERT_CHAIN_DATA);8].clone();
+
         requester.common.reset_runtime_info();
         let mut total_number = 0;
         let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
@@ -202,7 +202,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
+
         requester.common.reset_runtime_info();
 
         let mut total_number = 0;
@@ -284,11 +284,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
-        requester.common.peer_info.peer_cert_chain[0]
-            .as_mut()
-            .unwrap()
-            .cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
 
         requester.common.reset_runtime_info();
 
@@ -669,11 +665,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
-        requester.common.peer_info.peer_cert_chain[0]
-            .as_mut()
-            .unwrap()
-            .cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
 
         requester.common.reset_runtime_info();
         let mut total_number = 0;

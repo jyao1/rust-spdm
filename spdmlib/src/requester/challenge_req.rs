@@ -215,12 +215,10 @@ impl<'a> RequesterContext<'a> {
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data_size as usize)];
 
         #[cfg(feature = "hashed-transcript-data")]
@@ -278,9 +276,9 @@ mod tests_requester {
         );
 
         responder.common.reset_runtime_info();
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
             data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
@@ -316,11 +314,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.runtime_info.need_measurement_summary_hash = true;
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
-        requester.common.peer_info.peer_cert_chain[0]
-            .as_mut()
-            .unwrap()
-            .cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         requester.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
