@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmHash;
+#[cfg(feature = "hashed-transcript-data")]
 use crate::error::SpdmResult;
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
