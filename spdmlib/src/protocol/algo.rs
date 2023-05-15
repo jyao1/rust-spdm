@@ -762,10 +762,24 @@ impl AsRef<[u8]> for SpdmCertChainData {
     }
 }
 
-#[derive(Default, Debug, Clone)]
-pub struct SpdmCertChain {
-    pub root_hash: SpdmDigestStruct,
-    pub cert_chain: SpdmCertChainData,
+#[derive(Debug, Clone)]
+pub struct SpdmCertChainBuffer {
+    pub data_size: u16,
+    pub data: [u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+}
+
+impl Default for SpdmCertChainBuffer {
+    fn default() -> Self {
+        SpdmCertChainBuffer {
+            data_size: 0u16,
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+        }
+    }
+}
+impl AsRef<[u8]> for SpdmCertChainBuffer {
+    fn as_ref(&self) -> &[u8] {
+        &self.data[0..(self.data_size as usize)]
+    }
 }
 
 enum_builder! {

@@ -6,10 +6,10 @@ use crate::common::SpdmContext;
 use crate::config;
 use crate::error::{SpdmResult, SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
-    SpdmCertChain, SpdmCertChainData, SpdmDheExchangeStruct, SpdmDigestStruct,
-    SpdmDmtfMeasurementRepresentation, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
-    SpdmMeasurementBlockStructure, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
-    SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
+    SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementRepresentation,
+    SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType, SpdmMeasurementBlockStructure,
+    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmSignatureStruct,
+    SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
 };
 use codec::{u24, Codec, Reader, Writer};
 use core::fmt::Debug;
@@ -74,50 +74,6 @@ impl SpdmCodec for SpdmSignatureStruct {
             *d = u8::read(r)?;
         }
         Some(SpdmSignatureStruct { data_size, data })
-    }
-}
-impl SpdmCodec for SpdmCertChain {
-    fn spdm_encode(
-        &self,
-        context: &mut SpdmContext,
-        bytes: &mut Writer,
-    ) -> Result<usize, SpdmStatus> {
-        let mut cnt = 0usize;
-        let length = self.cert_chain.data_size + self.root_hash.data_size + 4_u16;
-        cnt += length.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-        cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-
-        cnt += self
-            .root_hash
-            .spdm_encode(context, bytes)
-            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-
-        for d in self
-            .cert_chain
-            .data
-            .iter()
-            .take(self.cert_chain.data_size as usize)
-        {
-            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
-        }
-        Ok(cnt)
-    }
-    fn spdm_read(context: &mut SpdmContext, r: &mut Reader) -> Option<SpdmCertChain> {
-        let length = u16::read(r)?;
-        u16::read(r)?;
-        let root_hash = SpdmDigestStruct::spdm_read(context, r)?;
-        let data_size = length - 4 - root_hash.data_size;
-        let mut cert_chain = SpdmCertChainData {
-            data_size,
-            ..Default::default()
-        };
-        for d in cert_chain.data.iter_mut().take(data_size as usize) {
-            *d = u8::read(r)?;
-        }
-        Some(SpdmCertChain {
-            root_hash,
-            cert_chain,
-        })
     }
 }
 

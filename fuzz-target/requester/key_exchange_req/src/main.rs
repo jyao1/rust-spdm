@@ -28,9 +28,9 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             rsp_provision_info,
         );
 
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
             data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -43,7 +43,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.digest_context_m1m2.is_some();
-        // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -66,7 +65,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         requester.common.runtime_info.digest_context_m1m2.is_some();
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,
@@ -91,9 +89,9 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             rsp_provision_info1,
         );
 
-        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainData {
+        responder.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
             data_size: 512u16,
-            data: [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
         });
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -106,7 +104,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         responder.common.runtime_info.digest_context_m1m2.is_some();
-        // responder.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -129,7 +126,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         requester.common.runtime_info.digest_context_m1m2.is_some();
-        // requester.common.peer_info.peer_cert_chain.cert_chain = REQ_CERT_CHAIN_DATA;
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,

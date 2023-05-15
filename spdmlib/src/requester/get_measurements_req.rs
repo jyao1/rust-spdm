@@ -420,12 +420,10 @@ impl<'a> RequesterContext<'a> {
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data_size as usize)];
 
         let mut message = ManagedBuffer::default();
@@ -504,12 +502,10 @@ impl<'a> RequesterContext<'a> {
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data_size as usize)];
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
@@ -615,11 +611,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
-        requester.common.peer_info.peer_cert_chain[0]
-            .as_mut()
-            .unwrap()
-            .cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
         requester.common.reset_runtime_info();
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;

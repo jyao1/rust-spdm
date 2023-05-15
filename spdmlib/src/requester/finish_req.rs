@@ -458,11 +458,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
-        requester.common.peer_info.peer_cert_chain[0]
-            .as_mut()
-            .unwrap()
-            .cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
 
         requester.common.reset_runtime_info();
 

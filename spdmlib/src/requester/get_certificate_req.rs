@@ -135,15 +135,14 @@ impl<'a> RequesterContext<'a> {
                                 .as_mut()
                                 .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
 
-                            peer_cert_chain_temp.cert_chain.data[(offset as usize)
+                            peer_cert_chain_temp.data[(offset as usize)
                                 ..(offset as usize + certificate.portion_length as usize)]
                                 .copy_from_slice(
                                     &certificate.cert_chain
                                         [0..(certificate.portion_length as usize)],
                                 );
 
-                            peer_cert_chain_temp.cert_chain.data_size =
-                                offset + certificate.portion_length;
+                            peer_cert_chain_temp.data_size = offset + certificate.portion_length;
 
                             match session_id {
                                 None => {
@@ -223,7 +222,7 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
-        self.common.peer_info.peer_cert_chain_temp = Some(SpdmCertChain::default());
+        self.common.peer_info.peer_cert_chain_temp = Some(SpdmCertChainBuffer::default());
         while length != 0 {
             let (portion_length, remainder_length) = self.send_receive_spdm_certificate_partial(
                 session_id, slot_id, total_size, offset, length,
@@ -266,26 +265,23 @@ impl<'a> RequesterContext<'a> {
             .peer_cert_chain_temp
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
-        if peer_cert_chain.cert_chain.data_size
-            <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
-        {
+        if peer_cert_chain.data_size <= (4 + self.common.negotiate_info.base_hash_sel.get_size()) {
             return Err(SPDM_STATUS_INVALID_CERT);
         }
 
-        let data_size_in_cert_chain = peer_cert_chain.cert_chain.data[0] as u16
-            + ((peer_cert_chain.cert_chain.data[1] as u16) << 8);
-        if data_size_in_cert_chain != peer_cert_chain.cert_chain.data_size {
+        let data_size_in_cert_chain =
+            peer_cert_chain.data[0] as u16 + ((peer_cert_chain.data[1] as u16) << 8);
+        if data_size_in_cert_chain != peer_cert_chain.data_size {
             return Err(SPDM_STATUS_INVALID_CERT);
         }
 
-        let data_size = peer_cert_chain.cert_chain.data_size
-            - 4
-            - self.common.negotiate_info.base_hash_sel.get_size();
+        let data_size =
+            peer_cert_chain.data_size - 4 - self.common.negotiate_info.base_hash_sel.get_size();
         let mut data = [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
         data[0..(data_size as usize)].copy_from_slice(
-            &peer_cert_chain.cert_chain.data[(4usize
+            &peer_cert_chain.data[(4usize
                 + self.common.negotiate_info.base_hash_sel.get_size() as usize)
-                ..(peer_cert_chain.cert_chain.data_size as usize)],
+                ..(peer_cert_chain.data_size as usize)],
         );
         let runtime_peer_cert_chain_data = SpdmCertChainData { data_size, data };
         info!("1. get runtime_peer_cert_chain_data!\n");
@@ -319,7 +315,7 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         if root_hash.data[..(root_hash.data_size as usize)]
-            != peer_cert_chain.cert_chain.data
+            != peer_cert_chain.data
                 [4usize..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]
         {
             error!("root_hash - fail!\n");

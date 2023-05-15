@@ -400,12 +400,10 @@ impl<'a> RequesterContext<'a> {
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data_size as usize)];
 
         let mut message = ManagedBuffer::default();
@@ -459,12 +457,10 @@ impl<'a> RequesterContext<'a> {
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
             .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
             .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
             ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
                 .data_size as usize)];
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
@@ -551,7 +547,7 @@ mod tests_requester {
                 .unwrap(),
             message_m,
         );
-        responder.common.provision_info.my_cert_chain_data = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -592,11 +588,7 @@ mod tests_requester {
                 .unwrap(),
             message_m,
         );
-        requester.common.peer_info.peer_cert_chain[0] = Some(SpdmCertChain::default());
-        requester.common.peer_info.peer_cert_chain[0]
-            .as_mut()
-            .unwrap()
-            .cert_chain = REQ_CERT_CHAIN_DATA;
+        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
 
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;

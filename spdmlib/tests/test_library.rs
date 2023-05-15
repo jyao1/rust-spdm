@@ -5,16 +5,13 @@ use codec::{Reader, Writer};
 use common::testlib::*;
 use spdmlib::common::opaque::*;
 use spdmlib::common::SpdmCodec;
-use spdmlib::config::{
-    MAX_SPDM_CERT_CHAIN_DATA_SIZE, MAX_SPDM_MEASUREMENT_RECORD_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN,
-};
+use spdmlib::config::{MAX_SPDM_MEASUREMENT_RECORD_SIZE, MAX_SPDM_MEASUREMENT_VALUE_LEN};
 use spdmlib::protocol::*;
 use spdmlib::protocol::{
-    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmCertChain, SpdmCertChainData, SpdmDheAlgo,
-    SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType,
-    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmSignatureStruct,
-    ECDSA_ECC_NIST_P384_KEY_SIZE, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE,
-    SPDM_MAX_HASH_SIZE,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDigestStruct,
+    SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType, SpdmMeasurementRecordStructure,
+    SpdmMeasurementSpecification, SpdmSignatureStruct, ECDSA_ECC_NIST_P384_KEY_SIZE,
+    SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
 };
 use spdmlib::protocol::{SpdmDmtfMeasurementRepresentation, SpdmMeasurementBlockStructure};
 
@@ -86,48 +83,6 @@ fn test_case0_spdm_signature_struct() {
     assert_eq!(spdm_signature_struct.data_size, RSASSA_4096_KEY_SIZE as u16);
     for i in 0..RSASSA_4096_KEY_SIZE {
         assert_eq!(spdm_signature_struct.data[i], 100);
-    }
-}
-#[test]
-fn test_case0_spdm_cert_chain() {
-    let u8_slice = &mut [0u8; 4 + SPDM_MAX_HASH_SIZE + MAX_SPDM_CERT_CHAIN_DATA_SIZE];
-    let mut writer = Writer::init(u8_slice);
-    let value = SpdmCertChain {
-        root_hash: SpdmDigestStruct {
-            data_size: SPDM_MAX_HASH_SIZE as u16,
-            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
-        },
-        cert_chain: SpdmCertChainData {
-            data_size: MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16,
-            data: [100u8; MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        },
-    };
-
-    let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-    let my_spdm_device_io = &mut MySpdmDeviceIo;
-    let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-    context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-
-    assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
-    let mut reader = Reader::init(u8_slice);
-    assert_eq!(
-        4 + SPDM_MAX_HASH_SIZE + MAX_SPDM_CERT_CHAIN_DATA_SIZE,
-        reader.left()
-    );
-    let spdm_cert_chain = SpdmCertChain::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(
-        spdm_cert_chain.root_hash.data_size,
-        SHA512_DIGEST_SIZE as u16
-    );
-    for i in 0..SHA512_DIGEST_SIZE {
-        assert_eq!(spdm_cert_chain.root_hash.data[i], 100);
-    }
-    assert_eq!(
-        spdm_cert_chain.cert_chain.data_size,
-        MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16
-    );
-    for i in 0..MAX_SPDM_CERT_CHAIN_DATA_SIZE {
-        assert_eq!(spdm_cert_chain.cert_chain.data[i], 100);
     }
 }
 #[test]
