@@ -15,6 +15,7 @@ use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 fn test_measurement_struct() {
     create_spdm_context!(context);
     let context = &mut context;
+    context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
     // Validate SpdmMeasurementAttributes::SIGNATURE_REQUESTED length
     let u8_slice = &mut [0u8; 4 + 32 + 1];
