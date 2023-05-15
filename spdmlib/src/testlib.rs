@@ -507,7 +507,7 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
     Ok(data.len())
 }
 
-pub const REQ_CERT_CHAIN_DATA: SpdmCertChainBuffer = SpdmCertChainBuffer {
+pub const RSP_CERT_CHAIN_BUFF: SpdmCertChainBuffer = SpdmCertChainBuffer {
     data_size: 1545,
     data: [
         0x09, 0x06, 0x00, 0x00, 0x4e, 0x75, 0x0a, 0x31, 0x8a, 0x1c, 0x58, 0x20, 0x15, 0xa2, 0x8c,

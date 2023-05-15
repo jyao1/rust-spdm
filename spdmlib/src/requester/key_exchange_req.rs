@@ -517,7 +517,7 @@ mod tests_requester {
             rsp_provision_info,
         );
 
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
@@ -547,7 +547,7 @@ mod tests_requester {
                 .unwrap(),
             message_m,
         );
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -588,7 +588,7 @@ mod tests_requester {
                 .unwrap(),
             message_m,
         );
-        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
+        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
 
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;

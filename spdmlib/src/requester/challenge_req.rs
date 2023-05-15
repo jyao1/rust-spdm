@@ -314,7 +314,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.runtime_info.need_measurement_summary_hash = true;
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
+        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         requester.common.runtime_info.digest_context_m1m2 = Some(
             crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),

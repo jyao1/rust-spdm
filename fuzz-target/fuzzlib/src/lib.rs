@@ -19,7 +19,7 @@ pub use fake_device_io::{
 
 pub use fuzz_aead_impl::FUZZ_AEAD;
 pub use fuzz_crypto::{FUZZ_HMAC, FUZZ_RAND};
-pub use requesterlib::{certificata_data, req_create_info, REQ_CERT_CHAIN_DATA};
+pub use requesterlib::{certificata_data, req_create_info, RSP_CERT_CHAIN_BUFF};
 pub use responderlib::rsp_create_info;
 pub use shared_buffer::SharedBuffer;
 
