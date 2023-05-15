@@ -90,7 +90,7 @@ pushd spdmlib
 cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring"
 ```
 
-### Run emulator
+### Run emulator with default feature
 
 Open one command windows and run:
 ```
@@ -101,6 +101,19 @@ Open another command windows and run:
 ```
 cargo run -p spdm-requester-emu
 ```
+
+### Run emulator with selected feature
+For example, run the emulator without hashed-transcript-data feature be enabled  
+Open one command windows and run:
+```
+cargo run -p spdm-responder-emu --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"
+```
+
+Open another command windows and run:
+```
+cargo run -p spdm-requester-emu --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"
+```
+
 
 Cross test with [spdm_emu](https://github.com/DMTF/spdm-emu) is supported,  
 Open one command windows in workspace and run:
