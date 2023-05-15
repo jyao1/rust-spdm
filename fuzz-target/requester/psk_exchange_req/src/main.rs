@@ -27,7 +27,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -64,7 +64,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =

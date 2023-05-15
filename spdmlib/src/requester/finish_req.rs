@@ -397,7 +397,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        responder.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        responder.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
 
         responder.common.reset_runtime_info();
 
@@ -458,7 +458,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(REQ_CERT_CHAIN_DATA);
+        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
 
         requester.common.reset_runtime_info();
 

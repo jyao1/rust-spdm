@@ -26,7 +26,7 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
         config_info,
         provision_info,
     );
-    context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+    context.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     #[cfg(feature = "hashed-transcript-data")]

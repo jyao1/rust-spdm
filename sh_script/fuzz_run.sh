@@ -98,11 +98,11 @@ cmds=(
     "algorithm_req"
     "digest_req"
     "certificate_req"
-    "challenge_req" #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+    "challenge_req" #remove cert_chain = RSP_CERT_CHAIN_BUFF >> OK
     "measurement_req"
-    "key_exchange_req" #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-    "psk_exchange_req" #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
-    "finish_req"       #remove cert_chain = REQ_CERT_CHAIN_DATA >> OK
+    "key_exchange_req" #remove cert_chain = RSP_CERT_CHAIN_BUFF >> OK
+    "psk_exchange_req" #remove cert_chain = RSP_CERT_CHAIN_BUFF >> OK
+    "finish_req"       #remove cert_chain = RSP_CERT_CHAIN_BUFF >> OK
     "psk_finish_req"
     "heartbeat_req"
     "key_update_req"

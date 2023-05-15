@@ -63,7 +63,7 @@ fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
         context.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
         context.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
-        context.common.provision_info.my_cert_chain = Some(REQ_CERT_CHAIN_DATA);
+        context.common.provision_info.my_cert_chain = Some(RSP_CERT_CHAIN_BUFF);
 
         context.common.reset_runtime_info();
 
