@@ -66,13 +66,11 @@ impl<'a> RequesterContext<'a> {
                         for spdm_version_struct in
                             versions.iter().take(version_number_entry_count as usize)
                         {
-                            if spdm_version_struct.version
-                                == self.common.provision_info.default_version
-                                || self
-                                    .common
-                                    .config_info
-                                    .spdm_version
-                                    .contains(&spdm_version_struct.version)
+                            if self
+                                .common
+                                .config_info
+                                .spdm_version
+                                .contains(&spdm_version_struct.version)
                             {
                                 self.common.negotiate_info.spdm_version_sel =
                                     spdm_version_struct.version;

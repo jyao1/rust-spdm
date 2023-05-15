@@ -97,7 +97,6 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         my_cert_chain_data: None,
         my_cert_chain: None,
         peer_root_cert_data: Some(peer_root_cert_data),
-        default_version: SpdmVersion::SpdmVersion12,
     };
 
     (config_info, provision_info)
@@ -189,7 +188,6 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
         peer_root_cert_data: None,
-        default_version: SpdmVersion::SpdmVersion12,
     };
 
     (config_info, provision_info)

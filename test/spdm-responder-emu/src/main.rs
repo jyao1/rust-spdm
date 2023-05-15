@@ -223,7 +223,6 @@ fn handle_message(
         my_cert_chain_data: Some(my_cert_chain_data),
         my_cert_chain: None,
         peer_root_cert_data: None,
-        default_version: SpdmVersion::SpdmVersion12,
     };
 
     spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());

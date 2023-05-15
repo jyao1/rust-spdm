@@ -148,7 +148,6 @@ fn test_spdm(
         my_cert_chain_data: None,
         my_cert_chain: None,
         peer_root_cert_data: Some(peer_root_cert_data),
-        default_version: SpdmVersion::SpdmVersion12,
     };
 
     let mut context = requester::RequesterContext::new(
