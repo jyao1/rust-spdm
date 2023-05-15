@@ -64,16 +64,14 @@ Please make sure perl can be found in PATH.
 
 Unset env (CC and AR):
 ```
-set CC=
-set AR=
+export CC=
+export AR=
 ```
 Set the following environment variables:
 ```
-set AR_x86_64_unknown_none=llvm-ar
-set CC_x86_64_unknown_none=clang
+export AR_x86_64_unknown_none=llvm-ar
+export CC_x86_64_unknown_none=clang
 ```
-
-Replace ```set``` with ```export``` if you use Linux or the like.
 
 ### Build OS application
 
@@ -114,8 +112,7 @@ Open another command windows and run:
 cargo run -p spdm-requester-emu --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"
 ```
 
-
-Cross test with [spdm_emu](https://github.com/DMTF/spdm-emu) is supported,  
+### Cross test with [spdm_emu](https://github.com/DMTF/spdm-emu)
 Open one command windows in workspace and run:
 
 ```
