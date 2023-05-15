@@ -260,6 +260,7 @@ impl<'a> SpdmContext<'a> {
     pub fn calc_rsp_transcript_data(
         &mut self,
         use_psk: bool,
+        slot_id: u8,
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
     ) -> SpdmResult<ManagedBuffer> {
@@ -269,14 +270,12 @@ impl<'a> SpdmContext<'a> {
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         debug!("message_a - {:02x?}", self.runtime_info.message_a.as_ref());
         if !use_psk {
-            if self.provision_info.my_cert_chain.is_none() {
+            if self.provision_info.my_cert_chain[slot_id as usize].is_none() {
                 error!("my_cert_chain is not populated!\n");
                 return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
             }
 
-            let my_cert_chain_data = self
-                .provision_info
-                .my_cert_chain
+            let my_cert_chain_data = self.provision_info.my_cert_chain[slot_id as usize]
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
             let cert_chain_data = my_cert_chain_data.as_ref();
@@ -323,10 +322,11 @@ impl<'a> SpdmContext<'a> {
     pub fn calc_rsp_transcript_hash(
         &mut self,
         use_psk: bool,
+        slot_id: u8,
         message_k: &ManagedBuffer,
         message_f: Option<&ManagedBuffer>,
     ) -> SpdmResult<SpdmDigestStruct> {
-        let message = self.calc_rsp_transcript_data(use_psk, message_k, message_f)?;
+        let message = self.calc_rsp_transcript_data(use_psk, slot_id, message_k, message_f)?;
 
         let transcript_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
@@ -334,14 +334,18 @@ impl<'a> SpdmContext<'a> {
         Ok(transcript_hash)
     }
 
-    pub fn get_certchain_hash_rsp(&self, use_psk: bool) -> Option<SpdmDigestStruct> {
+    pub fn get_certchain_hash_rsp(
+        &self,
+        use_psk: bool,
+        slot_id: usize,
+    ) -> Option<SpdmDigestStruct> {
         if !use_psk {
-            if self.provision_info.my_cert_chain.is_none() {
+            if self.provision_info.my_cert_chain[slot_id].is_none() {
                 error!("my_cert_chain is not populated!\n");
                 return None;
             }
 
-            let my_cert_chain_data = self.provision_info.my_cert_chain.as_ref()?;
+            let my_cert_chain_data = self.provision_info.my_cert_chain[slot_id].as_ref()?;
             let cert_chain_data = my_cert_chain_data.as_ref();
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
@@ -577,13 +581,13 @@ pub struct SpdmRuntimeInfo {
 
 #[derive(Default, Clone)]
 pub struct SpdmProvisionInfo {
-    pub my_cert_chain_data: Option<SpdmCertChainData>,
-    pub my_cert_chain: Option<SpdmCertChainBuffer>,
+    pub my_cert_chain_data: [Option<SpdmCertChainData>; SPDM_MAX_SLOT_NUMBER],
+    pub my_cert_chain: [Option<SpdmCertChainBuffer>; SPDM_MAX_SLOT_NUMBER],
     pub peer_root_cert_data: Option<SpdmCertChainData>,
 }
 
 #[derive(Default)]
 pub struct SpdmPeerInfo {
-    pub peer_cert_chain: [Option<SpdmCertChainBuffer>; 8],
+    pub peer_cert_chain: [Option<SpdmCertChainBuffer>; SPDM_MAX_SLOT_NUMBER],
     pub peer_cert_chain_temp: Option<SpdmCertChainBuffer>,
 }

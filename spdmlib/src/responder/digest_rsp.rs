@@ -81,6 +81,15 @@ impl<'a> ResponderContext<'a> {
 
         let digest_size = self.common.negotiate_info.base_hash_sel.get_size();
 
+        let mut slot_mask = 0u8;
+        let mut slot_count = 0u8;
+        for slot_id in 0..SPDM_MAX_SLOT_NUMBER {
+            if self.common.provision_info.my_cert_chain[slot_id].is_some() {
+                slot_mask |= (1 << slot_id) as u8;
+                slot_count += 1;
+            }
+        }
+
         info!("send spdm digest\n");
         let response = SpdmMessage {
             header: SpdmMessageHeader {
@@ -88,8 +97,8 @@ impl<'a> ResponderContext<'a> {
                 request_response_code: SpdmRequestResponseCode::SpdmResponseDigests,
             },
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
-                slot_mask: 0x1,
-                slot_count: 1u8,
+                slot_mask,
+                slot_count,
                 digests: gen_array_clone(
                     SpdmDigestStruct {
                         data_size: digest_size,
@@ -101,17 +110,23 @@ impl<'a> ResponderContext<'a> {
         };
         let _ = response.spdm_encode(&mut self.common, writer);
 
-        let my_cert_chain = self.common.provision_info.my_cert_chain.as_ref().unwrap();
-        let cert_chain_hash = crypto::hash::hash_all(
-            self.common.negotiate_info.base_hash_sel,
-            my_cert_chain.as_ref(),
-        )
-        .unwrap();
+        for slot_id in 0..SPDM_MAX_SLOT_NUMBER {
+            if self.common.provision_info.my_cert_chain[slot_id].is_some() {
+                let my_cert_chain = self.common.provision_info.my_cert_chain[slot_id]
+                    .as_ref()
+                    .unwrap();
+                let cert_chain_hash = crypto::hash::hash_all(
+                    self.common.negotiate_info.base_hash_sel,
+                    my_cert_chain.as_ref(),
+                )
+                .unwrap();
 
-        // patch the message before send
-        let used = writer.used();
-        writer.mut_used_slice()[(used - cert_chain_hash.data_size as usize)..used]
-            .copy_from_slice(cert_chain_hash.as_ref());
+                // patch the message before send
+                let used = writer.used();
+                writer.mut_used_slice()[(used - cert_chain_hash.data_size as usize)..used]
+                    .copy_from_slice(cert_chain_hash.as_ref());
+            }
+        }
 
         match session_id {
             None => {
@@ -160,10 +175,19 @@ mod tests_responder {
             config_info,
             provision_info,
         );
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        context.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: 512u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.runtime_info.digest_context_m1m2 =
             Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());

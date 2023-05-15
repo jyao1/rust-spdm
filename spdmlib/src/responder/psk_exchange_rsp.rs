@@ -199,7 +199,9 @@ impl<'a> ResponderContext<'a> {
 
         // create session - generate the handshake secret (including finished_key)
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let th1 = self.common.calc_rsp_transcript_hash(true, &message_k, None);
+        let th1 = self
+            .common
+            .calc_rsp_transcript_hash(true, 0, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
         let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone());
         #[cfg(feature = "hashed-transcript-data")]
@@ -252,7 +254,9 @@ impl<'a> ResponderContext<'a> {
 
         // generate HMAC with finished_key
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = self.common.calc_rsp_transcript_data(true, &message_k, None);
+        let transcript_data = self
+            .common
+            .calc_rsp_transcript_data(true, 0, &message_k, None);
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -330,10 +334,19 @@ mod tests_responder {
             config_info,
             provision_info,
         );
-        context.common.provision_info.my_cert_chain = Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        });
+        context.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: 512u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
 
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         context.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;

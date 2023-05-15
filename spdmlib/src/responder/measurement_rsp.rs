@@ -60,6 +60,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
         let get_measurements = get_measurements.unwrap();
+        let slot_id = get_measurements.slot_id as usize;
 
         let signature_size = self.common.negotiate_info.base_asym_sel.get_size();
 
@@ -68,8 +69,22 @@ impl<'a> ResponderContext<'a> {
             .contains(SpdmMeasurementAttributes::SIGNATURE_REQUESTED)
         {
             self.common.runtime_info.need_measurement_signature = true;
+
+            if slot_id > SPDM_MAX_SLOT_NUMBER {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return;
+            }
+            if self.common.provision_info.my_cert_chain[slot_id].is_none() {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return;
+            }
         } else {
             self.common.runtime_info.need_measurement_signature = false;
+
+            if slot_id != 0 {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return;
+            }
         }
 
         let base_hash_sel = self.common.negotiate_info.base_hash_sel;
@@ -452,11 +467,7 @@ mod tests_responder {
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
-            //not useful,
-            //actually if MeasurementeAttributes is zero(not signature),
-            //slot_id will be set to zero when calling SpdmGetMeasurementsRequestPayload.spdm_encode().
-            //such like value.spdm_encode().
-            slot_id: 0xaau8,
+            slot_id: 0,
         };
         assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
@@ -590,11 +601,7 @@ mod tests_responder {
             nonce: SpdmNonceStruct {
                 data: [100u8; SPDM_NONCE_SIZE],
             },
-            //not useful,
-            //actually if MeasurementeAttributes is zero(not signature),
-            //slot_id will be set to zero when calling SpdmGetMeasurementsRequestPayload.spdm_encode().
-            //such like value.spdm_encode().
-            slot_id: 0xaau8,
+            slot_id: 0,
         };
         assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 

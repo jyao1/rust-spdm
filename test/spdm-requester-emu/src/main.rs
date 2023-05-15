@@ -145,8 +145,8 @@ fn test_spdm(
     peer_root_cert_data.data[0..ca_len].copy_from_slice(ca_cert.as_ref());
 
     let provision_info = common::SpdmProvisionInfo {
-        my_cert_chain_data: None,
-        my_cert_chain: None,
+        my_cert_chain_data: [None, None, None, None, None, None, None, None],
+        my_cert_chain: [None, None, None, None, None, None, None, None],
         peer_root_cert_data: Some(peer_root_cert_data),
     };
 

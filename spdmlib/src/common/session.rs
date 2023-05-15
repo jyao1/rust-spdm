@@ -107,6 +107,7 @@ pub struct SpdmSession {
     transport_param: SpdmSessionTransportParam,
     pub runtime_info: SpdmSessionRuntimeInfo,
     key_schedule: SpdmKeySchedule,
+    slot_id: u8,
     pub heartbeat_period: u8, // valid only when HEARTBEAT cap set
     pub secure_spdm_version_sel: u8,
 }
@@ -131,6 +132,7 @@ impl SpdmSession {
             transport_param: SpdmSessionTransportParam::default(),
             runtime_info: SpdmSessionRuntimeInfo::default(),
             key_schedule: SpdmKeySchedule::new(),
+            slot_id: 0,
             heartbeat_period: 0,
             secure_spdm_version_sel: DMTF_SECURE_SPDM_VERSION_11,
         }
@@ -197,6 +199,14 @@ impl SpdmSession {
 
     pub fn get_use_psk(&self) -> bool {
         self.use_psk
+    }
+
+    pub fn set_slot_id(&mut self, slot_id: u8) {
+        self.slot_id = slot_id;
+    }
+
+    pub fn get_slot_id(&self) -> u8 {
+        self.slot_id
     }
 
     pub fn set_dhe_secret(

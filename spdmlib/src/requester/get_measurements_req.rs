@@ -6,7 +6,8 @@ use crate::crypto;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
-    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
+    SPDM_STATUS_VERIF_FAIL,
 };
 #[cfg(feature = "hashed-transcript-data")]
 use crate::error::{
@@ -27,6 +28,11 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
     ) -> SpdmResult<u8> {
         info!("send spdm measurement\n");
+
+        if slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
         let send_used = self.encode_spdm_measurement_record(
             measurement_attributes,
@@ -585,6 +591,20 @@ mod tests_requester {
             .message_m
             .append_message(message_m);
         responder.common.reset_runtime_info();
+        responder.common.provision_info.my_cert_chain = [
+            Some(SpdmCertChainBuffer {
+                data_size: 512u16,
+                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+            }),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -612,6 +632,7 @@ mod tests_requester {
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         requester.common.reset_runtime_info();
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
