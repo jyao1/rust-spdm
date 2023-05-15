@@ -253,36 +253,30 @@ impl<'a> RequesterContext<'a> {
             error!("peer_cert_chain is not populated!\n");
             return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
-        if self.common.peer_info.peer_cert_chain[slot_id as usize]
+
+        let peer_cert_chain = self.common.peer_info.peer_cert_chain[slot_id as usize]
             .as_ref()
-            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
-            .data_size
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
+        if peer_cert_chain.cert_chain.data_size
             <= (4 + self.common.negotiate_info.base_hash_sel.get_size())
         {
             return Err(SPDM_STATUS_INVALID_CERT);
         }
 
-        let data_size = self.common.peer_info.peer_cert_chain[slot_id as usize]
-            .as_ref()
-            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-            .cert_chain
-            .data_size
+        let data_size_in_cert_chain = peer_cert_chain.cert_chain.data[0] as u16
+            + ((peer_cert_chain.cert_chain.data[1] as u16) << 8);
+        if data_size_in_cert_chain != peer_cert_chain.cert_chain.data_size {
+            return Err(SPDM_STATUS_INVALID_CERT);
+        }
+
+        let data_size = peer_cert_chain.cert_chain.data_size
             - 4
             - self.common.negotiate_info.base_hash_sel.get_size();
         let mut data = [0u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
         data[0..(data_size as usize)].copy_from_slice(
-            &self.common.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
-                .data[(4usize
+            &peer_cert_chain.cert_chain.data[(4usize
                 + self.common.negotiate_info.base_hash_sel.get_size() as usize)
-                ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
-                    .as_ref()
-                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                    .cert_chain
-                    .data_size as usize)],
+                ..(peer_cert_chain.cert_chain.data_size as usize)],
         );
         let runtime_peer_cert_chain_data = SpdmCertChainData { data_size, data };
         info!("1. get runtime_peer_cert_chain_data!\n");
@@ -316,11 +310,7 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
         if root_hash.data[..(root_hash.data_size as usize)]
-            != self.common.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()
-                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
-                .cert_chain
-                .data
+            != peer_cert_chain.cert_chain.data
                 [4usize..(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)]
         {
             error!("root_hash - fail!\n");
