@@ -959,14 +959,14 @@ mod tests {
     }
     #[test]
     fn test_case9_spdm_message() {
-        let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
-            index: 100u8,
+        let mut spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+            index: 1u8,
             measurement_specification: SpdmMeasurementSpecification::DMTF,
-            measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
+            measurement_size: 3 + SHA512_DIGEST_SIZE as u16,
             measurement: SpdmDmtfMeasurementStructure {
                 r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
                 representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-                value_size: SPDM_MAX_HASH_SIZE as u16,
+                value_size: SHA512_DIGEST_SIZE as u16,
                 value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
             },
         };
@@ -975,6 +975,7 @@ mod tests {
         let mut writer = Writer::init(&mut measurement_record_data);
         for _i in 0..5 {
             assert!(spdm_measurement_block_structure.encode(&mut writer).is_ok());
+            spdm_measurement_block_structure.index += 1;
         }
 
         let value = SpdmMessage {
@@ -1011,6 +1012,8 @@ mod tests {
 
         context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096;
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
         context.runtime_info.need_measurement_signature = true;
         let spdm_message = new_spdm_message(value, context);
         assert_eq!(

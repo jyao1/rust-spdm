@@ -119,8 +119,8 @@ fn spdm_measurement_collection_impl(
             digest_value9[..64].copy_from_slice(digest9.data.as_ref());
             digest_value10[..64].copy_from_slice(digest10.data.as_ref());
 
-            let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
-                index: measurement_index as u8,
+            let mut spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+                index: 1u8,
                 measurement_specification,
                 measurement_size: digest1.data_size + 3,
                 measurement: SpdmDmtfMeasurementStructure {
@@ -135,6 +135,7 @@ fn spdm_measurement_collection_impl(
             let mut writer = Writer::init(&mut measurement_record_data);
             for i in 0..10 {
                 spdm_measurement_block_structure.encode(&mut writer).ok()?;
+                spdm_measurement_block_structure.index += 1;
             }
 
             Some(SpdmMeasurementRecordStructure {

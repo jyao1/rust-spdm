@@ -89,14 +89,14 @@ fn test_case0_spdm_signature_struct() {
 fn test_case0_spdm_measurement_record_structure() {
     let u8_slice = &mut [0u8; 512];
     let mut writer = Writer::init(u8_slice);
-    let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
-        index: 100u8,
+    let mut spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+        index: 1u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
+        measurement_size: 3 + SHA512_DIGEST_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            value_size: SPDM_MAX_HASH_SIZE as u16,
+            value_size: SHA512_DIGEST_SIZE as u16,
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
@@ -107,6 +107,7 @@ fn test_case0_spdm_measurement_record_structure() {
         assert!(spdm_measurement_block_structure
             .encode(&mut measurement_record_data_writer)
             .is_ok());
+        spdm_measurement_block_structure.index += 1;
     }
 
     let value = SpdmMeasurementRecordStructure {
@@ -118,6 +119,9 @@ fn test_case0_spdm_measurement_record_structure() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+    context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_512;
+    context.negotiate_info.measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
@@ -131,14 +135,14 @@ fn test_case0_spdm_measurement_record_structure() {
 fn test_case1_spdm_measurement_record_structure() {
     let u8_slice = &mut [0u8; 512];
     let mut writer = Writer::init(u8_slice);
-    let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
-        index: 100u8,
+    let mut spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+        index: 1u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
+        measurement_size: 3 + SHA512_DIGEST_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            value_size: SPDM_MAX_HASH_SIZE as u16,
+            value_size: SHA512_DIGEST_SIZE as u16,
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
@@ -149,6 +153,7 @@ fn test_case1_spdm_measurement_record_structure() {
         assert!(spdm_measurement_block_structure
             .encode(&mut measurement_record_data_writer)
             .is_ok());
+        spdm_measurement_block_structure.index += 1;
     }
 
     let value = SpdmMeasurementRecordStructure {
@@ -247,7 +252,7 @@ fn test_case0_spdm_measurement_block_structure() {
     let u8_slice = &mut [0u8; 4 + 3 + SPDM_MAX_HASH_SIZE];
     let mut writer = Writer::init(u8_slice);
     let value = SpdmMeasurementBlockStructure {
-        index: 100u8,
+        index: 1u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
         measurement_size: 3 + SHA512_DIGEST_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
@@ -267,7 +272,7 @@ fn test_case0_spdm_measurement_block_structure() {
     assert_eq!(4 + 3 + SPDM_MAX_HASH_SIZE, reader.left());
     let spdm_block_structure =
         SpdmMeasurementBlockStructure::spdm_read(&mut context, &mut reader).unwrap();
-    assert_eq!(spdm_block_structure.index, 100);
+    assert_eq!(spdm_block_structure.index, 1);
     assert_eq!(
         spdm_block_structure.measurement_specification,
         SpdmMeasurementSpecification::DMTF

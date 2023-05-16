@@ -77,6 +77,30 @@ impl SpdmCodec for SpdmSignatureStruct {
     }
 }
 
+impl SpdmMeasurementRecordStructure {
+    fn verify_measurement_record(&self, context: &mut SpdmContext) -> bool {
+        let measurement_record_length = self.measurement_record_length.get() as usize;
+        let mut reader = Reader::init(&self.measurement_record_data[..measurement_record_length]);
+
+        let mut cur_index = 0u8;
+        for _ in 0..self.number_of_blocks as usize {
+            let measurement_block = SpdmMeasurementBlockStructure::spdm_read(context, &mut reader);
+            if measurement_block.is_none() {
+                return false;
+            }
+            let measurement_block = measurement_block.unwrap();
+            if measurement_block.index <= cur_index {
+                return false;
+            }
+            cur_index = measurement_block.index;
+        }
+        if reader.any_left() {
+            return false;
+        }
+        true
+    }
+}
+
 impl SpdmCodec for SpdmMeasurementRecordStructure {
     fn spdm_encode(
         &self,
@@ -104,7 +128,7 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
     }
 
     fn spdm_read(
-        _context: &mut SpdmContext,
+        context: &mut SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmMeasurementRecordStructure> {
         let number_of_blocks = u8::read(r)?;
@@ -120,11 +144,16 @@ impl SpdmCodec for SpdmMeasurementRecordStructure {
             *d = u8::read(r)?;
         }
 
-        Some(SpdmMeasurementRecordStructure {
+        let spdm_measurement_record = SpdmMeasurementRecordStructure {
             number_of_blocks,
             measurement_record_length,
             measurement_record_data,
-        })
+        };
+        if !spdm_measurement_record.verify_measurement_record(context) {
+            return None;
+        }
+
+        Some(spdm_measurement_record)
     }
 }
 
