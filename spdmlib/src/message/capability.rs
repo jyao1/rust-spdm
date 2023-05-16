@@ -67,6 +67,57 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
             ct_exponent = u8::read(r)?;
             u16::read(r)?; // reserved2
             flags = SpdmRequestCapabilityFlags::read(r)?;
+
+            // check req_capability
+            if flags.contains(SpdmRequestCapabilityFlags::PSK_RSVD) {
+                return None;
+            }
+            if flags.contains(SpdmRequestCapabilityFlags::KEY_EX_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::PSK_CAP)
+            {
+                if !flags.contains(SpdmRequestCapabilityFlags::MAC_CAP) {
+                    return None;
+                }
+            } else if flags.contains(SpdmRequestCapabilityFlags::MAC_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::ENCRYPT_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::HBEAT_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::KEY_UPD_CAP)
+            {
+                return None;
+            }
+            if !flags.contains(SpdmRequestCapabilityFlags::KEY_EX_CAP)
+                && flags.contains(SpdmRequestCapabilityFlags::PSK_CAP)
+                && flags.contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            {
+                return None;
+            }
+            if flags.contains(SpdmRequestCapabilityFlags::CERT_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP)
+            {
+                if flags.contains(SpdmRequestCapabilityFlags::CERT_CAP)
+                    && flags.contains(SpdmRequestCapabilityFlags::PUB_KEY_ID_CAP)
+                {
+                    return None;
+                }
+                if !flags.contains(SpdmRequestCapabilityFlags::CHAL_CAP)
+                    && !flags.contains(SpdmRequestCapabilityFlags::KEY_EX_CAP)
+                {
+                    return None;
+                }
+            } else if flags.contains(SpdmRequestCapabilityFlags::CHAL_CAP)
+                || flags.contains(SpdmRequestCapabilityFlags::MUT_AUTH_CAP)
+            {
+                return None;
+            }
+
+            if context.negotiate_info.spdm_version_sel.get_u8()
+                == SpdmVersion::SpdmVersion11.get_u8()
+                && flags.contains(SpdmRequestCapabilityFlags::MUT_AUTH_CAP)
+                && !flags.contains(SpdmRequestCapabilityFlags::ENCAP_CAP)
+            {
+                return None;
+            }
         }
 
         let mut data_transfer_size = 0;
@@ -75,7 +126,9 @@ impl SpdmCodec for SpdmGetCapabilitiesRequestPayload {
             data_transfer_size = u32::read(r)?;
             max_spdm_msg_size = u32::read(r)?;
             if data_transfer_size < 42 || max_spdm_msg_size < data_transfer_size {
-                log::error!("responder: data_transfer_size or max_spdm_msg_size < 42");
+                log::error!(
+                    "responder: data_transfer_size < 42 or max_spdm_msg_size < data_transfer_size"
+                );
                 return None;
             }
         }
@@ -144,11 +197,112 @@ impl SpdmCodec for SpdmCapabilitiesResponsePayload {
         u16::read(r)?; // reserved2
         let flags = SpdmResponseCapabilityFlags::read(r)?;
 
+        // check rsp_capability
+        if flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+            && flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+        {
+            return None;
+        }
+        if (!flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+            && !flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG))
+            && flags.contains(SpdmResponseCapabilityFlags::MEAS_FRESH_CAP)
+        {
+            return None;
+        }
+        if context.negotiate_info.spdm_version_sel.get_u8() < SpdmVersion::SpdmVersion11.get_u8() {
+            if !flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG) {
+                if flags.contains(SpdmResponseCapabilityFlags::CERT_CAP)
+                    != flags.contains(SpdmResponseCapabilityFlags::CHAL_CAP)
+                {
+                    return None;
+                }
+            } else if !flags.contains(SpdmResponseCapabilityFlags::CERT_CAP) {
+                return None;
+            }
+        } else {
+            if flags.contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT)
+                && flags.contains(SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT)
+            {
+                return None;
+            }
+            if flags.contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT)
+                || flags.contains(SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT)
+            {
+                if !flags.contains(SpdmResponseCapabilityFlags::MAC_CAP) {
+                    return None;
+                }
+            } else if flags.contains(SpdmResponseCapabilityFlags::MAC_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::ENCRYPT_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::HBEAT_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::KEY_UPD_CAP)
+            {
+                return None;
+            }
+            if !flags.contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                && (flags.contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT)
+                    || flags.contains(SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT))
+                && flags.contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            {
+                return None;
+            }
+            if flags.contains(SpdmResponseCapabilityFlags::CERT_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP)
+            {
+                if flags.contains(SpdmResponseCapabilityFlags::CERT_CAP)
+                    && flags.contains(SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP)
+                {
+                    return None;
+                }
+                if !flags.contains(SpdmResponseCapabilityFlags::CHAL_CAP)
+                    && !flags.contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                    && !flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+                {
+                    return None;
+                }
+            } else if flags.contains(SpdmResponseCapabilityFlags::CHAL_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                || flags.contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+                || flags.contains(SpdmResponseCapabilityFlags::MUT_AUTH_CAP)
+            {
+                return None;
+            }
+        }
+        if context.negotiate_info.spdm_version_sel.get_u8() == SpdmVersion::SpdmVersion11.get_u8()
+            && flags.contains(SpdmResponseCapabilityFlags::MUT_AUTH_CAP)
+            && !flags.contains(SpdmResponseCapabilityFlags::ENCAP_CAP)
+        {
+            return None;
+        }
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
+            if !flags.contains(SpdmResponseCapabilityFlags::CERT_CAP)
+                && (flags.contains(SpdmResponseCapabilityFlags::ALIAS_CERT_CAP)
+                    || flags.contains(SpdmResponseCapabilityFlags::SET_CERT_CAP))
+            {
+                return None;
+            }
+            if flags.contains(SpdmResponseCapabilityFlags::CSR_CAP)
+                && !flags.contains(SpdmResponseCapabilityFlags::SET_CERT_CAP)
+            {
+                return None;
+            }
+            if flags.contains(SpdmResponseCapabilityFlags::CERT_INSTALL_RESET_CAP)
+                && !flags.contains(SpdmResponseCapabilityFlags::CSR_CAP)
+                && !flags.contains(SpdmResponseCapabilityFlags::SET_CERT_CAP)
+            {
+                return None;
+            }
+        }
+
         if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
             let data_transfer_size = u32::read(r)?;
             let max_spdm_msg_size = u32::read(r)?;
-            if data_transfer_size < 42 || max_spdm_msg_size < 42 {
-                panic!("requester: data_transfer_size or max_spdm_msg_size < 42");
+            if data_transfer_size < 42 || max_spdm_msg_size < data_transfer_size {
+                log::error!(
+                    "requester: data_transfer_size < 42 or max_spdm_msg_size < data_transfer_size"
+                );
+                return None;
             }
             Some(SpdmCapabilitiesResponsePayload {
                 ct_exponent,
@@ -269,7 +423,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetCapabilitiesRequestPayload {
             ct_exponent: 100,
-            flags: SpdmRequestCapabilityFlags::CERT_CAP,
+            flags: SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP,
             data_transfer_size: 0,
             max_spdm_msg_size: 0,
         };
@@ -285,7 +439,7 @@ mod tests {
         assert_eq!(spdm_get_capabilities_request_payload.ct_exponent, 100);
         assert_eq!(
             spdm_get_capabilities_request_payload.flags,
-            SpdmRequestCapabilityFlags::CERT_CAP
+            SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP
         );
         assert_eq!(2, reader.left());
     }
@@ -295,7 +449,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmGetCapabilitiesRequestPayload {
             ct_exponent: 0,
-            flags: SpdmRequestCapabilityFlags::all(),
+            flags: SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP,
             data_transfer_size: 0,
             max_spdm_msg_size: 0,
         };
@@ -311,7 +465,7 @@ mod tests {
         assert_eq!(spdm_get_capabilities_request_payload.ct_exponent, 0);
         assert_eq!(
             spdm_get_capabilities_request_payload.flags,
-            SpdmRequestCapabilityFlags::all()
+            SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP
         );
         assert_eq!(2, reader.left());
     }
@@ -336,7 +490,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmCapabilitiesResponsePayload {
             ct_exponent: 100,
-            flags: SpdmResponseCapabilityFlags::all(),
+            flags: SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::CHAL_CAP,
             data_transfer_size: 0,
             max_spdm_msg_size: 0,
         };
@@ -352,7 +506,7 @@ mod tests {
         assert_eq!(spdm_capabilities_response_payload.ct_exponent, 100);
         assert_eq!(
             spdm_capabilities_response_payload.flags,
-            SpdmResponseCapabilityFlags::all()
+            SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::CHAL_CAP
         );
         assert_eq!(2, reader.left());
     }
@@ -362,7 +516,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmCapabilitiesResponsePayload {
             ct_exponent: 0,
-            flags: SpdmResponseCapabilityFlags::all(),
+            flags: SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::CHAL_CAP,
             data_transfer_size: 0,
             max_spdm_msg_size: 0,
         };
@@ -378,7 +532,7 @@ mod tests {
         assert_eq!(spdm_capabilities_response_payload.ct_exponent, 0);
         assert_eq!(
             spdm_capabilities_response_payload.flags,
-            SpdmResponseCapabilityFlags::all()
+            SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::CHAL_CAP
         );
         assert_eq!(2, reader.left());
     }

@@ -613,7 +613,8 @@ mod tests {
             payload: SpdmMessagePayload::SpdmGetCapabilitiesRequest(
                 SpdmGetCapabilitiesRequestPayload {
                     ct_exponent: 0x02,
-                    flags: SpdmRequestCapabilityFlags::CERT_CAP,
+                    flags: SpdmRequestCapabilityFlags::CERT_CAP
+                        | SpdmRequestCapabilityFlags::CHAL_CAP,
                     data_transfer_size: 0,
                     max_spdm_msg_size: 0,
                 },
@@ -629,7 +630,10 @@ mod tests {
         );
         if let SpdmMessagePayload::SpdmGetCapabilitiesRequest(payload) = &spdm_message.payload {
             assert_eq!(payload.ct_exponent, 0x02);
-            assert_eq!(payload.flags, SpdmRequestCapabilityFlags::CERT_CAP);
+            assert_eq!(
+                payload.flags,
+                SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP
+            );
         }
     }
     #[test]
