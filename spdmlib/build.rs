@@ -27,12 +27,19 @@ impl SpdmConfig {
         // All rust fixed-size arrays require non-negative compile-time constant sizes.
         // This will be checked by the compiler thus no need to check again here.
 
+        assert!(self.cert_config.max_cert_chain_data_size <= 0xFFFF);
+
+        assert!(self.measurement_config.max_measurement_record_size <= 0xFFFFFF);
+        assert!(self.measurement_config.max_measurement_val_len <= 0xFFFF - 7);
         assert!(
             self.measurement_config.max_measurement_record_size
                 >= 7 + self.measurement_config.max_measurement_val_len
         );
         assert!(self.measurement_config.max_measurement_val_len >= 32);
+
         assert!(self.psk_config.max_psk_context_size >= 32);
+        assert!(self.psk_config.max_psk_context_size <= 0xFFFF);
+        assert!(self.psk_config.max_psk_hint_size <= 0xFFFF);
 
         assert!(self.data_transfer_size >= 42);
         // NOTE: We dont support chunking now. They must be same.
