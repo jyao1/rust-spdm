@@ -227,7 +227,7 @@ impl<'a> RequesterContext<'a> {
         let mut length = MAX_SPDM_CERT_PORTION_LEN as u16;
         let mut total_size = 0u16;
 
-        if slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+        if slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
