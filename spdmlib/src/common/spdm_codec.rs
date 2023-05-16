@@ -8,8 +8,8 @@ use crate::error::{SpdmResult, SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmDmtfMeasurementRepresentation,
     SpdmDmtfMeasurementStructure, SpdmDmtfMeasurementType, SpdmMeasurementBlockStructure,
-    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmSignatureStruct,
-    SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
+    SpdmMeasurementHashAlgo, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
+    SpdmSignatureStruct, SPDM_MAX_ASYM_KEY_SIZE, SPDM_MAX_DHE_KEY_SIZE, SPDM_MAX_HASH_SIZE,
 };
 use codec::{u24, Codec, Reader, Writer};
 use core::fmt::Debug;
@@ -175,7 +175,7 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         Ok(cnt)
     }
     fn spdm_read(
-        _context: &mut SpdmContext,
+        context: &mut SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmDmtfMeasurementStructure> {
         let final_value = u8::read(r)?;
@@ -184,7 +184,7 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
         let representation = match representation_value {
             0 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
             0x80 => SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
-            val => SpdmDmtfMeasurementRepresentation::Unknown(val),
+            _ => return None,
         };
         let r#type = match type_value {
             0 => SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
@@ -196,29 +196,36 @@ impl SpdmCodec for SpdmDmtfMeasurementStructure {
                 SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
                     SpdmDmtfMeasurementType::SpdmDmtfMeasurementStructuredRepresentationMode
                 }
-                _ => SpdmDmtfMeasurementType::Unknown(5),
+                _ => return None,
             },
             6 => match representation {
                 SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
                     SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareVersionNumber
                 }
-                _ => SpdmDmtfMeasurementType::Unknown(6),
+                _ => return None,
             },
             7 => match representation {
                 SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit => {
                     SpdmDmtfMeasurementType::SpdmDmtfMeasurementMutableFirmwareSecurityVersionNumber
                 }
-                _ => SpdmDmtfMeasurementType::Unknown(7),
+                _ => return None,
             },
             val => SpdmDmtfMeasurementType::Unknown(val),
         };
-
-        // TBD: Check measurement_hash
 
         let value_size = u16::read(r)?;
         if value_size as usize > config::MAX_SPDM_MEASUREMENT_VALUE_LEN {
             return None;
         }
+
+        let measurement_hash_algo = context.negotiate_info.measurement_hash_sel;
+        if representation == SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest
+            && (value_size != measurement_hash_algo.get_size()
+                || measurement_hash_algo == SpdmMeasurementHashAlgo::RAW_BIT_STREAM)
+        {
+            return None;
+        }
+
         let mut value = [0u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
         for v in value.iter_mut().take(value_size as usize) {
             *v = u8::read(r)?;
@@ -271,6 +278,9 @@ impl SpdmCodec for SpdmMeasurementBlockStructure {
             return None;
         }
         let measurement = SpdmDmtfMeasurementStructure::spdm_read(context, r)?;
+        if measurement_size != 3 + measurement.value_size {
+            return None;
+        }
         Some(SpdmMeasurementBlockStructure {
             index,
             measurement_specification,
