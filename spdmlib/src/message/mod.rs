@@ -1179,7 +1179,7 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmPskExchangeRequest(SpdmPskExchangeRequestPayload {
                 measurement_summary_hash_type:
-                    SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+                    SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
                 req_session_id: 100u16,
                 psk_hint: SpdmPskHintStruct {
                     data_size: MAX_SPDM_PSK_HINT_SIZE as u16,
@@ -1205,7 +1205,7 @@ mod tests {
         if let SpdmMessagePayload::SpdmPskExchangeRequest(payload) = &spdm_message.payload {
             assert_eq!(
                 payload.measurement_summary_hash_type,
-                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
             );
             assert_eq!(payload.psk_hint.data_size, MAX_SPDM_PSK_HINT_SIZE as u16);
             assert_eq!(

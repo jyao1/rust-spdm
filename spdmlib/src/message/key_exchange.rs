@@ -8,7 +8,7 @@ use crate::common::spdm_codec::SpdmCodec;
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmRandomStruct,
-    SpdmSignatureStruct,
+    SpdmResponseCapabilityFlags, SpdmSignatureStruct,
 };
 use codec::{Codec, Reader, Writer};
 
@@ -73,6 +73,24 @@ impl SpdmCodec for SpdmKeyExchangeRequestPayload {
         r: &mut Reader,
     ) -> Option<SpdmKeyExchangeRequestPayload> {
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?; // param1
+        match measurement_summary_hash_type {
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone => {}
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            | SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb => {
+                if !context
+                    .negotiate_info
+                    .rsp_capabilities_sel
+                    .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+                    && !context
+                        .negotiate_info
+                        .rsp_capabilities_sel
+                        .contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+                {
+                    return None;
+                }
+            }
+            SpdmMeasurementSummaryHashType::Unknown(_) => return None,
+        }
         let slot_id = u8::read(r)?; // param2
         let req_session_id = u16::read(r)?;
         let session_policy = u8::read(r)?;

@@ -358,7 +358,7 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
         let measurement_summary_hash_type =
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone;
 
         let status = requester
             .send_receive_spdm_psk_exchange(measurement_summary_hash_type)

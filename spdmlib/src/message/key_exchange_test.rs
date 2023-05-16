@@ -20,7 +20,7 @@ fn test_key_exchange_req_struct() {
     const OPAQUE_DATA_LENGTH_CASE2: usize = 1025;
     context.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_256_R1;
     let u8_slice = &mut [0u8; 42 + 64 + OPAQUE_DATA_LENGTH_CASE2];
-    u8_slice[2] = SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll.get_u8();
+    u8_slice[2] = SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone.get_u8();
     u8_slice[3] = 1;
     LittleEndian::write_u16(&mut u8_slice[4..6], 0xffff); // ReqSessionId
     LittleEndian::write_u16(
@@ -35,7 +35,7 @@ fn test_key_exchange_req_struct() {
     const OPAQUE_DATA_LENGTH_CASE3: usize = 0;
     context.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_256_R1;
     let u8_slice = &mut [0u8; 42 + 64 + OPAQUE_DATA_LENGTH_CASE3];
-    u8_slice[2] = SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll.get_u8();
+    u8_slice[2] = SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone.get_u8();
     u8_slice[3] = 1;
     LittleEndian::write_u16(&mut u8_slice[4..6], 0xffff); // ReqSessionId
     LittleEndian::write_u16(

@@ -7,7 +7,8 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::spdm_codec::SpdmCodec;
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
-    SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmSignatureStruct,
+    SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmNonceStruct, SpdmResponseCapabilityFlags,
+    SpdmSignatureStruct,
 };
 use codec::{Codec, Reader, Writer};
 
@@ -41,11 +42,29 @@ impl SpdmCodec for SpdmChallengeRequestPayload {
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmChallengeRequestPayload> {
         let slot_id = u8::read(r)?;
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?;
+        match measurement_summary_hash_type {
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone => {}
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            | SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb => {
+                if !context
+                    .negotiate_info
+                    .rsp_capabilities_sel
+                    .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+                    && !context
+                        .negotiate_info
+                        .rsp_capabilities_sel
+                        .contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+                {
+                    return None;
+                }
+            }
+            SpdmMeasurementSummaryHashType::Unknown(_) => return None,
+        }
         let nonce = SpdmNonceStruct::read(r)?;
 
         Some(SpdmChallengeRequestPayload {
