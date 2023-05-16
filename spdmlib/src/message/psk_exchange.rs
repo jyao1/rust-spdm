@@ -8,6 +8,7 @@ use crate::common::spdm_codec::SpdmCodec;
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
+    SpdmResponseCapabilityFlags,
 };
 use codec::{Codec, Reader, Writer};
 
@@ -76,10 +77,28 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
     }
 
     fn spdm_read(
-        _context: &mut common::SpdmContext,
+        context: &mut common::SpdmContext,
         r: &mut Reader,
     ) -> Option<SpdmPskExchangeRequestPayload> {
         let measurement_summary_hash_type = SpdmMeasurementSummaryHashType::read(r)?; // param1
+        match measurement_summary_hash_type {
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone => {}
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            | SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb => {
+                if !context
+                    .negotiate_info
+                    .rsp_capabilities_sel
+                    .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+                    && !context
+                        .negotiate_info
+                        .rsp_capabilities_sel
+                        .contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+                {
+                    return None;
+                }
+            }
+            SpdmMeasurementSummaryHashType::Unknown(_) => return None,
+        }
         u8::read(r)?; // param2
         let req_session_id = u16::read(r)?;
 
@@ -242,7 +261,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskExchangeRequestPayload {
             measurement_summary_hash_type:
-                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
             req_session_id: 100u16,
             psk_hint: SpdmPskHintStruct {
                 data_size: MAX_SPDM_PSK_HINT_SIZE as u16,
@@ -271,7 +290,7 @@ mod tests {
 
         assert_eq!(
             psk_exchange_request.measurement_summary_hash_type,
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
         );
         assert_eq!(
             psk_exchange_request.psk_hint.data_size,
@@ -302,7 +321,7 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let value = SpdmPskExchangeRequestPayload {
             measurement_summary_hash_type:
-                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll,
+                SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
             req_session_id: 100u16,
             psk_hint: SpdmPskHintStruct {
                 data_size: 0,
@@ -328,7 +347,7 @@ mod tests {
 
         assert_eq!(
             psk_exchange_request.measurement_summary_hash_type,
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
         );
         assert_eq!(psk_exchange_request.psk_hint.data_size, 0);
         assert_eq!(psk_exchange_request.psk_context.data_size, 0);

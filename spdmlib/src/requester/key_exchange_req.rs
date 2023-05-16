@@ -613,7 +613,7 @@ mod tests_requester {
         requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
 
         let measurement_summary_hash_type =
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll;
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone;
         let status = requester
             .send_receive_spdm_key_exchange(0, measurement_summary_hash_type)
             .is_ok();
