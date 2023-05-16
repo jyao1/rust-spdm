@@ -606,6 +606,7 @@ bitflags! {
     #[derive(Default)]
     pub struct SpdmOpaqueSupport: u8 {
         const OPAQUE_DATA_FMT1 = 0b0000_0010;
+        const VALID_MASK = Self::OPAQUE_DATA_FMT1.bits;
     }
 }
 
@@ -622,7 +623,17 @@ impl Codec for SpdmOpaqueSupport {
 }
 
 impl SpdmOpaqueSupport {
+    /// return true if no more than one is selected
+    /// return false if two or more is selected
     pub fn is_no_more_than_one_selected(&self) -> bool {
         self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
     }
 }

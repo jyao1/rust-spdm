@@ -93,6 +93,7 @@ bitflags! {
     #[derive(Default)]
     pub struct SpdmMeasurementSpecification: u8 {
         const DMTF = 0b0000_0001;
+        const VALID_MASK = Self::DMTF.bits;
     }
 }
 
@@ -120,8 +121,18 @@ impl SpdmMeasurementSpecification {
         *self = SpdmMeasurementSpecification::empty();
     }
 
+    /// return true if no more than one is selected
+    /// return false if two or more is selected
     pub fn is_no_more_than_one_selected(&self) -> bool {
         self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
     }
 }
 
@@ -132,16 +143,32 @@ bitflags! {
         const TPM_ALG_SHA_256 = 0b0000_0010;
         const TPM_ALG_SHA_384 = 0b0000_0100;
         const TPM_ALG_SHA_512 = 0b0000_1000;
+        const TPM_ALG_SHA3_256 = 0b0001_0000;
+        const TPM_ALG_SHA3_384 = 0b0010_0000;
+        const TPM_ALG_SHA3_512 = 0b0100_0000;
+        const TPM_ALG_SM3 = 0b1000_0000;
+        const VALID_MASK = Self::RAW_BIT_STREAM.bits
+            | Self::TPM_ALG_SHA_256.bits
+            | Self::TPM_ALG_SHA_384.bits
+            | Self::TPM_ALG_SHA_512.bits
+            | Self::TPM_ALG_SHA3_256.bits
+            | Self::TPM_ALG_SHA3_256.bits
+            | Self::TPM_ALG_SHA3_256.bits
+            | Self::TPM_ALG_SM3.bits;
     }
 }
 
 impl SpdmMeasurementHashAlgo {
     pub fn get_size(&self) -> u16 {
         match *self {
+            SpdmMeasurementHashAlgo::RAW_BIT_STREAM => 0u16,
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_256 => SHA256_DIGEST_SIZE as u16,
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384 => SHA384_DIGEST_SIZE as u16,
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_512 => SHA512_DIGEST_SIZE as u16,
-            SpdmMeasurementHashAlgo::RAW_BIT_STREAM => 0u16,
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA3_256 => 32,
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA3_384 => 48,
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512 => 64,
+            SpdmMeasurementHashAlgo::TPM_ALG_SM3 => 32,
             _ => {
                 panic!("invalid MeasurementHashAlgo");
             }
@@ -152,6 +179,14 @@ impl SpdmMeasurementHashAlgo {
     /// return false if two or more is selected
     pub fn is_no_more_than_one_selected(&self) -> bool {
         self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
     }
 }
 impl Codec for SpdmMeasurementHashAlgo {
@@ -177,6 +212,14 @@ bitflags! {
         const TPM_ALG_RSASSA_4096 = 0b0010_0000;
         const TPM_ALG_RSAPSS_4096 = 0b0100_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P384 = 0b1000_0000;
+        const VALID_MASK = Self::TPM_ALG_RSASSA_2048.bits
+            | Self::TPM_ALG_RSAPSS_2048.bits
+            | Self::TPM_ALG_RSASSA_3072.bits
+            | Self::TPM_ALG_RSAPSS_3072.bits
+            | Self::TPM_ALG_ECDSA_ECC_NIST_P256.bits
+            | Self::TPM_ALG_RSASSA_4096.bits
+            | Self::TPM_ALG_RSAPSS_4096.bits
+            | Self::TPM_ALG_ECDSA_ECC_NIST_P384.bits;
     }
 }
 
@@ -223,6 +266,14 @@ impl SpdmBaseAsymAlgo {
     pub fn is_no_more_than_one_selected(&self) -> bool {
         self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
     }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
+    }
 }
 
 impl Codec for SpdmBaseAsymAlgo {
@@ -243,6 +294,9 @@ bitflags! {
         const TPM_ALG_SHA_256 = 0b0000_0001;
         const TPM_ALG_SHA_384 = 0b0000_0010;
         const TPM_ALG_SHA_512 = 0b0000_0100;
+        const VALID_MASK = Self::TPM_ALG_SHA_256.bits
+            | Self::TPM_ALG_SHA_384.bits
+            | Self::TPM_ALG_SHA_512.bits;
     }
 }
 
@@ -279,6 +333,14 @@ impl SpdmBaseHashAlgo {
     pub fn is_no_more_than_one_selected(&self) -> bool {
         self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
     }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
+    }
 }
 
 impl Codec for SpdmBaseHashAlgo {
@@ -314,6 +376,8 @@ bitflags! {
     pub struct SpdmDheAlgo: u16 {
         const SECP_256_R1 = 0b0000_1000;
         const SECP_384_R1 = 0b0001_0000;
+        const VALID_MASK = Self::SECP_256_R1.bits
+            | Self::SECP_384_R1.bits;
     }
 }
 
@@ -339,6 +403,20 @@ impl SpdmDheAlgo {
             }
         }
     }
+
+    /// return true if no more than one is selected
+    /// return false if two or more is selected
+    pub fn is_no_more_than_one_selected(&self) -> bool {
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
+    }
 }
 
 impl Codec for SpdmDheAlgo {
@@ -359,6 +437,9 @@ bitflags! {
         const AES_128_GCM = 0b0000_0001;
         const AES_256_GCM = 0b0000_0010;
         const CHACHA20_POLY1305 = 0b0000_0100;
+        const VALID_MASK = Self::AES_128_GCM.bits
+            | Self::AES_256_GCM.bits
+            | Self::CHACHA20_POLY1305.bits;
     }
 }
 
@@ -409,6 +490,20 @@ impl SpdmAeadAlgo {
             }
         }
     }
+
+    /// return true if no more than one is selected
+    /// return false if two or more is selected
+    pub fn is_no_more_than_one_selected(&self) -> bool {
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
+    }
 }
 
 impl Codec for SpdmAeadAlgo {
@@ -434,6 +529,14 @@ bitflags! {
         const TPM_ALG_RSASSA_4096 = 0b0010_0000;
         const TPM_ALG_RSAPSS_4096 = 0b0100_0000;
         const TPM_ALG_ECDSA_ECC_NIST_P384 = 0b1000_0000;
+        const VALID_MASK = Self::TPM_ALG_RSASSA_2048.bits
+            | Self::TPM_ALG_RSAPSS_2048.bits
+            | Self::TPM_ALG_RSASSA_3072.bits
+            | Self::TPM_ALG_RSAPSS_3072.bits
+            | Self::TPM_ALG_ECDSA_ECC_NIST_P256.bits
+            | Self::TPM_ALG_RSASSA_4096.bits
+            | Self::TPM_ALG_RSAPSS_4096.bits
+            | Self::TPM_ALG_ECDSA_ECC_NIST_P384.bits;
     }
 }
 
@@ -474,6 +577,20 @@ impl SpdmReqAsymAlgo {
             }
         }
     }
+
+    /// return true if no more than one is selected
+    /// return false if two or more is selected
+    pub fn is_no_more_than_one_selected(&self) -> bool {
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
+    }
 }
 
 impl Codec for SpdmReqAsymAlgo {
@@ -492,6 +609,7 @@ bitflags! {
     #[derive(Default)]
     pub struct SpdmKeyScheduleAlgo: u16 {
         const SPDM_KEY_SCHEDULE = 0b0000_0001;
+        const VALID_MASK = Self::SPDM_KEY_SCHEDULE.bits;
     }
 }
 
@@ -507,6 +625,20 @@ impl SpdmKeyScheduleAlgo {
             }
         }
         *self = SpdmKeyScheduleAlgo::empty();
+    }
+
+    /// return true if no more than one is selected
+    /// return false if two or more is selected
+    pub fn is_no_more_than_one_selected(&self) -> bool {
+        self.bits() == 0 || self.bits() & (self.bits() - 1) == 0
+    }
+
+    pub fn is_valid(&self) -> bool {
+        (self.bits & Self::VALID_MASK.bits) != 0
+    }
+
+    pub fn is_valid_one_select(&self) -> bool {
+        self.is_no_more_than_one_selected() && self.is_valid()
     }
 }
 

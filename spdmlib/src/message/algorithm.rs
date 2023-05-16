@@ -105,12 +105,14 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
         let length = u16::read(r)?;
         let measurement_specification = SpdmMeasurementSpecification::read(r)?;
 
-        let mut other_params_support = SpdmOpaqueSupport::default();
-        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
-            other_params_support = SpdmOpaqueSupport::read(r)?;
+        let other_params_support = if context.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            SpdmOpaqueSupport::read(r)?
         } else {
             u8::read(r)?;
-        }
+            SpdmOpaqueSupport::default()
+        };
 
         let base_asym_algo = SpdmBaseAsymAlgo::read(r)?;
         let base_hash_algo = SpdmBaseHashAlgo::read(r)?;
@@ -260,38 +262,138 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 
         let length = u16::read(r)?;
 
-        let mut measurement_specification_sel = SpdmMeasurementSpecification::read(r)?;
+        let measurement_specification_sel = SpdmMeasurementSpecification::read(r)?;
         if !measurement_specification_sel.is_no_more_than_one_selected() {
             return None;
         }
-        measurement_specification_sel.prioritize(context.config_info.measurement_specification);
+        if (context
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+            || context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG))
+            && !measurement_specification_sel.is_valid_one_select()
+        {
+            return None;
+        }
 
-        let mut other_params_selection = SpdmOpaqueSupport::default();
-        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
-            other_params_selection = SpdmOpaqueSupport::read(r)?;
-            if !other_params_selection.is_no_more_than_one_selected() {
-                return None;
-            }
+        let other_params_selection = if context.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            SpdmOpaqueSupport::read(r)?
         } else {
             u8::read(r)?;
+            SpdmOpaqueSupport::default()
+        };
+        if !other_params_selection.is_no_more_than_one_selected() {
+            return None;
+        }
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8()
+            && (context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                || context
+                    .negotiate_info
+                    .rsp_capabilities_sel
+                    .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT)
+                || context
+                    .negotiate_info
+                    .rsp_capabilities_sel
+                    .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT))
+            && !other_params_selection.is_valid_one_select()
+        {
+            return None;
         }
 
         let measurement_hash_algo = SpdmMeasurementHashAlgo::read(r)?;
         if !measurement_hash_algo.is_no_more_than_one_selected() {
             return None;
         }
+        if (context
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::MEAS_CAP_NO_SIG)
+            || context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG))
+            && !measurement_hash_algo.is_valid_one_select()
+        {
+            return None;
+        }
 
-        let mut base_asym_sel = SpdmBaseAsymAlgo::read(r)?;
+        let base_asym_sel = SpdmBaseAsymAlgo::read(r)?;
         if !base_asym_sel.is_no_more_than_one_selected() {
             return None;
         }
-        base_asym_sel.prioritize(context.config_info.base_asym_algo);
+        if (context
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::CERT_CAP)
+            || context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::CHAL_CAP)
+            || context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+            || (context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                && context
+                    .negotiate_info
+                    .req_capabilities_sel
+                    .contains(SpdmRequestCapabilityFlags::KEY_EX_CAP)))
+            && !base_asym_sel.is_valid_one_select()
+        {
+            return None;
+        }
 
-        let mut base_hash_sel = SpdmBaseHashAlgo::read(r)?;
+        let base_hash_sel = SpdmBaseHashAlgo::read(r)?;
         if !base_hash_sel.is_no_more_than_one_selected() {
             return None;
         }
-        base_hash_sel.prioritize(context.config_info.base_hash_algo);
+        if (context
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::CERT_CAP)
+            || context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::CHAL_CAP)
+            || context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::MEAS_CAP_SIG)
+            || (context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                && context
+                    .negotiate_info
+                    .req_capabilities_sel
+                    .contains(SpdmRequestCapabilityFlags::KEY_EX_CAP))
+            || ((context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT)
+                || context
+                    .negotiate_info
+                    .rsp_capabilities_sel
+                    .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT))
+                && context
+                    .negotiate_info
+                    .req_capabilities_sel
+                    .contains(SpdmRequestCapabilityFlags::PSK_CAP)))
+            && !base_hash_sel.is_valid_one_select()
+        {
+            return None;
+        }
 
         for _i in 0..12 {
             u8::read(r)?; // reserved2
@@ -312,7 +414,105 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
         let mut alg_struct = gen_array_clone(SpdmAlgStruct::default(), 4);
         if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion11.get_u8() {
             for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
-                *algo = SpdmAlgStruct::read(r)?;
+                let alg = SpdmAlgStruct::read(r)?;
+                match alg.alg_supported {
+                    SpdmAlg::SpdmAlgoDhe(v) => {
+                        let dhe_sel = v;
+                        if !dhe_sel.is_no_more_than_one_selected() {
+                            return None;
+                        }
+                        if (context
+                            .negotiate_info
+                            .rsp_capabilities_sel
+                            .contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                            && context
+                                .negotiate_info
+                                .req_capabilities_sel
+                                .contains(SpdmRequestCapabilityFlags::KEY_EX_CAP))
+                            && !dhe_sel.is_valid_one_select()
+                        {
+                            return None;
+                        }
+                    }
+                    SpdmAlg::SpdmAlgoAead(v) => {
+                        let aead_sel = v;
+                        if !aead_sel.is_no_more_than_one_selected() {
+                            return None;
+                        }
+                        if ((context
+                            .negotiate_info
+                            .rsp_capabilities_sel
+                            .contains(SpdmResponseCapabilityFlags::ENCRYPT_CAP)
+                            && context
+                                .negotiate_info
+                                .req_capabilities_sel
+                                .contains(SpdmRequestCapabilityFlags::ENCRYPT_CAP))
+                            || (context
+                                .negotiate_info
+                                .rsp_capabilities_sel
+                                .contains(SpdmResponseCapabilityFlags::MAC_CAP)
+                                && context
+                                    .negotiate_info
+                                    .req_capabilities_sel
+                                    .contains(SpdmRequestCapabilityFlags::MAC_CAP)))
+                            && !aead_sel.is_valid_one_select()
+                        {
+                            return None;
+                        }
+                    }
+                    SpdmAlg::SpdmAlgoReqAsym(v) => {
+                        let req_asym_sel = v;
+                        if !req_asym_sel.is_no_more_than_one_selected() {
+                            return None;
+                        }
+                        if (context
+                            .negotiate_info
+                            .rsp_capabilities_sel
+                            .contains(SpdmResponseCapabilityFlags::MUT_AUTH_CAP)
+                            && context
+                                .negotiate_info
+                                .req_capabilities_sel
+                                .contains(SpdmRequestCapabilityFlags::MUT_AUTH_CAP))
+                            && !req_asym_sel.is_valid_one_select()
+                        {
+                            return None;
+                        }
+                    }
+                    SpdmAlg::SpdmAlgoKeySchedule(v) => {
+                        let key_schedule_sel = v;
+                        if !key_schedule_sel.is_no_more_than_one_selected() {
+                            return None;
+                        }
+                        if ((context
+                            .negotiate_info
+                            .rsp_capabilities_sel
+                            .contains(SpdmResponseCapabilityFlags::KEY_EX_CAP)
+                            && context
+                                .negotiate_info
+                                .req_capabilities_sel
+                                .contains(SpdmRequestCapabilityFlags::KEY_EX_CAP))
+                            || ((context
+                                .negotiate_info
+                                .rsp_capabilities_sel
+                                .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT)
+                                || context
+                                    .negotiate_info
+                                    .rsp_capabilities_sel
+                                    .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT))
+                                && context
+                                    .negotiate_info
+                                    .req_capabilities_sel
+                                    .contains(SpdmRequestCapabilityFlags::PSK_CAP)))
+                            && !key_schedule_sel.is_valid_one_select()
+                        {
+                            return None;
+                        }
+                    }
+                    SpdmAlg::SpdmAlgoUnknown(_v) => {
+                        return None;
+                    }
+                }
+                *algo = alg;
             }
         }
 
