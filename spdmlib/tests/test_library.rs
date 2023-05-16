@@ -205,12 +205,14 @@ fn test_case0_spdm_dmtf_measurement_structure() {
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
         SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementRawBit,
     ];
-    value.value_size = SPDM_MAX_HASH_SIZE as u16;
+    value.value_size = SHA512_DIGEST_SIZE as u16;
     value.value = [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN];
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
+    context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_512;
+
     for i in 0..5 {
         value.r#type = r#type[i];
         if i < 2 {
@@ -232,9 +234,9 @@ fn test_case0_spdm_dmtf_measurement_structure() {
         }
         assert_eq!(
             spdm_dmtf_measurement_structure.value_size,
-            SPDM_MAX_HASH_SIZE as u16
+            SHA512_DIGEST_SIZE as u16
         );
-        for j in 0..SPDM_MAX_HASH_SIZE {
+        for j in 0..SHA512_DIGEST_SIZE {
             assert_eq!(spdm_dmtf_measurement_structure.value[j], 100);
         }
         assert_eq!(0, reader.left());
@@ -247,18 +249,18 @@ fn test_case0_spdm_measurement_block_structure() {
     let value = SpdmMeasurementBlockStructure {
         index: 100u8,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
-        measurement_size: 3 + SPDM_MAX_HASH_SIZE as u16,
+        measurement_size: 3 + SHA512_DIGEST_SIZE as u16,
         measurement: SpdmDmtfMeasurementStructure {
             r#type: SpdmDmtfMeasurementType::SpdmDmtfMeasurementRom,
             representation: SpdmDmtfMeasurementRepresentation::SpdmDmtfMeasurementDigest,
-            value_size: SPDM_MAX_HASH_SIZE as u16,
+            value_size: SHA512_DIGEST_SIZE as u16,
             value: [100u8; MAX_SPDM_MEASUREMENT_VALUE_LEN],
         },
     };
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let my_spdm_device_io = &mut MySpdmDeviceIo;
     let mut context = new_context(my_spdm_device_io, pcidoe_transport_encap);
-    context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+    context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_512;
 
     assert!(value.spdm_encode(&mut context, &mut writer).is_ok());
     let mut reader = Reader::init(u8_slice);
@@ -272,7 +274,7 @@ fn test_case0_spdm_measurement_block_structure() {
     );
     assert_eq!(
         spdm_block_structure.measurement_size,
-        3 + SPDM_MAX_HASH_SIZE as u16
+        3 + SHA512_DIGEST_SIZE as u16
     );
     assert_eq!(
         spdm_block_structure.measurement.r#type,
@@ -284,9 +286,9 @@ fn test_case0_spdm_measurement_block_structure() {
     );
     assert_eq!(
         spdm_block_structure.measurement.value_size,
-        SPDM_MAX_HASH_SIZE as u16
+        SHA512_DIGEST_SIZE as u16
     );
-    for i in 0..SPDM_MAX_HASH_SIZE {
+    for i in 0..SHA512_DIGEST_SIZE {
         assert_eq!(spdm_block_structure.measurement.value[i], 100);
     }
     assert_eq!(0, reader.left());
