@@ -390,6 +390,7 @@ mod tests_responder {
         context.handle_spdm_finish(4294901758, bytes);
     }
     #[test]
+    #[cfg(feature = "hashed-transcript-data")]
     fn test_case1_handle_spdm_finish() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

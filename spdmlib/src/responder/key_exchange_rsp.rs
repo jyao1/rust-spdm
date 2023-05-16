@@ -457,7 +457,14 @@ mod tests_responder {
     #[test]
     #[cfg(not(feature = "hashed-transcript-data"))]
     fn test_case0_handle_spdm_key_exchange() {
+        use super::*;
         use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
+        use crate::crypto;
+        use crate::message::*;
+        use crate::protocol::*;
+        use crate::responder;
+        use crate::testlib::*;
+        use bytes::BytesMut;
 
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -486,7 +493,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        let _ = value.encode(&mut writer);
 
         let rng = ring::rand::SystemRandom::new();
         let private_key =
@@ -518,7 +525,7 @@ mod tests_responder {
         value.opaque.data[0..value.opaque.data_size as usize].copy_from_slice(
             &crate::common::opaque::REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1,
         );
-        value.spdm_encode(&mut context.common, &mut writer);
+        let _ = value.spdm_encode(&mut context.common, &mut writer);
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
