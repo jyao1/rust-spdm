@@ -213,7 +213,6 @@ mod tests_responder {
     use super::*;
     use crate::common::opaque::*;
     use crate::message::SpdmMessageHeader;
-    use crate::protocol::gen_array_clone;
     use crate::testlib::*;
     use crate::{crypto, responder};
     use codec::{Codec, Writer};
@@ -253,13 +252,28 @@ mod tests_responder {
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
             alg_struct_count: 4,
-            alg_struct: gen_array_clone(
+            alg_struct: [
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                     alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                 },
-                4,
-            ),
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                    alg_supported: SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM),
+                },
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                    alg_supported: SpdmAlg::SpdmAlgoReqAsym(
+                        SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
+                    ),
+                },
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                    alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                        SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+                    ),
+                },
+            ],
         };
         assert!(value.spdm_encode(&mut context.common, &mut writer).is_ok());
 
@@ -302,16 +316,38 @@ mod tests_responder {
             SpdmBaseHashAlgo::TPM_ALG_SHA_384
         );
         assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for index in 0..4 {
-            assert_eq!(
-                spdm_sturct_data.alg_struct[index].alg_type,
-                SpdmAlgType::SpdmAlgTypeDHE
-            );
-            assert_eq!(
-                spdm_sturct_data.alg_struct[1].alg_supported,
-                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
-            );
-        }
+        assert_eq!(
+            spdm_sturct_data.alg_struct[0].alg_type,
+            SpdmAlgType::SpdmAlgTypeDHE
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[0].alg_supported,
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[1].alg_type,
+            SpdmAlgType::SpdmAlgTypeAEAD
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[1].alg_supported,
+            SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[2].alg_type,
+            SpdmAlgType::SpdmAlgTypeReqAsym
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[2].alg_supported,
+            SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[3].alg_type,
+            SpdmAlgType::SpdmAlgTypeKeySchedule
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[3].alg_supported,
+            SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,)
+        );
 
         let u8_slice = &u8_slice[46..];
         debug!("u8_slice: {:02X?}\n", u8_slice);
@@ -367,7 +403,7 @@ mod tests_responder {
             );
             assert_eq!(
                 payload.alg_struct[3].alg_supported,
-                SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::empty())
+                SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE)
             );
         }
     }
