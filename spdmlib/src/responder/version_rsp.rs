@@ -38,7 +38,7 @@ impl<'a> ResponderContext<'a> {
         }
 
         // clear cache data
-        self.common.reset_runtime_info();
+        self.common.reset_context();
 
         if self
             .common
