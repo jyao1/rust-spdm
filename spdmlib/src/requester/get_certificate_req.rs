@@ -49,7 +49,8 @@ impl<'a> RequesterContext<'a> {
             session_id,
             slot_id,
             total_size,
-            (offset, length),
+            offset,
+            length,
             &send_buffer[..send_used],
             &receive_buffer[..used],
         )
@@ -83,17 +84,17 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn handle_spdm_certificate_partial_response(
         &mut self,
         session_id: Option<u32>,
         slot_id: u8,
         total_size: u16,
-        param: (u16, u16),
+        offset: u16,
+        length: u16,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult<(u16, u16)> {
-        let offset = param.0;
-        let length = param.1;
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
@@ -109,9 +110,17 @@ impl<'a> RequesterContext<'a> {
                         let used = reader.used();
                         if let Some(certificate) = certificate {
                             debug!("!!! certificate : {:02x?}\n", certificate);
-                            if certificate.portion_length as usize > length as usize
-                                || (offset + certificate.portion_length) as usize
-                                    > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
+
+                            if certificate.portion_length > length
+                                || certificate.portion_length
+                                    > config::MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16 - offset
+                            {
+                                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
+                            }
+                            if certificate.remainder_length
+                                >= config::MAX_SPDM_CERT_CHAIN_DATA_SIZE as u16
+                                    - offset
+                                    - certificate.portion_length
                             {
                                 return Err(SPDM_STATUS_INVALID_MSG_FIELD);
                             }
