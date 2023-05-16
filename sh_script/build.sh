@@ -105,8 +105,9 @@ run_with_spdm_emu() {
 
 run() {
     echo "Running tests..."
-    cargo test
-    
+    cargo test -- --test-threads=1
+    cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1
+
     echo "Running requester and responder..."
     echo_command cargo run -p spdm-responder-emu --no-default-features --features="$RUN_REQUESTER_FEATURES" &
     sleep 5

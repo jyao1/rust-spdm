@@ -547,19 +547,20 @@ mod tests_requester {
             .message_m
             .append_message(message_m);
         #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2 = Some(
-            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
-        );
-        #[cfg(feature = "hashed-transcript-data")]
-        let _ = crypto::hash::hash_ctx_update(
-            responder
-                .common
-                .runtime_info
-                .digest_context_m1m2
-                .as_mut()
-                .unwrap(),
-            message_m,
-        );
+        {
+            responder.common.runtime_info.digest_context_m1m2 = Some(
+                crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
+            );
+            let _ = crypto::hash::hash_ctx_update(
+                responder
+                    .common
+                    .runtime_info
+                    .digest_context_m1m2
+                    .as_mut()
+                    .unwrap(),
+                message_m,
+            );
+        }
         responder.common.provision_info.my_cert_chain = [
             Some(RSP_CERT_CHAIN_BUFF),
             None,
@@ -596,20 +597,21 @@ mod tests_requester {
             .message_m
             .append_message(message_m);
         #[cfg(feature = "hashed-transcript-data")]
-        requester.common.runtime_info.digest_context_m1m2 = Some(
-            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
-        );
+        {
+            requester.common.runtime_info.digest_context_m1m2 = Some(
+                crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
+            );
+            let _ = crypto::hash::hash_ctx_update(
+                requester
+                    .common
+                    .runtime_info
+                    .digest_context_m1m2
+                    .as_mut()
+                    .unwrap(),
+                message_m,
+            );
+        }
 
-        #[cfg(feature = "hashed-transcript-data")]
-        let _ = crypto::hash::hash_ctx_update(
-            requester
-                .common
-                .runtime_info
-                .digest_context_m1m2
-                .as_mut()
-                .unwrap(),
-            message_m,
-        );
         requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
 
         let measurement_summary_hash_type =

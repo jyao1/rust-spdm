@@ -256,14 +256,15 @@ impl<'a> ResponderContext<'a> {
 
 #[cfg(all(test,))]
 mod tests_responder {
-    use super::*;
-    use crate::message::SpdmMessageHeader;
-    use crate::testlib::*;
-    use crate::{crypto, responder};
-    use codec::{Codec, Writer};
-
     #[test]
+    #[cfg(feature = "hashed-transcript-data")]
     fn test_case0_handle_spdm_challenge() {
+        use super::*;
+        use crate::message::SpdmMessageHeader;
+        use crate::testlib::*;
+        use crate::{crypto, responder};
+        use codec::{Codec, Writer};
+
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();

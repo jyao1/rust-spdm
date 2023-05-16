@@ -220,6 +220,14 @@ mod tests_responder {
     #[test]
     #[cfg(not(feature = "hashed-transcript-data"))]
     fn test_case0_handle_spdm_psk_finish() {
+        use super::*;
+        use crate::common::session::*;
+        use crate::crypto;
+        use crate::message::*;
+        use crate::protocol::*;
+        use crate::responder;
+        use crate::testlib::*;
+
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
@@ -254,7 +262,7 @@ mod tests_responder {
             version: SpdmVersion::SpdmVersion10,
             request_response_code: SpdmRequestResponseCode::SpdmRequestChallenge,
         };
-        value.encode(&mut writer);
+        let _ = value.encode(&mut writer);
 
         let psk_finish = &mut [0u8; 1024];
         let mut writer = Writer::init(psk_finish);
@@ -264,7 +272,7 @@ mod tests_responder {
                 data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
             },
         };
-        value.spdm_encode(&mut context.common, &mut writer);
+        let _ = value.spdm_encode(&mut context.common, &mut writer);
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);

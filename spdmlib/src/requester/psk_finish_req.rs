@@ -256,13 +256,14 @@ impl<'a> RequesterContext<'a> {
 
 #[cfg(all(test,))]
 mod tests_requester {
-    use super::*;
-    use crate::common::session::SpdmSession;
-    use crate::testlib::*;
-    use crate::{crypto, responder};
-
     #[test]
+    #[cfg(feature = "hashed-transcript-data")]
     fn test_case0_send_receive_spdm_psk_finish() {
+        use super::*;
+        use crate::common::session::SpdmSession;
+        use crate::testlib::*;
+        use crate::{crypto, responder};
+
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
         let data = &mut [
