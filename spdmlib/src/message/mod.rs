@@ -679,13 +679,28 @@ mod tests {
                     base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                     base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
                     alg_struct_count: 4,
-                    alg_struct: gen_array_clone(
+                    alg_struct: [
                         SpdmAlgStruct {
                             alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                             alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                         },
-                        4,
-                    ),
+                        SpdmAlgStruct {
+                            alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                            alg_supported: SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM),
+                        },
+                        SpdmAlgStruct {
+                            alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                            alg_supported: SpdmAlg::SpdmAlgoReqAsym(
+                                SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
+                            ),
+                        },
+                        SpdmAlgStruct {
+                            alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                            alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                                SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+                            ),
+                        },
+                    ],
                 },
             ),
         };
@@ -708,13 +723,32 @@ mod tests {
             );
             assert_eq!(payload.base_hash_algo, SpdmBaseHashAlgo::TPM_ALG_SHA_256);
             assert_eq!(payload.alg_struct_count, 4);
-            for i in 0..4 {
-                assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-                assert_eq!(
-                    payload.alg_struct[1].alg_supported,
-                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
-                );
-            }
+            assert_eq!(payload.alg_struct[0].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
+            assert_eq!(
+                payload.alg_struct[0].alg_supported,
+                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
+            );
+            assert_eq!(payload.alg_struct[1].alg_type, SpdmAlgType::SpdmAlgTypeAEAD);
+            assert_eq!(
+                payload.alg_struct[1].alg_supported,
+                SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM)
+            );
+            assert_eq!(
+                payload.alg_struct[2].alg_type,
+                SpdmAlgType::SpdmAlgTypeReqAsym
+            );
+            assert_eq!(
+                payload.alg_struct[2].alg_supported,
+                SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,)
+            );
+            assert_eq!(
+                payload.alg_struct[3].alg_type,
+                SpdmAlgType::SpdmAlgTypeKeySchedule
+            );
+            assert_eq!(
+                payload.alg_struct[3].alg_supported,
+                SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,)
+            );
         }
     }
     #[test]
@@ -731,13 +765,28 @@ mod tests {
                 base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                 base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
                 alg_struct_count: 4,
-                alg_struct: gen_array_clone(
+                alg_struct: [
                     SpdmAlgStruct {
                         alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                         alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                     },
-                    4,
-                ),
+                    SpdmAlgStruct {
+                        alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                        alg_supported: SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM),
+                    },
+                    SpdmAlgStruct {
+                        alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                        alg_supported: SpdmAlg::SpdmAlgoReqAsym(
+                            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
+                        ),
+                    },
+                    SpdmAlgStruct {
+                        alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                        alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+                        ),
+                    },
+                ],
             }),
         };
         create_spdm_context!(context);
@@ -765,13 +814,32 @@ mod tests {
             assert_eq!(payload.base_asym_sel, SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048);
             assert_eq!(payload.base_hash_sel, SpdmBaseHashAlgo::TPM_ALG_SHA_256);
             assert_eq!(payload.alg_struct_count, 4);
-            for i in 0..4 {
-                assert_eq!(payload.alg_struct[i].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
-                assert_eq!(
-                    payload.alg_struct[1].alg_supported,
-                    SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
-                );
-            }
+            assert_eq!(payload.alg_struct[0].alg_type, SpdmAlgType::SpdmAlgTypeDHE);
+            assert_eq!(
+                payload.alg_struct[0].alg_supported,
+                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
+            );
+            assert_eq!(payload.alg_struct[1].alg_type, SpdmAlgType::SpdmAlgTypeAEAD);
+            assert_eq!(
+                payload.alg_struct[1].alg_supported,
+                SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM)
+            );
+            assert_eq!(
+                payload.alg_struct[2].alg_type,
+                SpdmAlgType::SpdmAlgTypeReqAsym
+            );
+            assert_eq!(
+                payload.alg_struct[2].alg_supported,
+                SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,)
+            );
+            assert_eq!(
+                payload.alg_struct[3].alg_type,
+                SpdmAlgType::SpdmAlgTypeKeySchedule
+            );
+            assert_eq!(
+                payload.alg_struct[3].alg_supported,
+                SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,)
+            );
         }
     }
     #[test]

@@ -135,8 +135,47 @@ impl SpdmCodec for SpdmNegotiateAlgorithmsRequestPayload {
 
         let mut alg_struct = gen_array_clone(SpdmAlgStruct::default(), 4);
         if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion11.get_u8() {
+            let mut dhe_present = false;
+            let mut aead_present = false;
+            let mut req_asym_present = false;
+            let mut key_schedule_present = false;
+            let mut current_type = SpdmAlgType::Unknown(0);
             for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
-                *algo = SpdmAlgStruct::read(r)?;
+                let alg = SpdmAlgStruct::read(r)?;
+                if current_type.get_u8() >= alg.alg_type.get_u8() {
+                    return None;
+                }
+                current_type = alg.alg_type;
+                match alg.alg_supported {
+                    SpdmAlg::SpdmAlgoDhe(_) => {
+                        if dhe_present {
+                            return None;
+                        }
+                        dhe_present = true;
+                    }
+                    SpdmAlg::SpdmAlgoAead(_) => {
+                        if aead_present {
+                            return None;
+                        }
+                        aead_present = true;
+                    }
+                    SpdmAlg::SpdmAlgoReqAsym(_) => {
+                        if req_asym_present {
+                            return None;
+                        }
+                        req_asym_present = true;
+                    }
+                    SpdmAlg::SpdmAlgoKeySchedule(_) => {
+                        if key_schedule_present {
+                            return None;
+                        }
+                        key_schedule_present = true;
+                    }
+                    SpdmAlg::SpdmAlgoUnknown(_) => {
+                        return None;
+                    }
+                }
+                *algo = alg;
             }
         }
 
@@ -413,10 +452,23 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
 
         let mut alg_struct = gen_array_clone(SpdmAlgStruct::default(), 4);
         if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion11.get_u8() {
+            let mut dhe_present = false;
+            let mut aead_present = false;
+            let mut req_asym_present = false;
+            let mut key_schedule_present = false;
+            let mut current_type = SpdmAlgType::Unknown(0);
             for algo in alg_struct.iter_mut().take(alg_struct_count as usize) {
                 let alg = SpdmAlgStruct::read(r)?;
+                if current_type.get_u8() >= alg.alg_type.get_u8() {
+                    return None;
+                }
+                current_type = alg.alg_type;
                 match alg.alg_supported {
                     SpdmAlg::SpdmAlgoDhe(v) => {
+                        if dhe_present {
+                            return None;
+                        }
+                        dhe_present = true;
                         let dhe_sel = v;
                         if !dhe_sel.is_no_more_than_one_selected() {
                             return None;
@@ -435,6 +487,10 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
                         }
                     }
                     SpdmAlg::SpdmAlgoAead(v) => {
+                        if aead_present {
+                            return None;
+                        }
+                        aead_present = true;
                         let aead_sel = v;
                         if !aead_sel.is_no_more_than_one_selected() {
                             return None;
@@ -461,6 +517,10 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
                         }
                     }
                     SpdmAlg::SpdmAlgoReqAsym(v) => {
+                        if req_asym_present {
+                            return None;
+                        }
+                        req_asym_present = true;
                         let req_asym_sel = v;
                         if !req_asym_sel.is_no_more_than_one_selected() {
                             return None;
@@ -479,6 +539,10 @@ impl SpdmCodec for SpdmAlgorithmsResponsePayload {
                         }
                     }
                     SpdmAlg::SpdmAlgoKeySchedule(v) => {
+                        if key_schedule_present {
+                            return None;
+                        }
+                        key_schedule_present = true;
                         let key_schedule_sel = v;
                         if !key_schedule_sel.is_no_more_than_one_selected() {
                             return None;
@@ -558,13 +622,28 @@ mod tests {
             base_asym_algo: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 4,
-            alg_struct: gen_array_clone(
+            alg_struct: [
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                     alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                 },
-                4,
-            ),
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                    alg_supported: SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM),
+                },
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                    alg_supported: SpdmAlg::SpdmAlgoReqAsym(
+                        SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
+                    ),
+                },
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                    alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                        SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+                    ),
+                },
+            ],
         };
         let transport_encap = &mut TransportEncap {};
         let device_io = &mut DeviceIO {};
@@ -591,16 +670,38 @@ mod tests {
             SpdmBaseHashAlgo::TPM_ALG_SHA_256
         );
         assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for i in 0..4 {
-            assert_eq!(
-                spdm_sturct_data.alg_struct[i].alg_type,
-                SpdmAlgType::SpdmAlgTypeDHE
-            );
-            assert_eq!(
-                spdm_sturct_data.alg_struct[1].alg_supported,
-                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
-            );
-        }
+        assert_eq!(
+            spdm_sturct_data.alg_struct[0].alg_type,
+            SpdmAlgType::SpdmAlgTypeDHE
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[0].alg_supported,
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[1].alg_type,
+            SpdmAlgType::SpdmAlgTypeAEAD
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[1].alg_supported,
+            SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[2].alg_type,
+            SpdmAlgType::SpdmAlgTypeReqAsym
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[2].alg_supported,
+            SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[3].alg_type,
+            SpdmAlgType::SpdmAlgTypeKeySchedule
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[3].alg_supported,
+            SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,)
+        );
         assert_eq!(2, reader.left());
     }
 
@@ -678,13 +779,28 @@ mod tests {
             base_asym_sel: SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
             base_hash_sel: SpdmBaseHashAlgo::TPM_ALG_SHA_256,
             alg_struct_count: 4,
-            alg_struct: gen_array_clone(
+            alg_struct: [
                 SpdmAlgStruct {
                     alg_type: SpdmAlgType::SpdmAlgTypeDHE,
                     alg_supported: SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1),
                 },
-                4,
-            ),
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeAEAD,
+                    alg_supported: SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM),
+                },
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeReqAsym,
+                    alg_supported: SpdmAlg::SpdmAlgoReqAsym(
+                        SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
+                    ),
+                },
+                SpdmAlgStruct {
+                    alg_type: SpdmAlgType::SpdmAlgTypeKeySchedule,
+                    alg_supported: SpdmAlg::SpdmAlgoKeySchedule(
+                        SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+                    ),
+                },
+            ],
         };
 
         let transport_encap = &mut TransportEncap {};
@@ -721,16 +837,38 @@ mod tests {
             SpdmBaseHashAlgo::TPM_ALG_SHA_256
         );
         assert_eq!(spdm_sturct_data.alg_struct_count, 4);
-        for i in 0..4 {
-            assert_eq!(
-                spdm_sturct_data.alg_struct[i].alg_type,
-                SpdmAlgType::SpdmAlgTypeDHE
-            );
-            assert_eq!(
-                spdm_sturct_data.alg_struct[1].alg_supported,
-                SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
-            );
-        }
+        assert_eq!(
+            spdm_sturct_data.alg_struct[0].alg_type,
+            SpdmAlgType::SpdmAlgTypeDHE
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[0].alg_supported,
+            SpdmAlg::SpdmAlgoDhe(SpdmDheAlgo::SECP_256_R1)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[1].alg_type,
+            SpdmAlgType::SpdmAlgTypeAEAD
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[1].alg_supported,
+            SpdmAlg::SpdmAlgoAead(SpdmAeadAlgo::AES_128_GCM)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[2].alg_type,
+            SpdmAlgType::SpdmAlgTypeReqAsym
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[2].alg_supported,
+            SpdmAlg::SpdmAlgoReqAsym(SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,)
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[3].alg_type,
+            SpdmAlgType::SpdmAlgTypeKeySchedule
+        );
+        assert_eq!(
+            spdm_sturct_data.alg_struct[3].alg_supported,
+            SpdmAlg::SpdmAlgoKeySchedule(SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,)
+        );
         assert_eq!(0, reader.left());
     }
     #[test]
