@@ -31,7 +31,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm finish\n");
 
         let req_slot_id = if let Some(req_slot_id) = req_slot_id {
-            if req_slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+            if req_slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
                 return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
             }
             if self.common.provision_info.my_cert_chain[req_slot_id as usize].is_none() {

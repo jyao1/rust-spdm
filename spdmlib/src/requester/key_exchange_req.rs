@@ -32,7 +32,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm key exchange\n");
 
-        if slot_id > SPDM_MAX_SLOT_NUMBER as u8 {
+        if slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 

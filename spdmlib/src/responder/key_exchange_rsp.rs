@@ -128,7 +128,7 @@ impl<'a> ResponderContext<'a> {
 
         let key_exchange_req = key_exchange_req.unwrap();
         let slot_id = key_exchange_req.slot_id as usize;
-        if slot_id > SPDM_MAX_SLOT_NUMBER {
+        if slot_id >= SPDM_MAX_SLOT_NUMBER {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }

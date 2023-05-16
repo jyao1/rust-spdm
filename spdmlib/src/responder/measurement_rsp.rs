@@ -70,7 +70,7 @@ impl<'a> ResponderContext<'a> {
         {
             self.common.runtime_info.need_measurement_signature = true;
 
-            if slot_id > SPDM_MAX_SLOT_NUMBER {
+            if slot_id >= SPDM_MAX_SLOT_NUMBER {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return;
             }

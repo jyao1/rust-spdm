@@ -84,7 +84,7 @@ impl<'a> ResponderContext<'a> {
 
         let get_certificate = get_certificate.unwrap();
         let slot_id = get_certificate.slot_id as usize;
-        if slot_id > SPDM_MAX_SLOT_NUMBER {
+        if slot_id >= SPDM_MAX_SLOT_NUMBER {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
