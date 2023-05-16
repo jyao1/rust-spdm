@@ -125,7 +125,7 @@ mod tests_responder {
         let mut writer = Writer::init(capabilities);
         let value = SpdmGetCapabilitiesRequestPayload {
             ct_exponent: 100,
-            flags: SpdmRequestCapabilityFlags::CERT_CAP,
+            flags: SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP,
             data_transfer_size: 0,
             max_spdm_msg_size: 0,
         };
@@ -165,7 +165,7 @@ mod tests_responder {
         assert_eq!(capabilities_request.ct_exponent, 100);
         assert_eq!(
             capabilities_request.flags,
-            SpdmRequestCapabilityFlags::CERT_CAP
+            SpdmRequestCapabilityFlags::CERT_CAP | SpdmRequestCapabilityFlags::CHAL_CAP
         );
         let spdm_message_slice = &u8_slice[12..];
         let mut reader = Reader::init(spdm_message_slice);
