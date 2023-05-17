@@ -22,7 +22,7 @@ impl<'a> RequesterContext<'a> {
         length: u16,
     ) -> SpdmResult<(u16, u16)> {
         info!("send spdm certificate\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used =
             self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
         if send_used == 0 {
@@ -37,7 +37,7 @@ impl<'a> RequesterContext<'a> {
             }
         }
 
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let used = match session_id {
             Some(session_id) => {
                 self.receive_secured_message(session_id, &mut receive_buffer, false)?

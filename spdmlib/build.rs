@@ -16,7 +16,6 @@ struct SpdmConfig {
     psk_config: SpdmPskConfig,
     max_session_count: usize,
     transport_config: SpdmBufferConfig,
-    max_msg_buffer_size: usize,
     max_spdm_msg_size: usize,
     heartbeat_period_value: u8,
 }
@@ -144,9 +143,6 @@ pub const PCI_DOE_TRANSPORT_ADDITIONAL_SIZE: usize = 35;
 /// This is max individual SPDM message size defined in SPDM 1.2.
 pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz};
 
-/// This is used in SpdmRuntimeInfo. max cached size
-pub const MAX_SPDM_MESSAGE_BUFFER_SIZE: usize = {msg_buf_sz};
-
 /// This is used by responder to specify the heartbeat period
 /// 0 represents either Heartbeat is not supported or
 /// heartbeat is not desired on a session
@@ -185,7 +181,6 @@ fn main() {
         session_cnt = spdm_config.max_session_count,
         snd_buf_sz = spdm_config.transport_config.sender_buffer_size,
         rcv_buf_sz = spdm_config.transport_config.receiver_buffer_size,
-        msg_buf_sz = spdm_config.max_msg_buffer_size,
         max_spdm_mgs_sz = spdm_config.max_spdm_msg_size,
         heartbeat_period = spdm_config.heartbeat_period_value,
     )

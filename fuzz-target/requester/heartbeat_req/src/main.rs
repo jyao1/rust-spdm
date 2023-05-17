@@ -166,7 +166,7 @@ fn main() {
                 0xa7, 0x51, 0x55, 0x4d, 0x60, 0xe6, 0x39, 0x1d, 0xa0, 0xb2, 0x1e, 0x4e, 0x4a, 0x5c,
                 0x0, 0x61, 0xf, 0xd3, 0x4b, 0xbe, 0xc,
             ];
-            let mut buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+            let mut buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
             buffer[..fuzzdata.len()].copy_from_slice(&fuzzdata);
             let left = buffer.len() - fuzzdata.len();
             let data_len = data.len();
