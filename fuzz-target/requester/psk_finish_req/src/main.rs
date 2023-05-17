@@ -9,15 +9,15 @@ use fuzzlib::{
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::crypto::aead::register(FAKE_AEAD.clone());
+
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
     let shared_buffer = SharedBuffer::new();
     let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
-
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let mut responder = responder::ResponderContext::new(
         &mut device_io_responder,
@@ -25,14 +25,15 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         rsp_config_info,
         rsp_provision_info,
     );
-
+    responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
     responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
     responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
 
-    responder.common.session[0].setup(4294901758).unwrap();
+    responder.common.session[0] = SpdmSession::new();
+    responder.common.session[0].setup(4294836221).unwrap();
     responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
     responder.common.session[0].set_crypto_param(
         SpdmBaseHashAlgo::TPM_ALG_SHA_384,
@@ -62,7 +63,7 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         req_config_info,
         req_provision_info,
     );
-
+    requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
@@ -70,14 +71,14 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
     requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
 
     requester.common.session[0] = SpdmSession::new();
-    requester.common.session[0].setup(4294901758).unwrap();
+    requester.common.session[0].setup(4294836221).unwrap();
+    requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
     requester.common.session[0].set_crypto_param(
         SpdmBaseHashAlgo::TPM_ALG_SHA_384,
         SpdmDheAlgo::SECP_384_R1,
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
-    requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
     #[cfg(feature = "hashed-transcript-data")]
     {
@@ -90,7 +91,7 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
 
-    let _ = requester.send_receive_spdm_psk_finish(4294901758);
+    let _ = requester.send_receive_spdm_psk_finish(4294836221);
 }
 
 #[cfg(not(feature = "use_libfuzzer"))]
