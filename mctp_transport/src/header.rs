@@ -190,8 +190,8 @@ mod tests {
     #[test]
     fn test_case0_encap() {
         let mut mctp_transport_encap = MctpTransportEncap {};
-        let mut transport_buffer = [100u8; config::DATA_TRANSFER_SIZE];
-        let spdm_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut transport_buffer = [100u8; config::SENDER_BUFFER_SIZE];
+        let spdm_buffer = [100u8; config::MAX_SPDM_MSG_SIZE];
 
         let status = mctp_transport_encap
             .encap(&spdm_buffer, &mut transport_buffer, false)
@@ -203,8 +203,8 @@ mod tests {
             .is_ok();
         assert!(status);
 
-        let mut transport_buffer = [100u8; config::DATA_TRANSFER_SIZE];
-        let spdm_buffer = [100u8; config::DATA_TRANSFER_SIZE];
+        let mut transport_buffer = [100u8; config::SENDER_BUFFER_SIZE];
+        let spdm_buffer = [100u8; config::SENDER_BUFFER_SIZE];
         let status = mctp_transport_encap
             .encap(&spdm_buffer, &mut transport_buffer, true)
             .is_err();
@@ -214,7 +214,7 @@ mod tests {
     fn test_case0_decap() {
         let mut mctp_transport_encap = MctpTransportEncap {};
 
-        let mut spdm_buffer = [100u8; config::DATA_TRANSFER_SIZE];
+        let mut spdm_buffer = [100u8; config::MAX_SPDM_MSG_SIZE];
 
         let transport_buffer = &mut [0u8; 10];
 
@@ -257,7 +257,7 @@ mod tests {
             .is_ok();
         assert!(status);
 
-        let spdm_buffer = [100u8; 1024];
+        let spdm_buffer = [100u8; config::MAX_SPDM_MSG_SIZE];
 
         let status = mctp_transport_encap
             .encap_app(&spdm_buffer, &mut app_buffer, false)
@@ -268,7 +268,7 @@ mod tests {
     fn test_case0_decap_app() {
         let mut mctp_transport_encap = MctpTransportEncap {};
 
-        let mut spdm_buffer = [100u8; config::DATA_TRANSFER_SIZE];
+        let mut spdm_buffer = [100u8; config::MAX_SPDM_MSG_SIZE];
 
         let transport_buffer = &mut [0u8; 10];
 

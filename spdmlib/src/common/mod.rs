@@ -465,7 +465,7 @@ impl<'a> SpdmContext<'a> {
         transport_buffer: &[u8],
         receive_buffer: &mut [u8],
     ) -> SpdmResult<usize> {
-        let mut encoded_receive_buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut encoded_receive_buffer = [0u8; config::RECEIVER_BUFFER_SIZE];
         let (used, secured_message) = self
             .transport_encap
             .decap(transport_buffer, &mut encoded_receive_buffer)?;

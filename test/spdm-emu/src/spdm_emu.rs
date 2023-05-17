@@ -98,7 +98,7 @@ pub fn send_message(
     command: u32,
     payload: &[u8],
 ) -> usize {
-    let mut buffer = [0u8; config::DATA_TRANSFER_SIZE];
+    let mut buffer = [0u8; config::SENDER_BUFFER_SIZE];
 
     let mut writer = Writer::init(&mut buffer);
     let payload_size = payload.len();

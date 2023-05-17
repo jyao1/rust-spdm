@@ -28,7 +28,7 @@ impl<'a> SocketIoTransport<'a> {
 
 impl SpdmDeviceIo for SocketIoTransport<'_> {
     fn receive(&mut self, read_buffer: &mut [u8], timeout: usize) -> Result<usize, usize> {
-        let mut buffer = [0u8; config::DATA_TRANSFER_SIZE];
+        let mut buffer = [0u8; config::RECEIVER_BUFFER_SIZE];
 
         if let Some((_, command, payload)) = receive_message(self.data, &mut buffer[..], timeout) {
             // TBD: do we need this?

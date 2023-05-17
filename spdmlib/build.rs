@@ -15,8 +15,8 @@ struct SpdmConfig {
     measurement_config: SpdmMeasurementConfig,
     psk_config: SpdmPskConfig,
     max_session_count: usize,
+    transport_config: SpdmBufferConfig,
     max_msg_buffer_size: usize,
-    data_transfer_size: usize,
     max_spdm_msg_size: usize,
     heartbeat_period_value: u8,
 }
@@ -26,7 +26,16 @@ impl SpdmConfig {
         // All rust fixed-size arrays require non-negative compile-time constant sizes.
         // This will be checked by the compiler thus no need to check again here.
 
+        // We dont support chunking now.
+        assert!(self.max_spdm_msg_size >= 42);
+
+        // Reserve some space for transport overhead.
+        // 24 is miniaml requirement: session_id (4) + len (2) + app_len (2) + mac (16)
+        assert!(self.transport_config.receiver_buffer_size > self.max_spdm_msg_size + 24);
+        assert!(self.transport_config.sender_buffer_size > self.max_spdm_msg_size + 24);
+
         assert!(self.cert_config.max_cert_chain_data_size <= 0xFFFF);
+        // no need to check max_cert_chain_data_size against max_spdm_msg_size
 
         assert!(self.measurement_config.max_measurement_record_size <= 0xFFFFFF);
         assert!(self.measurement_config.max_measurement_val_len <= 0xFFFF - 7);
@@ -35,14 +44,15 @@ impl SpdmConfig {
                 >= 7 + self.measurement_config.max_measurement_val_len
         );
         assert!(self.measurement_config.max_measurement_val_len >= 32);
+        assert!(self.measurement_config.max_measurement_record_size < self.max_spdm_msg_size);
 
         assert!(self.psk_config.max_psk_context_size >= 32);
         assert!(self.psk_config.max_psk_context_size <= 0xFFFF);
         assert!(self.psk_config.max_psk_hint_size <= 0xFFFF);
-
-        assert!(self.data_transfer_size >= 42);
-        // NOTE: We dont support chunking now. They must be same.
-        assert!(self.max_spdm_msg_size == self.data_transfer_size);
+        assert!(
+            self.psk_config.max_psk_context_size + self.psk_config.max_psk_hint_size
+                < self.max_spdm_msg_size
+        );
 
         // TODO: add more sanity checks if needed.
     }
@@ -63,6 +73,12 @@ struct SpdmMeasurementConfig {
 struct SpdmPskConfig {
     max_psk_context_size: usize,
     max_psk_hint_size: usize,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+struct SpdmBufferConfig {
+    sender_buffer_size: usize,
+    receiver_buffer_size: usize,
 }
 
 macro_rules! TEMPLATE {
@@ -95,14 +111,41 @@ pub const MAX_SPDM_PSK_HINT_SIZE: usize = {psk_hint_sz};
 /// This is used in SpdmContext
 pub const MAX_SPDM_SESSION_COUNT: usize = {session_cnt};
 
+/// This is sender buffer for SPDM transport layer (e.g. MCTP or PCI_DOE)
+/// It is MAX_SPDM_MSG_SIZE + transport overhead (plain text or cipher text, head and tail)
+/// It is also used as app buffer (bigger than MAX_SPDM_MSG_SIZE)
+pub const SENDER_BUFFER_SIZE: usize = {snd_buf_sz};
+
+/// This is receiver buffer for transport layer (e.g. MCTP or PCI_DOE)
+/// It is MAX_SPDM_MSG_SIZE + transport overhead (plain text or cipher text, head and tail)
+/// It is also used as app buffer (bigger than MAX_SPDM_MSG_SIZE)
+pub const RECEIVER_BUFFER_SIZE: usize = {rcv_buf_sz};
+
+/// Required sender/receiver buffer for transport layer
+/// +-------+--------+---------------------------+------+--+------+---+--------+-----+
+/// | TYPE  |TransHdr|      EncryptionHeader     |AppHdr|  |Random|MAC|AlignPad|FINAL|
+/// |       |        |SessionId|SeqNum|Len|AppLen|      |  |      |   |        |     |
+/// +-------+--------+---------------------------+------+  +------+---+--------+-----+
+/// | MCTP  |    1   |    4    |   2  | 2 |   2  |   1  |  |  32  | 16|   0    |  60 |
+/// +-------+--------+---------------------------+------+--+------+---+--------+-----+
+///
+pub const MCTP_TRANSPORT_ADDITIONAL_SIZE: usize = 60;
+
+/// Required sender/receiver buffer for transport layer
+/// +-------+--------+---------------------------+------+--+------+---+--------+-----+
+/// | TYPE  |TransHdr|      EncryptionHeader     |AppHdr|  |Random|MAC|AlignPad|FINAL|
+/// |       |        |SessionId|SeqNum|Len|AppLen|      |  |      |   |        |     |
+/// +-------+--------+---------------------------+------+  +------+---+--------+-----+
+/// |PCI_DOE|    8   |    4    |   0  | 2 |   2  |   0  |  |   0  | 16|   3    |  35 |
+/// +-------+--------+---------------------------+------+--+------+---+--------+-----+
+///
+pub const PCI_DOE_TRANSPORT_ADDITIONAL_SIZE: usize = 35;
+
+/// This is max individual SPDM message size defined in SPDM 1.2.
+pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz};
+
 /// This is used in SpdmRuntimeInfo. max cached size
-pub const MAX_SPDM_MESSAGE_BUFFER_SIZE: usize = {msg_buf_sz}; // 0x1200
-
-/// This is used in Transport, SPDM 1.2
-pub const DATA_TRANSFER_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZE + 0x100(For upper layer headers)
-
-/// SPDM 1.2
-pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz}; // set to equal to DATA_TRANSFER_SIZE @todo
+pub const MAX_SPDM_MESSAGE_BUFFER_SIZE: usize = {msg_buf_sz};
 
 /// This is used by responder to specify the heartbeat period
 /// 0 represents either Heartbeat is not supported or
@@ -140,8 +183,9 @@ fn main() {
         psk_ctx_sz = spdm_config.psk_config.max_psk_context_size,
         psk_hint_sz = spdm_config.psk_config.max_psk_hint_size,
         session_cnt = spdm_config.max_session_count,
+        snd_buf_sz = spdm_config.transport_config.sender_buffer_size,
+        rcv_buf_sz = spdm_config.transport_config.receiver_buffer_size,
         msg_buf_sz = spdm_config.max_msg_buffer_size,
-        trans_sz = spdm_config.data_transfer_size,
         max_spdm_mgs_sz = spdm_config.max_spdm_msg_size,
         heartbeat_period = spdm_config.heartbeat_period_value,
     )
