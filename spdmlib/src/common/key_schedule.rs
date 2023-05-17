@@ -2,13 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::config::MAX_SPDM_MESSAGE_BUFFER_SIZE;
 use crate::crypto;
 use crate::protocol::*;
 use codec::{Codec, Writer};
 extern crate alloc;
 use alloc::boxed::Box;
 
+const MAX_BIN_CONCAT_BUF_SIZE: usize = 2 + 8 + 12 + SPDM_MAX_HASH_SIZE;
 const SALT_0: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];
 const ZERO_FILLED: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];
 const BIN_STR0_LABEL: &[u8] = b"derived";
@@ -54,7 +54,7 @@ impl SpdmKeySchedule {
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str0 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -79,7 +79,7 @@ impl SpdmKeySchedule {
         key: &[u8],
         th1: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str1 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -97,7 +97,7 @@ impl SpdmKeySchedule {
         key: &[u8],
         th1: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str2 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -114,7 +114,7 @@ impl SpdmKeySchedule {
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str7 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -132,7 +132,7 @@ impl SpdmKeySchedule {
         aead_algo: SpdmAeadAlgo,
         key: &[u8],
     ) -> Option<(SpdmAeadKeyStruct, SpdmAeadIvStruct)> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str5 = self.binconcat(
             aead_algo.get_key_size(),
             spdm_version,
@@ -178,7 +178,7 @@ impl SpdmKeySchedule {
         key: &[u8],
         th2: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str3 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -196,7 +196,7 @@ impl SpdmKeySchedule {
         key: &[u8],
         th2: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str4 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -213,7 +213,7 @@ impl SpdmKeySchedule {
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str8 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
@@ -230,7 +230,7 @@ impl SpdmKeySchedule {
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        let buffer = &mut [0; MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str9 = self.binconcat(
             hash_algo.get_size(),
             spdm_version,
