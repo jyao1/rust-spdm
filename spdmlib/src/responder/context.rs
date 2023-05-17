@@ -125,7 +125,7 @@ impl<'a> ResponderContext<'a> {
                         .get_session_via_id(session_id)
                         .ok_or((used, receive_buffer))?;
 
-                    let mut app_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+                    let mut app_buffer = [0u8; config::RECEIVER_BUFFER_SIZE];
 
                     let decode_size = spdm_session.decode_spdm_secured_message(
                         &receive_buffer[..used],
@@ -137,7 +137,7 @@ impl<'a> ResponderContext<'a> {
                     }
                     let decode_size = decode_size.unwrap();
 
-                    let mut spdm_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+                    let mut spdm_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
                     let decap_result = self
                         .common
                         .transport_encap
@@ -389,7 +389,7 @@ mod tests_responder {
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let value = SpdmMessage {
             header: SpdmMessageHeader {
@@ -425,7 +425,7 @@ mod tests_responder {
         let rsp_session_id = 0xffu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let value = SpdmMessage {
             header: SpdmMessageHeader::default(),

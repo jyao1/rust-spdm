@@ -921,8 +921,7 @@ impl SpdmSession {
         let aad_size = writer.used();
         assert_eq!(aad_size, 6 + transport_param.sequence_number_count as usize);
 
-        let mut plain_text_buf =
-            [0; config::MAX_SPDM_MESSAGE_BUFFER_SIZE + core::mem::size_of::<u16>()]; // app length + app buffer
+        let mut plain_text_buf = [0; config::SENDER_BUFFER_SIZE];
         let mut writer = Writer::init(&mut plain_text_buf);
         app_length
             .encode(&mut writer)
@@ -1068,8 +1067,8 @@ mod tests_session {
     fn test_case0_decode_msg() {
         let mut session = SpdmSession::default();
         let session_id = 4294901758u32;
-        let mut send_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [100u8; config::RECEIVER_BUFFER_SIZE];
+        let mut decoded_receive_buffer = [0u8; config::RECEIVER_BUFFER_SIZE];
 
         session.setup(session_id).unwrap();
         session.set_crypto_param(
@@ -1095,19 +1094,19 @@ mod tests_session {
 
         let status = session
             .decode_msg(
-                &send_buffer,
-                &mut encoded_send_buffer,
+                &receive_buffer,
+                &mut decoded_receive_buffer,
                 &session.handshake_secret.request_direction,
             )
             .is_ok();
         assert!(!status);
 
-        let mut witer = Writer::init(&mut send_buffer);
+        let mut witer = Writer::init(&mut receive_buffer);
         assert!(session_id.encode(&mut witer).is_ok());
         let status = session
             .decode_msg(
-                &send_buffer[0..100],
-                &mut encoded_send_buffer,
+                &receive_buffer[0..100],
+                &mut decoded_receive_buffer,
                 &session.handshake_secret.request_direction,
             )
             .is_ok();
@@ -1117,8 +1116,8 @@ mod tests_session {
     fn test_case0_encode_msg() {
         let mut session = SpdmSession::default();
         let session_id = 4294901758u32;
-        let send_buffer = [100u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
-        let mut encoded_send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE * 2]; // need to be big enough to hold ciper text
+        let send_buffer = [100u8; config::SENDER_BUFFER_SIZE - 0x40];
+        let mut encoded_send_buffer = [0u8; config::SENDER_BUFFER_SIZE];
 
         session.setup(session_id).unwrap();
         session.set_crypto_param(

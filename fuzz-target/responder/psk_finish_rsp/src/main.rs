@@ -88,7 +88,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             .common
             .runtime_info
             .message_a
-            .append_message(&[1u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
+            .append_message(&[1u8; config::MAX_SPDM_MSG_SIZE]);
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
         #[cfg(feature = "hashed-transcript-data")]

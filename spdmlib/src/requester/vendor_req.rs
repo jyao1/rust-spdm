@@ -15,7 +15,7 @@ impl<'a> RequesterContext<'a> {
         req_payload_struct: VendorDefinedReqPayloadStruct,
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         info!("send vendor defined request\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -42,7 +42,7 @@ impl<'a> RequesterContext<'a> {
         }
 
         //receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let receive_used = match session_id {
             Some(session_id) => {
                 self.receive_secured_message(session_id, &mut receive_buffer, false)?

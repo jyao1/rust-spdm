@@ -33,7 +33,7 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used = self.encode_spdm_measurement_record(
             measurement_attributes,
             measurement_operation,
@@ -50,7 +50,7 @@ impl<'a> RequesterContext<'a> {
         }
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let used = match session_id {
             Some(session_id) => {
                 self.receive_secured_message(session_id, &mut receive_buffer, true)?

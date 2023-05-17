@@ -9,12 +9,12 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_heartbeat(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm heartbeat\n");
-        let mut send_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let used = self.encode_spdm_heartbeat(&mut send_buffer);
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         // Receive
-        let mut receive_buffer = [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE];
+        let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
         self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
     }
