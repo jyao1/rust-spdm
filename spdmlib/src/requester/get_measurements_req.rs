@@ -605,6 +605,10 @@ mod tests_requester {
             None,
         ];
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);

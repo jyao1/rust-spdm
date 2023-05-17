@@ -5,6 +5,7 @@
 use crate::common::opaque::{SpdmOpaqueStruct, MAX_SPDM_OPAQUE_SIZE};
 use crate::common::ManagedBuffer;
 use crate::common::SpdmCodec;
+use crate::common::SpdmConnectionState;
 use crate::common::SpdmMeasurementContentChanged;
 use crate::crypto;
 use crate::error::SpdmResult;
@@ -38,6 +39,12 @@ impl<'a> ResponderContext<'a> {
         bytes: &[u8],
         writer: &mut Writer,
     ) {
+        if self.common.runtime_info.get_connection_state().get_u8()
+            < SpdmConnectionState::SpdmConnectionNegotiated.get_u8()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnexpectedRequest, 0, writer);
+            return;
+        }
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
@@ -450,6 +457,10 @@ mod tests_responder {
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        context
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
@@ -543,6 +554,10 @@ mod tests_responder {
         context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         context.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        context
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);

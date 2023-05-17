@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmConnectionState;
 use crate::crypto;
 use crate::message::*;
 use crate::protocol::*;
@@ -17,6 +18,12 @@ impl<'a> ResponderContext<'a> {
     }
 
     pub fn write_spdm_algorithm(&mut self, bytes: &[u8], writer: &mut Writer) {
+        if self.common.runtime_info.get_connection_state()
+            != SpdmConnectionState::SpdmConnectionAfterCapabilities
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnexpectedRequest, 0, writer);
+            return;
+        }
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
@@ -235,6 +242,10 @@ mod tests_responder {
         );
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        context
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionAfterCapabilities);
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
