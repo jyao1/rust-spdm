@@ -51,7 +51,7 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
-        data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
+        data_transfer_size: config::MAX_SPDM_MSG_SIZE as u32,
         max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
         ..Default::default()
     };
@@ -136,7 +136,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
-        data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
+        data_transfer_size: config::MAX_SPDM_MSG_SIZE as u32,
         max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
         heartbeat_period: config::HEARTBEAT_PERIOD,
         secure_spdm_version: [DMTF_SECURE_SPDM_VERSION_10, DMTF_SECURE_SPDM_VERSION_11],

@@ -5,7 +5,7 @@
 use super::*;
 use crate::{
     common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo},
-    config::MAX_SPDM_MSG_SIZE,
+    config::MAX_SPDM_MEASUREMENT_RECORD_SIZE,
 };
 use bit_field::BitField;
 use byteorder::{ByteOrder, LittleEndian};
@@ -46,14 +46,15 @@ fn test_measurement_struct() {
 fn test_measurement_response() {
     create_spdm_context!(context);
     let context = &mut context;
-    // Validate responder measurement record length is beyond MAX_SPDM_MSG_SIZE.
-    let u8_slice = &mut [0u8; MAX_SPDM_MSG_SIZE + 200];
+    // Validate responder measurement record length is beyond MAX_SPDM_MEASUREMENT_RECORD_SIZE.
+    let u8_slice = &mut [0u8; MAX_SPDM_MEASUREMENT_RECORD_SIZE + 200];
     u8_slice[3].set_bits(4..=5, 0b10);
     u8_slice[3].set_bits(0..=3, 1);
     u8_slice[4] = 0xfe;
-    LittleEndian::write_u24(&mut u8_slice[5..8], MAX_SPDM_MSG_SIZE as u32);
+    LittleEndian::write_u24(&mut u8_slice[5..8], MAX_SPDM_MEASUREMENT_RECORD_SIZE as u32);
     LittleEndian::write_u16(
-        &mut u8_slice[(40 + MAX_SPDM_MSG_SIZE)..(42 + MAX_SPDM_MSG_SIZE)],
+        &mut u8_slice
+            [(40 + MAX_SPDM_MEASUREMENT_RECORD_SIZE)..(42 + MAX_SPDM_MEASUREMENT_RECORD_SIZE)],
         1024,
     );
 

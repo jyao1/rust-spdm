@@ -42,7 +42,7 @@ fn send_receive_hello(
         SOCKET_SPDM_COMMAND_TEST,
         &payload[0..used],
     );
-    let mut buffer = [0u8; config::DATA_TRANSFER_SIZE];
+    let mut buffer = [0u8; config::RECEIVER_BUFFER_SIZE];
     let (_transport_type, _command, _payload) =
         spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..], ST1).unwrap();
 }
@@ -64,7 +64,7 @@ fn send_receive_stop(
         SOCKET_SPDM_COMMAND_STOP,
         &payload[0..used],
     );
-    let mut buffer = [0u8; config::DATA_TRANSFER_SIZE];
+    let mut buffer = [0u8; config::RECEIVER_BUFFER_SIZE];
     let (_transport_type, _command, _payload) =
         spdm_emu::spdm_emu::receive_message(stream, &mut buffer[..], ST1).unwrap();
 }
@@ -103,7 +103,7 @@ fn test_spdm(
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
-        data_transfer_size: config::DATA_TRANSFER_SIZE as u32,
+        data_transfer_size: config::MAX_SPDM_MSG_SIZE as u32,
         max_spdm_msg_size: config::MAX_SPDM_MSG_SIZE as u32,
         ..Default::default()
     };
