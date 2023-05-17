@@ -30,6 +30,10 @@ impl<'a> ResponderContext<'a> {
             request_response_code: _,
         }) = message_header
         {
+            if version.get_u8() < SpdmVersion::SpdmVersion10.get_u8() {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                return;
+            }
             self.common.negotiate_info.spdm_version_sel = version;
         } else {
             error!("!!! get_capabilities : fail !!!\n");

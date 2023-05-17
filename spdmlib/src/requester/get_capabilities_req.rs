@@ -156,6 +156,7 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
 
         let status = requester.send_receive_spdm_capability().is_ok();
         assert!(status);
