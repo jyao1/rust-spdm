@@ -2,21 +2,24 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
+use fuzzlib::{common::SpdmOpaqueSupport, *};
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
-    let (rsp_config_info, rsp_provision_info) = rsp_create_info();
-    let (req_config_info, req_provision_info) = req_create_info();
-    let (rsp_config_info1, rsp_provision_info1) = rsp_create_info();
-    let (req_config_info1, req_provision_info1) = req_create_info();
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::crypto::hkdf::register(FAKE_HKDF.clone());
+
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle PSK exchange response'
+    // - description: '<p>Request PSK exchange and fail to verify hmac.</p>'
+    // -
     {
+        let (rsp_config_info, rsp_provision_info) = rsp_create_info();
+        let (req_config_info, req_provision_info) = req_create_info();
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
+        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -24,7 +27,8 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
             rsp_config_info,
             rsp_provision_info,
         );
-
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        responder.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
 
@@ -38,29 +42,41 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
             req_config_info,
             req_provision_info,
         );
-
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        requester.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            requester.common.negotiate_info.rsp_capabilities_sel
+                | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT;
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
         );
     }
+
+    spdmlib::crypto::hmac::register(FAKE_HMAC.clone());
+
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle PSK exchange response'
+    // - description: '<p>Request PSK exchange successfully and get session id.</p>'
+    // -
     {
+        let (rsp_config_info, rsp_provision_info) = rsp_create_info();
+        let (req_config_info, req_provision_info) = req_create_info();
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
-
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
+            rsp_config_info,
+            rsp_provision_info,
         );
-
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        responder.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
 
@@ -71,12 +87,104 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
             pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+            req_config_info,
+            req_provision_info,
         );
-
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        requester.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            requester.common.negotiate_info.rsp_capabilities_sel
+                | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT;
+
+        let _ = requester.send_receive_spdm_psk_exchange(
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+        );
+    }
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle PSK exchange response'
+    // - description: '<p>Request PSK exchange success with PSK_CAP_WITHOUT_CONTEXT cap.</p>'
+    // -
+    {
+        let (rsp_config_info, rsp_provision_info) = rsp_create_info();
+        let (req_config_info, req_provision_info) = req_create_info();
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        responder.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
+        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester =
+            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = requester::RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        requester.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            requester.common.negotiate_info.rsp_capabilities_sel
+                | SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT;
+
+        let _ = requester.send_receive_spdm_psk_exchange(
+            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+        );
+    }
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle PSK exchange response'
+    // - description: '<p>Request PSK exchange with version less than 1.2.</p>'
+    // -
+    {
+        let (rsp_config_info, rsp_provision_info) = rsp_create_info();
+        let (req_config_info, req_provision_info) = req_create_info();
+        let shared_buffer = SharedBuffer::new();
+        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+
+        let mut responder = responder::ResponderContext::new(
+            &mut device_io_responder,
+            pcidoe_transport_encap,
+            rsp_config_info,
+            rsp_provision_info,
+        );
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+
+        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
+        let mut device_io_requester =
+            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+
+        let mut requester = requester::RequesterContext::new(
+            &mut device_io_requester,
+            pcidoe_transport_encap2,
+            req_config_info,
+            req_provision_info,
+        );
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
+        requester.common.negotiate_info.rsp_capabilities_sel =
+            requester.common.negotiate_info.rsp_capabilities_sel
+                | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT;
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
@@ -118,6 +226,7 @@ fn main() {
                 0x7c, 0x9f, 0x1e, 0xe2, 0xc1, 0x9d, 0x41, 0x38, 0x4d, 0xa1, 0xd, 0xdd, 0x7d, 0xaf,
                 0xc9, 0xa2, 0xfa,
             ];
+
             fuzz_send_receive_spdm_psk_exchange(&fuzzdata);
         } else {
             let path = &args[1];

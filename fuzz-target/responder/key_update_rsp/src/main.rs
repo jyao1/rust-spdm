@@ -28,18 +28,17 @@ fn fuzz_handle_spdm_key_update(data: &[u8]) {
         config_info,
         provision_info,
     );
-
+    context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    // context.common.session = [SpdmSession::new(); 4];
     context.common.session[0] = SpdmSession::new();
     context.common.session[0].setup(4294901758).unwrap();
+    context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
     context.common.session[0].set_crypto_param(
         SpdmBaseHashAlgo::TPM_ALG_SHA_384,
         SpdmDheAlgo::SECP_384_R1,
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
-    context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     context.handle_spdm_key_update(4294901758, data);
 }

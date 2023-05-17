@@ -46,4 +46,3 @@ fn fake_decrypt(
     plain_text.copy_from_slice(cipher_text);
     Ok(cipher_text_size)
 }
-

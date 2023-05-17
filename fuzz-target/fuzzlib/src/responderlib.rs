@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use super::*;
-use spdmlib::protocol::*;
+use spdmlib::{
+    common::{DMTF_SECURE_SPDM_VERSION_10, DMTF_SECURE_SPDM_VERSION_11},
+    protocol::*,
+};
 
 pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     let config_info = common::SpdmConfigInfo {
@@ -38,6 +41,7 @@ pub fn rsp_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
         req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        secure_spdm_version: [DMTF_SECURE_SPDM_VERSION_10, DMTF_SECURE_SPDM_VERSION_11],
         ..Default::default()
     };
 

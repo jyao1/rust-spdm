@@ -7,14 +7,13 @@ use fuzzlib::{
     *,
 };
 use spdmlib::protocol::*;
-// use crate::spdmlib::message::capability::*;
 
 fn fuzz_handle_spdm_end_session(data: &[u8]) {
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
-
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let shared_buffer = SharedBuffer::new();
     let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
@@ -29,19 +28,17 @@ fn fuzz_handle_spdm_end_session(data: &[u8]) {
         config_info,
         provision_info,
     );
-
+    context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    // context.common.session = [SpdmSession::new(); 4];
     context.common.session[0] = SpdmSession::new();
     context.common.session[0].setup(4294901758).unwrap();
+    context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
     context.common.session[0].set_crypto_param(
         SpdmBaseHashAlgo::TPM_ALG_SHA_384,
         SpdmDheAlgo::SECP_384_R1,
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
-
-    context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     context.handle_spdm_end_session(4294901758, data);
 }
