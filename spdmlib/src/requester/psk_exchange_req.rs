@@ -344,6 +344,7 @@ mod tests_requester {
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         responder
             .common
             .runtime_info
@@ -363,6 +364,7 @@ mod tests_requester {
         requester.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_128_GCM;
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         let status = requester
             .send_receive_spdm_psk_exchange(measurement_summary_hash_type)

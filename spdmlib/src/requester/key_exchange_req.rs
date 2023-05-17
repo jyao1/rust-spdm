@@ -571,6 +571,7 @@ mod tests_requester {
             None,
             None,
         ];
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
         responder
             .common
             .runtime_info
@@ -591,6 +592,7 @@ mod tests_requester {
         requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         requester.common.reset_runtime_info();
 
