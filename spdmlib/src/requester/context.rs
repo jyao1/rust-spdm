@@ -5,7 +5,7 @@
 use crate::common::ST1;
 use crate::common::{self, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
-use crate::error::{SpdmResult, SPDM_STATUS_RECEIVE_FAIL};
+use crate::error::{SpdmResult, SPDM_STATUS_RECEIVE_FAIL, SPDM_STATUS_SEND_FAIL};
 use crate::protocol::*;
 
 pub struct RequesterContext<'a> {
@@ -58,6 +58,11 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
+        if self.common.negotiate_info.rsp_data_transfer_size_sel != 0
+            && send_buffer.len() > self.common.negotiate_info.rsp_data_transfer_size_sel as usize
+        {
+            return Err(SPDM_STATUS_SEND_FAIL);
+        }
         let mut transport_buffer = [0u8; config::SENDER_BUFFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         self.common.device_io.send(&transport_buffer[..used])
@@ -69,6 +74,12 @@ impl<'a> RequesterContext<'a> {
         send_buffer: &[u8],
         is_app_message: bool,
     ) -> SpdmResult {
+        if !is_app_message
+            && self.common.negotiate_info.rsp_data_transfer_size_sel != 0
+            && (send_buffer.len() > self.common.negotiate_info.rsp_data_transfer_size_sel as usize)
+        {
+            return Err(SPDM_STATUS_SEND_FAIL);
+        }
         let mut transport_buffer = [0u8; config::SENDER_BUFFER_SIZE];
         let used = self.common.encode_secured_message(
             session_id,

@@ -8,7 +8,7 @@ use crate::common::{session::SpdmSessionState, SpdmDeviceIo, SpdmTransportEncap}
 use crate::config;
 use crate::error::SpdmResult;
 use crate::message::*;
-use codec::{Codec, Reader};
+use codec::{Codec, Reader, Writer};
 
 pub struct ResponderContext<'a> {
     pub common: crate::common::SpdmContext<'a>,
@@ -32,6 +32,14 @@ impl<'a> ResponderContext<'a> {
     }
 
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
+        if self.common.negotiate_info.req_data_transfer_size_sel != 0
+            && (send_buffer.len() > self.common.negotiate_info.req_data_transfer_size_sel as usize)
+        {
+            let mut err_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
+            let mut writer = Writer::init(&mut err_buffer);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorResponseTooLarge, 0, &mut writer);
+            return self.send_message(writer.used_slice());
+        }
         let mut transport_buffer = [0u8; config::SENDER_BUFFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
         let result = self.common.device_io.send(&transport_buffer[..used]);
@@ -80,6 +88,16 @@ impl<'a> ResponderContext<'a> {
         send_buffer: &[u8],
         is_app_message: bool,
     ) -> SpdmResult {
+        if !is_app_message
+            && self.common.negotiate_info.req_data_transfer_size_sel != 0
+            && send_buffer.len() > self.common.negotiate_info.req_data_transfer_size_sel as usize
+        {
+            let mut err_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
+            let mut writer = Writer::init(&mut err_buffer);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorResponseTooLarge, 0, &mut writer);
+            return self.send_secured_message(session_id, writer.used_slice(), is_app_message);
+        }
+
         let mut transport_buffer = [0u8; config::SENDER_BUFFER_SIZE];
         let used = self.common.encode_secured_message(
             session_id,
