@@ -15,7 +15,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
+use crate::common::ManagedBufferK;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_psk_exchange(&mut self, bytes: &[u8]) {
@@ -182,7 +182,7 @@ impl<'a> ResponderContext<'a> {
         let temp_used = used - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_k = ManagedBuffer::default();
+        let mut message_k = ManagedBufferK::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {

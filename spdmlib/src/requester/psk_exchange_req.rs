@@ -23,9 +23,6 @@ use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
-
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_exchange(
         &mut self,
@@ -169,7 +166,7 @@ impl<'a> RequesterContext<'a> {
                             }
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
-                            let mut message_k = ManagedBuffer::default();
+                            let mut message_k = ManagedBufferK::default();
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             {
                                 message_k

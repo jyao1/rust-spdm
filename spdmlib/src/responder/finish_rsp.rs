@@ -9,7 +9,7 @@ use crate::protocol::*;
 use crate::responder::*;
 
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
+use crate::common::ManagedBufferF;
 use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
@@ -67,7 +67,7 @@ impl<'a> ResponderContext<'a> {
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_f = ManagedBuffer::default();
+        let mut message_f = ManagedBufferF::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             error!("message_f add the message error");

@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::opaque::{SpdmOpaqueStruct, MAX_SPDM_OPAQUE_SIZE};
-use crate::common::ManagedBuffer;
+use crate::common::ManagedBufferM1M2;
 use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
 use crate::crypto;
@@ -192,7 +192,7 @@ impl<'a> ResponderContext<'a> {
 
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferM1M2::default();
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
             message
@@ -219,7 +219,7 @@ impl<'a> ResponderContext<'a> {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_challenge_auth_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferM1M2::default();
         message
             .append_message(self.common.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
