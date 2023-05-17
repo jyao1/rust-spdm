@@ -133,16 +133,11 @@ cargo run -p spdm-requester-emu
 ```
 
 ### Run test cases
-Run `cargo test`.
-
-NOTE: `cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"` is unsupported.
-You can only run `cargo build --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"`
+Run `cargo test -- --test-threads=1` and `cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1`
 
 To run a specific test, use `cargo test <test_func_name>`
 
 To run test with println!() message, use `cargo test -- --nocapture`
-
-To run test with single thread, use `cargo test -- --test-threads=1`
 
 ## Known limitation
 This package is only the sample code to show the concept. It does not have a full validation such as robustness functional test and fuzzing test. It does not meet the production quality yet. Any codes including the API definition, the libary and the drivers are subject to change.
