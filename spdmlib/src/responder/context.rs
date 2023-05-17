@@ -312,9 +312,9 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
-    use crate::common::session::*;
     use crate::common::spdm_codec::SpdmCodec;
     use crate::common::ST1;
+    use crate::common::{session::*, SpdmContext};
     use crate::message::SpdmMessageHeader;
     use crate::protocol::gen_array_clone;
     use crate::testlib::*;
@@ -490,35 +490,40 @@ mod tests_responder {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        context.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
-        context.common.session = gen_array_clone(SpdmSession::new(), 4);
-        context.common.session[0].setup(session_id).unwrap();
-        context.common.session[0].set_crypto_param(
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            SpdmDheAlgo::SECP_384_R1,
-            SpdmAeadAlgo::AES_256_GCM,
-            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        );
-        context.common.provision_info.my_cert_chain = [
-            Some(SpdmCertChainBuffer {
-                data_size: 512u16,
-                data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-            }),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-        ];
+        let patch_context = |context: &mut SpdmContext| {
+            context.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
+            context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+            context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+            context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+            #[cfg(feature = "hashed-transcript-data")]
+            {
+                context.runtime_info.digest_context_m1m2 =
+                    crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+            }
+            context.session = gen_array_clone(SpdmSession::new(), 4);
+            context.session[0].setup(session_id).unwrap();
+            context.session[0].set_crypto_param(
+                SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+                SpdmDheAlgo::SECP_384_R1,
+                SpdmAeadAlgo::AES_256_GCM,
+                SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+            );
+            context.provision_info.my_cert_chain = [
+                Some(SpdmCertChainBuffer {
+                    data_size: 512u16,
+                    data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
+                }),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ];
+        };
 
         let mut i = 0;
         loop {
@@ -532,14 +537,10 @@ mod tests_responder {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code,
             };
-            // version request will reset runtime_info context.
+            // version request will reset spdm context.
             // negotiate need be done successfully before sending some request(digest).
-            // patch runtime info for it.
-            #[cfg(feature = "hashed-transcript-data")]
-            {
-                context.common.runtime_info.digest_context_m1m2 =
-                    crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-            }
+            // patch spdm context for it.
+            patch_context(&mut context.common);
             assert!(value.encode(&mut writer).is_ok());
             let status = context.dispatch_message(bytes);
             assert!(status);
