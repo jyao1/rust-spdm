@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBuffer;
+use crate::common::ManagedBufferF;
 use crate::common::SpdmCodec;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto;
@@ -66,7 +66,7 @@ impl<'a> ResponderContext<'a> {
         }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_f = ManagedBuffer::default();
+        let mut message_f = ManagedBufferF::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         if message_f.append_message(&bytes[..temp_used]).is_none() {
             error!("message_f add the message error");

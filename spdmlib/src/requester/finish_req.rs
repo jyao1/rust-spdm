@@ -20,8 +20,6 @@ use crate::requester::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-use crate::common::ManagedBuffer;
-
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_finish(
         &mut self,
@@ -63,7 +61,7 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         req_slot_id: u8,
         buf: &mut [u8],
-    ) -> SpdmResult<(usize, usize, ManagedBuffer)> {
+    ) -> SpdmResult<(usize, usize, ManagedBufferF)> {
         let mut writer = Writer::init(buf);
 
         let request = SpdmMessage {
@@ -89,7 +87,7 @@ impl<'a> RequesterContext<'a> {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
-            let mut message_f = ManagedBuffer::default();
+            let mut message_f = ManagedBufferF::default();
             message_f
                 .append_message(&buf[..temp_used])
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -158,7 +156,7 @@ impl<'a> RequesterContext<'a> {
             )?;
             // patch the message before send
             buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
-            Ok((send_used, base_hash_size, ManagedBuffer::default()))
+            Ok((send_used, base_hash_size, ManagedBufferF::default()))
         }
     }
 
@@ -168,8 +166,8 @@ impl<'a> RequesterContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))] req_slot_id: u8,
         #[cfg(feature = "hashed-transcript-data")] _req_slot_id: u8,
         base_hash_size: usize,
-        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
+        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBufferF,
+        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBufferF, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let in_clear_text = self

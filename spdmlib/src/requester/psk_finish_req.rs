@@ -18,7 +18,6 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
 extern crate alloc;
-use crate::common::ManagedBuffer;
 use alloc::boxed::Box;
 
 impl<'a> RequesterContext<'a> {
@@ -37,7 +36,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         session_id: u32,
         buf: &mut [u8],
-    ) -> SpdmResult<(usize, ManagedBuffer)> {
+    ) -> SpdmResult<(usize, ManagedBufferF)> {
         let mut writer = Writer::init(buf);
 
         let request = SpdmMessage {
@@ -59,7 +58,7 @@ impl<'a> RequesterContext<'a> {
         let temp_used = send_used - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_f = ManagedBuffer::default();
+        let mut message_f = ManagedBufferF::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         message_f
             .append_message(&buf[..temp_used])
@@ -135,14 +134,14 @@ impl<'a> RequesterContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         return Ok((send_used, message_f));
         #[cfg(feature = "hashed-transcript-data")]
-        Ok((send_used, ManagedBuffer::default()))
+        Ok((send_used, ManagedBufferF::default()))
     }
 
     pub fn handle_spdm_psk_finish_response(
         &mut self,
         session_id: u32,
-        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBuffer,
-        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBuffer, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
+        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBufferF,
+        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBufferF, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let mut reader = Reader::init(receive_buffer);

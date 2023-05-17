@@ -82,9 +82,9 @@ pub struct SpdmSessionTransportParam {
 #[derive(Debug, Clone, Default)]
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmSessionRuntimeInfo {
-    pub message_k: ManagedBuffer,
-    pub message_f: ManagedBuffer,
-    pub message_m: ManagedBuffer,
+    pub message_k: ManagedBufferK,
+    pub message_f: ManagedBufferF,
+    pub message_m: ManagedBufferM,
 }
 
 #[derive(Clone, Default)]

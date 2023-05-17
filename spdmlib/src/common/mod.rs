@@ -236,10 +236,10 @@ impl<'a> SpdmContext<'a> {
         &self,
         slot_id: u8,
         use_psk: bool,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
-    ) -> SpdmResult<ManagedBuffer> {
-        let mut message = ManagedBuffer::default();
+        message_k: &ManagedBufferK,
+        message_f: Option<&ManagedBufferF>,
+    ) -> SpdmResult<ManagedBufferTH> {
+        let mut message = ManagedBufferTH::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -285,10 +285,10 @@ impl<'a> SpdmContext<'a> {
         &mut self,
         use_psk: bool,
         slot_id: u8,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
-    ) -> SpdmResult<ManagedBuffer> {
-        let mut message = ManagedBuffer::default();
+        message_k: &ManagedBufferK,
+        message_f: Option<&ManagedBufferF>,
+    ) -> SpdmResult<ManagedBufferTH> {
+        let mut message = ManagedBufferTH::default();
         message
             .append_message(self.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
@@ -331,8 +331,8 @@ impl<'a> SpdmContext<'a> {
         &self,
         slot_id: u8,
         use_psk: bool,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
+        message_k: &ManagedBufferK,
+        message_f: Option<&ManagedBufferF>,
     ) -> SpdmResult<SpdmDigestStruct> {
         let message = self.calc_req_transcript_data(slot_id, use_psk, message_k, message_f)?;
 
@@ -347,8 +347,8 @@ impl<'a> SpdmContext<'a> {
         &mut self,
         use_psk: bool,
         slot_id: u8,
-        message_k: &ManagedBuffer,
-        message_f: Option<&ManagedBuffer>,
+        message_k: &ManagedBufferK,
+        message_f: Option<&ManagedBufferF>,
     ) -> SpdmResult<SpdmDigestStruct> {
         let message = self.calc_rsp_transcript_data(use_psk, slot_id, message_k, message_f)?;
 
@@ -540,13 +540,20 @@ pub struct SpdmNegotiateInfo {
     pub rsp_max_spdm_msg_size_sel: u32, // spdm 1.2
 }
 
-const MAX_MANAGED_BUFFER_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_A_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_B_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_C_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_M_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_K_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_F_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_M1M2_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_L1L2_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+const MAX_MANAGED_BUFFER_TH_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
 
-// TBD ManagedSmallBuffer
 #[derive(Debug, Clone)]
-pub struct ManagedBuffer(usize, [u8; MAX_MANAGED_BUFFER_SIZE]);
+pub struct ManagedBufferA(usize, [u8; MAX_MANAGED_BUFFER_A_SIZE]);
 
-impl ManagedBuffer {
+impl ManagedBufferA {
     pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
         let used = self.0;
         let mut writer = Writer::init(&mut self.1[used..]);
@@ -559,15 +566,239 @@ impl ManagedBuffer {
     }
 }
 
-impl AsRef<[u8]> for ManagedBuffer {
+impl AsRef<[u8]> for ManagedBufferA {
     fn as_ref(&self) -> &[u8] {
         &self.1[0..self.0]
     }
 }
 
-impl Default for ManagedBuffer {
+impl Default for ManagedBufferA {
     fn default() -> Self {
-        ManagedBuffer(0usize, [0u8; MAX_MANAGED_BUFFER_SIZE])
+        ManagedBufferA(0usize, [0u8; MAX_MANAGED_BUFFER_A_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferB(usize, [u8; MAX_MANAGED_BUFFER_B_SIZE]);
+
+impl ManagedBufferB {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferB {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferB {
+    fn default() -> Self {
+        ManagedBufferB(0usize, [0u8; MAX_MANAGED_BUFFER_B_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferC(usize, [u8; MAX_MANAGED_BUFFER_C_SIZE]);
+
+impl ManagedBufferC {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferC {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferC {
+    fn default() -> Self {
+        ManagedBufferC(0usize, [0u8; MAX_MANAGED_BUFFER_C_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferM(usize, [u8; MAX_MANAGED_BUFFER_M_SIZE]);
+
+impl ManagedBufferM {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferM {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferM {
+    fn default() -> Self {
+        ManagedBufferM(0usize, [0u8; MAX_MANAGED_BUFFER_M_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferK(usize, [u8; MAX_MANAGED_BUFFER_K_SIZE]);
+
+impl ManagedBufferK {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferK {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferK {
+    fn default() -> Self {
+        ManagedBufferK(0usize, [0u8; MAX_MANAGED_BUFFER_K_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferF(usize, [u8; MAX_MANAGED_BUFFER_F_SIZE]);
+
+impl ManagedBufferF {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferF {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferF {
+    fn default() -> Self {
+        ManagedBufferF(0usize, [0u8; MAX_MANAGED_BUFFER_F_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferM1M2(usize, [u8; MAX_MANAGED_BUFFER_M1M2_SIZE]);
+
+impl ManagedBufferM1M2 {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferM1M2 {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferM1M2 {
+    fn default() -> Self {
+        ManagedBufferM1M2(0usize, [0u8; MAX_MANAGED_BUFFER_M1M2_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferL1L2(usize, [u8; MAX_MANAGED_BUFFER_L1L2_SIZE]);
+
+impl ManagedBufferL1L2 {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferL1L2 {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferL1L2 {
+    fn default() -> Self {
+        ManagedBufferL1L2(0usize, [0u8; MAX_MANAGED_BUFFER_L1L2_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBufferTH(usize, [u8; MAX_MANAGED_BUFFER_TH_SIZE]);
+
+impl ManagedBufferTH {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBufferTH {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBufferTH {
+    fn default() -> Self {
+        ManagedBufferTH(0usize, [0u8; MAX_MANAGED_BUFFER_TH_SIZE])
     }
 }
 
@@ -586,10 +817,10 @@ pub struct SpdmRuntimeInfo {
     connection_state: SpdmConnectionState,
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
-    pub message_a: ManagedBuffer,
-    pub message_b: ManagedBuffer,
-    pub message_c: ManagedBuffer,
-    pub message_m: ManagedBuffer,
+    pub message_a: ManagedBufferA,
+    pub message_b: ManagedBufferB,
+    pub message_c: ManagedBufferC,
+    pub message_m: ManagedBufferM,
     pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.
                                                         // used by requester, consume when measurement response report content changed.
 }
@@ -600,7 +831,7 @@ pub struct SpdmRuntimeInfo {
     connection_state: SpdmConnectionState,
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
-    pub message_a: ManagedBuffer,
+    pub message_a: ManagedBufferA,
     pub digest_context_m1m2: Option<HashCtx>, // for M1/M2
     pub digest_context_l1l2: Option<HashCtx>, // for out of session get measurement/measurement
     pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.

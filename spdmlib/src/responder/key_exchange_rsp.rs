@@ -5,9 +5,13 @@
 use crate::error::{SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 use crate::responder::*;
 
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::common::ManagedBufferK;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::common::ManagedBufferTH;
 use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
-use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
+use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
 use crate::protocol::*;
 extern crate alloc;
@@ -218,7 +222,7 @@ impl<'a> ResponderContext<'a> {
         let temp_used = used - base_asym_size - base_hash_size;
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_k = ManagedBuffer::default();
+        let mut message_k = ManagedBufferK::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             if message_k.append_message(&bytes[..reader.used()]).is_none() {
@@ -397,7 +401,7 @@ impl<'a> ResponderContext<'a> {
         let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferTH::default();
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
             message
@@ -426,7 +430,7 @@ impl<'a> ResponderContext<'a> {
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
-        message_k: &ManagedBuffer,
+        message_k: &ManagedBufferK,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = self
             .common

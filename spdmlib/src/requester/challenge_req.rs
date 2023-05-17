@@ -172,7 +172,7 @@ impl<'a> RequesterContext<'a> {
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferM1M2::default();
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
             message
@@ -227,7 +227,7 @@ impl<'a> RequesterContext<'a> {
                 .data_size as usize)];
 
         #[cfg(feature = "hashed-transcript-data")]
-        let mut message = ManagedBuffer::default();
+        let mut message = ManagedBufferM1M2::default();
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             message.reset_message();
