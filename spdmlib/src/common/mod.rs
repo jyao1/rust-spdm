@@ -540,9 +540,11 @@ pub struct SpdmNegotiateInfo {
     pub rsp_max_spdm_msg_size_sel: u32, // spdm 1.2
 }
 
+const MAX_MANAGED_BUFFER_SIZE: usize = config::MAX_SPDM_MSG_SIZE;
+
 // TBD ManagedSmallBuffer
 #[derive(Debug, Clone)]
-pub struct ManagedBuffer(usize, [u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE]);
+pub struct ManagedBuffer(usize, [u8; MAX_MANAGED_BUFFER_SIZE]);
 
 impl ManagedBuffer {
     pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
@@ -565,7 +567,7 @@ impl AsRef<[u8]> for ManagedBuffer {
 
 impl Default for ManagedBuffer {
     fn default() -> Self {
-        ManagedBuffer(0usize, [0u8; config::MAX_SPDM_MESSAGE_BUFFER_SIZE])
+        ManagedBuffer(0usize, [0u8; MAX_MANAGED_BUFFER_SIZE])
     }
 }
 
