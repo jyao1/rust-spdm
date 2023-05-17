@@ -39,6 +39,10 @@ impl<'a> ResponderContext<'a> {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
                 return;
             }
+            if message_header.version.get_u8() < SpdmVersion::SpdmVersion11.get_u8() {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnsupportedRequest, 0, writer);
+                return;
+            }
         } else {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
