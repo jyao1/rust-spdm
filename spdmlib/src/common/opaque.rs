@@ -4,7 +4,10 @@
 
 use super::spdm_codec::SpdmCodec;
 use super::*;
-use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_UNSUPPORTED_CAP};
+use crate::{
+    error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_UNSUPPORTED_CAP},
+    message::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN,
+};
 use codec::{Codec, Reader, Writer};
 
 /// This is used in SpdmOpaqueStruct <- SpdmChallengeAuthResponsePayload / SpdmMeasurementsResponsePayload
@@ -12,14 +15,11 @@ use codec::{Codec, Reader, Writer};
 pub const MAX_SPDM_OPAQUE_SIZE: usize = 1024;
 
 pub const MAX_SECURE_SPDM_VERSION_COUNT: usize = 0x02;
-pub const MAX_VENDOR_ID_LENGTH: usize = 0xFF;
 pub const MAX_OPAQUE_LIST_ELEMENTS_COUNT: usize = 3;
 
 pub const DMTF_SPEC_ID: u32 = 0x444D546;
 pub const DMTF_OPAQUE_VERSION: u8 = 0x01;
 pub const SM_DATA_VERSION: u8 = 0x01;
-pub const PADDING: u8 = 0x00;
-pub const RESERVED: u8 = 0x00;
 pub const DMTF_ID: u8 = 0x00;
 pub const DMTF_VENDOR_LEN: u8 = 0x00;
 pub const OPAQUE_LIST_TOTAL_ELEMENTS: u8 = 0x01;
@@ -44,8 +44,8 @@ pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277: [u8; 20] = [
     0x44,
     DMTF_OPAQUE_VERSION,
     OPAQUE_LIST_TOTAL_ELEMENTS,
-    RESERVED,
-    RESERVED,
+    0x00, // reserved
+    0x00, // reserved
     DMTF_ID,
     DMTF_VENDOR_LEN,
     0x07,
@@ -57,7 +57,7 @@ pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0277: [u8; 20] = [
     DMTF_SECURE_SPDM_VERSION_10,
     0x00,
     DMTF_SECURE_SPDM_VERSION_11,
-    PADDING,
+    0x00, // padding
 ];
 
 pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277: [u8; 16] = [
@@ -67,8 +67,8 @@ pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277: [u8; 16] = [
     0x44,
     DMTF_OPAQUE_VERSION,
     OPAQUE_LIST_TOTAL_ELEMENTS,
-    RESERVED,
-    RESERVED,
+    0x00, // reserved
+    0x00, // reserved
     DMTF_ID,
     DMTF_VENDOR_LEN,
     0x04,
@@ -81,9 +81,9 @@ pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0277: [u8; 16] = [
 
 pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1: [u8; 16] = [
     OPAQUE_LIST_TOTAL_ELEMENTS,
-    RESERVED,
-    RESERVED,
-    RESERVED,
+    0x00, // reserved
+    0x00, // reserved
+    0x00, // reserved
     DMTF_ID,
     DMTF_VENDOR_LEN,
     0x07,
@@ -95,14 +95,14 @@ pub const REQ_DMTF_OPAQUE_DATA_SUPPORT_VERSION_LIST_DSP0274_FMT1: [u8; 16] = [
     DMTF_SECURE_SPDM_VERSION_10,
     0x00,
     DMTF_SECURE_SPDM_VERSION_11,
-    PADDING,
+    0x00, // padding
 ];
 
 pub const RSP_DMTF_OPAQUE_DATA_VERSION_SELECTION_DSP0274_FMT1: [u8; 12] = [
     OPAQUE_LIST_TOTAL_ELEMENTS,
-    RESERVED,
-    RESERVED,
-    RESERVED,
+    0x00, // reserved
+    0x00, // reserved
+    0x00, // reserved
     DMTF_ID,
     DMTF_VENDOR_LEN,
     0x04,
@@ -212,7 +212,7 @@ impl SpdmCodec for SecuredMessageVersionList {
 pub struct OpaqueElementHeader {
     pub id: u8,
     pub vendor_len: u8,
-    pub vendor_id: [u8; MAX_VENDOR_ID_LENGTH],
+    pub vendor_id: [u8; MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
 }
 
 impl Default for OpaqueElementHeader {
@@ -220,7 +220,7 @@ impl Default for OpaqueElementHeader {
         Self {
             id: Default::default(),
             vendor_len: Default::default(),
-            vendor_id: [0u8; MAX_VENDOR_ID_LENGTH],
+            vendor_id: [0u8; MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
         }
     }
 }
@@ -247,7 +247,7 @@ impl SpdmCodec for OpaqueElementHeader {
     fn spdm_read(_context: &mut SpdmContext, r: &mut Reader) -> Option<OpaqueElementHeader> {
         let id = u8::read(r)?;
         let vendor_len = u8::read(r)?;
-        let mut vendor_id = [0u8; MAX_VENDOR_ID_LENGTH];
+        let mut vendor_id = [0u8; MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN];
         for d in vendor_id.iter_mut().take(vendor_len as usize) {
             *d = u8::read(r)?;
         }
