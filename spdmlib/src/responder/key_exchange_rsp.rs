@@ -6,6 +6,7 @@ use crate::error::{SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR
 use crate::responder::*;
 
 use crate::common::SpdmCodec;
+use crate::common::SpdmConnectionState;
 use crate::common::{ManagedBuffer, SpdmOpaqueSupport};
 use crate::crypto;
 use crate::protocol::*;
@@ -25,6 +26,12 @@ impl<'a> ResponderContext<'a> {
     }
 
     pub fn write_spdm_key_exchange_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+        if self.common.runtime_info.get_connection_state().get_u8()
+            < SpdmConnectionState::SpdmConnectionNegotiated.get_u8()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnexpectedRequest, 0, writer);
+            return;
+        }
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {

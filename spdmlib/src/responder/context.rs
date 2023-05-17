@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use super::app_message_handler::dispatch_secured_app_message_cb;
+use crate::common::SpdmConnectionState;
 use crate::common::{session::SpdmSessionState, SpdmDeviceIo, SpdmTransportEncap};
 use crate::config;
 use crate::error::SpdmResult;
@@ -33,7 +34,44 @@ impl<'a> ResponderContext<'a> {
     pub fn send_message(&mut self, send_buffer: &[u8]) -> SpdmResult {
         let mut transport_buffer = [0u8; config::DATA_TRANSFER_SIZE];
         let used = self.common.encap(send_buffer, &mut transport_buffer)?;
-        self.common.device_io.send(&transport_buffer[..used])
+        let result = self.common.device_io.send(&transport_buffer[..used]);
+        if result.is_ok() {
+            let opcode = send_buffer[1];
+            if opcode == SpdmRequestResponseCode::SpdmResponseVersion.get_u8() {
+                self.common
+                    .runtime_info
+                    .set_connection_state(SpdmConnectionState::SpdmConnectionAfterVersion);
+            } else if opcode == SpdmRequestResponseCode::SpdmResponseCapabilities.get_u8() {
+                self.common
+                    .runtime_info
+                    .set_connection_state(SpdmConnectionState::SpdmConnectionAfterCapabilities);
+            } else if opcode == SpdmRequestResponseCode::SpdmResponseAlgorithms.get_u8() {
+                self.common
+                    .runtime_info
+                    .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
+            } else if opcode == SpdmRequestResponseCode::SpdmResponseDigests.get_u8() {
+                if self.common.runtime_info.get_connection_state().get_u8()
+                    < SpdmConnectionState::SpdmConnectionAfterDigest.get_u8()
+                {
+                    self.common
+                        .runtime_info
+                        .set_connection_state(SpdmConnectionState::SpdmConnectionAfterDigest);
+                }
+            } else if opcode == SpdmRequestResponseCode::SpdmResponseCertificate.get_u8() {
+                if self.common.runtime_info.get_connection_state().get_u8()
+                    < SpdmConnectionState::SpdmConnectionAfterCertificate.get_u8()
+                {
+                    self.common
+                        .runtime_info
+                        .set_connection_state(SpdmConnectionState::SpdmConnectionAfterCertificate);
+                }
+            } else if opcode == SpdmRequestResponseCode::SpdmResponseChallengeAuth.get_u8() {
+                self.common
+                    .runtime_info
+                    .set_connection_state(SpdmConnectionState::SpdmConnectionAuthenticated);
+            }
+        }
+        result
     }
 
     pub fn send_secured_message(
@@ -522,10 +560,14 @@ mod tests_responder {
 
         let mut i = 0;
         loop {
-            let request_response_code = dispatch_data(i, true);
+            let (request_response_code, connection_state) = dispatch_data(i, true);
             if request_response_code == SpdmRequestResponseCode::Unknown(0) {
                 break;
             }
+            context
+                .common
+                .runtime_info
+                .set_connection_state(connection_state);
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -547,10 +589,14 @@ mod tests_responder {
         }
         let mut i = 0;
         loop {
-            let request_response_code = dispatch_data(i, false);
+            let (request_response_code, connection_state) = dispatch_data(i, false);
             if request_response_code == SpdmRequestResponseCode::Unknown(0) {
                 break;
             }
+            context
+                .common
+                .runtime_info
+                .set_connection_state(connection_state);
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -567,10 +613,15 @@ mod tests_responder {
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
         let mut i = 0;
         loop {
-            let request_response_code = dispatch_handshake_secured_data(i, true);
+            let (request_response_code, connection_state) =
+                dispatch_handshake_secured_data(i, true);
             if request_response_code == SpdmRequestResponseCode::Unknown(0) {
                 break;
             }
+            context
+                .common
+                .runtime_info
+                .set_connection_state(connection_state);
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -584,10 +635,15 @@ mod tests_responder {
         }
         let mut i = 0;
         loop {
-            let request_response_code = dispatch_handshake_secured_data(i, false);
+            let (request_response_code, connection_state) =
+                dispatch_handshake_secured_data(i, false);
             if request_response_code == SpdmRequestResponseCode::Unknown(0) {
                 break;
             }
+            context
+                .common
+                .runtime_info
+                .set_connection_state(connection_state);
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -604,10 +660,14 @@ mod tests_responder {
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
         let mut i = 0;
         loop {
-            let request_response_code = dispatch_secured_data(i, true);
+            let (request_response_code, connection_state) = dispatch_secured_data(i, true);
             if request_response_code == SpdmRequestResponseCode::Unknown(0) {
                 break;
             }
+            context
+                .common
+                .runtime_info
+                .set_connection_state(connection_state);
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -621,10 +681,14 @@ mod tests_responder {
         }
         let mut i = 0;
         loop {
-            let request_response_code = dispatch_secured_data(i, false);
+            let (request_response_code, connection_state) = dispatch_secured_data(i, false);
             if request_response_code == SpdmRequestResponseCode::Unknown(0) {
                 break;
             }
+            context
+                .common
+                .runtime_info
+                .set_connection_state(connection_state);
             let bytes = &mut [0u8; 4];
             let mut writer = Writer::init(bytes);
             let value = SpdmMessageHeader {
@@ -638,26 +702,77 @@ mod tests_responder {
         }
     }
 
-    fn dispatch_secured_data(num: usize, status: bool) -> SpdmRequestResponseCode {
+    fn dispatch_secured_data(
+        num: usize,
+        status: bool,
+    ) -> (SpdmRequestResponseCode, SpdmConnectionState) {
         let response_true = [
-            SpdmRequestResponseCode::SpdmRequestGetDigests,
-            SpdmRequestResponseCode::SpdmRequestGetCertificate,
-            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
-            SpdmRequestResponseCode::SpdmRequestHeartbeat,
-            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
-            SpdmRequestResponseCode::SpdmRequestEndSession,
-            SpdmRequestResponseCode::Unknown(0),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetDigests,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetCertificate,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestHeartbeat,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestEndSession,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::Unknown(0),
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
         ];
         let response_flase = [
-            SpdmRequestResponseCode::SpdmRequestGetVersion,
-            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
-            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
-            SpdmRequestResponseCode::SpdmRequestChallenge,
-            SpdmRequestResponseCode::SpdmRequestKeyExchange,
-            SpdmRequestResponseCode::SpdmRequestPskExchange,
-            SpdmRequestResponseCode::SpdmRequestFinish,
-            SpdmRequestResponseCode::SpdmRequestPskFinish,
-            SpdmRequestResponseCode::Unknown(0),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetVersion,
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+                SpdmConnectionState::SpdmConnectionAfterVersion,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+                SpdmConnectionState::SpdmConnectionAfterCapabilities,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestChallenge,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestKeyExchange,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestPskExchange,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestFinish,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestPskFinish,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::Unknown(0),
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
         ];
         if status {
             response_true[num]
@@ -665,26 +780,77 @@ mod tests_responder {
             response_flase[num]
         }
     }
-    fn dispatch_handshake_secured_data(num: usize, status: bool) -> SpdmRequestResponseCode {
+    fn dispatch_handshake_secured_data(
+        num: usize,
+        status: bool,
+    ) -> (SpdmRequestResponseCode, SpdmConnectionState) {
         let response_true = [
-            SpdmRequestResponseCode::SpdmRequestFinish,
-            SpdmRequestResponseCode::SpdmRequestPskFinish,
-            SpdmRequestResponseCode::Unknown(0),
+            (
+                SpdmRequestResponseCode::SpdmRequestFinish,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestPskFinish,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::Unknown(0),
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
         ];
         let response_flase = [
-            SpdmRequestResponseCode::SpdmRequestGetVersion,
-            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
-            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
-            SpdmRequestResponseCode::SpdmRequestChallenge,
-            SpdmRequestResponseCode::SpdmRequestKeyExchange,
-            SpdmRequestResponseCode::SpdmRequestPskExchange,
-            SpdmRequestResponseCode::SpdmRequestGetDigests,
-            SpdmRequestResponseCode::SpdmRequestGetCertificate,
-            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
-            SpdmRequestResponseCode::SpdmRequestHeartbeat,
-            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
-            SpdmRequestResponseCode::SpdmRequestEndSession,
-            SpdmRequestResponseCode::Unknown(0),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetVersion,
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+                SpdmConnectionState::SpdmConnectionAfterVersion,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+                SpdmConnectionState::SpdmConnectionAfterCapabilities,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestChallenge,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestKeyExchange,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestPskExchange,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetDigests,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetCertificate,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestHeartbeat,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestEndSession,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::Unknown(0),
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
         ];
         if status {
             response_true[num]
@@ -692,26 +858,74 @@ mod tests_responder {
             response_flase[num]
         }
     }
-    fn dispatch_data(num: usize, status: bool) -> SpdmRequestResponseCode {
+    fn dispatch_data(num: usize, status: bool) -> (SpdmRequestResponseCode, SpdmConnectionState) {
         let response_true = [
-            SpdmRequestResponseCode::SpdmRequestGetVersion,
-            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
-            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
-            SpdmRequestResponseCode::SpdmRequestGetDigests,
-            SpdmRequestResponseCode::SpdmRequestGetCertificate,
-            SpdmRequestResponseCode::SpdmRequestChallenge,
-            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
-            SpdmRequestResponseCode::SpdmRequestKeyExchange,
-            SpdmRequestResponseCode::SpdmRequestPskExchange,
-            SpdmRequestResponseCode::Unknown(0),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetVersion,
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+                SpdmConnectionState::SpdmConnectionAfterVersion,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+                SpdmConnectionState::SpdmConnectionAfterCapabilities,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetDigests,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetCertificate,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestChallenge,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestKeyExchange,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestPskExchange,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::Unknown(0),
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
         ];
         let response_flase = [
-            SpdmRequestResponseCode::SpdmRequestFinish,
-            SpdmRequestResponseCode::SpdmRequestPskFinish,
-            SpdmRequestResponseCode::SpdmRequestHeartbeat,
-            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
-            SpdmRequestResponseCode::SpdmRequestEndSession,
-            SpdmRequestResponseCode::Unknown(0),
+            (
+                SpdmRequestResponseCode::SpdmRequestFinish,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestPskFinish,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestHeartbeat,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::SpdmRequestEndSession,
+                SpdmConnectionState::SpdmConnectionNegotiated,
+            ),
+            (
+                SpdmRequestResponseCode::Unknown(0),
+                SpdmConnectionState::SpdmConnectionNotStarted,
+            ),
         ];
         if status {
             response_true[num]

@@ -21,8 +21,32 @@ use crate::error::{
 use crate::error::{
     SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_INVALID_STATE_LOCAL,
 };
-use codec::Writer;
+
+use codec::enum_builder;
+use codec::{Codec, Reader, Writer};
 use session::*;
+
+enum_builder! {
+    @U8
+    EnumName: SpdmConnectionState;
+    EnumVal{
+        // Before GET_VERSION/VERSION
+        SpdmConnectionNotStarted => 0x0,
+        // After GET_VERSION/VERSION
+        SpdmConnectionAfterVersion => 0x1,
+        // After GET_CAPABILITIES/CAPABILITIES
+        SpdmConnectionAfterCapabilities => 0x2,
+        // After NEGOTIATE_ALGORITHMS/ALGORITHMS
+        SpdmConnectionNegotiated => 0x3,
+        // After GET_DIGESTS/DIGESTS
+        SpdmConnectionAfterDigest => 0x4,
+        // After GET_CERTIFICATE/CERTIFICATE
+        SpdmConnectionAfterCertificate => 0x5,
+        // After CHALLENGE/CHALLENGE_AUTH,
+        // and ENCAP CHALLENGE/CHALLENGE_AUTH if MUT_AUTH is enabled.
+        SpdmConnectionAuthenticated => 0x5
+    }
+}
 
 #[cfg(feature = "hashed-transcript-data")]
 pub use crate::crypto::HashCtx;
@@ -557,6 +581,7 @@ bitflags! {
 #[derive(Debug, Clone, Default)]
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmRuntimeInfo {
+    connection_state: SpdmConnectionState,
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
     pub message_a: ManagedBuffer,
@@ -570,6 +595,7 @@ pub struct SpdmRuntimeInfo {
 #[derive(Clone, Default)]
 #[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmRuntimeInfo {
+    connection_state: SpdmConnectionState,
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
     pub message_a: ManagedBuffer,
@@ -577,6 +603,16 @@ pub struct SpdmRuntimeInfo {
     pub digest_context_l1l2: Option<HashCtx>, // for out of session get measurement/measurement
     pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.
                                                         // used by requester, consume when measurement response report content changed.
+}
+
+impl SpdmRuntimeInfo {
+    pub fn set_connection_state(&mut self, connection_state: SpdmConnectionState) {
+        self.connection_state = connection_state;
+    }
+
+    pub fn get_connection_state(&self) -> SpdmConnectionState {
+        self.connection_state
+    }
 }
 
 #[derive(Default, Clone)]
