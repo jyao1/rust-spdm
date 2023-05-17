@@ -17,6 +17,8 @@ use conquer_once::spin::OnceCell;
 pub(crate) const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize =
     config::MAX_SPDM_MSG_SIZE - 7 - 2 - 4;
 
+pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = 0xFF;
+
 enum_builder! {
     @U16
     EnumName: RegistryOrStandardsBodyID;
@@ -53,7 +55,7 @@ impl RegistryOrStandardsBodyID {
 #[derive(Debug, Clone)]
 pub struct VendorIDStruct {
     pub len: u8,
-    pub vendor_id: [u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
+    pub vendor_id: [u8; MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
 }
 
 impl Codec for VendorIDStruct {
@@ -68,7 +70,7 @@ impl Codec for VendorIDStruct {
 
     fn read(r: &mut Reader) -> Option<VendorIDStruct> {
         let len = u8::read(r)?;
-        let mut vendor_id = [0u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN];
+        let mut vendor_id = [0u8; MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN];
         for d in vendor_id.iter_mut().take(len as usize) {
             *d = u8::read(r)?;
         }

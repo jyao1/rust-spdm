@@ -14,7 +14,6 @@ struct SpdmConfig {
     cert_config: SpdmCertConfig,
     measurement_config: SpdmMeasurementConfig,
     psk_config: SpdmPskConfig,
-    vendor_defined_config: SpdmVendorDefinedConfig,
     max_session_count: usize,
     max_msg_buffer_size: usize,
     data_transfer_size: usize,
@@ -66,11 +65,6 @@ struct SpdmPskConfig {
     max_psk_hint_size: usize,
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
-struct SpdmVendorDefinedConfig {
-    max_vendor_defined_vendor_id_len: usize,
-}
-
 macro_rules! TEMPLATE {
     () => {
 "// Copyright (c) 2021 Intel Corporation
@@ -109,9 +103,6 @@ pub const DATA_TRANSFER_SIZE: usize = {trans_sz}; // MAX_SPDM_MESSAGE_BUFFER_SIZ
 
 /// SPDM 1.2
 pub const MAX_SPDM_MSG_SIZE: usize = {max_spdm_mgs_sz}; // set to equal to DATA_TRANSFER_SIZE @todo
-
-/// This is used in vendor defined message transport
-pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = {vendor_id_len};
 
 /// This is used by responder to specify the heartbeat period
 /// 0 represents either Heartbeat is not supported or
@@ -152,9 +143,6 @@ fn main() {
         msg_buf_sz = spdm_config.max_msg_buffer_size,
         trans_sz = spdm_config.data_transfer_size,
         max_spdm_mgs_sz = spdm_config.max_spdm_msg_size,
-        vendor_id_len = spdm_config
-            .vendor_defined_config
-            .max_vendor_defined_vendor_id_len,
         heartbeat_period = spdm_config.heartbeat_period_value,
     )
     .expect("Failed to generate configuration code from the template and JSON config");

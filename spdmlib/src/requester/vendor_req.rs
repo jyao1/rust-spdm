@@ -135,7 +135,7 @@ mod tests_requester {
         let standard_id: RegistryOrStandardsBodyID = RegistryOrStandardsBodyID::DMTF;
         let vendor_idstruct: VendorIDStruct = VendorIDStruct {
             len: 0,
-            vendor_id: [0u8; config::MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
+            vendor_id: [0u8; MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN],
         };
         let req_payload_struct: VendorDefinedReqPayloadStruct = VendorDefinedReqPayloadStruct {
             req_length: 0,
