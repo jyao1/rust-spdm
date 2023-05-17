@@ -532,6 +532,14 @@ mod tests_responder {
                 version: SpdmVersion::SpdmVersion10,
                 request_response_code,
             };
+            // version request will reset runtime_info context.
+            // negotiate need be done successfully before sending some request(digest).
+            // patch runtime info for it.
+            #[cfg(feature = "hashed-transcript-data")]
+            {
+                context.common.runtime_info.digest_context_m1m2 =
+                    crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
+            }
             assert!(value.encode(&mut writer).is_ok());
             let status = context.dispatch_message(bytes);
             assert!(status);
