@@ -90,13 +90,19 @@ fn asym_verify(
                         Err(_) => Err(SPDM_STATUS_VERIF_FAIL),
                     }
                 }
-                _ => {
+                SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048
+                | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072
+                | SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096
+                | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048
+                | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072
+                | SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096 => {
                     // RSASSA or RSAPSS
                     match cert.verify_signature(algorithm, data, signature.as_ref()) {
                         Ok(()) => Ok(()),
                         Err(_) => Err(SPDM_STATUS_VERIF_FAIL),
                     }
                 }
+                _ => Err(SPDM_STATUS_VERIF_FAIL),
             }
         }
         Err(_e) => Err(SPDM_STATUS_INVALID_CERT),
