@@ -44,6 +44,15 @@ pub mod hash {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
+    impl Drop for SpdmHashCtx {
+        fn drop(&mut self) {
+            if self.0 != 0 {
+                hash_ctx_finalize(SpdmHashCtx(self.0));
+            }
+        }
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
     use crate::error::SpdmResult;
 
     #[cfg(not(any(feature = "spdm-ring")))]
@@ -87,11 +96,13 @@ pub mod hash {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_finalize(ctx: SpdmHashCtx) -> Option<SpdmDigestStruct> {
+    pub fn hash_ctx_finalize(mut ctx: SpdmHashCtx) -> Option<SpdmDigestStruct> {
+        let handle = ctx.0;
+        ctx.0 = 0;
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
-            .hash_ctx_finalize_cb)(ctx.0)
+            .hash_ctx_finalize_cb)(handle)
     }
     #[cfg(feature = "hashed-transcript-data")]
     pub fn hash_ctx_dup(ctx: &SpdmHashCtx) -> Option<SpdmHashCtx> {
