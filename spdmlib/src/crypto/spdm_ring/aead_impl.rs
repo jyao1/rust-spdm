@@ -22,15 +22,6 @@ fn encrypt(
     tag: &mut [u8],
     cipher_text: &mut [u8],
 ) -> SpdmResult<(usize, usize)> {
-    let algorithm = match aead_algo {
-        SpdmAeadAlgo::AES_128_GCM => &ring::aead::AES_128_GCM,
-        SpdmAeadAlgo::AES_256_GCM => &ring::aead::AES_256_GCM,
-        SpdmAeadAlgo::CHACHA20_POLY1305 => &ring::aead::CHACHA20_POLY1305,
-        _ => {
-            panic!();
-        }
-    };
-
     if key.len() != aead_algo.get_key_size() as usize {
         panic!("key len invalid");
     }
@@ -55,7 +46,7 @@ fn encrypt(
     in_out.extend_from_slice(plain_text);
 
     let mut s_key: ring::aead::SealingKey<OneNonceSequence> =
-        if let Ok(k) = make_key(algorithm, key, nonce) {
+        if let Ok(k) = make_key(aead_algo, key, nonce) {
             k
         } else {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
@@ -79,15 +70,6 @@ fn decrypt(
     tag: &[u8],
     plain_text: &mut [u8],
 ) -> SpdmResult<usize> {
-    let algorithm = match aead_algo {
-        SpdmAeadAlgo::AES_128_GCM => &ring::aead::AES_128_GCM,
-        SpdmAeadAlgo::AES_256_GCM => &ring::aead::AES_256_GCM,
-        SpdmAeadAlgo::CHACHA20_POLY1305 => &ring::aead::CHACHA20_POLY1305,
-        _ => {
-            panic!();
-        }
-    };
-
     if key.len() != aead_algo.get_key_size() as usize {
         panic!("key len invalid");
     }
@@ -113,7 +95,7 @@ fn decrypt(
     in_out.extend_from_slice(tag);
 
     let mut o_key: ring::aead::OpeningKey<OneNonceSequence> =
-        if let Ok(k) = make_key(algorithm, key, nonce) {
+        if let Ok(k) = make_key(aead_algo, key, nonce) {
             k
         } else {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
@@ -144,10 +126,19 @@ impl ring::aead::NonceSequence for OneNonceSequence {
 }
 
 fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
-    algorithm: &'static ring::aead::Algorithm,
+    aead_algo: SpdmAeadAlgo,
     key: &[u8],
     nonce: ring::aead::Nonce,
 ) -> SpdmResult<K> {
+    let algorithm = match aead_algo {
+        SpdmAeadAlgo::AES_128_GCM => &ring::aead::AES_128_GCM,
+        SpdmAeadAlgo::AES_256_GCM => &ring::aead::AES_256_GCM,
+        SpdmAeadAlgo::CHACHA20_POLY1305 => &ring::aead::CHACHA20_POLY1305,
+        _ => {
+            panic!();
+        }
+    };
+
     let key = if let Ok(k) = ring::aead::UnboundKey::new(algorithm, key) {
         k
     } else {
