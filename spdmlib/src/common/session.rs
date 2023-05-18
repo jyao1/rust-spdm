@@ -90,8 +90,8 @@ pub struct SpdmSessionRuntimeInfo {
 #[derive(Clone, Default)]
 #[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmSessionRuntimeInfo {
-    pub digest_context_th: Option<HashCtx>,
-    pub digest_context_l1l2: Option<HashCtx>,
+    pub digest_context_th: Option<SpdmHashCtx>,
+    pub digest_context_l1l2: Option<SpdmHashCtx>,
 }
 
 #[derive(Clone)]

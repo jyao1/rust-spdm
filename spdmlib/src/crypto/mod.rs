@@ -13,7 +13,7 @@ pub use crypto_callbacks::{
 };
 
 #[cfg(feature = "hashed-transcript-data")]
-pub use hash::HashCtx;
+pub use hash::SpdmHashCtx;
 
 use conquer_once::spin::OnceCell;
 
@@ -34,10 +34,10 @@ pub mod hash {
 
     #[cfg(feature = "hashed-transcript-data")]
     #[derive(Ord, PartialEq, PartialOrd, Eq, Debug)]
-    pub struct HashCtx(usize);
+    pub struct SpdmHashCtx(usize);
 
     #[cfg(feature = "hashed-transcript-data")]
-    impl Clone for HashCtx {
+    impl Clone for SpdmHashCtx {
         fn clone(&self) -> Self {
             hash_ctx_dup(self).expect("Out of resource")
         }
@@ -68,16 +68,16 @@ pub mod hash {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx> {
+    pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<SpdmHashCtx> {
         let ret = (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
             .hash_ctx_init_cb)(base_hash_algo)?;
-        Some(HashCtx(ret))
+        Some(SpdmHashCtx(ret))
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_update(ctx: &mut HashCtx, data: &[u8]) -> SpdmResult {
+    pub fn hash_ctx_update(ctx: &mut SpdmHashCtx, data: &[u8]) -> SpdmResult {
         use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 
         (CRYPTO_HASH
@@ -87,19 +87,19 @@ pub mod hash {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_finalize(ctx: HashCtx) -> Option<SpdmDigestStruct> {
+    pub fn hash_ctx_finalize(ctx: SpdmHashCtx) -> Option<SpdmDigestStruct> {
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
             .hash_ctx_finalize_cb)(ctx.0)
     }
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_dup(ctx: &HashCtx) -> Option<HashCtx> {
+    pub fn hash_ctx_dup(ctx: &SpdmHashCtx) -> Option<SpdmHashCtx> {
         let ret = (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .expect("Functions should be registered before using")
             .hash_ctx_dup_cb)(ctx.0)?;
-        Some(HashCtx(ret))
+        Some(SpdmHashCtx(ret))
     }
 }
 

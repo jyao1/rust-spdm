@@ -17,7 +17,7 @@ use crate::protocol::*;
 extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
 #[cfg(feature = "hashed-transcript-data")]
-use crate::crypto::HashCtx;
+use crate::crypto::SpdmHashCtx;
 use crate::message::*;
 use alloc::boxed::Box;
 
@@ -396,7 +396,7 @@ impl<'a> ResponderContext<'a> {
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
         _slot_id: u8,
-        message_k: HashCtx,
+        message_k: SpdmHashCtx,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let message_hash = crypto::hash::hash_ctx_finalize(message_k).unwrap();
         debug!("message_hash - {:02x?}", message_hash.as_ref());

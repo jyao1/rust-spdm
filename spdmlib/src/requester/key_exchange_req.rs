@@ -386,7 +386,7 @@ impl<'a> RequesterContext<'a> {
     pub fn verify_key_exchange_rsp_signature(
         &mut self,
         slot_id: u8,
-        message_k: HashCtx,
+        message_k: SpdmHashCtx,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
         use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_PARAMETER};
