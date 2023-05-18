@@ -49,7 +49,7 @@ enum_builder! {
 }
 
 #[cfg(feature = "hashed-transcript-data")]
-pub use crate::crypto::HashCtx;
+pub use crate::crypto::SpdmHashCtx;
 
 #[cfg(feature = "downcast")]
 use core::any::Any;
@@ -847,8 +847,8 @@ pub struct SpdmRuntimeInfo {
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
     pub message_a: ManagedBufferA,
-    pub digest_context_m1m2: Option<HashCtx>, // for M1/M2
-    pub digest_context_l1l2: Option<HashCtx>, // for out of session get measurement/measurement
+    pub digest_context_m1m2: Option<SpdmHashCtx>, // for M1/M2
+    pub digest_context_l1l2: Option<SpdmHashCtx>, // for out of session get measurement/measurement
     pub content_changed: SpdmMeasurementContentChanged, // used by responder, set when content changed and spdm version is 1.2.
                                                         // used by requester, consume when measurement response report content changed.
 }
