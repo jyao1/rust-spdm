@@ -28,6 +28,7 @@ fn fuzz_handle_spdm_capability(data: &[u8]) {
     context.handle_spdm_capability(data);
 }
 
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")

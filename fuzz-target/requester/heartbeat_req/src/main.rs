@@ -124,6 +124,7 @@ fn fuzz_send_receive_spdm_heartbeat(fuzzdata: &[u8]) {
     }
 }
 
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")

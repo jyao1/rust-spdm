@@ -36,6 +36,7 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
     let _ = requester.send_receive_spdm_capability();
 }
 
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")
