@@ -81,6 +81,7 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
         .is_err();
 }
 
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")

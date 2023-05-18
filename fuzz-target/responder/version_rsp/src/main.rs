@@ -30,6 +30,8 @@ fn fuzz_handle_spdm_version(data: &[u8]) {
     socket_io_transport.receive(&mut req_buf, 60).unwrap();
     println!("Received: {:?}", req_buf);
 }
+
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")

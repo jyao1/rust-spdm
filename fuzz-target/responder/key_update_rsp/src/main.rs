@@ -43,6 +43,8 @@ fn fuzz_handle_spdm_key_update(data: &[u8]) {
 
     context.handle_spdm_key_update(4294901758, data);
 }
+
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")

@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-afl = "=0.12.12"
+afl = { version = "=0.12.12", optional = true }
 spdm-emu = { path = "../../test/spdm-emu", default-features = false }
 spdmlib = { path = "../../spdmlib", default-features = false, features=["spdm-ring"] }
 codec = { path = "../../codec" }
@@ -20,5 +20,5 @@ ring = { git="https://github.com/jyao1/ring", branch="uefi_support"}
 flexi_logger = "0.18.0"
 
 [features]
-default = ["hashed-transcript-data"]
+default = ["hashed-transcript-data", "afl"]
 hashed-transcript-data = ["spdmlib/hashed-transcript-data"]

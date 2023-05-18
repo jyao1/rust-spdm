@@ -46,6 +46,8 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
 
     context.handle_spdm_certificate(data, None);
 }
+
+#[cfg(not(feature = "use_libfuzzer"))]
 fn main() {
     #[cfg(all(feature = "fuzzlogfile", feature = "fuzz"))]
     flexi_logger::Logger::try_with_str("info")
