@@ -13,7 +13,7 @@ pub use crypto_callbacks::{
 };
 
 #[cfg(feature = "hashed-transcript-data")]
-pub type HashCtx = spdm_ring::hash_impl::HashCtx;
+pub use hash::HashCtx;
 
 use conquer_once::spin::OnceCell;
 
@@ -28,11 +28,20 @@ static CRYPTO_HKDF: OnceCell<SpdmHkdf> = OnceCell::uninit();
 static CRYPTO_RAND: OnceCell<SpdmCryptoRandom> = OnceCell::uninit();
 
 pub mod hash {
-    #[cfg(feature = "hashed-transcript-data")]
-    use super::HashCtx;
     use super::CRYPTO_HASH;
     use crate::crypto::SpdmHash;
     use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
+
+    #[cfg(feature = "hashed-transcript-data")]
+    #[derive(Ord, PartialEq, PartialOrd, Eq, Debug)]
+    pub struct HashCtx(usize);
+
+    #[cfg(feature = "hashed-transcript-data")]
+    impl Clone for HashCtx {
+        fn clone(&self) -> Self {
+            hash_ctx_dup(self).expect("Out of resource")
+        }
+    }
 
     #[cfg(feature = "hashed-transcript-data")]
     use crate::error::SpdmResult;
@@ -60,10 +69,11 @@ pub mod hash {
 
     #[cfg(feature = "hashed-transcript-data")]
     pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<HashCtx> {
-        (CRYPTO_HASH
+        let ret = (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
-            .hash_ctx_init_cb)(base_hash_algo)
+            .hash_ctx_init_cb)(base_hash_algo)?;
+        Some(HashCtx(ret))
     }
 
     #[cfg(feature = "hashed-transcript-data")]
@@ -73,7 +83,7 @@ pub mod hash {
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
-            .hash_ctx_update_cb)(ctx, data)
+            .hash_ctx_update_cb)(ctx.0, data)
     }
 
     #[cfg(feature = "hashed-transcript-data")]
@@ -81,7 +91,15 @@ pub mod hash {
         (CRYPTO_HASH
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
-            .hash_ctx_finalize_cb)(ctx)
+            .hash_ctx_finalize_cb)(ctx.0)
+    }
+    #[cfg(feature = "hashed-transcript-data")]
+    pub fn hash_ctx_dup(ctx: &HashCtx) -> Option<HashCtx> {
+        let ret = (CRYPTO_HASH
+            .try_get_or_init(|| DEFAULT.clone())
+            .expect("Functions should be registered before using")
+            .hash_ctx_dup_cb)(ctx.0)?;
+        Some(HashCtx(ret))
     }
 }
 
