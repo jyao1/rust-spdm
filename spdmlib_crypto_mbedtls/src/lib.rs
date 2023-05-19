@@ -7,6 +7,8 @@
 extern crate alloc;
 
 mod ffi;
+#[cfg(feature = "hashed-transcript-data")]
+mod ffi_ext;
 
 pub mod aead_impl;
 pub mod asym_verify_impl;
