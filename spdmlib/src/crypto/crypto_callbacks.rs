@@ -12,16 +12,19 @@ use crate::protocol::{
     SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmSignatureStruct,
 };
 
+#[cfg(not(feature = "hashed-transcript-data"))]
 #[derive(Clone)]
 pub struct SpdmHash {
     pub hash_all_cb: fn(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct>,
-    #[cfg(feature = "hashed-transcript-data")]
+}
+
+#[cfg(feature = "hashed-transcript-data")]
+#[derive(Clone)]
+pub struct SpdmHash {
+    pub hash_all_cb: fn(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct>,
     pub hash_ctx_init_cb: fn(base_hash_algo: SpdmBaseHashAlgo) -> Option<usize>,
-    #[cfg(feature = "hashed-transcript-data")]
     pub hash_ctx_update_cb: fn(ctx: usize, data: &[u8]) -> SpdmResult,
-    #[cfg(feature = "hashed-transcript-data")]
     pub hash_ctx_finalize_cb: fn(ctx: usize) -> Option<SpdmDigestStruct>,
-    #[cfg(feature = "hashed-transcript-data")]
     pub hash_ctx_dup_cb: fn(ctx: usize) -> Option<usize>,
 }
 

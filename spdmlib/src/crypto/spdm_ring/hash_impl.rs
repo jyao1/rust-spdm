@@ -5,37 +5,20 @@
 extern crate alloc;
 
 use crate::crypto::SpdmHash;
-#[cfg(feature = "hashed-transcript-data")]
-use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
+
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
-#[cfg(feature = "hashed-transcript-data")]
-use alloc::boxed::Box;
-#[cfg(feature = "hashed-transcript-data")]
-use alloc::collections::BTreeMap;
-#[cfg(feature = "hashed-transcript-data")]
-use lazy_static::lazy_static;
-#[cfg(feature = "hashed-transcript-data")]
-use spin::Mutex;
 
-#[cfg(feature = "hashed-transcript-data")]
-pub type HashCtxConcrete = ring::digest::Context;
-
-#[cfg(feature = "hashed-transcript-data")]
-lazy_static! {
-    static ref HASH_CTX_TABLE: Mutex<BTreeMap<usize, Box<HashCtxConcrete>>> =
-        Mutex::new(BTreeMap::new());
-}
-
+#[cfg(not(feature = "hashed-transcript-data"))]
 pub static DEFAULT: SpdmHash = SpdmHash {
     hash_all_cb: hash_all,
-    #[cfg(feature = "hashed-transcript-data")]
-    hash_ctx_init_cb: hash_ctx_init,
-    #[cfg(feature = "hashed-transcript-data")]
-    hash_ctx_update_cb: hash_ctx_update,
-    #[cfg(feature = "hashed-transcript-data")]
-    hash_ctx_finalize_cb: hash_ctx_finalize,
-    #[cfg(feature = "hashed-transcript-data")]
-    hash_ctx_dup_cb: hash_ctx_dup,
+};
+#[cfg(feature = "hashed-transcript-data")]
+pub static DEFAULT: SpdmHash = SpdmHash {
+    hash_all_cb: hash_all,
+    hash_ctx_init_cb: hash_ext::hash_ctx_init,
+    hash_ctx_update_cb: hash_ext::hash_ctx_update,
+    hash_ctx_finalize_cb: hash_ext::hash_ctx_finalize,
+    hash_ctx_dup_cb: hash_ext::hash_ctx_dup,
 };
 
 fn hash_all(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestStruct> {
@@ -50,49 +33,61 @@ fn hash_all(base_hash_algo: SpdmBaseHashAlgo, data: &[u8]) -> Option<SpdmDigestS
 }
 
 #[cfg(feature = "hashed-transcript-data")]
-fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<usize> {
-    let algorithm = match base_hash_algo {
-        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => &ring::digest::SHA256,
-        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => &ring::digest::SHA384,
-        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => &ring::digest::SHA512,
-        _ => return None,
-    };
-    let ctx = Box::new(HashCtxConcrete::new(algorithm));
-    Some(insert_to_table(ctx))
-}
+mod hash_ext {
+    use super::*;
+    use alloc::boxed::Box;
+    use alloc::collections::BTreeMap;
+    use lazy_static::lazy_static;
+    use spin::Mutex;
 
-#[cfg(feature = "hashed-transcript-data")]
-fn insert_to_table(value: Box<HashCtxConcrete>) -> usize {
-    let handle_ptr: *const HashCtxConcrete = &*value;
-    let handle = handle_ptr as usize;
-    HASH_CTX_TABLE.lock().insert(handle, value);
-    handle
-}
+    pub type HashCtxConcrete = ring::digest::Context;
 
-#[cfg(feature = "hashed-transcript-data")]
-fn hash_ctx_update(handle: usize, data: &[u8]) -> SpdmResult {
-    let mut table = HASH_CTX_TABLE.lock();
-    let ctx = table.get_mut(&handle).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-    ctx.update(data);
-    Ok(())
-}
+    lazy_static! {
+        static ref HASH_CTX_TABLE: Mutex<BTreeMap<usize, Box<HashCtxConcrete>>> =
+            Mutex::new(BTreeMap::new());
+    }
+    use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 
-#[cfg(feature = "hashed-transcript-data")]
-fn hash_ctx_finalize(handle: usize) -> Option<SpdmDigestStruct> {
-    let ctx = HASH_CTX_TABLE.lock().remove(&handle)?;
-    let digest_value = ctx.finish();
-    Some(SpdmDigestStruct::from(digest_value.as_ref()))
-}
+    pub fn hash_ctx_update(handle: usize, data: &[u8]) -> SpdmResult {
+        let mut table = HASH_CTX_TABLE.lock();
+        let ctx = table.get_mut(&handle).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        ctx.update(data);
+        Ok(())
+    }
 
-#[cfg(feature = "hashed-transcript-data")]
-fn hash_ctx_dup(handle: usize) -> Option<usize> {
-    let ctx_new = {
-        let table = HASH_CTX_TABLE.lock();
-        let ctx = table.get(&handle)?;
-        ctx.clone()
-    };
-    let new_handle = insert_to_table(ctx_new);
-    Some(new_handle)
+    pub fn hash_ctx_finalize(handle: usize) -> Option<SpdmDigestStruct> {
+        let ctx = HASH_CTX_TABLE.lock().remove(&handle)?;
+        let digest_value = ctx.finish();
+        Some(SpdmDigestStruct::from(digest_value.as_ref()))
+    }
+
+    pub fn hash_ctx_dup(handle: usize) -> Option<usize> {
+        let ctx_new = {
+            let table = HASH_CTX_TABLE.lock();
+            let ctx = table.get(&handle)?;
+            ctx.clone()
+        };
+        let new_handle = insert_to_table(ctx_new);
+        Some(new_handle)
+    }
+
+    pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<usize> {
+        let algorithm = match base_hash_algo {
+            SpdmBaseHashAlgo::TPM_ALG_SHA_256 => &ring::digest::SHA256,
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384 => &ring::digest::SHA384,
+            SpdmBaseHashAlgo::TPM_ALG_SHA_512 => &ring::digest::SHA512,
+            _ => return None,
+        };
+        let ctx = Box::new(HashCtxConcrete::new(algorithm));
+        Some(insert_to_table(ctx))
+    }
+
+    fn insert_to_table(value: Box<HashCtxConcrete>) -> usize {
+        let handle_ptr: *const HashCtxConcrete = &*value;
+        let handle = handle_ptr as usize;
+        HASH_CTX_TABLE.lock().insert(handle, value);
+        handle
+    }
 }
 
 #[cfg(all(test,))]
