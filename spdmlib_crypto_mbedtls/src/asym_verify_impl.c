@@ -72,8 +72,9 @@ int spdm_rsa_pss_verify(
     const uint8_t *signature, size_t signature_size)
 {
     mbedtls_x509_crt crt;
+    mbedtls_rsa_context *rsa_context;
     int ret;
-    // suppress "unused" 
+    // suppress "unused"
     (void)signature_size;
 
     mbedtls_x509_crt_init(&crt);
@@ -82,8 +83,17 @@ int spdm_rsa_pss_verify(
 
     if (ret == 0)
     {
+        rsa_context = mbedtls_pk_rsa(crt.pk);
+        if (rsa_context == NULL)
+        {
+            ret = MBEDTLS_ERR_PK_INVALID_PUBKEY;
+        }
+    }
+
+    if (ret == 0)
+    {
         ret = mbedtls_rsa_rsassa_pss_verify(
-            mbedtls_pk_rsa(crt.pk), NULL, NULL,
+            rsa_context, NULL, NULL,
             MBEDTLS_RSA_PUBLIC,
             md_type, data_size, data, signature);
     }
