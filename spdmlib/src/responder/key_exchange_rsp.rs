@@ -475,6 +475,7 @@ mod tests_responder {
         use super::*;
         use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
         use crate::crypto;
+        use crate::crypto::bytes_mut_scrubbed::BytesMutStrubbed;
         use crate::message::*;
         use crate::protocol::*;
         use crate::responder;

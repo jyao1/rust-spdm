@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+pub mod bytes_mut_scrubbed;
 mod crypto_callbacks;
 
 #[cfg(feature = "spdm-ring")]
