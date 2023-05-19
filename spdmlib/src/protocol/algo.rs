@@ -676,6 +676,11 @@ enum_builder! {
         SpdmAlgTypeKeySchedule => 0x5
     }
 }
+impl Default for SpdmAlgType {
+    fn default() -> SpdmAlgType {
+        SpdmAlgType::Unknown(0)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpdmAlg {
@@ -769,6 +774,11 @@ enum_builder! {
         SpdmMeasurementSummaryHashTypeNone => 0x0,
         SpdmMeasurementSummaryHashTypeTcb => 0x1,
         SpdmMeasurementSummaryHashTypeAll => 0xFF
+    }
+}
+impl Default for SpdmMeasurementSummaryHashType {
+    fn default() -> SpdmMeasurementSummaryHashType {
+        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone
     }
 }
 

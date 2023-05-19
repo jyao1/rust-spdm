@@ -26,11 +26,6 @@ macro_rules! enum_builder {
                 }
             }
         }
-        impl Default for $enum_name {
-            fn default() -> $enum_name {
-                $enum_name::Unknown(0u8)
-            }
-        }
         impl Codec for $enum_name {
             fn encode(&self, bytes: &mut Writer) -> Result<usize, $crate::codec::EncodeErr> {
                 self.get_u8().encode(bytes)
@@ -66,11 +61,6 @@ macro_rules! enum_builder {
                 }
             }
         }
-        impl Default for $enum_name {
-            fn default() -> $enum_name {
-                $enum_name::Unknown(0u16)
-            }
-        }
         impl Codec for $enum_name {
             fn encode(&self, bytes: &mut Writer) -> Result<usize, $crate::codec::EncodeErr> {
                 self.get_u16().encode(bytes)
@@ -104,11 +94,6 @@ macro_rules! enum_builder {
                         $( $enum_name::$enum_var => $enum_val),*
                         ,$enum_name::Unknown(x) => x
                     }
-                }
-            }
-            impl Default for $enum_name {
-                fn default() -> $enum_name {
-                    $enum_name::Unknown(0u32)
                 }
             }
             impl Codec for $enum_name {

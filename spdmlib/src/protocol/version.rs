@@ -14,6 +14,11 @@ enum_builder! {
         SpdmVersion12 => 0x12
     }
 }
+impl Default for SpdmVersion {
+    fn default() -> SpdmVersion {
+        SpdmVersion::Unknown(0)
+    }
+}
 
 pub const MAX_SPDM_VERSION_COUNT: usize = 3;
 

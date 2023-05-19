@@ -31,6 +31,11 @@ enum_builder! {
         SpdmSessionEstablished => 0x2
     }
 }
+impl Default for SpdmSessionState {
+    fn default() -> SpdmSessionState {
+        SpdmSessionState::SpdmSessionNotStarted
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmSessionCryptoParam {

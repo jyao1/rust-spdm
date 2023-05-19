@@ -17,6 +17,11 @@ enum_builder! {
         SpdmVerifyNewKey => 0x3
     }
 }
+impl Default for SpdmKeyUpdateOperation {
+    fn default() -> SpdmKeyUpdateOperation {
+        SpdmKeyUpdateOperation::Unknown(0)
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmKeyUpdateRequestPayload {
