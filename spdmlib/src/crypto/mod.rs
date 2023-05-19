@@ -56,11 +56,24 @@ pub mod hash {
     #[cfg(feature = "hashed-transcript-data")]
     use crate::error::SpdmResult;
 
-    #[cfg(not(any(feature = "spdm-ring")))]
+    #[cfg(all(
+        not(any(feature = "spdm-ring")),
+        not(feature = "hashed-transcript-data")
+    ))]
     static DEFAULT: SpdmHash = SpdmHash {
         hash_all_cb: |_base_hash_algo: SpdmBaseHashAlgo,
                       _data: &[u8]|
          -> Option<SpdmDigestStruct> { unimplemented!() },
+    };
+    #[cfg(all(not(any(feature = "spdm-ring")), feature = "hashed-transcript-data"))]
+    static DEFAULT: SpdmHash = SpdmHash {
+        hash_all_cb: |_base_hash_algo: SpdmBaseHashAlgo,
+                      _data: &[u8]|
+         -> Option<SpdmDigestStruct> { unimplemented!() },
+        hash_ctx_init_cb: |_base_hash_algo: SpdmBaseHashAlgo| -> Option<usize> { unimplemented!() },
+        hash_ctx_update_cb: |_handle: usize, _data: &[u8]| -> SpdmResult { unimplemented!() },
+        hash_ctx_finalize_cb: |_handle: usize| -> Option<SpdmDigestStruct> { unimplemented!() },
+        hash_ctx_dup_cb: |_handle: usize| -> Option<usize> { unimplemented!() },
     };
 
     #[cfg(feature = "spdm-ring")]
