@@ -19,5 +19,6 @@ ring = { git="https://github.com/jyao1/ring", branch="uefi_support" }
 log = { version = "0.4.13" }
 
 [features]
-default = []
+default = ["hashed-transcript-data"]
 test_with_ring = ["spdmlib/spdm-ring"]
+hashed-transcript-data = ["spdmlib/hashed-transcript-data"]
