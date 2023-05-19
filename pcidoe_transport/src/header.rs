@@ -119,28 +119,26 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         spdm_buffer: &mut [u8],
     ) -> SpdmResult<(usize, bool)> {
         let mut reader = Reader::init(transport_buffer);
-        let secured_message;
-        match PciDoeMessageHeader::read(&mut reader) {
-            Some(pcidoe_header) => {
-                match pcidoe_header.vendor_id {
-                    PciDoeVendorId::PciDoeVendorIdPciSig => {}
-                    _ => return Err(SPDM_STATUS_DECAP_FAIL),
-                }
-                match pcidoe_header.data_object_type {
-                    PciDoeDataObjectType::PciDoeDataObjectTypeSpdm => secured_message = false,
-                    PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm => secured_message = true,
-                    _ => return Err(SPDM_STATUS_DECAP_FAIL),
-                }
-            }
-            None => return Err(SPDM_STATUS_DECAP_FAIL),
+        let pcidoe_header: PciDoeMessageHeader =
+            PciDoeMessageHeader::read(&mut reader).ok_or(SPDM_STATUS_DECAP_FAIL)?;
+        match pcidoe_header.vendor_id {
+            PciDoeVendorId::PciDoeVendorIdPciSig => {}
+            _ => return Err(SPDM_STATUS_DECAP_FAIL),
         }
+        let secured_message = match pcidoe_header.data_object_type {
+            PciDoeDataObjectType::PciDoeDataObjectTypeSpdm => false,
+            PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm => true,
+            _ => return Err(SPDM_STATUS_DECAP_FAIL),
+        };
         let header_size = reader.used();
-        let payload_size = transport_buffer.len() - header_size;
-        // TBD : check payload_size with Length field;
+        let payload_size = pcidoe_header.payload_length as usize;
+        if transport_buffer.len() < header_size + payload_size {
+            return Err(SPDM_STATUS_DECAP_FAIL);
+        }
         if spdm_buffer.len() < payload_size {
             return Err(SPDM_STATUS_DECAP_FAIL);
         }
-        let payload = &transport_buffer[header_size..];
+        let payload = &transport_buffer[header_size..(header_size + payload_size)];
         spdm_buffer[..payload_size].copy_from_slice(payload);
         Ok((payload_size, secured_message))
     }
