@@ -186,10 +186,10 @@ impl Codec for PciDoeMessageHeader {
         cnt += self.data_object_type.encode(bytes)?;
         cnt += 0u8.encode(bytes)?;
         let mut length = (self.payload_length + 8) >> 2;
-        if length > 0x100000 {
+        if length > 0x40000 {
             panic!();
         }
-        if length == 0x100000 {
+        if length == 0x40000 {
             length = 0;
         }
         cnt += length.encode(bytes)?;
@@ -208,7 +208,7 @@ impl Codec for PciDoeMessageHeader {
         if length < 2 {
             return None;
         }
-        let payload_length = (length << 2) - 8;
+        let payload_length = (length << 2).checked_sub(8)?;
         Some(PciDoeMessageHeader {
             vendor_id,
             data_object_type,
@@ -237,7 +237,9 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
             },
             payload_length: aligned_payload_len as u32,
         };
-        pcidoe_header.encode(&mut writer);
+        pcidoe_header
+            .encode(&mut writer)
+            .map_err(|_| SPDM_STATUS_ENCAP_FAIL)?;
         let header_size = writer.used();
         if transport_buffer.len() < header_size + aligned_payload_len {
             return Err(SPDM_STATUS_ENCAP_FAIL);
@@ -252,27 +254,26 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
         spdm_buffer: &mut [u8],
     ) -> SpdmResult<(usize, bool)> {
         let mut reader = Reader::init(transport_buffer);
-        let secured_message;
-        match PciDoeMessageHeader::read(&mut reader) {
-            Some(pcidoe_header) => {
-                match pcidoe_header.vendor_id {
-                    PciDoeVendorId::PciDoeVendorIdPciSig => {}
-                    _ => return Err(SPDM_STATUS_DECAP_FAIL),
-                }
-                match pcidoe_header.data_object_type {
-                    PciDoeDataObjectType::PciDoeDataObjectTypeSpdm => secured_message = false,
-                    PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm => secured_message = true,
-                    _ => return Err(SPDM_STATUS_DECAP_FAIL),
-                }
-            }
-            None => return Err(SPDM_STATUS_DECAP_FAIL),
+        let pcidoe_header: PciDoeMessageHeader =
+            PciDoeMessageHeader::read(&mut reader).ok_or(SPDM_STATUS_DECAP_FAIL)?;
+        match pcidoe_header.vendor_id {
+            PciDoeVendorId::PciDoeVendorIdPciSig => {}
+            _ => return Err(SPDM_STATUS_DECAP_FAIL),
         }
+        let secured_message = match pcidoe_header.data_object_type {
+            PciDoeDataObjectType::PciDoeDataObjectTypeSpdm => false,
+            PciDoeDataObjectType::PciDoeDataObjectTypeSecuredSpdm => true,
+            _ => return Err(SPDM_STATUS_DECAP_FAIL),
+        };
         let header_size = reader.used();
-        let payload_size = transport_buffer.len() - header_size;
+        let payload_size = pcidoe_header.payload_length as usize;
+        if transport_buffer.len() < header_size + payload_size {
+            return Err(SPDM_STATUS_DECAP_FAIL);
+        }
         if spdm_buffer.len() < payload_size {
             return Err(SPDM_STATUS_DECAP_FAIL);
         }
-        let payload = &transport_buffer[header_size..];
+        let payload = &transport_buffer[header_size..(header_size + payload_size)];
         spdm_buffer[..payload_size].copy_from_slice(payload);
         Ok((payload_size, secured_message))
     }
@@ -299,7 +300,6 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     fn get_sequence_number_count(&mut self) -> u8 {
         0
     }
-
     fn get_max_random_count(&mut self) -> u16 {
         0
     }
