@@ -14,7 +14,7 @@ pub use crypto_callbacks::{
 };
 
 #[cfg(feature = "hashed-transcript-data")]
-pub use hash::SpdmHashCtx;
+pub use self::hash::SpdmHashCtx;
 
 use conquer_once::spin::OnceCell;
 
@@ -33,29 +33,7 @@ pub mod hash {
     use crate::crypto::SpdmHash;
     use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
-    #[cfg(feature = "hashed-transcript-data")]
-    #[derive(Ord, PartialEq, PartialOrd, Eq, Debug)]
-    pub struct SpdmHashCtx(usize);
-
-    #[cfg(feature = "hashed-transcript-data")]
-    impl Clone for SpdmHashCtx {
-        fn clone(&self) -> Self {
-            hash_ctx_dup(self).expect("Out of resource")
-        }
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
-    impl Drop for SpdmHashCtx {
-        fn drop(&mut self) {
-            if self.0 != 0 {
-                hash_ctx_finalize(SpdmHashCtx(self.0));
-            }
-        }
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
-    use crate::error::SpdmResult;
-
+    // -ring -transcript
     #[cfg(all(
         not(any(feature = "spdm-ring")),
         not(feature = "hashed-transcript-data")
@@ -65,19 +43,13 @@ pub mod hash {
                       _data: &[u8]|
          -> Option<SpdmDigestStruct> { unimplemented!() },
     };
-    #[cfg(all(not(any(feature = "spdm-ring")), feature = "hashed-transcript-data"))]
-    static DEFAULT: SpdmHash = SpdmHash {
-        hash_all_cb: |_base_hash_algo: SpdmBaseHashAlgo,
-                      _data: &[u8]|
-         -> Option<SpdmDigestStruct> { unimplemented!() },
-        hash_ctx_init_cb: |_base_hash_algo: SpdmBaseHashAlgo| -> Option<usize> { unimplemented!() },
-        hash_ctx_update_cb: |_handle: usize, _data: &[u8]| -> SpdmResult { unimplemented!() },
-        hash_ctx_finalize_cb: |_handle: usize| -> Option<SpdmDigestStruct> { unimplemented!() },
-        hash_ctx_dup_cb: |_handle: usize| -> Option<usize> { unimplemented!() },
-    };
-
-    #[cfg(feature = "spdm-ring")]
+    // +ring -transcript
+    #[cfg(all(feature = "spdm-ring", not(feature = "hashed-transcript-data")))]
     use super::spdm_ring::hash_impl::DEFAULT;
+
+    // +-ring +transcript
+    #[cfg(feature = "hashed-transcript-data")]
+    pub use hash_ext::DEFAULT;
 
     pub fn register(context: SpdmHash) -> bool {
         CRYPTO_HASH.try_init_once(|| context).is_ok()
@@ -91,41 +63,85 @@ pub mod hash {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<SpdmHashCtx> {
-        let ret = (CRYPTO_HASH
-            .try_get_or_init(|| DEFAULT.clone())
-            .ok()?
-            .hash_ctx_init_cb)(base_hash_algo)?;
-        Some(SpdmHashCtx(ret))
+    mod hash_ext {
+        use super::{SpdmBaseHashAlgo, SpdmDigestStruct, CRYPTO_HASH};
+        use crate::error::SpdmResult;
+        #[derive(Ord, PartialEq, PartialOrd, Eq, Debug)]
+        pub struct SpdmHashCtx(usize);
+
+        impl Clone for SpdmHashCtx {
+            fn clone(&self) -> Self {
+                hash_ctx_dup(self).expect("Out of resource")
+            }
+        }
+
+        impl Drop for SpdmHashCtx {
+            fn drop(&mut self) {
+                if self.0 != 0 {
+                    hash_ctx_finalize(SpdmHashCtx(self.0));
+                }
+            }
+        }
+
+        pub fn hash_ctx_init(base_hash_algo: SpdmBaseHashAlgo) -> Option<SpdmHashCtx> {
+            let ret = (CRYPTO_HASH
+                .try_get_or_init(|| DEFAULT.clone())
+                .ok()?
+                .hash_ctx_init_cb)(base_hash_algo)?;
+            Some(SpdmHashCtx(ret))
+        }
+
+        pub fn hash_ctx_update(ctx: &mut SpdmHashCtx, data: &[u8]) -> SpdmResult {
+            use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
+
+            (CRYPTO_HASH
+                .try_get_or_init(|| DEFAULT.clone())
+                .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
+                .hash_ctx_update_cb)(ctx.0, data)
+        }
+
+        pub fn hash_ctx_finalize(mut ctx: SpdmHashCtx) -> Option<SpdmDigestStruct> {
+            let handle = ctx.0;
+            ctx.0 = 0;
+            (CRYPTO_HASH
+                .try_get_or_init(|| DEFAULT.clone())
+                .ok()?
+                .hash_ctx_finalize_cb)(handle)
+        }
+
+        pub fn hash_ctx_dup(ctx: &SpdmHashCtx) -> Option<SpdmHashCtx> {
+            let ret = (CRYPTO_HASH
+                .try_get_or_init(|| DEFAULT.clone())
+                .expect("Functions should be registered before using")
+                .hash_ctx_dup_cb)(ctx.0)?;
+            Some(SpdmHashCtx(ret))
+        }
+
+        // - ring +transcript
+        #[cfg(not(feature = "spdm-ring"))]
+        use super::SpdmHash;
+        #[cfg(not(feature = "spdm-ring"))]
+        pub static DEFAULT: SpdmHash = SpdmHash {
+            hash_all_cb: |_base_hash_algo: SpdmBaseHashAlgo,
+                          _data: &[u8]|
+             -> Option<SpdmDigestStruct> { unimplemented!() },
+            hash_ctx_init_cb: |_base_hash_algo: SpdmBaseHashAlgo| -> Option<usize> {
+                unimplemented!()
+            },
+            hash_ctx_update_cb: |_handle: usize, _data: &[u8]| -> SpdmResult { unimplemented!() },
+            hash_ctx_finalize_cb: |_handle: usize| -> Option<SpdmDigestStruct> { unimplemented!() },
+            hash_ctx_dup_cb: |_handle: usize| -> Option<usize> { unimplemented!() },
+        };
+
+        // + ring +transcript
+        #[cfg(all(feature = "spdm-ring"))]
+        pub use crate::crypto::spdm_ring::hash_impl::DEFAULT;
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_update(ctx: &mut SpdmHashCtx, data: &[u8]) -> SpdmResult {
-        use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
-
-        (CRYPTO_HASH
-            .try_get_or_init(|| DEFAULT.clone())
-            .map_err(|_| SPDM_STATUS_INVALID_STATE_LOCAL)?
-            .hash_ctx_update_cb)(ctx.0, data)
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_finalize(mut ctx: SpdmHashCtx) -> Option<SpdmDigestStruct> {
-        let handle = ctx.0;
-        ctx.0 = 0;
-        (CRYPTO_HASH
-            .try_get_or_init(|| DEFAULT.clone())
-            .ok()?
-            .hash_ctx_finalize_cb)(handle)
-    }
-    #[cfg(feature = "hashed-transcript-data")]
-    pub fn hash_ctx_dup(ctx: &SpdmHashCtx) -> Option<SpdmHashCtx> {
-        let ret = (CRYPTO_HASH
-            .try_get_or_init(|| DEFAULT.clone())
-            .expect("Functions should be registered before using")
-            .hash_ctx_dup_cb)(ctx.0)?;
-        Some(SpdmHashCtx(ret))
-    }
+    pub use self::hash_ext::{
+        hash_ctx_dup, hash_ctx_finalize, hash_ctx_init, hash_ctx_update, SpdmHashCtx,
+    };
 }
 
 pub mod hmac {
