@@ -12,11 +12,11 @@ use super::ffi::{
 use core::ffi::{c_int, c_uchar, c_void};
 use spdmlib::crypto::{SpdmDhe, SpdmDheKeyExchange};
 use spdmlib::protocol::{
-    SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct, SPDM_MAX_DHE_KEY_SIZE,
+    SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct, ECDSA_ECC_NIST_P384_KEY_SIZE,
 };
 use zeroize::ZeroizeOnDrop;
 
-const MAX_KEY_LEN: usize = 97;
+const MAX_KEY_LEN: usize = ECDSA_ECC_NIST_P384_KEY_SIZE + 1;
 #[derive(ZeroizeOnDrop)]
 struct MbedTlsDheExchangeStruct {
     data_size: usize,
@@ -217,7 +217,7 @@ impl SpdmDheKeyExchange for SpdmDheKeyExchangeP384 {
         let peer_pub_key = MbedTlsDheExchangeStruct::from(&peer_pub_key);
         let mut final_key = SpdmDheFinalKeyStruct::default();
         unsafe {
-            let mut final_key_size = SPDM_MAX_DHE_KEY_SIZE;
+            let mut final_key_size = MAX_KEY_LEN;
             let res = spdm_ecdh_compute_shared_p384(
                 self.0.key.as_ptr(),
                 self.0.key_len,
