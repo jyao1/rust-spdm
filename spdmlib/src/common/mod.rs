@@ -47,6 +47,11 @@ enum_builder! {
         SpdmConnectionAuthenticated => 0x5
     }
 }
+impl Default for SpdmConnectionState {
+    fn default() -> SpdmConnectionState {
+        SpdmConnectionState::SpdmConnectionNotStarted
+    }
+}
 
 #[cfg(feature = "hashed-transcript-data")]
 pub use crate::crypto::SpdmHashCtx;

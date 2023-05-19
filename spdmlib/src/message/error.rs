@@ -33,6 +33,11 @@ enum_builder! {
         SpdmErrorVendorDefined => 0xFF
     }
 }
+impl Default for SpdmErrorCode {
+    fn default() -> SpdmErrorCode {
+        SpdmErrorCode::Unknown(0)
+    }
+}
 
 pub const SPDM_ERROR_VENDOR_EXT_DATA_SIZE: usize = 32;
 

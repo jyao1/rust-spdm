@@ -25,6 +25,11 @@ enum_builder! {
         MctpMessageTypeVendorDefinedIana => 0x7F
     }
 }
+impl Default for MctpMessageType {
+    fn default() -> MctpMessageType {
+        MctpMessageType::MctpMessageTypeMctpControl
+    }
+}
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct MctpMessageHeader {

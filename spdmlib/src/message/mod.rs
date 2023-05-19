@@ -95,6 +95,11 @@ enum_builder! {
         SpdmRequestEndSession => 0xEC
     }
 }
+impl Default for SpdmRequestResponseCode {
+    fn default() -> SpdmRequestResponseCode {
+        SpdmRequestResponseCode::Unknown(0)
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmMessageHeader {

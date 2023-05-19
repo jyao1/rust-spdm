@@ -45,6 +45,11 @@ enum_builder! {
         SpdmMeasurementRequestAll => 0xFF
     }
 }
+impl Default for SpdmMeasurementOperation {
+    fn default() -> SpdmMeasurementOperation {
+        SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct SpdmGetMeasurementsRequestPayload {

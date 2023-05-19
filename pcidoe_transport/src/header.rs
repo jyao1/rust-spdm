@@ -14,6 +14,11 @@ enum_builder! {
         PciDoeVendorIdPciSig => 0x0001
     }
 }
+impl Default for PciDoeVendorId {
+    fn default() -> PciDoeVendorId {
+        PciDoeVendorId::Unknown(0)
+    }
+}
 
 enum_builder! {
     @U8
@@ -22,6 +27,11 @@ enum_builder! {
         PciDoeDataObjectTypeDoeDiscovery => 0x00,
         PciDoeDataObjectTypeSpdm => 0x01,
         PciDoeDataObjectTypeSecuredSpdm => 0x02
+    }
+}
+impl Default for PciDoeDataObjectType {
+    fn default() -> PciDoeDataObjectType {
+        PciDoeDataObjectType::Unknown(0)
     }
 }
 
