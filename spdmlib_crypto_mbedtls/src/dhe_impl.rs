@@ -5,20 +5,63 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
+use super::ffi::{
+    spdm_ecdh_compute_shared_p256, spdm_ecdh_compute_shared_p384, spdm_ecdh_gen_public_p256,
+    spdm_ecdh_gen_public_p384,
+};
+use core::ffi::{c_int, c_uchar, c_void};
 use spdmlib::crypto::{SpdmDhe, SpdmDheKeyExchange};
 use spdmlib::protocol::{
     SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct, SPDM_MAX_DHE_KEY_SIZE,
 };
 
+const MAX_KEY_LEN: usize = 97;
+struct MbedTlsDheExchangeStruct {
+    data_size: usize,
+    data: [u8; MAX_KEY_LEN],
+}
+
+impl Default for MbedTlsDheExchangeStruct {
+    fn default() -> Self {
+        Self {
+            data_size: 0,
+            data: [0u8; MAX_KEY_LEN],
+        }
+    }
+}
+
+impl From<&SpdmDheExchangeStruct> for MbedTlsDheExchangeStruct {
+    fn from(value: &SpdmDheExchangeStruct) -> Self {
+        let mut ret = Self {
+            data_size: value.data_size as usize + 1,
+            data: [0u8; MAX_KEY_LEN],
+        };
+        ret.data_size = value.data_size as usize + 1;
+        ret.data[0] = 0x04;
+        ret.data[1..(1 + value.data.as_ref().len())].copy_from_slice(value.data.as_ref());
+        ret
+    }
+}
+
+impl From<MbedTlsDheExchangeStruct> for SpdmDheExchangeStruct {
+    fn from(val: MbedTlsDheExchangeStruct) -> Self {
+        let mut ret = SpdmDheExchangeStruct {
+            data_size: (val.data_size - 1) as u16,
+            ..Default::default()
+        };
+        ret.data[0..(ret.data_size as usize)].copy_from_slice(&val.as_ref()[1..]);
+        ret
+    }
+}
+
+impl AsRef<[u8]> for MbedTlsDheExchangeStruct {
+    fn as_ref(&self) -> &[u8] {
+        &self.data[0..self.data_size]
+    }
+}
+
 pub static DEFAULT: SpdmDhe = SpdmDhe {
     generate_key_pair_cb: generate_key_pair,
-};
-
-use core::ffi::{c_int, c_uchar, c_void};
-
-use super::ffi::{
-    spdm_ecdh_compute_shared_p256, spdm_ecdh_compute_shared_p384, spdm_ecdh_gen_public_p256,
-    spdm_ecdh_gen_public_p384,
 };
 
 fn generate_key_pair(
@@ -60,10 +103,17 @@ extern "C" fn f_rng(_rng_state: *mut c_void, output: *mut c_uchar, len: usize) -
     0
 }
 
-const MAX_PRIVATE_KEY_LEN: usize = 512;
 struct EphemeralPrivateKey {
     pub key_len: usize,
-    pub key: [u8; MAX_PRIVATE_KEY_LEN],
+    pub key: [u8; MAX_KEY_LEN],
+}
+impl Default for EphemeralPrivateKey {
+    fn default() -> Self {
+        Self {
+            key_len: 0,
+            key: [0u8; MAX_KEY_LEN],
+        }
+    }
 }
 
 struct SpdmDheKeyExchangeP256(EphemeralPrivateKey);
@@ -71,25 +121,23 @@ struct SpdmDheKeyExchangeP256(EphemeralPrivateKey);
 impl SpdmDheKeyExchangeP256 {
     fn generate_key_pair() -> Option<(SpdmDheExchangeStruct, Box<dyn SpdmDheKeyExchange>)> {
         let mut private_key = EphemeralPrivateKey {
-            key_len: MAX_PRIVATE_KEY_LEN,
-            key: [0u8; MAX_PRIVATE_KEY_LEN],
+            key_len: MAX_KEY_LEN,
+            key: [0u8; MAX_KEY_LEN],
         };
-        let mut public_key = SpdmDheExchangeStruct::default();
+        let mut public_key = MbedTlsDheExchangeStruct::default();
         unsafe {
-            private_key.key_len = MAX_PRIVATE_KEY_LEN;
-            public_key.data_size = 512;
-            let mut data_size = 512usize;
+            private_key.key_len = MAX_KEY_LEN;
+            public_key.data_size = MAX_KEY_LEN;
             let ret = spdm_ecdh_gen_public_p256(
                 public_key.data.as_mut_ptr(),
-                &mut data_size,
+                &mut public_key.data_size,
                 private_key.key.as_mut_ptr(),
                 &mut private_key.key_len,
                 f_rng as *const c_void,
                 core::ptr::null(),
             );
             if ret == 0 {
-                public_key.data_size = data_size as u16;
-                let public_key = mbedtls_public_key_to_spdm_public_key(public_key);
+                let public_key = public_key.into();
                 let res: Box<dyn SpdmDheKeyExchange> = Box::new(Self(private_key));
                 Some((public_key, res))
             } else {
@@ -105,15 +153,14 @@ impl SpdmDheKeyExchange for SpdmDheKeyExchangeP256 {
         peer_pub_key: &SpdmDheExchangeStruct,
     ) -> Option<SpdmDheFinalKeyStruct> {
         let mut final_key = SpdmDheFinalKeyStruct::default();
-        let peer_pub_key = peer_pub_key.clone();
-        let peer_pub_key = spdm_public_key_to_mbedtls_public_key(peer_pub_key);
+        let peer_pub_key = MbedTlsDheExchangeStruct::from(peer_pub_key);
         unsafe {
-            let mut final_key_size = SPDM_MAX_DHE_KEY_SIZE;
+            let mut final_key_size = MAX_KEY_LEN;
             let res = spdm_ecdh_compute_shared_p256(
                 self.0.key.as_ptr(),
                 self.0.key_len,
                 peer_pub_key.data.as_ptr(),
-                peer_pub_key.data_size as usize,
+                peer_pub_key.data_size,
                 final_key.data.as_mut_ptr(),
                 &mut final_key_size,
                 f_rng as *const c_void,
@@ -133,18 +180,14 @@ struct SpdmDheKeyExchangeP384(EphemeralPrivateKey);
 
 impl SpdmDheKeyExchangeP384 {
     fn generate_key_pair() -> Option<(SpdmDheExchangeStruct, Box<dyn SpdmDheKeyExchange>)> {
-        let mut private_key = EphemeralPrivateKey {
-            key_len: MAX_PRIVATE_KEY_LEN,
-            key: [0u8; MAX_PRIVATE_KEY_LEN],
-        };
-        let mut public_key = SpdmDheExchangeStruct::default();
+        let mut private_key = EphemeralPrivateKey::default();
+        let mut public_key = MbedTlsDheExchangeStruct::default();
         unsafe {
-            private_key.key_len = MAX_PRIVATE_KEY_LEN;
-            public_key.data_size = 512;
-            let mut data_size = 512usize;
+            public_key.data_size = MAX_KEY_LEN;
+            private_key.key_len = MAX_KEY_LEN;
             let ret = spdm_ecdh_gen_public_p384(
                 public_key.data.as_mut_ptr(),
-                &mut data_size,
+                &mut public_key.data_size,
                 private_key.key.as_mut_ptr(),
                 &mut private_key.key_len,
                 f_rng as *const c_void,
@@ -152,8 +195,7 @@ impl SpdmDheKeyExchangeP384 {
             );
             if ret == 0 {
                 // convert mbedtls public_key to spdm public key format
-                public_key.data_size = data_size as u16;
-                let public_key = mbedtls_public_key_to_spdm_public_key(public_key);
+                let public_key = public_key.into();
                 let res: Box<dyn SpdmDheKeyExchange> = Box::new(Self(private_key));
                 Some((public_key, res))
             } else {
@@ -163,30 +205,13 @@ impl SpdmDheKeyExchangeP384 {
     }
 }
 
-fn mbedtls_public_key_to_spdm_public_key(origin: SpdmDheExchangeStruct) -> SpdmDheExchangeStruct {
-    let mut key = SpdmDheExchangeStruct {
-        data_size: origin.data_size - 1,
-        data: [0u8; SPDM_MAX_DHE_KEY_SIZE],
-    };
-    key.data[0..(key.data_size as usize)].copy_from_slice(&origin.as_ref()[1..]);
-    key
-}
-
-fn spdm_public_key_to_mbedtls_public_key(origin: SpdmDheExchangeStruct) -> SpdmDheExchangeStruct {
-    let mut key = SpdmDheExchangeStruct::default();
-    key.data[0] = 0x04;
-    key.data_size = origin.data_size + 1;
-    key.data[1..(key.data_size as usize)].copy_from_slice(origin.as_ref());
-    key
-}
-
 impl SpdmDheKeyExchange for SpdmDheKeyExchangeP384 {
     fn compute_final_key(
         self: Box<Self>,
         peer_pub_key: &SpdmDheExchangeStruct,
     ) -> Option<SpdmDheFinalKeyStruct> {
         let peer_pub_key = peer_pub_key.clone();
-        let peer_pub_key = spdm_public_key_to_mbedtls_public_key(peer_pub_key);
+        let peer_pub_key = MbedTlsDheExchangeStruct::from(&peer_pub_key);
         let mut final_key = SpdmDheFinalKeyStruct::default();
         unsafe {
             let mut final_key_size = SPDM_MAX_DHE_KEY_SIZE;
@@ -194,7 +219,7 @@ impl SpdmDheKeyExchange for SpdmDheKeyExchangeP384 {
                 self.0.key.as_ptr(),
                 self.0.key_len,
                 peer_pub_key.data.as_ptr(),
-                peer_pub_key.data_size as usize,
+                peer_pub_key.data_size,
                 final_key.data.as_mut_ptr(),
                 &mut final_key_size,
                 f_rng as *const c_void,
