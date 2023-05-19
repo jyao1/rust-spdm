@@ -54,6 +54,13 @@ impl SpdmCodec for SpdmKeyUpdateRequestPayload {
         let key_update_operation = SpdmKeyUpdateOperation::read(r)?; // param1
         let tag = u8::read(r)?; // param2
 
+        match key_update_operation {
+            SpdmKeyUpdateOperation::SpdmUpdateSingleKey
+            | SpdmKeyUpdateOperation::SpdmUpdateAllKeys
+            | SpdmKeyUpdateOperation::SpdmVerifyNewKey => {}
+            _ => return None,
+        }
+
         Some(SpdmKeyUpdateRequestPayload {
             key_update_operation,
             tag,
@@ -91,6 +98,13 @@ impl SpdmCodec for SpdmKeyUpdateResponsePayload {
     ) -> Option<SpdmKeyUpdateResponsePayload> {
         let key_update_operation = SpdmKeyUpdateOperation::read(r)?; // param1
         let tag = u8::read(r)?; // param2
+
+        match key_update_operation {
+            SpdmKeyUpdateOperation::SpdmUpdateSingleKey
+            | SpdmKeyUpdateOperation::SpdmUpdateAllKeys
+            | SpdmKeyUpdateOperation::SpdmVerifyNewKey => {}
+            _ => return None,
+        }
 
         Some(SpdmKeyUpdateResponsePayload {
             key_update_operation,
