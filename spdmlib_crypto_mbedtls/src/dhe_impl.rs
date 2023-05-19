@@ -14,8 +14,10 @@ use spdmlib::crypto::{SpdmDhe, SpdmDheKeyExchange};
 use spdmlib::protocol::{
     SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct, SPDM_MAX_DHE_KEY_SIZE,
 };
+use zeroize::ZeroizeOnDrop;
 
 const MAX_KEY_LEN: usize = 97;
+#[derive(ZeroizeOnDrop)]
 struct MbedTlsDheExchangeStruct {
     data_size: usize,
     data: [u8; MAX_KEY_LEN],
@@ -103,6 +105,7 @@ extern "C" fn f_rng(_rng_state: *mut c_void, output: *mut c_uchar, len: usize) -
     0
 }
 
+#[derive(ZeroizeOnDrop)]
 struct EphemeralPrivateKey {
     pub key_len: usize,
     pub key: [u8; MAX_KEY_LEN],
