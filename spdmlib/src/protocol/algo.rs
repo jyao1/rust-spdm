@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::config;
+use crate::crypto::bytes_mut_scrubbed::BytesMutStrubbed;
 use bytes::BytesMut;
 use codec::{enum_builder, u24, Codec, Reader, Writer};
 use core::convert::From;
@@ -864,8 +865,8 @@ impl AsRef<[u8]> for SpdmHKDFKeyStruct {
     }
 }
 
-impl From<BytesMut> for SpdmHKDFKeyStruct {
-    fn from(value: BytesMut) -> Self {
+impl From<BytesMutStrubbed> for SpdmHKDFKeyStruct {
+    fn from(value: BytesMutStrubbed) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_ASYM_KEY_SIZE);
         let data_size = value.as_ref().len() as u16;
         let mut data = [0u8; SPDM_MAX_ASYM_KEY_SIZE];
@@ -1119,8 +1120,8 @@ impl AsRef<[u8]> for SpdmDheFinalKeyStruct {
     }
 }
 
-impl From<BytesMut> for SpdmDheFinalKeyStruct {
-    fn from(value: BytesMut) -> Self {
+impl From<BytesMutStrubbed> for SpdmDheFinalKeyStruct {
+    fn from(value: BytesMutStrubbed) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_DHE_KEY_SIZE);
         let data_size = value.as_ref().len() as u16;
         let mut data = Box::new([0u8; SPDM_MAX_DHE_KEY_SIZE]);
@@ -1189,8 +1190,8 @@ impl AsRef<[u8]> for SpdmAeadKeyStruct {
     }
 }
 
-impl From<BytesMut> for SpdmAeadKeyStruct {
-    fn from(value: BytesMut) -> Self {
+impl From<BytesMutStrubbed> for SpdmAeadKeyStruct {
+    fn from(value: BytesMutStrubbed) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_AEAD_KEY_SIZE);
         let data_size = value.as_ref().len() as u16;
         let mut data = Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]);
@@ -1219,8 +1220,8 @@ impl AsRef<[u8]> for SpdmAeadIvStruct {
     }
 }
 
-impl From<BytesMut> for SpdmAeadIvStruct {
-    fn from(value: BytesMut) -> Self {
+impl From<BytesMutStrubbed> for SpdmAeadIvStruct {
+    fn from(value: BytesMutStrubbed) -> Self {
         assert!(value.as_ref().len() <= SPDM_MAX_AEAD_IV_SIZE);
         let data_size = value.as_ref().len() as u16;
         let mut data = Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]);
@@ -1443,7 +1444,7 @@ mod tests {
     }
     #[test]
     fn test_case1_spdm_signature_struct() {
-        let bytes_mut = bytes::BytesMut::new();
+        let bytes_mut = BytesMut::new();
         let spdm_signature_struct = SpdmSignatureStruct::from(bytes_mut);
         assert_eq!(spdm_signature_struct.data_size, 0);
         for i in 0..SPDM_MAX_ASYM_KEY_SIZE {

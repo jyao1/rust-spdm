@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use crate::spdmlib::crypto::bytes_mut_scrubbed::BytesMutStrubbed;
 use crate::spdmlib::crypto::SpdmAead;
-use bytes::BytesMut;
 use spdmlib::error::SpdmResult;
 
 use spdmlib::protocol::SpdmAeadAlgo;
@@ -59,7 +59,7 @@ fn encrypt(
     d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
 
-    let mut in_out = BytesMut::new();
+    let mut in_out = BytesMutStrubbed::new();
     in_out.extend_from_slice(plain_text);
 
     let mut s_key: ring::aead::SealingKey<OneNonceSequence> = make_key(algorithm, key, nonce);
@@ -120,7 +120,7 @@ fn decrypt(
     d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
 
-    let mut in_out = BytesMut::new();
+    let mut in_out = BytesMutStrubbed::new();
     in_out.extend_from_slice(cipher_text);
     in_out.extend_from_slice(tag);
 

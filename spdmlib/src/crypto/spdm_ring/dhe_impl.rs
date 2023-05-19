@@ -5,6 +5,7 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
+use crate::crypto::bytes_mut_scrubbed::BytesMutStrubbed;
 use crate::crypto::{SpdmDhe, SpdmDheKeyExchange};
 use crate::protocol::{SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct};
 use bytes::{BufMut, BytesMut};
@@ -30,13 +31,13 @@ impl SpdmDheKeyExchange for SpdmDheKeyExchangeP256 {
         self: Box<Self>,
         peer_pub_key: &SpdmDheExchangeStruct,
     ) -> Option<SpdmDheFinalKeyStruct> {
-        let mut pubkey = BytesMut::new();
+        let mut pubkey = BytesMutStrubbed::new();
         pubkey.put_u8(0x4u8);
         pubkey.extend_from_slice(peer_pub_key.as_ref());
 
         let peer_public_key =
             ring::agreement::UnparsedPublicKey::new(&ring::agreement::ECDH_P256, pubkey.as_ref());
-        let mut final_key = BytesMut::new();
+        let mut final_key = BytesMutStrubbed::new();
         match ring::agreement::agree_ephemeral(
             self.0,
             &peer_public_key,
@@ -80,7 +81,7 @@ impl SpdmDheKeyExchange for SpdmDheKeyExchangeP384 {
 
         let peer_public_key =
             ring::agreement::UnparsedPublicKey::new(&ring::agreement::ECDH_P384, pubkey.as_ref());
-        let mut final_key = BytesMut::new();
+        let mut final_key = BytesMutStrubbed::new();
         match ring::agreement::agree_ephemeral(
             self.0,
             &peer_public_key,
