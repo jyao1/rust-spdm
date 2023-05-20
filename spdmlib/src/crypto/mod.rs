@@ -66,7 +66,7 @@ pub mod hash {
     mod hash_ext {
         use super::{SpdmBaseHashAlgo, SpdmDigestStruct, CRYPTO_HASH};
         use crate::error::SpdmResult;
-        #[derive(Ord, PartialEq, PartialOrd, Eq, Debug)]
+        #[derive(Ord, PartialEq, PartialOrd, Eq, Debug, Default)]
         pub struct SpdmHashCtx(usize);
 
         impl Clone for SpdmHashCtx {
