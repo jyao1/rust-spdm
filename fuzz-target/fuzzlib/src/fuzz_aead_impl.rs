@@ -49,12 +49,6 @@ fn encrypt(
         panic!("cipher_text len invalid");
     }
 
-    //debug!("encryption:\n");
-    //debug!("key - {:02x?}\n", key);
-    //debug!("iv - {:02x?}\n", iv);
-    //debug!("aad - {:02x?}\n", aad);
-    //debug!("plain_text - {:02x?}\n", plain_text);
-
     let mut d = [0u8; ring::aead::NONCE_LEN];
     d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
@@ -67,8 +61,6 @@ fn encrypt(
         Ok(()) => {
             cipher_text.copy_from_slice(&in_out[..plain_text_size]);
             tag.copy_from_slice(&in_out[plain_text_size..(plain_text_size + tag_size)]);
-            //debug!("tag - {:02x?}\n", tag);
-            //debug!("cipher_text - {:02x?}\n", cipher_text);
             Ok((plain_text_size, tag_size))
         }
         Err(_) => Err(SPDM_STATUS_CRYPTO_ERROR),
@@ -109,13 +101,6 @@ fn decrypt(
         panic!("plain_text len invalid");
     }
 
-    //debug!("decryption:\n");
-    //debug!("key - {:02x?}\n", key);
-    //debug!("iv - {:02x?}\n", iv);
-    //debug!("aad - {:02x?}\n", aad);
-    //debug!("tag - {:02x?}\n", tag);
-    //debug!("cipher_text - {:02x?}\n", cipher_text);
-
     let mut d = [0u8; ring::aead::NONCE_LEN];
     d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
@@ -132,7 +117,6 @@ fn decrypt(
         match o_key.open_in_place(ring::aead::Aad::from(aad), &mut in_out) {
             Ok(in_out_result) => {
                 plain_text.copy_from_slice(&in_out_result[..cipher_text_size]);
-                //info!("plain_text - {:02x?}\n", plain_text);
                 Ok(cipher_text_size)
             }
             Err(_) => Err(SPDM_STATUS_CRYPTO_ERROR),

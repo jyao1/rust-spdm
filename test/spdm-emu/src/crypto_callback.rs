@@ -117,9 +117,6 @@ fn sign_ecdsa_asym_algo(
     let mut full_signature: [u8; SPDM_MAX_ASYM_KEY_SIZE] = [0u8; SPDM_MAX_ASYM_KEY_SIZE];
     full_signature[..signature.len()].copy_from_slice(signature);
 
-    //debug!("ecdsa signature len - 0x{:x?}\n", signature.len());
-    //debug!("ecdsa signature - {:x?}\n", signature);
-
     Some(SpdmSignatureStruct {
         data_size: signature.len() as u16,
         data: full_signature,

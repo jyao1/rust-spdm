@@ -998,8 +998,6 @@ impl SpdmSession {
         let aad_size = reader.used();
         assert_eq!(aad_size, 6 + transport_param.sequence_number_count as usize);
 
-        //debug!("secure_buffer len - {}\n", secured_buffer.len());
-
         // secure buffer might be bigger for alignment
         if secured_buffer.len() < length as usize + aad_size {
             return Err(SPDM_STATUS_DECODE_AEAD_FAIL);

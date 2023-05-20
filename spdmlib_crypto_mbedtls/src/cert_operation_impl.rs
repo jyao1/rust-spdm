@@ -27,7 +27,6 @@ fn get_cert_from_cert_chain(cert_chain: &[u8], index: isize) -> SpdmResult<(usiz
         }
         let this_cert_len =
             ((cert_chain[offset + 2] as usize) << 8) + (cert_chain[offset + 3] as usize) + 4;
-        //debug!("this_cert_len - 0x{:04x?}\n", this_cert_len);
         if this_cert_len > cert_chain_size - offset {
             return Err(SPDM_STATUS_INVALID_CERT);
         }
