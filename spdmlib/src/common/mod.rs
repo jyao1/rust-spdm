@@ -15,11 +15,11 @@ pub use spdm_codec::SpdmCodec;
 use crate::config::{self, MAX_SPDM_SESSION_COUNT};
 use crate::error::{
     SpdmResult, SPDM_STATUS_DECAP_FAIL, SPDM_STATUS_INVALID_PARAMETER,
-    SPDM_STATUS_SESSION_NUMBER_EXCEED,
+    SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_CRYPTO_ERROR,
 };
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
-    SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_INVALID_STATE_LOCAL,
+    SPDM_STATUS_BUFFER_FULL,
 };
 
 use codec::enum_builder;
@@ -234,6 +234,72 @@ impl<'a> SpdmContext<'a> {
         }
 
         Err(SPDM_STATUS_SESSION_NUMBER_EXCEED)
+    }
+
+    pub fn append_message_b(&mut self, new_message: &[u8]) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info
+                .message_b
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            if self.runtime_info.digest_context_m1m2.is_none() {
+                self.runtime_info.digest_context_m1m2 =
+                    crypto::hash::hash_ctx_init(self.negotiate_info.base_hash_sel);
+                if self.runtime_info.digest_context_m1m2.is_none() {
+                    return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+                }
+
+                crypto::hash::hash_ctx_update(
+                    self.runtime_info.digest_context_m1m2.as_mut().unwrap(),
+                    self.runtime_info.message_a.as_ref(),
+                )?;
+            }
+
+            crypto::hash::hash_ctx_update(
+                self.runtime_info.digest_context_m1m2.as_mut().unwrap(),
+                new_message,
+            )?;
+        }
+
+        Ok(())
+    }
+
+    pub fn append_message_c(&mut self, new_message: &[u8]) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info
+                .message_c
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            if self.runtime_info.digest_context_m1m2.is_none() {
+                self.runtime_info.digest_context_m1m2 =
+                    crypto::hash::hash_ctx_init(self.negotiate_info.base_hash_sel);
+                if self.runtime_info.digest_context_m1m2.is_none() {
+                    return Err(SPDM_STATUS_CRYPTO_ERROR);
+                }
+
+                crypto::hash::hash_ctx_update(
+                    self.runtime_info.digest_context_m1m2.as_mut().unwrap(),
+                    self.runtime_info.message_a.as_ref(),
+                )?;
+            }
+
+            crypto::hash::hash_ctx_update(
+                self.runtime_info.digest_context_m1m2.as_mut().unwrap(),
+                new_message,
+            )?;
+        }
+
+        Ok(())
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]

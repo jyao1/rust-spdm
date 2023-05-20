@@ -105,36 +105,8 @@ impl<'a> RequesterContext<'a> {
                                 self.common.negotiate_info.base_asym_sel.get_size() as usize;
                             let temp_used = used - base_asym_size;
 
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                let message_c = &mut self.common.runtime_info.message_c;
-                                message_c
-                                    .append_message(send_buffer)
-                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
-                                message_c
-                                    .append_message(&receive_buffer[..temp_used])
-                                    .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
-                            }
-
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                crypto::hash::hash_ctx_update(
-                                    self.common
-                                        .runtime_info
-                                        .digest_context_m1m2
-                                        .as_mut()
-                                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
-                                    send_buffer,
-                                )?;
-                                crypto::hash::hash_ctx_update(
-                                    self.common
-                                        .runtime_info
-                                        .digest_context_m1m2
-                                        .as_mut()
-                                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
-                                    &receive_buffer[..temp_used],
-                                )?;
-                            }
+                            self.common.append_message_c(send_buffer)?;
+                            self.common.append_message_c(&receive_buffer[..temp_used])?;
 
                             if self
                                 .verify_challenge_auth_signature(slot_id, &challenge_auth.signature)

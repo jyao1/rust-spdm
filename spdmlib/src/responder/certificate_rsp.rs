@@ -4,8 +4,6 @@
 
 use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
-#[cfg(feature = "hashed-transcript-data")]
-use crate::crypto;
 use crate::message::*;
 use crate::protocol::SPDM_MAX_SLOT_NUMBER;
 use crate::responder::*;
@@ -63,28 +61,14 @@ impl<'a> ResponderContext<'a> {
 
         match session_id {
             None => {
-                #[cfg(not(feature = "hashed-transcript-data"))]
                 if self
                     .common
-                    .runtime_info
-                    .message_b
-                    .append_message(&bytes[..reader.used()])
-                    .is_none()
+                    .append_message_b(&bytes[..reader.used()])
+                    .is_err()
                 {
-                    self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                     return;
                 }
-
-                #[cfg(feature = "hashed-transcript-data")]
-                crypto::hash::hash_ctx_update(
-                    self.common
-                        .runtime_info
-                        .digest_context_m1m2
-                        .as_mut()
-                        .unwrap(),
-                    &bytes[..reader.used()],
-                )
-                .unwrap();
             }
             Some(_session_id) => {}
         }
@@ -144,21 +128,9 @@ impl<'a> ResponderContext<'a> {
 
         match session_id {
             None => {
-                #[cfg(not(feature = "hashed-transcript-data"))]
-                self.common
-                    .runtime_info
-                    .message_b
-                    .append_message(writer.used_slice());
-                #[cfg(feature = "hashed-transcript-data")]
-                crypto::hash::hash_ctx_update(
-                    self.common
-                        .runtime_info
-                        .digest_context_m1m2
-                        .as_mut()
-                        .unwrap(),
-                    writer.used_slice(),
-                )
-                .unwrap();
+                if self.common.append_message_b(writer.used_slice()).is_err() {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                }
             }
             Some(_session_id) => {}
         }
