@@ -96,8 +96,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -172,8 +170,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -253,8 +249,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -336,8 +330,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -417,8 +409,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -498,8 +488,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         responder.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
         responder.common.reset_runtime_info();
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -606,9 +594,6 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             responder.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
 
         responder.common.reset_runtime_info();
 

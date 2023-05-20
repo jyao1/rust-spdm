@@ -144,22 +144,6 @@ impl<'a> RequesterContext<'a> {
                                 .append_message(&receive_buffer[..used])
                                 .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
 
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                self.common.runtime_info.digest_context_m1m2 =
-                                    crypto::hash::hash_ctx_init(
-                                        self.common.negotiate_info.base_hash_sel,
-                                    );
-                                crypto::hash::hash_ctx_update(
-                                    self.common
-                                        .runtime_info
-                                        .digest_context_m1m2
-                                        .as_mut()
-                                        .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                    message_a.as_ref(),
-                                )?;
-                            }
-
                             return Ok(());
                         }
                         error!("!!! algorithms : fail !!!\n");

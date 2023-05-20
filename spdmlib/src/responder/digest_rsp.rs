@@ -73,15 +73,29 @@ impl<'a> ResponderContext<'a> {
                 }
 
                 #[cfg(feature = "hashed-transcript-data")]
-                crypto::hash::hash_ctx_update(
-                    self.common
-                        .runtime_info
-                        .digest_context_m1m2
-                        .as_mut()
-                        .unwrap(),
-                    &bytes[..reader.used()],
-                )
-                .unwrap();
+                {
+                    self.common.runtime_info.digest_context_m1m2 =
+                        crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel);
+                    crypto::hash::hash_ctx_update(
+                        self.common
+                            .runtime_info
+                            .digest_context_m1m2
+                            .as_mut()
+                            .unwrap(),
+                        self.common.runtime_info.message_a.as_ref(),
+                    )
+                    .unwrap();
+
+                    crypto::hash::hash_ctx_update(
+                        self.common
+                            .runtime_info
+                            .digest_context_m1m2
+                            .as_mut()
+                            .unwrap(),
+                        &bytes[..reader.used()],
+                    )
+                    .unwrap();
+                }
             }
             Some(_session_id) => {}
         }
@@ -197,8 +211,6 @@ mod tests_responder {
             None,
         ];
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        context.common.runtime_info.digest_context_m1m2 =
-            Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
 
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);

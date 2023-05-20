@@ -306,9 +306,6 @@ mod tests_responder {
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
-        context.common.runtime_info.digest_context_m1m2 =
-            Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
-
         let spdm_message_header = &mut [0u8; 2];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {

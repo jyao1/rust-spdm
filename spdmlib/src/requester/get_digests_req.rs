@@ -100,6 +100,20 @@ impl<'a> RequesterContext<'a> {
 
                                     #[cfg(feature = "hashed-transcript-data")]
                                     {
+                                        self.common.runtime_info.digest_context_m1m2 =
+                                            crypto::hash::hash_ctx_init(
+                                                self.common.negotiate_info.base_hash_sel,
+                                            );
+
+                                        crypto::hash::hash_ctx_update(
+                                            self.common
+                                                .runtime_info
+                                                .digest_context_m1m2
+                                                .as_mut()
+                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+                                            self.common.runtime_info.message_a.as_ref(),
+                                        )?;
+
                                         crypto::hash::hash_ctx_update(
                                             self.common
                                                 .runtime_info
@@ -180,9 +194,7 @@ mod tests_requester {
             None,
         ];
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.runtime_info.digest_context_m1m2 = Some(
-            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
-        );
+
         responder
             .common
             .runtime_info
@@ -198,9 +210,6 @@ mod tests_requester {
             req_provision_info,
         );
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.runtime_info.digest_context_m1m2 = Some(
-            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
-        );
 
         let status = requester.send_receive_spdm_digest(None).is_ok();
         assert!(status);

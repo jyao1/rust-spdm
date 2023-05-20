@@ -39,11 +39,7 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
     context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-    #[cfg(feature = "hashed-transcript-data")]
-    {
-        context.common.runtime_info.digest_context_m1m2 =
-            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-    }
+
     context.handle_spdm_challenge(data);
 }
 

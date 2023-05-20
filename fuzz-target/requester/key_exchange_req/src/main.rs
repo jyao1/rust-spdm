@@ -50,9 +50,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
-
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -71,9 +68,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
         requester.common.reset_runtime_info();
-
-        #[cfg(feature = "hashed-transcript-data")]
-        requester.common.runtime_info.digest_context_m1m2.is_some();
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,
@@ -120,9 +114,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         responder.common.reset_runtime_info();
 
-        #[cfg(feature = "hashed-transcript-data")]
-        responder.common.runtime_info.digest_context_m1m2.is_some();
-
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -141,9 +132,6 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
         requester.common.reset_runtime_info();
-
-        #[cfg(feature = "hashed-transcript-data")]
-        requester.common.runtime_info.digest_context_m1m2.is_some();
 
         let _ = requester.send_receive_spdm_key_exchange(
             0,
