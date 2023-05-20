@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{
-    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-};
+use crate::error::{SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD};
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -85,13 +83,10 @@ impl<'a> RequesterContext<'a> {
                                     capabilities.max_spdm_msg_size;
                             }
 
-                            let message_a = &mut self.common.runtime_info.message_a;
-                            message_a
-                                .append_message(send_buffer)
-                                .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
-                            message_a
-                                .append_message(&receive_buffer[..used])
-                                .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))
+                            self.common.append_message_a(send_buffer)?;
+                            self.common.append_message_a(&receive_buffer[..used])?;
+
+                            Ok(())
                         } else {
                             error!("!!! capabilities : fail !!!\n");
                             Err(SPDM_STATUS_INVALID_MSG_FIELD)

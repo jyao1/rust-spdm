@@ -14,12 +14,9 @@ pub use spdm_codec::SpdmCodec;
 
 use crate::config::{self, MAX_SPDM_SESSION_COUNT};
 use crate::error::{
-    SpdmResult, SPDM_STATUS_DECAP_FAIL, SPDM_STATUS_INVALID_PARAMETER,
-    SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_CRYPTO_ERROR,
-};
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::{
-    SPDM_STATUS_BUFFER_FULL,
+    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_DECAP_FAIL,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
+    SPDM_STATUS_SESSION_NUMBER_EXCEED,
 };
 
 use codec::enum_builder;
@@ -234,6 +231,14 @@ impl<'a> SpdmContext<'a> {
         }
 
         Err(SPDM_STATUS_SESSION_NUMBER_EXCEED)
+    }
+
+    pub fn append_message_a(&mut self, new_message: &[u8]) -> SpdmResult {
+        self.runtime_info
+            .message_a
+            .append_message(new_message)
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        Ok(())
     }
 
     pub fn append_message_b(&mut self, new_message: &[u8]) -> SpdmResult {
