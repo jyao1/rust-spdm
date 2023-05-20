@@ -161,6 +161,9 @@ impl<'a> ResponderContext<'a> {
         let signature = signature.unwrap();
         // patch the message before send
         writer.mut_used_slice()[(used - base_asym_size)..used].copy_from_slice(signature.as_ref());
+
+        self.common.reset_message_b();
+        self.common.reset_message_c();
     }
 
     #[cfg(feature = "hashed-transcript-data")]
