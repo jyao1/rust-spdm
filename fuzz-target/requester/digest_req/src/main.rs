@@ -38,12 +38,6 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
     responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
 
-    #[cfg(feature = "hashed-transcript-data")]
-    {
-        responder.common.runtime_info.digest_context_m1m2 =
-            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-    }
-
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =
         fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -57,12 +51,6 @@ fn fuzz_send_receive_spdm_digest(fuzzdata: &[u8]) {
 
     requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
     requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-
-    #[cfg(feature = "hashed-transcript-data")]
-    {
-        requester.common.runtime_info.digest_context_m1m2 =
-            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-    }
 
     let _ = requester.send_receive_spdm_digest(None).is_err();
 }

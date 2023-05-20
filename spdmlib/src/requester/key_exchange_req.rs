@@ -509,10 +509,6 @@ mod tests_requester {
 
         crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
-        let message_m = &[
-            0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        ];
-
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
             pcidoe_transport_encap,
@@ -539,27 +535,6 @@ mod tests_requester {
 
         responder.common.reset_runtime_info();
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        responder
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            responder.common.runtime_info.digest_context_m1m2 = Some(
-                crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
-            );
-            let _ = crypto::hash::hash_ctx_update(
-                responder
-                    .common
-                    .runtime_info
-                    .digest_context_m1m2
-                    .as_mut()
-                    .unwrap(),
-                message_m,
-            );
-        }
         responder.common.provision_info.my_cert_chain = [
             Some(RSP_CERT_CHAIN_BUFF),
             None,
@@ -594,28 +569,6 @@ mod tests_requester {
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
         requester.common.reset_runtime_info();
-
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        requester
-            .common
-            .runtime_info
-            .message_m
-            .append_message(message_m);
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            requester.common.runtime_info.digest_context_m1m2 = Some(
-                crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
-            );
-            let _ = crypto::hash::hash_ctx_update(
-                requester
-                    .common
-                    .runtime_info
-                    .digest_context_m1m2
-                    .as_mut()
-                    .unwrap(),
-                message_m,
-            );
-        }
 
         requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
 

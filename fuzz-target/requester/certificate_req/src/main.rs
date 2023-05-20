@@ -47,12 +47,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             None,
         ];
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            responder.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
-
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -68,11 +62,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            requester.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -105,11 +94,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             None,
         ];
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            responder.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -125,11 +109,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            requester.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -161,11 +140,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             None,
         ];
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            responder.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -184,11 +158,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         tmp.data_size += 1;
         requester.common.provision_info.peer_root_cert_data = Some(tmp);
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            requester.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     {
@@ -221,13 +190,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             None,
         ];
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            responder.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
-        // digest_rsp
-
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -247,11 +209,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            requester.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
     // TCD:
@@ -288,11 +245,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             None,
         ];
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            responder.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
             fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -308,11 +260,6 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
 
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            requester.common.runtime_info.digest_context_m1m2 =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
         let _ = requester.send_receive_spdm_certificate(None, 0).is_err();
     }
 }

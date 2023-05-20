@@ -38,12 +38,6 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
         None,
     ];
 
-    #[cfg(feature = "hashed-transcript-data")]
-    {
-        context.common.runtime_info.digest_context_m1m2 =
-            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-    }
-
     context.handle_spdm_certificate(data, None);
 }
 

@@ -203,9 +203,6 @@ mod tests_responder {
             None,
         ];
 
-        context.common.runtime_info.digest_context_m1m2 =
-            Some(crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384).unwrap());
-
         let spdm_message_header = &mut [0u8; 1024];
         let mut writer = Writer::init(spdm_message_header);
         let value = SpdmMessageHeader {

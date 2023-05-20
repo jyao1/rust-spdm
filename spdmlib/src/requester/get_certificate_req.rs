@@ -397,9 +397,7 @@ mod tests_requester {
             None,
             None,
         ];
-        responder.common.runtime_info.digest_context_m1m2 = Some(
-            crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
-        );
+
         responder
             .common
             .runtime_info
@@ -418,9 +416,6 @@ mod tests_requester {
         requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.runtime_info.digest_context_m1m2 = Some(
-            crypto::hash::hash_ctx_init(requester.common.negotiate_info.base_hash_sel).unwrap(),
-        );
 
         let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
         assert!(status);

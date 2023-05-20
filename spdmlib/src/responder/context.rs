@@ -554,11 +554,7 @@ mod tests_responder {
             context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
             context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
             context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-            #[cfg(feature = "hashed-transcript-data")]
-            {
-                context.runtime_info.digest_context_m1m2 =
-                    crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-            }
+
             context.session = gen_array_clone(SpdmSession::new(), 4);
             context.session[0].setup(session_id).unwrap();
             context.session[0].set_crypto_param(
