@@ -96,20 +96,18 @@ impl<'a> ResponderContext<'a> {
 
         let base_hash_sel = self.common.negotiate_info.base_hash_sel;
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-        #[cfg(feature = "hashed-transcript-data")]
-        let message_a = self.common.runtime_info.message_a.clone();
         let measurement_specification_sel =
             self.common.negotiate_info.measurement_specification_sel;
         let runtime_content_change_support = self.common.config_info.runtime_content_change_support;
         let content_changed = self.common.runtime_info.content_changed;
         let base_asym_sel = self.common.negotiate_info.base_asym_sel;
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
         if self
-            .append_message_m_response(session_id, &bytes[..reader.used()])
-            .is_none()
+            .common
+            .append_message_m(session_id, &bytes[..reader.used()])
+            .is_err()
         {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
 
@@ -201,53 +199,6 @@ impl<'a> ResponderContext<'a> {
             panic!("Failed to encode!");
         };
 
-        #[cfg(feature = "hashed-transcript-data")]
-        let message_m = match session_id {
-            Some(session_id) => {
-                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                    s
-                } else {
-                    panic!("invalid session id");
-                };
-
-                if session.runtime_info.digest_context_l1l2.is_none() {
-                    session.runtime_info.digest_context_l1l2 =
-                        crypto::hash::hash_ctx_init(base_hash_sel);
-                    if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                        crypto::hash::hash_ctx_update(
-                            session.runtime_info.digest_context_l1l2.as_mut().unwrap(),
-                            message_a.as_ref(),
-                        )
-                        .unwrap();
-                    }
-                }
-
-                &mut session.runtime_info.digest_context_l1l2
-            }
-            None => {
-                if self.common.runtime_info.digest_context_l1l2.is_none() {
-                    self.common.runtime_info.digest_context_l1l2 =
-                        crypto::hash::hash_ctx_init(base_hash_sel);
-                    if spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                        crypto::hash::hash_ctx_update(
-                            self.common
-                                .runtime_info
-                                .digest_context_l1l2
-                                .as_mut()
-                                .unwrap(),
-                            message_a.as_ref(),
-                        )
-                        .unwrap();
-                    }
-                }
-
-                &mut self.common.runtime_info.digest_context_l1l2
-            }
-        };
-        #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), &bytes[..reader.used()])
-            .unwrap();
-
         // generat signature
         if get_measurements
             .measurement_attributes
@@ -255,15 +206,15 @@ impl<'a> ResponderContext<'a> {
         {
             let base_asym_size = base_asym_sel.get_size() as usize;
             let temp_used = used - base_asym_size;
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            self.append_message_m_response(session_id, &writer.used_slice()[..temp_used]);
 
-            #[cfg(feature = "hashed-transcript-data")]
-            crypto::hash::hash_ctx_update(
-                message_m.as_mut().unwrap(),
-                &writer.used_slice()[..temp_used],
-            )
-            .unwrap();
+            if self
+                .common
+                .append_message_m(session_id, &writer.used_slice()[..temp_used])
+                .is_err()
+            {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
+            }
 
             let signature = self.generate_measurement_signature(session_id);
             if signature.is_err() {
@@ -274,68 +225,14 @@ impl<'a> ResponderContext<'a> {
             // patch the message before send
             writer.mut_used_slice()[(used - base_asym_size)..used]
                 .copy_from_slice(signature.as_ref());
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            match session_id {
-                Some(session_id) => {
-                    self.common
-                        .get_session_via_id(session_id)
-                        .unwrap()
-                        .runtime_info
-                        .message_m
-                        .reset_message();
-                }
-                None => {
-                    self.common.runtime_info.message_m.reset_message();
-                }
-            }
-            #[cfg(feature = "hashed-transcript-data")]
-            match session_id {
-                Some(session_id) => {
-                    self.common
-                        .get_session_via_id(session_id)
-                        .unwrap()
-                        .runtime_info
-                        .digest_context_l1l2 = None;
-                }
-                None => {
-                    self.common.runtime_info.digest_context_l1l2 = None;
-                }
-            }
-        } else {
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            self.append_message_m_response(session_id, writer.used_slice());
-            #[cfg(feature = "hashed-transcript-data")]
-            match session_id {
-                Some(_) => {
-                    crypto::hash::hash_ctx_update(message_m.as_mut().unwrap(), writer.used_slice())
-                        .unwrap();
-                }
-                None => {
-                    crypto::hash::hash_ctx_update(
-                        self.common
-                            .runtime_info
-                            .digest_context_l1l2
-                            .as_mut()
-                            .unwrap(),
-                        writer.used_slice(),
-                    )
-                    .unwrap();
-                }
-            }
-        }
-    }
-    #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn append_message_m_response(
-        &mut self,
-        session_id: Option<u32>,
-        bytes: &[u8],
-    ) -> Option<usize> {
-        match session_id {
-            None => self.common.runtime_info.message_m.append_message(bytes),
-            Some(session_id) => {
-                let session = self.common.get_session_via_id(session_id).unwrap();
-                session.runtime_info.message_m.append_message(bytes)
-            }
+
+            self.common.reset_message_m(session_id);
+        } else if self
+            .common
+            .append_message_m(session_id, writer.used_slice())
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
         }
     }
 
@@ -343,12 +240,12 @@ impl<'a> ResponderContext<'a> {
         &mut self,
         session_id: Option<u32>,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = ManagedBufferL1L2::default();
+        let mut message_l1l2 = ManagedBufferL1L2::default();
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
             let message_a = self.common.runtime_info.message_a.clone();
-            message
+            message_l1l2
                 .append_message(message_a.as_ref())
                 .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
         }
@@ -356,7 +253,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         match session_id {
             None => {
-                message
+                message_l1l2
                     .append_message(self.common.runtime_info.message_m.as_ref())
                     .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
@@ -366,7 +263,7 @@ impl<'a> ResponderContext<'a> {
                 } else {
                     return Err(SPDM_STATUS_INVALID_PARAMETER);
                 };
-                message
+                message_l1l2
                     .append_message(session.runtime_info.message_m.as_ref())
                     .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
@@ -374,12 +271,14 @@ impl<'a> ResponderContext<'a> {
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let message_hash =
-            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        let message_l1l2_hash = crypto::hash::hash_all(
+            self.common.negotiate_info.base_hash_sel,
+            message_l1l2.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
         #[cfg(feature = "hashed-transcript-data")]
-        let message_hash = match session_id {
+        let message_l1l2_hash = match session_id {
             Some(session_id) => crypto::hash::hash_ctx_finalize(
                 self.common
                     .get_session_via_id(session_id)
@@ -401,28 +300,28 @@ impl<'a> ResponderContext<'a> {
             )
             .unwrap(),
         };
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+        debug!("message_hash - {:02x?}", message_l1l2_hash.as_ref());
 
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
-            message.reset_message();
-            message
+            message_l1l2.reset_message();
+            message_l1l2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_l1l2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_l1l2
                 .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
-                .append_message(message_hash.as_ref())
+            message_l1l2
+                .append_message(message_l1l2_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crypto::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
-            message.as_ref(),
+            message_l1l2.as_ref(),
         )
         .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
