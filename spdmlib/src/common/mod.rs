@@ -332,6 +332,118 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
+    pub fn append_message_m(&mut self, session_id: Option<u32>, new_message: &[u8]) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        match session_id {
+            None => self
+                .runtime_info
+                .message_m
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?,
+            Some(session_id) => {
+                let session = if let Some(s) = self.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+                };
+                session
+                    .runtime_info
+                    .message_m
+                    .append_message(new_message)
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?
+            }
+        };
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            match session_id {
+                Some(session_id) => {
+                    let base_hash_sel = self.negotiate_info.base_hash_sel;
+                    let spdm_version_sel = self.negotiate_info.spdm_version_sel;
+                    let message_a = self.runtime_info.message_a.clone();
+
+                    let session = if let Some(s) = self.get_session_via_id(session_id) {
+                        s
+                    } else {
+                        return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+                    };
+                    if session.runtime_info.digest_context_l1l2.is_none() {
+                        session.runtime_info.digest_context_l1l2 =
+                            crypto::hash::hash_ctx_init(base_hash_sel);
+
+                        if spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
+                            crypto::hash::hash_ctx_update(
+                                session.runtime_info.digest_context_l1l2.as_mut().unwrap(),
+                                message_a.as_ref(),
+                            )?;
+                        }
+                    }
+
+                    crypto::hash::hash_ctx_update(
+                        session.runtime_info.digest_context_l1l2.as_mut().unwrap(),
+                        new_message,
+                    )?;
+                }
+                None => {
+                    if self.runtime_info.digest_context_l1l2.is_none() {
+                        self.runtime_info.digest_context_l1l2 =
+                            crypto::hash::hash_ctx_init(self.negotiate_info.base_hash_sel);
+                        if self.runtime_info.digest_context_l1l2.is_none() {
+                            return Err(SPDM_STATUS_CRYPTO_ERROR);
+                        }
+
+                        if self.negotiate_info.spdm_version_sel.get_u8()
+                            >= SpdmVersion::SpdmVersion12.get_u8()
+                        {
+                            crypto::hash::hash_ctx_update(
+                                self.runtime_info.digest_context_l1l2.as_mut().unwrap(),
+                                self.runtime_info.message_a.as_ref(),
+                            )?;
+                        }
+                    }
+
+                    crypto::hash::hash_ctx_update(
+                        self.runtime_info.digest_context_l1l2.as_mut().unwrap(),
+                        new_message,
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+    pub fn reset_message_m(&mut self, session_id: Option<u32>) {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        match session_id {
+            None => self.runtime_info.message_m.reset_message(),
+            Some(session_id) => {
+                let session = if let Some(s) = self.get_session_via_id(session_id) {
+                    s
+                } else {
+                    return;
+                };
+                session.runtime_info.message_m.reset_message();
+            }
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            match session_id {
+                Some(session_id) => {
+                    let session = if let Some(s) = self.get_session_via_id(session_id) {
+                        s
+                    } else {
+                        return;
+                    };
+                    session.runtime_info.digest_context_l1l2 = None;
+                }
+                None => {
+                    self.runtime_info.digest_context_l1l2 = None;
+                }
+            }
+        }
+    }
+
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,
