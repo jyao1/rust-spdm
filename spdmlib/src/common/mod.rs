@@ -240,6 +240,9 @@ impl<'a> SpdmContext<'a> {
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         Ok(())
     }
+    pub fn reset_message_a(&mut self) {
+        self.runtime_info.message_a.reset_message();
+    }
 
     pub fn append_message_b(&mut self, new_message: &[u8]) -> SpdmResult {
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -273,6 +276,17 @@ impl<'a> SpdmContext<'a> {
 
         Ok(())
     }
+    pub fn reset_message_b(&mut self) {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info.message_b.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            self.runtime_info.digest_context_m1m2 = None;
+        }
+    }
 
     pub fn append_message_c(&mut self, new_message: &[u8]) -> SpdmResult {
         #[cfg(not(feature = "hashed-transcript-data"))]
@@ -305,6 +319,17 @@ impl<'a> SpdmContext<'a> {
         }
 
         Ok(())
+    }
+    pub fn reset_message_c(&mut self) {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info.message_c.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            self.runtime_info.digest_context_m1m2 = None;
+        }
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]

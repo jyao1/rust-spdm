@@ -113,8 +113,12 @@ impl<'a> RequesterContext<'a> {
                                 .is_err()
                             {
                                 error!("verify_challenge_auth_signature fail");
+                                self.common.reset_message_b();
+                                self.common.reset_message_c();
                                 return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
+                                self.common.reset_message_b();
+                                self.common.reset_message_c();
                                 info!("verify_challenge_auth_signature pass");
                             }
 
