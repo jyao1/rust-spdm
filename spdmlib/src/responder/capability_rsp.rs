@@ -70,12 +70,10 @@ impl<'a> ResponderContext<'a> {
 
         if self
             .common
-            .runtime_info
-            .message_a
-            .append_message(&bytes[..reader.used()])
-            .is_none()
+            .append_message_a(&bytes[..reader.used()])
+            .is_err()
         {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
 
@@ -96,10 +94,9 @@ impl<'a> ResponderContext<'a> {
             ),
         };
         let _ = response.spdm_encode(&mut self.common, writer);
-        self.common
-            .runtime_info
-            .message_a
-            .append_message(writer.used_slice());
+        if self.common.append_message_a(writer.used_slice()).is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+        }
     }
 }
 
