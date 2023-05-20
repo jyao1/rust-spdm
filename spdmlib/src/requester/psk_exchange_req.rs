@@ -5,15 +5,16 @@
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
+use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::SPDM_STATUS_UNSUPPORTED_CAP;
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::error::{
-    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
-};
 #[cfg(feature = "hashed-transcript-data")]
 use crate::error::{
     SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
+};
+#[cfg(not(feature = "hashed-transcript-data"))]
+use crate::error::{
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
 };
 use crate::message::*;
@@ -147,36 +148,17 @@ impl<'a> RequesterContext<'a> {
                                 self.common.negotiate_info.base_hash_sel.get_size() as usize;
                             let temp_receive_used = receive_used - base_hash_size;
 
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let mut digest_context_th = crypto::hash::hash_ctx_init(
-                                self.common.negotiate_info.base_hash_sel,
-                            )
-                            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                crypto::hash::hash_ctx_update(
-                                    &mut digest_context_th,
-                                    self.common.runtime_info.message_a.as_ref(),
-                                )?;
-                                crypto::hash::hash_ctx_update(&mut digest_context_th, send_buffer)?;
-                                crypto::hash::hash_ctx_update(
-                                    &mut digest_context_th,
-                                    &receive_buffer[..temp_receive_used],
-                                )?;
-                            }
-
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let mut message_k = ManagedBufferK::default();
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                message_k
-                                    .append_message(send_buffer)
-                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+                            #[cfg(feature = "hashed-transcript-data")]
+                            let mut message_k = SpdmHashCtx::default();
 
-                                message_k
-                                    .append_message(&receive_buffer[..temp_receive_used])
-                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-                            }
+                            self.common.init_message_k(&mut message_k, 0, true, true)?;
+                            self.common.append_message_k(&mut message_k, send_buffer)?;
+                            self.common.append_message_k(
+                                &mut message_k,
+                                &receive_buffer[..temp_receive_used],
+                            )?;
 
                             // create session - generate the handshake secret (including finished_key)
                             #[cfg(not(feature = "hashed-transcript-data"))]
@@ -187,7 +169,7 @@ impl<'a> RequesterContext<'a> {
                                 None,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
-                            let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone())
+                            let th1 = crypto::hash::hash_ctx_finalize(message_k.clone())
                                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                             let base_hash_algo = self.common.negotiate_info.base_hash_sel;
@@ -248,12 +230,15 @@ impl<'a> RequesterContext<'a> {
                                 .common
                                 .get_session_via_id(session_id)
                                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
+
+                            session.init_message_k(&message_k)?;
+
                             if session
                                 .verify_hmac_with_response_finished_key(
                                     #[cfg(not(feature = "hashed-transcript-data"))]
                                     transcript_data.as_ref(),
                                     #[cfg(feature = "hashed-transcript-data")]
-                                    crypto::hash::hash_ctx_finalize(digest_context_th.clone())
+                                    crypto::hash::hash_ctx_finalize(message_k.clone())
                                         .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
                                         .as_ref(),
                                     &psk_exchange_rsp.verify_data,
@@ -266,20 +251,13 @@ impl<'a> RequesterContext<'a> {
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
-                            #[cfg(not(feature = "hashed-transcript-data"))]
+
+                            if session
+                                .append_message_k(psk_exchange_rsp.verify_data.as_ref())
+                                .is_err()
                             {
-                                message_k
-                                    .append_message(psk_exchange_rsp.verify_data.as_ref())
-                                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-                                session.runtime_info.message_k = message_k;
-                            }
-                            #[cfg(feature = "hashed-transcript-data")]
-                            {
-                                crypto::hash::hash_ctx_update(
-                                    &mut digest_context_th,
-                                    psk_exchange_rsp.verify_data.as_ref(),
-                                )?;
-                                session.runtime_info.digest_context_th = Some(digest_context_th);
+                                let _ = session.teardown(session_id);
+                                return Err(SPDM_STATUS_BUFFER_FULL);
                             }
 
                             session.set_session_state(

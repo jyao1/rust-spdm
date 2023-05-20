@@ -285,6 +285,91 @@ impl SpdmSession {
         self.session_state
     }
 
+    pub fn init_message_k(
+        &mut self,
+        #[cfg(not(feature = "hashed-transcript-data"))] message_k: &ManagedBufferK,
+        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &SpdmHashCtx,
+    ) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info.message_k = message_k.clone();
+        }
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            self.runtime_info.digest_context_th = Some(digest_context_th.clone());
+        }
+        Ok(())
+    }
+    pub fn append_message_k(&mut self, new_message: &[u8]) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info
+                .message_k
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            if self.runtime_info.digest_context_th.is_none() {
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            }
+
+            crypto::hash::hash_ctx_update(
+                self.runtime_info.digest_context_th.as_mut().unwrap(),
+                new_message,
+            )?;
+        }
+
+        Ok(())
+    }
+    pub fn reset_message_k(&mut self) {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info.message_f.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            self.runtime_info.digest_context_th = None;
+        }
+    }
+
+    pub fn append_message_f(&mut self, new_message: &[u8]) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info
+                .message_f
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            if self.runtime_info.digest_context_th.is_none() {
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            }
+
+            crypto::hash::hash_ctx_update(
+                self.runtime_info.digest_context_th.as_mut().unwrap(),
+                new_message,
+            )?;
+        }
+
+        Ok(())
+    }
+    pub fn reset_message_f(&mut self) {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info.message_f.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            self.runtime_info.digest_context_th = None;
+        }
+    }
+
     pub fn generate_handshake_secret(
         &mut self,
         spdm_version: SpdmVersion,
