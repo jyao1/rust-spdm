@@ -74,28 +74,14 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
         if self
             .common
-            .runtime_info
-            .message_c
-            .append_message(&bytes[..reader.used()])
-            .is_none()
+            .append_message_c(&bytes[..reader.used()])
+            .is_err()
         {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
-            self.common
-                .runtime_info
-                .digest_context_m1m2
-                .as_mut()
-                .unwrap(),
-            &bytes[..reader.used()],
-        )
-        .unwrap();
 
         info!("send spdm challenge_auth\n");
 
@@ -144,36 +130,30 @@ impl<'a> ResponderContext<'a> {
         // generat signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
         let temp_used = used - base_asym_size;
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        self.common
-            .runtime_info
-            .message_c
-            .append_message(&writer.used_slice()[..temp_used]);
 
+        if self
+            .common
+            .append_message_c(&writer.used_slice()[..temp_used])
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        let signature = self.generate_challenge_auth_signature();
         #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
+        let message_hash = crypto::hash::hash_ctx_finalize(
             self.common
                 .runtime_info
                 .digest_context_m1m2
                 .as_mut()
+                .cloned()
                 .unwrap(),
-            &writer.used_slice()[..temp_used],
         )
         .unwrap();
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let signature = self.generate_challenge_auth_signature();
         #[cfg(feature = "hashed-transcript-data")]
-        let digest_context_m1m2_clone = self
-            .common
-            .runtime_info
-            .digest_context_m1m2
-            .as_mut()
-            .cloned()
-            .unwrap();
-        #[cfg(feature = "hashed-transcript-data")]
-        let signature = self.generate_challenge_auth_signature(
-            crypto::hash::hash_ctx_finalize(digest_context_m1m2_clone).unwrap(),
-        );
+        let signature = self.generate_challenge_auth_signature(message_hash);
         if signature.is_err() {
             self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
             return;

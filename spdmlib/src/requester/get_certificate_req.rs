@@ -155,40 +155,8 @@ impl<'a> RequesterContext<'a> {
 
                             match session_id {
                                 None => {
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    {
-                                        let message_b = &mut self.common.runtime_info.message_b;
-                                        message_b.append_message(send_buffer).map_or_else(
-                                            || Err(SPDM_STATUS_BUFFER_FULL),
-                                            |_| Ok(()),
-                                        )?;
-                                        message_b
-                                            .append_message(&receive_buffer[..used])
-                                            .map_or_else(
-                                                || Err(SPDM_STATUS_BUFFER_FULL),
-                                                |_| Ok(()),
-                                            )?;
-                                    }
-
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    {
-                                        crypto::hash::hash_ctx_update(
-                                            self.common
-                                                .runtime_info
-                                                .digest_context_m1m2
-                                                .as_mut()
-                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                            send_buffer,
-                                        )?;
-                                        crypto::hash::hash_ctx_update(
-                                            self.common
-                                                .runtime_info
-                                                .digest_context_m1m2
-                                                .as_mut()
-                                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                            &receive_buffer[..used],
-                                        )?;
-                                    }
+                                    self.common.append_message_b(send_buffer)?;
+                                    self.common.append_message_b(&receive_buffer[..used])?;
                                 }
                                 Some(_session_id) => {}
                             }
