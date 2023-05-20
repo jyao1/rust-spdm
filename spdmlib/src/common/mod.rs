@@ -447,6 +447,87 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
+    pub fn init_message_k(
+        &self,
+        #[cfg(not(feature = "hashed-transcript-data"))] message_k: &mut ManagedBufferK,
+        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
+        slot_id: u8,
+        use_psk: bool,
+        is_requester: bool,
+    ) -> SpdmResult {
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            let base_hash_sel = self.negotiate_info.base_hash_sel;
+            let message_a = self.runtime_info.message_a.clone();
+
+            let cert_chain_hash = if is_requester {
+                self.get_certchain_hash_req(use_psk, slot_id as usize)
+            } else {
+                self.get_certchain_hash_rsp(use_psk, slot_id as usize)
+            };
+            if !use_psk && cert_chain_hash.is_none() {
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            }
+
+            *digest_context_th = if let Some(c) = crypto::hash::hash_ctx_init(base_hash_sel) {
+                c
+            } else {
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
+            };
+
+            crypto::hash::hash_ctx_update(digest_context_th, message_a.as_ref())?;
+            if !use_psk {
+                crypto::hash::hash_ctx_update(
+                    digest_context_th,
+                    cert_chain_hash.unwrap().as_ref(),
+                )?;
+            }
+        }
+
+        Ok(())
+    }
+    pub fn append_message_k(
+        &self,
+        #[cfg(not(feature = "hashed-transcript-data"))] message_k: &mut ManagedBufferK,
+        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
+        new_message: &[u8],
+    ) -> SpdmResult {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            message_k
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            crypto::hash::hash_ctx_update(digest_context_th, new_message)?;
+        }
+
+        Ok(())
+    }
+    pub fn reset_message_k(&mut self, session_id: u32) {
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            let session = if let Some(s) = self.get_session_via_id(session_id) {
+                s
+            } else {
+                return;
+            };
+            session.runtime_info.message_k.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            let session = if let Some(s) = self.get_session_via_id(session_id) {
+                s
+            } else {
+                return;
+            };
+            session.runtime_info.digest_context_th = None;
+        }
+    }
+
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,
@@ -600,18 +681,19 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
-    pub fn get_certchain_hash_req(&self, slot_id: u8, use_psk: bool) -> Option<SpdmDigestStruct> {
+    pub fn get_certchain_hash_req(
+        &self,
+        use_psk: bool,
+        slot_id: usize,
+    ) -> Option<SpdmDigestStruct> {
         if !use_psk {
-            if self.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            if self.peer_info.peer_cert_chain[slot_id].is_none() {
                 error!("peer_cert_chain is not populated!\n");
                 return None;
             }
 
-            let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()?
-                .data[..(self.peer_info.peer_cert_chain[slot_id as usize]
-                .as_ref()?
-                .data_size as usize)];
+            let cert_chain_data = &self.peer_info.peer_cert_chain[slot_id].as_ref()?.data
+                [..(self.peer_info.peer_cert_chain[slot_id].as_ref()?.data_size as usize)];
             let cert_chain_hash =
                 crypto::hash::hash_all(self.negotiate_info.base_hash_sel, cert_chain_data)
                     .ok_or(None::<SpdmDigestStruct>);

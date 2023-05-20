@@ -7,6 +7,8 @@ use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::crypto::SpdmHashCtx;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
@@ -183,29 +185,32 @@ impl<'a> ResponderContext<'a> {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         let mut message_k = ManagedBufferK::default();
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            if message_k.append_message(&bytes[..reader.used()]).is_none() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-            if message_k
-                .append_message(&writer.used_slice()[..temp_used])
-                .is_none()
-            {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-        }
-
         #[cfg(feature = "hashed-transcript-data")]
+        let mut message_k = SpdmHashCtx::default();
+
+        if self
+            .common
+            .init_message_k(&mut message_k, 0, true, false)
+            .is_err()
         {
-            crypto::hash::hash_ctx_update(&mut digest_context_th, &bytes[..reader.used()]).unwrap();
-            crypto::hash::hash_ctx_update(
-                &mut digest_context_th,
-                &writer.used_slice()[..temp_used],
-            )
-            .unwrap();
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+        if self
+            .common
+            .append_message_k(&mut message_k, &bytes[..reader.used()])
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+        if self
+            .common
+            .append_message_k(&mut message_k, &writer.used_slice()[..temp_used])
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
 
         // create session - generate the handshake secret (including finished_key)
@@ -214,7 +219,7 @@ impl<'a> ResponderContext<'a> {
             .common
             .calc_rsp_transcript_hash(true, 0, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
-        let th1 = crypto::hash::hash_ctx_finalize(digest_context_th.clone());
+        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
         #[cfg(feature = "hashed-transcript-data")]
         if th1.is_none() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -277,11 +282,17 @@ impl<'a> ResponderContext<'a> {
         let transcript_data = transcript_data.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
+        if session.init_message_k(&message_k).is_err() {
+            let _ = session.teardown(session_id);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+
         #[cfg(not(feature = "hashed-transcript-data"))]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
         #[cfg(feature = "hashed-transcript-data")]
         let hmac = session.generate_hmac_with_response_finished_key(
-            crypto::hash::hash_ctx_finalize(digest_context_th.clone())
+            crypto::hash::hash_ctx_finalize(message_k.clone())
                 .unwrap()
                 .as_ref(),
         );
@@ -291,19 +302,10 @@ impl<'a> ResponderContext<'a> {
             return;
         }
         let hmac = hmac.unwrap();
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            if message_k.append_message(hmac.as_ref()).is_none() {
-                let _ = session.teardown(session_id);
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-            session.runtime_info.message_k = message_k;
-        }
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            crypto::hash::hash_ctx_update(&mut digest_context_th, hmac.as_ref()).unwrap();
-            session.runtime_info.digest_context_th = Some(digest_context_th);
+        if session.append_message_k(hmac.as_ref()).is_err() {
+            let _ = session.teardown(session_id);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
 
         // patch the message before send
