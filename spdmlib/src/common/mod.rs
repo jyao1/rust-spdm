@@ -370,6 +370,9 @@ impl<'a> SpdmContext<'a> {
                     if session.runtime_info.digest_context_l1l2.is_none() {
                         session.runtime_info.digest_context_l1l2 =
                             crypto::hash::hash_ctx_init(base_hash_sel);
+                        if session.runtime_info.digest_context_l1l2.is_none() {
+                            return Err(SPDM_STATUS_CRYPTO_ERROR);
+                        }
 
                         if spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
                             crypto::hash::hash_ctx_update(
