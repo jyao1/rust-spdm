@@ -7,12 +7,6 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 use crate::crypto;
 use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::SPDM_STATUS_UNSUPPORTED_CAP;
-#[cfg(feature = "hashed-transcript-data")]
-use crate::error::{
-    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
-};
-#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
     SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_SESSION_NUMBER_EXCEED, SPDM_STATUS_VERIF_FAIL,
@@ -170,8 +164,11 @@ impl<'a> RequesterContext<'a> {
                                 None,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
-                            let th1 = crypto::hash::hash_ctx_finalize(message_k.clone())
-                                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+                            let th1 = self.common.calc_req_transcript_hash_via_ctx(
+                                INVALID_SLOT,
+                                true,
+                                message_k.clone(),
+                            )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                             let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                             let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -227,6 +224,14 @@ impl<'a> RequesterContext<'a> {
                                 &message_k,
                                 None,
                             )?;
+
+                            #[cfg(feature = "hashed-transcript-data")]
+                            let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
+                                INVALID_SLOT,
+                                true,
+                                message_k.clone(),
+                            )?;
+
                             let session = self
                                 .common
                                 .get_session_via_id(session_id)
@@ -239,9 +244,7 @@ impl<'a> RequesterContext<'a> {
                                     #[cfg(not(feature = "hashed-transcript-data"))]
                                     transcript_data.as_ref(),
                                     #[cfg(feature = "hashed-transcript-data")]
-                                    crypto::hash::hash_ctx_finalize(message_k.clone())
-                                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
-                                        .as_ref(),
+                                    transcript_hash.as_ref(),
                                     &psk_exchange_rsp.verify_data,
                                 )
                                 .is_err()
