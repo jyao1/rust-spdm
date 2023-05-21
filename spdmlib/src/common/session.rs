@@ -740,7 +740,7 @@ impl SpdmSession {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_hmac_with_response_finished_key(
-        &mut self,
+        &self,
         message: &[u8],
     ) -> SpdmResult<SpdmDigestStruct> {
         crypto::hmac::hmac(
@@ -755,7 +755,7 @@ impl SpdmSession {
 
     #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_hmac_with_response_finished_key(
-        &mut self,
+        &self,
         message_hash: &[u8],
     ) -> SpdmResult<SpdmDigestStruct> {
         crypto::hmac::hmac(
@@ -768,7 +768,7 @@ impl SpdmSession {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_hmac_with_request_finished_key(
-        &mut self,
+        &self,
         message: &[u8],
     ) -> SpdmResult<SpdmDigestStruct> {
         crypto::hmac::hmac(
@@ -783,7 +783,7 @@ impl SpdmSession {
 
     #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_hmac_with_request_finished_key(
-        &mut self,
+        &self,
         message_hash: &[u8],
     ) -> SpdmResult<SpdmDigestStruct> {
         crypto::hmac::hmac(

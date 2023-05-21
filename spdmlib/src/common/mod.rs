@@ -451,9 +451,12 @@ impl<'a> SpdmContext<'a> {
         &self,
         #[cfg(not(feature = "hashed-transcript-data"))] _message_k: &mut ManagedBufferK,
         #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
-        slot_id: u8,
-        use_psk: bool,
-        is_requester: bool,
+        #[cfg(not(feature = "hashed-transcript-data"))] _slot_id: u8,
+        #[cfg(feature = "hashed-transcript-data")] slot_id: u8,
+        #[cfg(not(feature = "hashed-transcript-data"))] _use_psk: bool,
+        #[cfg(feature = "hashed-transcript-data")] use_psk: bool,
+        #[cfg(not(feature = "hashed-transcript-data"))] _is_requester: bool,
+        #[cfg(feature = "hashed-transcript-data")] is_requester: bool,
     ) -> SpdmResult {
         #[cfg(feature = "hashed-transcript-data")]
         {
@@ -653,6 +656,66 @@ impl<'a> SpdmContext<'a> {
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         Ok(transcript_hash)
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
+    pub fn calc_req_transcript_hash(
+        &self,
+        _slot_id: u8,
+        _use_psk: bool,
+        session: &SpdmSession,
+    ) -> SpdmResult<SpdmDigestStruct> {
+        let transcript_hash = crypto::hash::hash_ctx_finalize(
+            session
+                .runtime_info
+                .digest_context_th
+                .as_ref()
+                .cloned()
+                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        Ok(transcript_hash)
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
+    pub fn calc_rsp_transcript_hash(
+        &self,
+        _use_psk: bool,
+        _slot_id: u8,
+        session: &SpdmSession,
+    ) -> SpdmResult<SpdmDigestStruct> {
+        let transcript_hash = crypto::hash::hash_ctx_finalize(
+            session
+                .runtime_info
+                .digest_context_th
+                .as_ref()
+                .cloned()
+                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        Ok(transcript_hash)
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
+    pub fn calc_req_transcript_hash_via_ctx(
+        &self,
+        _slot_id: u8,
+        _use_psk: bool,
+        ctx: SpdmHashCtx,
+    ) -> SpdmResult<SpdmDigestStruct> {
+        let hash = crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        Ok(hash)
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
+    pub fn calc_rsp_transcript_hash_via_ctx(
+        &self,
+        _slot_id: u8,
+        _use_psk: bool,
+        ctx: SpdmHashCtx,
+    ) -> SpdmResult<SpdmDigestStruct> {
+        let hash = crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        Ok(hash)
     }
 
     pub fn get_certchain_hash_rsp(

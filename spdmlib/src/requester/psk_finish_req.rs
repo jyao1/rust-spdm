@@ -2,17 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(feature = "hashed-transcript-data")]
-use crate::crypto;
-#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{
-    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER,
-};
-#[cfg(feature = "hashed-transcript-data")]
-use crate::error::{
-    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -95,7 +87,6 @@ impl<'a> RequesterContext<'a> {
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.append_message_f(&buf[..temp_used])?;
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
         let session = self
             .common
             .get_immutable_session_via_id(session_id)
@@ -107,23 +98,15 @@ impl<'a> RequesterContext<'a> {
             &session.runtime_info.message_k,
             Some(&session.runtime_info.message_f),
         )?;
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let session = self.common.get_session_via_id(session_id).unwrap();
-
         #[cfg(feature = "hashed-transcript-data")]
-        let message_hash = crypto::hash::hash_ctx_finalize(
-            session
-                .runtime_info
-                .digest_context_th
-                .as_mut()
-                .cloned()
-                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-        )
-        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        let transcript_hash = self
+            .common
+            .calc_req_transcript_hash(INVALID_SLOT, true, session)?;
 
+        let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(
             #[cfg(feature = "hashed-transcript-data")]
-            message_hash.as_ref(),
+            transcript_hash.as_ref(),
             #[cfg(not(feature = "hashed-transcript-data"))]
             transcript_data.as_ref(),
         )?;
@@ -158,34 +141,25 @@ impl<'a> RequesterContext<'a> {
                             let session = self.common.get_session_via_id(session_id).unwrap();
                             session.append_message_f(&receive_buffer[..receive_used])?;
 
-                            #[cfg(not(feature = "hashed-transcript-data"))]
                             let session = self
                                 .common
                                 .get_immutable_session_via_id(session_id)
                                 .unwrap();
-                            #[cfg(not(feature = "hashed-transcript-data"))]
+
                             let th2 = self.common.calc_req_transcript_hash(
                                 INVALID_SLOT,
                                 true,
+                                #[cfg(not(feature = "hashed-transcript-data"))]
                                 &session.runtime_info.message_k,
+                                #[cfg(not(feature = "hashed-transcript-data"))]
                                 Some(&session.runtime_info.message_f),
+                                #[cfg(feature = "hashed-transcript-data")]
+                                session,
                             )?;
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let session = self.common.get_session_via_id(session_id).unwrap();
-
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let th2 = crypto::hash::hash_ctx_finalize(
-                                session
-                                    .runtime_info
-                                    .digest_context_th
-                                    .as_mut()
-                                    .cloned()
-                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                            )
-                            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
                             debug!("!!! th2 : {:02x?}\n", th2.as_ref());
 
+                            let session = self.common.get_session_via_id(session_id).unwrap();
                             session.generate_data_secret(spdm_version_sel, &th2)?;
                             session.set_session_state(
                                 crate::common::session::SpdmSessionState::SpdmSessionEstablished,

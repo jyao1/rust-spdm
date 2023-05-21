@@ -3,10 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
-#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::common::INVALID_SLOT;
-#[cfg(feature = "hashed-transcript-data")]
-use crate::crypto;
 use crate::responder::*;
 
 use crate::message::*;
@@ -70,7 +67,6 @@ impl<'a> ResponderContext<'a> {
                 return;
             }
 
-            #[cfg(not(feature = "hashed-transcript-data"))]
             let session = self
                 .common
                 .get_immutable_session_via_id(session_id)
@@ -92,21 +88,16 @@ impl<'a> ResponderContext<'a> {
             let transcript_data = transcript_data.unwrap();
 
             #[cfg(feature = "hashed-transcript-data")]
-            let message_hash = crypto::hash::hash_ctx_finalize(
-                session
-                    .runtime_info
-                    .digest_context_th
-                    .as_mut()
-                    .cloned()
-                    .unwrap(),
-            );
+            let transcript_hash = self
+                .common
+                .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
             #[cfg(feature = "hashed-transcript-data")]
-            if message_hash.is_none() {
+            if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
             }
             #[cfg(feature = "hashed-transcript-data")]
-            let message_hash = message_hash.unwrap();
+            let transcript_hash = transcript_hash.unwrap();
 
             let session = self
                 .common
@@ -116,7 +107,7 @@ impl<'a> ResponderContext<'a> {
                 #[cfg(not(feature = "hashed-transcript-data"))]
                 transcript_data.as_ref(),
                 #[cfg(feature = "hashed-transcript-data")]
-                message_hash.as_ref(),
+                transcript_hash.as_ref(),
                 &psk_finish_req.verify_data,
             );
             if res.is_err() {
@@ -159,39 +150,23 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
         // generate the data secret
-        let th2;
         #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            let session = self
-                .common
-                .get_immutable_session_via_id(session_id)
-                .unwrap();
-            th2 = self.common.calc_rsp_transcript_hash(
-                true,
-                0,
-                &session.runtime_info.message_k,
-                Some(&session.runtime_info.message_f),
-            );
-            if th2.is_err() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-        }
+        let th2 = self.common.calc_rsp_transcript_hash(
+            true,
+            0,
+            &session.runtime_info.message_k,
+            Some(&session.runtime_info.message_f),
+        );
         #[cfg(feature = "hashed-transcript-data")]
-        {
-            th2 = crypto::hash::hash_ctx_finalize(
-                session
-                    .runtime_info
-                    .digest_context_th
-                    .as_mut()
-                    .cloned()
-                    .unwrap(),
-            );
-            if th2.is_none() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
+        let th2 = self.common.calc_rsp_transcript_hash(true, 0, session);
+        if th2.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
         // Safely to call unwrap;
         let th2 = th2.unwrap();

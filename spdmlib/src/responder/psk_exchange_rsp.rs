@@ -220,13 +220,9 @@ impl<'a> ResponderContext<'a> {
             .common
             .calc_rsp_transcript_hash(true, 0, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
-        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
-        #[cfg(feature = "hashed-transcript-data")]
-        if th1.is_none() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
-        #[cfg(not(feature = "hashed-transcript-data"))]
+        let th1 =
+            self.common
+                .calc_rsp_transcript_hash_via_ctx(INVALID_SLOT, true, message_k.clone());
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -271,9 +267,9 @@ impl<'a> ResponderContext<'a> {
 
         // generate HMAC with finished_key
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = self
-            .common
-            .calc_rsp_transcript_data(true, 0, &message_k, None);
+        let transcript_data =
+            self.common
+                .calc_rsp_transcript_data(true, INVALID_SLOT, &message_k, None);
         #[cfg(not(feature = "hashed-transcript-data"))]
         if transcript_data.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -281,6 +277,18 @@ impl<'a> ResponderContext<'a> {
         }
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
+
+        #[cfg(feature = "hashed-transcript-data")]
+        let transcript_hash =
+            self.common
+                .calc_rsp_transcript_hash_via_ctx(INVALID_SLOT, true, message_k.clone());
+        #[cfg(feature = "hashed-transcript-data")]
+        if transcript_hash.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+        #[cfg(feature = "hashed-transcript-data")]
+        let transcript_hash = transcript_hash.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
         if session.init_message_k(&message_k).is_err() {
@@ -292,11 +300,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
         #[cfg(feature = "hashed-transcript-data")]
-        let hmac = session.generate_hmac_with_response_finished_key(
-            crypto::hash::hash_ctx_finalize(message_k.clone())
-                .unwrap()
-                .as_ref(),
-        );
+        let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
         if hmac.is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);

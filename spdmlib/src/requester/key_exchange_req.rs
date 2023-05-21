@@ -216,8 +216,11 @@ impl<'a> RequesterContext<'a> {
                                 .common
                                 .calc_req_transcript_hash(slot_id, false, &message_k, None)?;
                             #[cfg(feature = "hashed-transcript-data")]
-                            let th1 = crypto::hash::hash_ctx_finalize(message_k.clone())
-                                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+                            let th1 = self.common.calc_req_transcript_hash_via_ctx(
+                                slot_id,
+                                false,
+                                message_k.clone(),
+                            )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
                             let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                             let dhe_algo = self.common.negotiate_info.dhe_sel;
@@ -270,6 +273,14 @@ impl<'a> RequesterContext<'a> {
                             let transcript_data = self
                                 .common
                                 .calc_req_transcript_data(slot_id, false, &message_k, None)?;
+
+                            #[cfg(feature = "hashed-transcript-data")]
+                            let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
+                                slot_id,
+                                false,
+                                message_k.clone(),
+                            )?;
+
                             let mut session = self
                                 .common
                                 .get_session_via_id(session_id)
@@ -282,9 +293,7 @@ impl<'a> RequesterContext<'a> {
                                     #[cfg(not(feature = "hashed-transcript-data"))]
                                     transcript_data.as_ref(),
                                     #[cfg(feature = "hashed-transcript-data")]
-                                    crypto::hash::hash_ctx_finalize(message_k)
-                                        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
-                                        .as_ref(),
+                                    transcript_hash.as_ref(),
                                     &key_exchange_rsp.verify_data,
                                 )
                                 .is_err()
@@ -344,11 +353,11 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         use crate::error::SPDM_STATUS_INVALID_PARAMETER;
 
-        let temp_message_k = message_k.clone();
+        let transcript_hash =
+            self.common
+                .calc_req_transcript_hash_via_ctx(slot_id, false, message_k.clone())?;
 
-        let message_hash =
-            crypto::hash::hash_ctx_finalize(temp_message_k).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+        debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
@@ -377,7 +386,7 @@ impl<'a> RequesterContext<'a> {
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
-                .append_message(message_hash.as_ref())
+                .append_message(transcript_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 

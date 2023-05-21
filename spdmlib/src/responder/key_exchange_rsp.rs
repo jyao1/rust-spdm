@@ -272,8 +272,9 @@ impl<'a> ResponderContext<'a> {
             .common
             .calc_rsp_transcript_hash(false, slot_id as u8, &message_k, None);
         #[cfg(feature = "hashed-transcript-data")]
-        let th1 = crypto::hash::hash_ctx_finalize(message_k.clone());
-        #[cfg(not(feature = "hashed-transcript-data"))]
+        let th1 =
+            self.common
+                .calc_rsp_transcript_hash_via_ctx(slot_id as u8, false, message_k.clone());
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -324,6 +325,18 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = transcript_data.unwrap();
 
+        #[cfg(feature = "hashed-transcript-data")]
+        let transcript_hash =
+            self.common
+                .calc_rsp_transcript_hash_via_ctx(slot_id as u8, false, message_k.clone());
+        #[cfg(feature = "hashed-transcript-data")]
+        if transcript_hash.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+        #[cfg(feature = "hashed-transcript-data")]
+        let transcript_hash = transcript_hash.unwrap();
+
         let session = self.common.get_session_via_id(session_id).unwrap();
         if session.init_message_k(&message_k).is_err() {
             let _ = session.teardown(session_id);
@@ -334,11 +347,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(not(feature = "hashed-transcript-data"))]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
         #[cfg(feature = "hashed-transcript-data")]
-        let hmac = session.generate_hmac_with_response_finished_key(
-            crypto::hash::hash_ctx_finalize(message_k.clone())
-                .unwrap()
-                .as_ref(),
-        );
+        let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
         if hmac.is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -371,12 +380,14 @@ impl<'a> ResponderContext<'a> {
     #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_key_exchange_rsp_signature(
         &mut self,
-        _slot_id: u8,
+        slot_id: u8,
         message_k: &SpdmHashCtx,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let temp_message_k = message_k.clone();
-        let message_hash = crypto::hash::hash_ctx_finalize(temp_message_k).unwrap();
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+        let transcript_hash =
+            self.common
+                .calc_rsp_transcript_hash_via_ctx(slot_id, false, message_k.clone())?;
+
+        debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
         let mut message = ManagedBufferTH::default();
         if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
@@ -391,7 +402,7 @@ impl<'a> ResponderContext<'a> {
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             message
-                .append_message(message_hash.as_ref())
+                .append_message(transcript_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
@@ -452,7 +463,6 @@ mod tests_responder {
         use super::*;
         use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
         use crate::crypto;
-        use crate::crypto::bytes_mut_scrubbed::BytesMutStrubbed;
         use crate::message::*;
         use crate::protocol::*;
         use crate::responder;
