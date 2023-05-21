@@ -6,9 +6,9 @@ use crate::error::{
     SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER,
 };
+use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
-use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
 

@@ -614,28 +614,6 @@ impl<'a> SpdmContext<'a> {
         Ok(transcript_hash)
     }
 
-    #[cfg(feature = "hashed-transcript-data")]
-    pub fn calc_req_transcript_hash_via_ctx(
-        &self,
-        _use_psk: bool,
-        _slot_id: u8,
-        ctx: &SpdmHashCtx,
-    ) -> SpdmResult<SpdmDigestStruct> {
-        let hash = crypto::hash::hash_ctx_finalize(ctx.clone()).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-        Ok(hash)
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
-    pub fn calc_rsp_transcript_hash_via_ctx(
-        &self,
-        _use_psk: bool,
-        _slot_id: u8,
-        ctx: &SpdmHashCtx,
-    ) -> SpdmResult<SpdmDigestStruct> {
-        let hash = crypto::hash::hash_ctx_finalize(ctx.clone()).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-        Ok(hash)
-    }
-
     pub fn get_certchain_hash_local(
         &self,
         use_psk: bool,

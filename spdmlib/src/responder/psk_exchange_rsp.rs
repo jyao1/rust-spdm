@@ -15,9 +15,6 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 extern crate alloc;
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBufferK;
-
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_psk_exchange(&mut self, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
@@ -241,16 +238,9 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
 
         // create session - generate the handshake secret (including finished_key)
-        #[cfg(not(feature = "hashed-transcript-data"))]
         let th1 = self
             .common
             .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
-        #[cfg(feature = "hashed-transcript-data")]
-        let th1 = self.common.calc_rsp_transcript_hash_via_ctx(
-            true,
-            INVALID_SLOT,
-            session.runtime_info.digest_context_th.as_ref().unwrap(),
-        );
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -268,16 +258,9 @@ impl<'a> ResponderContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
         // generate HMAC with finished_key
-        #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_hash = self
             .common
             .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
-        #[cfg(feature = "hashed-transcript-data")]
-        let transcript_hash = self.common.calc_rsp_transcript_hash_via_ctx(
-            true,
-            INVALID_SLOT,
-            session.runtime_info.digest_context_th.as_ref().unwrap(),
-        );
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
