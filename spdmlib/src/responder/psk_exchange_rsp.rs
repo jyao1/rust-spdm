@@ -269,39 +269,26 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
         // generate HMAC with finished_key
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = self.common.calc_rsp_transcript_data(
+        let transcript_hash = self.common.calc_rsp_transcript_hash(
             true,
             INVALID_SLOT,
             &session.runtime_info.message_k,
             None,
         );
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        if transcript_data.is_err() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = transcript_data.unwrap();
-
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self.common.calc_rsp_transcript_hash_via_ctx(
             true,
             INVALID_SLOT,
             session.runtime_info.digest_context_th.as_ref().unwrap(),
         );
-        #[cfg(feature = "hashed-transcript-data")]
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
-        #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = transcript_hash.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
-        #[cfg(feature = "hashed-transcript-data")]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
         if hmac.is_err() {
             let _ = session.teardown(session_id);

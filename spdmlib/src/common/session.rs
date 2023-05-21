@@ -743,22 +743,6 @@ impl SpdmSession {
         Ok(())
     }
 
-    #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn generate_hmac_with_response_finished_key(
-        &self,
-        message: &[u8],
-    ) -> SpdmResult<SpdmDigestStruct> {
-        crypto::hmac::hmac(
-            self.crypto_param.base_hash_algo,
-            self.handshake_secret.response_finished_key.as_ref(),
-            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
-                .as_ref(),
-        )
-        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_hmac_with_response_finished_key(
         &self,
         message_hash: &[u8],
@@ -771,22 +755,6 @@ impl SpdmSession {
         .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
-    #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn generate_hmac_with_request_finished_key(
-        &self,
-        message: &[u8],
-    ) -> SpdmResult<SpdmDigestStruct> {
-        crypto::hmac::hmac(
-            self.crypto_param.base_hash_algo,
-            self.handshake_secret.request_finished_key.as_ref(),
-            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
-                .as_ref(),
-        )
-        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_hmac_with_request_finished_key(
         &self,
         message_hash: &[u8],
@@ -799,23 +767,6 @@ impl SpdmSession {
         .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
-    #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn verify_hmac_with_response_finished_key(
-        &self,
-        message: &[u8],
-        hmac: &SpdmDigestStruct,
-    ) -> SpdmResult {
-        crypto::hmac::hmac_verify(
-            self.crypto_param.base_hash_algo,
-            self.handshake_secret.response_finished_key.as_ref(),
-            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
-                .as_ref(),
-            hmac,
-        )
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_hmac_with_response_finished_key(
         &self,
         message_hash: &[u8],
@@ -829,23 +780,6 @@ impl SpdmSession {
         )
     }
 
-    #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn verify_hmac_with_request_finished_key(
-        &self,
-        message: &[u8],
-        hmac: &SpdmDigestStruct,
-    ) -> SpdmResult {
-        crypto::hmac::hmac_verify(
-            self.crypto_param.base_hash_algo,
-            self.handshake_secret.request_finished_key.as_ref(),
-            crypto::hash::hash_all(self.crypto_param.base_hash_algo, message)
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?
-                .as_ref(),
-            hmac,
-        )
-    }
-
-    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_hmac_with_request_finished_key(
         &self,
         message_hash: &[u8],

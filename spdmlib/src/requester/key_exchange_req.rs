@@ -292,13 +292,12 @@ impl<'a> RequesterContext<'a> {
 
                             // verify HMAC with finished_key
                             #[cfg(not(feature = "hashed-transcript-data"))]
-                            let transcript_data = self.common.calc_req_transcript_data(
+                            let transcript_hash = self.common.calc_req_transcript_hash(
                                 false,
                                 slot_id,
                                 &session.runtime_info.message_k,
                                 None,
                             )?;
-
                             #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
                                 false,
@@ -313,9 +312,6 @@ impl<'a> RequesterContext<'a> {
 
                             if session
                                 .verify_hmac_with_response_finished_key(
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    transcript_data.as_ref(),
-                                    #[cfg(feature = "hashed-transcript-data")]
                                     transcript_hash.as_ref(),
                                     &key_exchange_rsp.verify_data,
                                 )
@@ -435,15 +431,14 @@ impl<'a> RequesterContext<'a> {
         session: &SpdmSession,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let message_k = &session.runtime_info.message_k;
-        let mut message = self
-            .common
-            .calc_req_transcript_data(false, slot_id, message_k, None)?;
+        let message_hash = self.common.calc_req_transcript_hash(
+            false,
+            slot_id,
+            &session.runtime_info.message_k,
+            None,
+        )?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
-        let message_hash =
-            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
@@ -459,6 +454,13 @@ impl<'a> RequesterContext<'a> {
                 .as_ref()
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .data_size as usize)];
+
+        let mut message = self.common.calc_req_transcript_data(
+            false,
+            slot_id,
+            &session.runtime_info.message_k,
+            None,
+        )?;
 
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
