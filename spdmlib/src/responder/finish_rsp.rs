@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::crypto;
 use crate::protocol::*;
 use crate::responder::*;
 
@@ -74,37 +75,24 @@ impl<'a> ResponderContext<'a> {
             let slot_id = session.get_slot_id();
 
             #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_data = &self.common.calc_rsp_transcript_data(
+            let transcript_hash = &self.common.calc_rsp_transcript_hash(
                 false,
                 slot_id,
                 &session.runtime_info.message_k,
                 Some(&session.runtime_info.message_f),
             );
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            if transcript_data.is_err() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_data = transcript_data.as_ref().unwrap();
-
             #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = self
                 .common
                 .calc_rsp_transcript_hash(false, slot_id, session);
-            #[cfg(feature = "hashed-transcript-data")]
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
             }
-            #[cfg(feature = "hashed-transcript-data")]
-            let transcript_hash = transcript_hash.unwrap();
+            let transcript_hash = transcript_hash.as_ref().unwrap();
 
             if session
                 .verify_hmac_with_request_finished_key(
-                    #[cfg(not(feature = "hashed-transcript-data"))]
-                    transcript_data.as_ref(),
-                    #[cfg(feature = "hashed-transcript-data")]
                     transcript_hash.as_ref(),
                     &finish_req.verify_data,
                 )
@@ -184,39 +172,23 @@ impl<'a> ResponderContext<'a> {
             let slot_id = session.get_slot_id();
 
             #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_data = self.common.calc_rsp_transcript_data(
+            let transcript_hash = self.common.calc_rsp_transcript_hash(
                 false,
                 slot_id,
                 &session.runtime_info.message_k,
                 Some(&session.runtime_info.message_f),
             );
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            if transcript_data.is_err() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_data = transcript_data.unwrap();
-
             #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = self
                 .common
                 .calc_rsp_transcript_hash(false, slot_id, session);
-
-            #[cfg(feature = "hashed-transcript-data")]
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
             }
-            #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = transcript_hash.unwrap();
 
-            let hmac = session.generate_hmac_with_response_finished_key(
-                #[cfg(not(feature = "hashed-transcript-data"))]
-                transcript_data.as_ref(),
-                #[cfg(feature = "hashed-transcript-data")]
-                transcript_hash.as_ref(),
-            );
+            let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
             if hmac.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;

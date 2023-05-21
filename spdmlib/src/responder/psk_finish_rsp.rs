@@ -4,6 +4,7 @@
 
 use crate::common::SpdmCodec;
 use crate::common::INVALID_SLOT;
+use crate::crypto;
 use crate::responder::*;
 
 use crate::message::*;
@@ -73,40 +74,27 @@ impl<'a> ResponderContext<'a> {
                 .unwrap();
 
             #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_data = self.common.calc_rsp_transcript_data(
+            let transcript_hash = self.common.calc_rsp_transcript_hash(
                 true,
                 INVALID_SLOT,
                 &session.runtime_info.message_k,
                 Some(&session.runtime_info.message_f),
             );
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            if transcript_data.is_err() {
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_data = transcript_data.unwrap();
-
             #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = self
                 .common
                 .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
-            #[cfg(feature = "hashed-transcript-data")]
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
             }
-            #[cfg(feature = "hashed-transcript-data")]
-            let transcript_hash = transcript_hash.unwrap();
+            let transcript_hash = transcript_hash.as_ref().unwrap();
 
             let session = self
                 .common
                 .get_immutable_session_via_id(session_id)
                 .unwrap();
             let res = session.verify_hmac_with_request_finished_key(
-                #[cfg(not(feature = "hashed-transcript-data"))]
-                transcript_data.as_ref(),
-                #[cfg(feature = "hashed-transcript-data")]
                 transcript_hash.as_ref(),
                 &psk_finish_req.verify_data,
             );

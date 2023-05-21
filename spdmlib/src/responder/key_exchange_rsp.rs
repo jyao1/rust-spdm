@@ -327,39 +327,26 @@ impl<'a> ResponderContext<'a> {
 
         // generate HMAC with finished_key
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = self.common.calc_rsp_transcript_data(
+        let transcript_hash = self.common.calc_rsp_transcript_hash(
             false,
             slot_id as u8,
             &session.runtime_info.message_k,
             None,
         );
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        if transcript_data.is_err() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_data = transcript_data.unwrap();
-
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self.common.calc_rsp_transcript_hash_via_ctx(
             false,
             slot_id as u8,
             session.runtime_info.digest_context_th.as_ref().unwrap(),
         );
-        #[cfg(feature = "hashed-transcript-data")]
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
-        #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = transcript_hash.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
-        #[cfg(feature = "hashed-transcript-data")]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
         if hmac.is_err() {
             let _ = session.teardown(session_id);
@@ -438,17 +425,22 @@ impl<'a> ResponderContext<'a> {
         slot_id: u8,
         session: &SpdmSession,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let message_k = &session.runtime_info.message_k;
-        let mut message = self
-            .common
-            .calc_rsp_transcript_data(false, slot_id, message_k, None)?;
+        let message_hash = self.common.calc_rsp_transcript_hash(
+            false,
+            slot_id,
+            &session.runtime_info.message_k,
+            None,
+        )?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
-        let message_hash =
-            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
+        let mut message = self.common.calc_rsp_transcript_data(
+            false,
+            slot_id,
+            &session.runtime_info.message_k,
+            None,
+        )?;
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {

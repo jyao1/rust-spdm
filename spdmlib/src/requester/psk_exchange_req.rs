@@ -6,6 +6,7 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
 use crate::error::SPDM_STATUS_BUFFER_FULL;
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_UNSUPPORTED_CAP;
 use crate::error::{
     SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
@@ -229,13 +230,12 @@ impl<'a> RequesterContext<'a> {
 
                             // verify HMAC with finished_key
                             #[cfg(not(feature = "hashed-transcript-data"))]
-                            let transcript_data = self.common.calc_req_transcript_data(
+                            let transcript_hash = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
                                 &session.runtime_info.message_k,
                                 None,
                             )?;
-
                             #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
                                 true,
@@ -250,9 +250,6 @@ impl<'a> RequesterContext<'a> {
 
                             if session
                                 .verify_hmac_with_response_finished_key(
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    transcript_data.as_ref(),
-                                    #[cfg(feature = "hashed-transcript-data")]
                                     transcript_hash.as_ref(),
                                     &psk_exchange_rsp.verify_data,
                                 )
