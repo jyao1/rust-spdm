@@ -822,6 +822,12 @@ const MAX_MANAGED_BUFFER_TH_SIZE: usize = MAX_MANAGED_BUFFER_A_SIZE
     + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE
     + MAX_MANAGED_BUFFER_F_SIZE;
 
+const SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE: usize = 64;
+const SPDM_VERSION_1_2_SIGN_CONTEXT_SIZE: usize = 36;
+const MAX_MANAGED_BUFFER_12SIGN_SIZE: usize = SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT_SIZE
+    + SPDM_VERSION_1_2_SIGN_CONTEXT_SIZE
+    + SPDM_MAX_HASH_SIZE;
+
 #[derive(Debug, Clone)]
 pub struct ManagedBufferA(usize, [u8; MAX_MANAGED_BUFFER_A_SIZE]);
 
@@ -1071,6 +1077,34 @@ impl AsRef<[u8]> for ManagedBufferTH {
 impl Default for ManagedBufferTH {
     fn default() -> Self {
         ManagedBufferTH(0usize, [0u8; MAX_MANAGED_BUFFER_TH_SIZE])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedBuffer12Sign(usize, [u8; MAX_MANAGED_BUFFER_12SIGN_SIZE]);
+
+impl ManagedBuffer12Sign {
+    pub fn append_message(&mut self, bytes: &[u8]) -> Option<usize> {
+        let used = self.0;
+        let mut writer = Writer::init(&mut self.1[used..]);
+        let write_len = writer.extend_from_slice(bytes)?;
+        self.0 = used + write_len;
+        Some(writer.used())
+    }
+    pub fn reset_message(&mut self) {
+        self.0 = 0;
+    }
+}
+
+impl AsRef<[u8]> for ManagedBuffer12Sign {
+    fn as_ref(&self) -> &[u8] {
+        &self.1[0..self.0]
+    }
+}
+
+impl Default for ManagedBuffer12Sign {
+    fn default() -> Self {
+        ManagedBuffer12Sign(0usize, [0u8; MAX_MANAGED_BUFFER_12SIGN_SIZE])
     }
 }
 
