@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::error::{
-    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER,
 };
 use crate::protocol::*;
 use crate::requester::*;
-use crate::{crypto, message::*};
+use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
@@ -91,14 +91,6 @@ impl<'a> RequesterContext<'a> {
             .common
             .get_immutable_session_via_id(session_id)
             .unwrap();
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_hash = self.common.calc_req_transcript_hash(
-            true,
-            INVALID_SLOT,
-            &session.runtime_info.message_k,
-            Some(&session.runtime_info.message_f),
-        )?;
-        #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self
             .common
             .calc_req_transcript_hash(true, INVALID_SLOT, session)?;
@@ -144,11 +136,6 @@ impl<'a> RequesterContext<'a> {
                             let th2 = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
-                                #[cfg(not(feature = "hashed-transcript-data"))]
-                                &session.runtime_info.message_k,
-                                #[cfg(not(feature = "hashed-transcript-data"))]
-                                Some(&session.runtime_info.message_f),
-                                #[cfg(feature = "hashed-transcript-data")]
                                 session,
                             )?;
 

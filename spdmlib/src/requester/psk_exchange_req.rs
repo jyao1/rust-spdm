@@ -6,7 +6,6 @@ use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 
 use crate::crypto;
 use crate::error::SPDM_STATUS_BUFFER_FULL;
-use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_UNSUPPORTED_CAP;
 use crate::error::{
     SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
@@ -209,8 +208,7 @@ impl<'a> RequesterContext<'a> {
                             let th1 = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
-                                &session.runtime_info.message_k,
-                                None,
+                                session,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
                             let th1 = self.common.calc_req_transcript_hash_via_ctx(
@@ -233,8 +231,7 @@ impl<'a> RequesterContext<'a> {
                             let transcript_hash = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
-                                &session.runtime_info.message_k,
-                                None,
+                                session,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(

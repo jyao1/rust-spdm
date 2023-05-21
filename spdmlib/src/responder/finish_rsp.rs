@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
-use crate::crypto;
 use crate::protocol::*;
 use crate::responder::*;
 
@@ -74,14 +73,6 @@ impl<'a> ResponderContext<'a> {
 
             let slot_id = session.get_slot_id();
 
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_hash = &self.common.calc_rsp_transcript_hash(
-                false,
-                slot_id,
-                &session.runtime_info.message_k,
-                Some(&session.runtime_info.message_f),
-            );
-            #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = self
                 .common
                 .calc_rsp_transcript_hash(false, slot_id, session);
@@ -171,14 +162,6 @@ impl<'a> ResponderContext<'a> {
 
             let slot_id = session.get_slot_id();
 
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_hash = self.common.calc_rsp_transcript_hash(
-                false,
-                slot_id,
-                &session.runtime_info.message_k,
-                Some(&session.runtime_info.message_f),
-            );
-            #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = self
                 .common
                 .calc_rsp_transcript_hash(false, slot_id, session);
@@ -216,14 +199,6 @@ impl<'a> ResponderContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
         let slot_id = session.get_slot_id();
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let th2 = self.common.calc_rsp_transcript_hash(
-            false,
-            slot_id,
-            &session.runtime_info.message_k,
-            Some(&session.runtime_info.message_f),
-        );
-        #[cfg(feature = "hashed-transcript-data")]
         let th2 = self
             .common
             .calc_rsp_transcript_hash(false, slot_id, session);
