@@ -184,7 +184,7 @@ impl<'a> RequesterContext<'a> {
                             let mut message_k = SpdmHashCtx::default();
 
                             self.common
-                                .init_message_k(&mut message_k, slot_id, false, true)?;
+                                .init_message_k(false, slot_id, true, &mut message_k)?;
                             self.common.append_message_k(&mut message_k, send_buffer)?;
                             self.common.append_message_k(
                                 &mut message_k,
@@ -214,11 +214,11 @@ impl<'a> RequesterContext<'a> {
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let th1 = self
                                 .common
-                                .calc_req_transcript_hash(slot_id, false, &message_k, None)?;
+                                .calc_req_transcript_hash(false, slot_id, &message_k, None)?;
                             #[cfg(feature = "hashed-transcript-data")]
                             let th1 = self.common.calc_req_transcript_hash_via_ctx(
-                                slot_id,
                                 false,
+                                slot_id,
                                 message_k.clone(),
                             )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
@@ -272,12 +272,12 @@ impl<'a> RequesterContext<'a> {
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self
                                 .common
-                                .calc_req_transcript_data(slot_id, false, &message_k, None)?;
+                                .calc_req_transcript_data(false, slot_id, &message_k, None)?;
 
                             #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
-                                slot_id,
                                 false,
+                                slot_id,
                                 message_k.clone(),
                             )?;
 
@@ -355,7 +355,7 @@ impl<'a> RequesterContext<'a> {
 
         let transcript_hash =
             self.common
-                .calc_req_transcript_hash_via_ctx(slot_id, false, message_k.clone())?;
+                .calc_req_transcript_hash_via_ctx(false, slot_id, message_k.clone())?;
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
@@ -408,7 +408,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut message = self
             .common
-            .calc_req_transcript_data(slot_id, false, message_k, None)?;
+            .calc_req_transcript_data(false, slot_id, message_k, None)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         let message_hash =

@@ -122,15 +122,15 @@ impl<'a> RequesterContext<'a> {
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = self.common.calc_req_transcript_data(
-            req_slot_id,
             false,
+            req_slot_id,
             &session.runtime_info.message_k,
             Some(&session.runtime_info.message_f),
         )?;
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self
             .common
-            .calc_req_transcript_hash(req_slot_id, false, session)?;
+            .calc_req_transcript_hash(false, req_slot_id, session)?;
 
         let session = self.common.get_session_via_id(session_id).unwrap();
 
@@ -191,15 +191,15 @@ impl<'a> RequesterContext<'a> {
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self.common.calc_req_transcript_data(
-                                req_slot_id,
                                 false,
+                                req_slot_id,
                                 &session.runtime_info.message_k,
                                 Some(&session.runtime_info.message_f),
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash(
-                                req_slot_id,
                                 false,
+                                req_slot_id,
                                 session,
                             )?;
 
@@ -233,8 +233,8 @@ impl<'a> RequesterContext<'a> {
 
                         // generate the data secret
                         let th2 = self.common.calc_req_transcript_hash(
-                            req_slot_id,
                             false,
+                            req_slot_id,
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             &session.runtime_info.message_k,
                             #[cfg(not(feature = "hashed-transcript-data"))]

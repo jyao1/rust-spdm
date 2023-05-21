@@ -148,7 +148,7 @@ impl<'a> RequesterContext<'a> {
                             let mut message_k = SpdmHashCtx::default();
 
                             self.common
-                                .init_message_k(&mut message_k, INVALID_SLOT, true, true)?;
+                                .init_message_k(true, INVALID_SLOT, true, &mut message_k)?;
                             self.common.append_message_k(&mut message_k, send_buffer)?;
                             self.common.append_message_k(
                                 &mut message_k,
@@ -158,15 +158,15 @@ impl<'a> RequesterContext<'a> {
                             // create session - generate the handshake secret (including finished_key)
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let th1 = self.common.calc_req_transcript_hash(
-                                INVALID_SLOT,
                                 true,
+                                INVALID_SLOT,
                                 &message_k,
                                 None,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
                             let th1 = self.common.calc_req_transcript_hash_via_ctx(
-                                INVALID_SLOT,
                                 true,
+                                INVALID_SLOT,
                                 message_k.clone(),
                             )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
@@ -219,16 +219,16 @@ impl<'a> RequesterContext<'a> {
                             // verify HMAC with finished_key
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self.common.calc_req_transcript_data(
-                                INVALID_SLOT,
                                 true,
+                                INVALID_SLOT,
                                 &message_k,
                                 None,
                             )?;
 
                             #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
-                                INVALID_SLOT,
                                 true,
+                                INVALID_SLOT,
                                 message_k.clone(),
                             )?;
 
