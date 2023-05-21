@@ -14,7 +14,6 @@ use crate::responder::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 
 impl<'a> ResponderContext<'a> {
@@ -140,20 +139,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
         let signature = self.generate_challenge_auth_signature();
-        #[cfg(feature = "hashed-transcript-data")]
-        let message_hash = crypto::hash::hash_ctx_finalize(
-            self.common
-                .runtime_info
-                .digest_context_m1m2
-                .as_mut()
-                .cloned()
-                .unwrap(),
-        )
-        .unwrap();
-        #[cfg(feature = "hashed-transcript-data")]
-        let signature = self.generate_challenge_auth_signature(message_hash);
         if signature.is_err() {
             self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
             return;
@@ -167,11 +153,16 @@ impl<'a> ResponderContext<'a> {
     }
 
     #[cfg(feature = "hashed-transcript-data")]
-    pub fn generate_challenge_auth_signature(
-        &self,
-        message_hash: SpdmDigestStruct,
-    ) -> SpdmResult<SpdmSignatureStruct> {
-        use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
+    pub fn generate_challenge_auth_signature(&self) -> SpdmResult<SpdmSignatureStruct> {
+        let message_hash = crypto::hash::hash_ctx_finalize(
+            self.common
+                .runtime_info
+                .digest_context_m1m2
+                .as_ref()
+                .cloned()
+                .unwrap(),
+        )
+        .unwrap();
 
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
@@ -203,7 +194,7 @@ impl<'a> ResponderContext<'a> {
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
-    pub fn generate_challenge_auth_signature(&mut self) -> SpdmResult<SpdmSignatureStruct> {
+    pub fn generate_challenge_auth_signature(&self) -> SpdmResult<SpdmSignatureStruct> {
         let mut message = ManagedBufferM1M2::default();
         message
             .append_message(self.common.runtime_info.message_a.as_ref())
