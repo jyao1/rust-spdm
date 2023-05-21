@@ -87,6 +87,9 @@ pub struct SpdmSessionTransportParam {
 #[derive(Debug, Clone, Default)]
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmSessionRuntimeInfo {
+    pub message_a: ManagedBufferA,
+    pub rsp_cert_hash: Option<SpdmDigestStruct>,
+    pub req_cert_hash: Option<SpdmDigestStruct>,
     pub message_k: ManagedBufferK,
     pub message_f: ManagedBufferF,
     pub message_m: ManagedBufferM,
@@ -95,6 +98,9 @@ pub struct SpdmSessionRuntimeInfo {
 #[derive(Clone, Default)]
 #[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmSessionRuntimeInfo {
+    pub message_a: ManagedBufferA,
+    pub rsp_cert_hash: Option<SpdmDigestStruct>,
+    pub req_cert_hash: Option<SpdmDigestStruct>,
     pub digest_context_th: Option<SpdmHashCtx>,
     pub digest_context_l1l2: Option<SpdmHashCtx>,
 }

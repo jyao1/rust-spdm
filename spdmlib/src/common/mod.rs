@@ -464,9 +464,9 @@ impl<'a> SpdmContext<'a> {
             let message_a = self.runtime_info.message_a.clone();
 
             let cert_chain_hash = if is_requester {
-                self.get_certchain_hash_req(use_psk, slot_id as usize)
+                self.get_certchain_hash_peer(use_psk, slot_id as usize)
             } else {
-                self.get_certchain_hash_rsp(use_psk, slot_id as usize)
+                self.get_certchain_hash_local(use_psk, slot_id as usize)
             };
             if !use_psk && cert_chain_hash.is_none() {
                 return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
@@ -718,7 +718,7 @@ impl<'a> SpdmContext<'a> {
         Ok(hash)
     }
 
-    pub fn get_certchain_hash_rsp(
+    pub fn get_certchain_hash_local(
         &self,
         use_psk: bool,
         slot_id: usize,
@@ -744,7 +744,7 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
-    pub fn get_certchain_hash_req(
+    pub fn get_certchain_hash_peer(
         &self,
         use_psk: bool,
         slot_id: usize,

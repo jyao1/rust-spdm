@@ -199,6 +199,13 @@ impl<'a> RequesterContext<'a> {
                             let session_id = ((key_exchange_rsp.rsp_session_id as u32) << 16)
                                 + req_session_id as u32;
                             let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+                            let message_a = self.common.runtime_info.message_a.clone();
+                            let cert_chain_hash =
+                                self.common.get_certchain_hash_peer(false, slot_id as usize);
+                            if cert_chain_hash.is_none() {
+                                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
+                            }
+
                             let session = self
                                 .common
                                 .get_next_avaiable_session()
@@ -216,6 +223,9 @@ impl<'a> RequesterContext<'a> {
                             );
                             session.set_transport_param(sequence_number_count, max_random_count);
                             session.set_dhe_secret(spdm_version_sel, final_key)?;
+                            session.runtime_info.message_a = message_a;
+                            session.runtime_info.rsp_cert_hash = cert_chain_hash;
+                            session.runtime_info.req_cert_hash = None;
 
                             // create transcript
                             let base_asym_size =
