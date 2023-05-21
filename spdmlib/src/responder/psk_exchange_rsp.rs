@@ -160,6 +160,8 @@ impl<'a> ResponderContext<'a> {
         let max_random_count = self.common.transport_encap.get_max_random_count();
 
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+        let message_a = self.common.runtime_info.message_a.clone();
+
         let session = self.common.get_next_avaiable_session();
         if session.is_none() {
             error!("!!! too many sessions : fail !!!\n");
@@ -184,6 +186,9 @@ impl<'a> ResponderContext<'a> {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
+        session.runtime_info.message_a = message_a;
+        session.runtime_info.rsp_cert_hash = None;
+        session.runtime_info.req_cert_hash = None;
 
         // prepare response
         let response = SpdmMessage {
