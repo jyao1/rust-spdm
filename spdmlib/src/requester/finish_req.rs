@@ -40,20 +40,55 @@ impl<'a> RequesterContext<'a> {
             0
         };
 
+        if self.common.get_session_via_id(session_id).is_none() {
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
+        }
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let (send_used, base_hash_size, message_f) =
-            self.encode_spdm_finish(session_id, req_slot_id, &mut send_buffer)?;
-        self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
+        let res = self.encode_spdm_finish(session_id, req_slot_id, &mut send_buffer);
+        if res.is_err() {
+            let _ = self
+                .common
+                .get_session_via_id(session_id)
+                .unwrap()
+                .teardown(session_id);
+            return Err(res.err().unwrap());
+        }
+        let send_used = res.unwrap();
+        let res = self.send_secured_message(session_id, &send_buffer[..send_used], false);
+        if res.is_err() {
+            let _ = self
+                .common
+                .get_session_via_id(session_id)
+                .unwrap()
+                .teardown(session_id);
+            return res;
+        }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let receive_used = self.receive_secured_message(session_id, &mut receive_buffer, false)?;
-        self.handle_spdm_finish_response(
+        let res = self.receive_secured_message(session_id, &mut receive_buffer, false);
+        if res.is_err() {
+            let _ = self
+                .common
+                .get_session_via_id(session_id)
+                .unwrap()
+                .teardown(session_id);
+            return Err(res.err().unwrap());
+        }
+        let receive_used = res.unwrap();
+        let res = self.handle_spdm_finish_response(
             session_id,
             req_slot_id,
-            base_hash_size,
-            message_f,
             &receive_buffer[..receive_used],
-        )
+        );
+        if res.is_err() {
+            let _ = self
+                .common
+                .get_session_via_id(session_id)
+                .unwrap()
+                .teardown(session_id);
+        }
+        res
     }
 
     pub fn encode_spdm_finish(
@@ -61,7 +96,7 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         req_slot_id: u8,
         buf: &mut [u8],
-    ) -> SpdmResult<(usize, usize, ManagedBufferF)> {
+    ) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
 
         let request = SpdmMessage {
@@ -85,79 +120,47 @@ impl<'a> RequesterContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = send_used - base_hash_size;
 
+        let session = self.common.get_session_via_id(session_id).unwrap();
+        session.append_message_f(&buf[..temp_used])?;
+
         #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            let mut message_f = ManagedBufferF::default();
-            message_f
-                .append_message(&buf[..temp_used])
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-
-            let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
-                s
-            } else {
-                return Err(SPDM_STATUS_INVALID_PARAMETER);
-            };
-            let message_k = &session.runtime_info.message_k;
-
-            let transcript_data = self.common.calc_req_transcript_data(
-                req_slot_id,
-                false,
-                message_k,
-                Some(&message_f),
-            )?;
-            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                s
-            } else {
-                return Err(SPDM_STATUS_INVALID_PARAMETER);
-            };
-
-            let hmac = session.generate_hmac_with_request_finished_key(transcript_data.as_ref())?;
-            message_f
-                .append_message(hmac.as_ref())
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-
-            // patch the message before send
-            buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
-            Ok((send_used, base_hash_size, message_f))
-        }
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        let transcript_data = self.common.calc_req_transcript_data(
+            req_slot_id,
+            false,
+            &session.runtime_info.message_k,
+            Some(&session.runtime_info.message_f),
+        )?;
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        let session = self.common.get_session_via_id(session_id).unwrap();
 
         #[cfg(feature = "hashed-transcript-data")]
-        {
-            let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                s
-            } else {
-                return Err(SPDM_STATUS_INVALID_PARAMETER);
-            };
-            crypto::hash::hash_ctx_update(
-                session
-                    .runtime_info
-                    .digest_context_th
-                    .as_mut()
-                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                &buf[..temp_used],
-            )?;
-            let message_hash = crypto::hash::hash_ctx_finalize(
-                session
-                    .runtime_info
-                    .digest_context_th
-                    .as_mut()
-                    .cloned()
-                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-            )
-            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-            let hmac = session.generate_hmac_with_request_finished_key(message_hash.as_ref())?;
-            crypto::hash::hash_ctx_update(
-                session
-                    .runtime_info
-                    .digest_context_th
-                    .as_mut()
-                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                hmac.as_ref(),
-            )?;
-            // patch the message before send
-            buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
-            Ok((send_used, base_hash_size, ManagedBufferF::default()))
-        }
+        let message_hash = crypto::hash::hash_ctx_finalize(
+            session
+                .runtime_info
+                .digest_context_th
+                .as_mut()
+                .cloned()
+                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+
+        let hmac = session.generate_hmac_with_request_finished_key(
+            #[cfg(not(feature = "hashed-transcript-data"))]
+            transcript_data.as_ref(),
+            #[cfg(feature = "hashed-transcript-data")]
+            message_hash.as_ref(),
+        )?;
+
+        session.append_message_f(hmac.as_ref())?;
+
+        // patch the message before send
+        buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
+        Ok(send_used)
     }
 
     pub fn handle_spdm_finish_response(
@@ -165,9 +168,6 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
         #[cfg(not(feature = "hashed-transcript-data"))] req_slot_id: u8,
         #[cfg(feature = "hashed-transcript-data")] _req_slot_id: u8,
-        base_hash_size: usize,
-        #[cfg(not(feature = "hashed-transcript-data"))] mut message_f: ManagedBufferF,
-        #[cfg(feature = "hashed-transcript-data")] _message_f: ManagedBufferF, // never use message_f for hashed-transcript-data, use session.runtime_info.message_f
         receive_buffer: &[u8],
     ) -> SpdmResult {
         let in_clear_text = self
@@ -191,49 +191,31 @@ impl<'a> RequesterContext<'a> {
                     if let Some(finish_rsp) = finish_rsp {
                         debug!("!!! finish rsp : {:02x?}\n", finish_rsp);
 
-                        if in_clear_text {
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let session = if let Some(s) =
-                                self.common.get_immutable_session_via_id(session_id)
-                            {
-                                s
-                            } else {
-                                return Err(SPDM_STATUS_INVALID_PARAMETER);
-                            };
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let message_k = &session.runtime_info.message_k;
+                        let base_hash_size =
+                            self.common.negotiate_info.base_hash_sel.get_size() as usize;
 
+                        let session = self.common.get_session_via_id(session_id).unwrap();
+                        if in_clear_text {
                             // verify HMAC with finished_key
                             let temp_used = receive_used - base_hash_size;
+                            session.append_message_f(&receive_buffer[..temp_used])?;
+
                             #[cfg(not(feature = "hashed-transcript-data"))]
-                            message_f
-                                .append_message(&receive_buffer[..temp_used])
-                                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+                            let session = self
+                                .common
+                                .get_immutable_session_via_id(session_id)
+                                .unwrap();
 
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self.common.calc_req_transcript_data(
                                 req_slot_id,
                                 false,
-                                message_k,
-                                Some(&message_f),
+                                &session.runtime_info.message_k,
+                                Some(&session.runtime_info.message_f),
                             )?;
 
-                            let session =
-                                if let Some(s) = self.common.get_session_via_id(session_id) {
-                                    s
-                                } else {
-                                    return Err(SPDM_STATUS_INVALID_PARAMETER);
-                                };
-
-                            #[cfg(feature = "hashed-transcript-data")]
-                            crypto::hash::hash_ctx_update(
-                                session
-                                    .runtime_info
-                                    .digest_context_th
-                                    .as_mut()
-                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                &receive_buffer[..temp_used],
-                            )?;
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            let session = self.common.get_session_via_id(session_id).unwrap();
 
                             #[cfg(feature = "hashed-transcript-data")]
                             let ctx_cloned = session
@@ -242,6 +224,7 @@ impl<'a> RequesterContext<'a> {
                                 .as_mut()
                                 .cloned()
                                 .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+
                             if session
                                 .verify_hmac_with_response_finished_key(
                                     #[cfg(not(feature = "hashed-transcript-data"))]
@@ -255,78 +238,30 @@ impl<'a> RequesterContext<'a> {
                                 .is_err()
                             {
                                 error!("verify_hmac_with_response_finished_key fail");
-                                let _ = session.teardown(session_id);
                                 return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            message_f
-                                .append_message(finish_rsp.verify_data.as_ref())
-                                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                session.runtime_info.message_f = message_f.clone();
-                            }
-                            #[cfg(feature = "hashed-transcript-data")]
-                            crypto::hash::hash_ctx_update(
-                                session
-                                    .runtime_info
-                                    .digest_context_th
-                                    .as_mut()
-                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                finish_rsp.verify_data.as_ref(),
-                            )?;
+
+                            session.append_message_f(finish_rsp.verify_data.as_ref())?;
                         } else {
-                            let session =
-                                if let Some(s) = self.common.get_session_via_id(session_id) {
-                                    s
-                                } else {
-                                    return Err(SPDM_STATUS_INVALID_PARAMETER);
-                                };
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            message_f
-                                .append_message(&receive_buffer[..receive_used])
-                                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            {
-                                session.runtime_info.message_f = message_f.clone();
-                            }
-                            #[cfg(feature = "hashed-transcript-data")]
-                            crypto::hash::hash_ctx_update(
-                                session
-                                    .runtime_info
-                                    .digest_context_th
-                                    .as_mut()
-                                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?,
-                                &receive_buffer[..receive_used],
-                            )?;
+                            session.append_message_f(&receive_buffer[..receive_used])?;
                         }
 
                         #[cfg(not(feature = "hashed-transcript-data"))]
-                        let session =
-                            if let Some(s) = self.common.get_immutable_session_via_id(session_id) {
-                                s
-                            } else {
-                                return Err(SPDM_STATUS_INVALID_PARAMETER);
-                            };
-                        #[cfg(not(feature = "hashed-transcript-data"))]
-                        let message_k = &session.runtime_info.message_k;
+                        let session = self
+                            .common
+                            .get_immutable_session_via_id(session_id)
+                            .unwrap();
+
                         // generate the data secret
                         #[cfg(not(feature = "hashed-transcript-data"))]
                         let th2 = self.common.calc_req_transcript_hash(
                             req_slot_id,
                             false,
-                            message_k,
-                            Some(&message_f),
+                            &session.runtime_info.message_k,
+                            Some(&session.runtime_info.message_f),
                         )?;
-
-                        #[cfg(feature = "hashed-transcript-data")]
-                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                            s
-                        } else {
-                            return Err(SPDM_STATUS_INVALID_PARAMETER);
-                        };
 
                         #[cfg(feature = "hashed-transcript-data")]
                         let th2 = crypto::hash::hash_ctx_finalize(
@@ -340,11 +275,7 @@ impl<'a> RequesterContext<'a> {
                         .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-                        let session = if let Some(s) = self.common.get_session_via_id(session_id) {
-                            s
-                        } else {
-                            return Err(SPDM_STATUS_INVALID_PARAMETER);
-                        };
+                        let session = self.common.get_session_via_id(session_id).unwrap();
                         match session.generate_data_secret(spdm_version_sel, &th2) {
                             Ok(_) => {}
                             Err(e) => {

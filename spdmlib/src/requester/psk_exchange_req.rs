@@ -153,7 +153,8 @@ impl<'a> RequesterContext<'a> {
                             #[cfg(feature = "hashed-transcript-data")]
                             let mut message_k = SpdmHashCtx::default();
 
-                            self.common.init_message_k(&mut message_k, 0, true, true)?;
+                            self.common
+                                .init_message_k(&mut message_k, INVALID_SLOT, true, true)?;
                             self.common.append_message_k(&mut message_k, send_buffer)?;
                             self.common.append_message_k(
                                 &mut message_k,

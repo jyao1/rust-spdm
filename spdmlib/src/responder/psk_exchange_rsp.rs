@@ -6,6 +6,7 @@ use crate::common::opaque::SpdmOpaqueStruct;
 use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
 use crate::common::SpdmOpaqueSupport;
+use crate::common::INVALID_SLOT;
 use crate::crypto;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::crypto::SpdmHashCtx;
@@ -190,7 +191,7 @@ impl<'a> ResponderContext<'a> {
 
         if self
             .common
-            .init_message_k(&mut message_k, 0, true, false)
+            .init_message_k(&mut message_k, INVALID_SLOT, true, false)
             .is_err()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);

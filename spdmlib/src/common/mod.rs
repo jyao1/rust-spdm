@@ -449,7 +449,7 @@ impl<'a> SpdmContext<'a> {
 
     pub fn init_message_k(
         &self,
-        #[cfg(not(feature = "hashed-transcript-data"))] message_k: &mut ManagedBufferK,
+        #[cfg(not(feature = "hashed-transcript-data"))] _message_k: &mut ManagedBufferK,
         #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
         slot_id: u8,
         use_psk: bool,
@@ -579,7 +579,7 @@ impl<'a> SpdmContext<'a> {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_rsp_transcript_data(
-        &mut self,
+        &self,
         use_psk: bool,
         slot_id: u8,
         message_k: &ManagedBufferK,
@@ -641,7 +641,7 @@ impl<'a> SpdmContext<'a> {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_rsp_transcript_hash(
-        &mut self,
+        &self,
         use_psk: bool,
         slot_id: u8,
         message_k: &ManagedBufferK,
