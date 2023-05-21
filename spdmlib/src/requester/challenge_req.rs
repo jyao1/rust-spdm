@@ -205,7 +205,9 @@ impl<'a> RequesterContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         let mut message = ManagedBufferM1M2::default();
 
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)

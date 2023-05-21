@@ -281,7 +281,9 @@ impl<'a> RequesterContext<'a> {
                 .data_size as usize)];
 
         let mut message_l1l2 = ManagedBufferL1L2::default();
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             message_l1l2.reset_message();
             message_l1l2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
@@ -315,7 +317,9 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let mut message_l1l2 = ManagedBufferL1L2::default();
 
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             let message_a = self.common.runtime_info.message_a.clone();
             message_l1l2
                 .append_message(message_a.as_ref())
@@ -364,7 +368,9 @@ impl<'a> RequesterContext<'a> {
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .data_size as usize)];
 
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             message_l1l2.reset_message();
             message_l1l2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)

@@ -176,7 +176,9 @@ impl<'a> ResponderContext<'a> {
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
         let mut message = ManagedBufferM1M2::default();
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
@@ -219,7 +221,9 @@ impl<'a> ResponderContext<'a> {
                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_hash - {:02x?}", message_hash.as_ref());
 
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             message.reset_message();
             message
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
