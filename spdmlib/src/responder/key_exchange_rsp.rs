@@ -295,16 +295,9 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
 
         // generate the handshake secret (including finished_key) before generate HMAC
-        #[cfg(not(feature = "hashed-transcript-data"))]
         let th1 = self
             .common
             .calc_rsp_transcript_hash(false, slot_id as u8, session);
-        #[cfg(feature = "hashed-transcript-data")]
-        let th1 = self.common.calc_rsp_transcript_hash_via_ctx(
-            false,
-            slot_id as u8,
-            session.runtime_info.digest_context_th.as_ref().unwrap(),
-        );
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -323,16 +316,9 @@ impl<'a> ResponderContext<'a> {
             .unwrap();
 
         // generate HMAC with finished_key
-        #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_hash = self
             .common
-            .calc_rsp_transcript_hash(false, slot_id as u8, &session);
-        #[cfg(feature = "hashed-transcript-data")]
-        let transcript_hash = self.common.calc_rsp_transcript_hash_via_ctx(
-            false,
-            slot_id as u8,
-            session.runtime_info.digest_context_th.as_ref().unwrap(),
-        );
+            .calc_rsp_transcript_hash(false, slot_id as u8, session);
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -379,10 +365,9 @@ impl<'a> ResponderContext<'a> {
         slot_id: u8,
         session: &SpdmSession,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let context = session.runtime_info.digest_context_th.as_ref().unwrap();
-        let transcript_hash =
-            self.common
-                .calc_rsp_transcript_hash_via_ctx(false, slot_id, &context.clone())?;
+        let transcript_hash = self
+            .common
+            .calc_rsp_transcript_hash(false, slot_id, session)?;
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 

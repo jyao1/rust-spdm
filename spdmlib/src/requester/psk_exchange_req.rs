@@ -204,17 +204,10 @@ impl<'a> RequesterContext<'a> {
                                 .unwrap();
 
                             // generate the handshake secret (including finished_key) before verify HMAC
-                            #[cfg(not(feature = "hashed-transcript-data"))]
                             let th1 = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
                                 session,
-                            )?;
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let th1 = self.common.calc_req_transcript_hash_via_ctx(
-                                true,
-                                INVALID_SLOT,
-                                session.runtime_info.digest_context_th.as_ref().unwrap(),
                             )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
 
@@ -227,17 +220,10 @@ impl<'a> RequesterContext<'a> {
                                 .unwrap();
 
                             // verify HMAC with finished_key
-                            #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_hash = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
                                 session,
-                            )?;
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
-                                true,
-                                INVALID_SLOT,
-                                session.runtime_info.digest_context_th.as_ref().unwrap(),
                             )?;
 
                             let session = self
