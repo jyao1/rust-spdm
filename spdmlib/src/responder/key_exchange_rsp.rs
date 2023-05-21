@@ -7,7 +7,7 @@ use crate::responder::*;
 
 use crate::common::session::SpdmSession;
 #[cfg(feature = "hashed-transcript-data")]
-use crate::common::ManagedBufferTH;
+use crate::common::ManagedBuffer12Sign;
 use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
 use crate::common::SpdmOpaqueSupport;
@@ -371,7 +371,7 @@ impl<'a> ResponderContext<'a> {
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
-        let mut message = ManagedBufferTH::default();
+        let mut message = ManagedBuffer12Sign::default();
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {

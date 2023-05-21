@@ -203,7 +203,7 @@ impl<'a> RequesterContext<'a> {
                 .data_size as usize)];
 
         #[cfg(feature = "hashed-transcript-data")]
-        let mut message = ManagedBufferM1M2::default();
+        let mut message = ManagedBuffer12Sign::default();
 
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
