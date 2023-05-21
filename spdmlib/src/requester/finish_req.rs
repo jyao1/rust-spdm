@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::error::{
-    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
+    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
     SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
 };
 use crate::protocol::*;
 use crate::requester::*;
-use crate::{crypto, message::*};
+use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
@@ -120,14 +120,6 @@ impl<'a> RequesterContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
 
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_hash = self.common.calc_req_transcript_hash(
-            false,
-            req_slot_id,
-            &session.runtime_info.message_k,
-            Some(&session.runtime_info.message_f),
-        )?;
-        #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self
             .common
             .calc_req_transcript_hash(false, req_slot_id, session)?;
@@ -184,14 +176,6 @@ impl<'a> RequesterContext<'a> {
                                 .get_immutable_session_via_id(session_id)
                                 .unwrap();
 
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let transcript_hash = self.common.calc_req_transcript_hash(
-                                false,
-                                req_slot_id,
-                                &session.runtime_info.message_k,
-                                Some(&session.runtime_info.message_f),
-                            )?;
-                            #[cfg(feature = "hashed-transcript-data")]
                             let transcript_hash = self.common.calc_req_transcript_hash(
                                 false,
                                 req_slot_id,
@@ -224,16 +208,9 @@ impl<'a> RequesterContext<'a> {
                             .unwrap();
 
                         // generate the data secret
-                        let th2 = self.common.calc_req_transcript_hash(
-                            false,
-                            req_slot_id,
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            &session.runtime_info.message_k,
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            Some(&session.runtime_info.message_f),
-                            #[cfg(feature = "hashed-transcript-data")]
-                            session,
-                        )?;
+                        let th2 =
+                            self.common
+                                .calc_req_transcript_hash(false, req_slot_id, session)?;
 
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;

@@ -4,7 +4,6 @@
 
 use crate::common::SpdmCodec;
 use crate::common::INVALID_SLOT;
-use crate::crypto;
 use crate::responder::*;
 
 use crate::message::*;
@@ -73,14 +72,6 @@ impl<'a> ResponderContext<'a> {
                 .get_immutable_session_via_id(session_id)
                 .unwrap();
 
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            let transcript_hash = self.common.calc_rsp_transcript_hash(
-                true,
-                INVALID_SLOT,
-                &session.runtime_info.message_k,
-                Some(&session.runtime_info.message_f),
-            );
-            #[cfg(feature = "hashed-transcript-data")]
             let transcript_hash = self
                 .common
                 .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
@@ -143,14 +134,6 @@ impl<'a> ResponderContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
         // generate the data secret
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let th2 = self.common.calc_rsp_transcript_hash(
-            true,
-            0,
-            &session.runtime_info.message_k,
-            Some(&session.runtime_info.message_f),
-        );
-        #[cfg(feature = "hashed-transcript-data")]
         let th2 = self.common.calc_rsp_transcript_hash(true, 0, session);
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);

@@ -296,12 +296,9 @@ impl<'a> ResponderContext<'a> {
 
         // generate the handshake secret (including finished_key) before generate HMAC
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let th1 = self.common.calc_rsp_transcript_hash(
-            false,
-            slot_id as u8,
-            &session.runtime_info.message_k,
-            None,
-        );
+        let th1 = self
+            .common
+            .calc_rsp_transcript_hash(false, slot_id as u8, session);
         #[cfg(feature = "hashed-transcript-data")]
         let th1 = self.common.calc_rsp_transcript_hash_via_ctx(
             false,
@@ -327,12 +324,9 @@ impl<'a> ResponderContext<'a> {
 
         // generate HMAC with finished_key
         #[cfg(not(feature = "hashed-transcript-data"))]
-        let transcript_hash = self.common.calc_rsp_transcript_hash(
-            false,
-            slot_id as u8,
-            &session.runtime_info.message_k,
-            None,
-        );
+        let transcript_hash = self
+            .common
+            .calc_rsp_transcript_hash(false, slot_id as u8, &session);
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self.common.calc_rsp_transcript_hash_via_ctx(
             false,
@@ -425,12 +419,9 @@ impl<'a> ResponderContext<'a> {
         slot_id: u8,
         session: &SpdmSession,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        let message_hash = self.common.calc_rsp_transcript_hash(
-            false,
-            slot_id,
-            &session.runtime_info.message_k,
-            None,
-        )?;
+        let message_hash = self
+            .common
+            .calc_rsp_transcript_hash(false, slot_id, session)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         debug!("message_hash - {:02x?}", message_hash.as_ref());

@@ -547,9 +547,10 @@ impl<'a> SpdmContext<'a> {
         &self,
         use_psk: bool,
         slot_id: u8,
-        message_k: &ManagedBufferK,
-        message_f: Option<&ManagedBufferF>,
+        session: &SpdmSession,
     ) -> SpdmResult<SpdmDigestStruct> {
+        let message_k = &session.runtime_info.message_k;
+        let message_f = Some(&session.runtime_info.message_f);
         let message = self.calc_req_transcript_data(use_psk, slot_id, message_k, message_f)?;
 
         let transcript_hash =
@@ -563,9 +564,10 @@ impl<'a> SpdmContext<'a> {
         &self,
         use_psk: bool,
         slot_id: u8,
-        message_k: &ManagedBufferK,
-        message_f: Option<&ManagedBufferF>,
+        session: &SpdmSession,
     ) -> SpdmResult<SpdmDigestStruct> {
+        let message_k = &session.runtime_info.message_k;
+        let message_f = Some(&session.runtime_info.message_f);
         let message = self.calc_rsp_transcript_data(use_psk, slot_id, message_k, message_f)?;
 
         let transcript_hash =
