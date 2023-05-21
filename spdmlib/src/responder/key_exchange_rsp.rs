@@ -5,8 +5,7 @@
 use crate::error::{SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 use crate::responder::*;
 
-#[cfg(not(feature = "hashed-transcript-data"))]
-use crate::common::ManagedBufferK;
+use crate::common::session::SpdmSession;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::common::ManagedBufferTH;
 use crate::common::SpdmCodec;
@@ -16,8 +15,6 @@ use crate::crypto;
 use crate::protocol::*;
 extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
-#[cfg(feature = "hashed-transcript-data")]
-use crate::crypto::SpdmHashCtx;
 use crate::message::*;
 use alloc::boxed::Box;
 
@@ -279,13 +276,7 @@ impl<'a> ResponderContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
 
-        let signature = self.generate_key_exchange_rsp_signature(
-            slot_id as u8,
-            #[cfg(not(feature = "hashed-transcript-data"))]
-            &session.runtime_info.message_k,
-            #[cfg(feature = "hashed-transcript-data")]
-            session.runtime_info.digest_context_th.as_ref().unwrap(),
-        );
+        let signature = self.generate_key_exchange_rsp_signature(slot_id as u8, session);
         if signature.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -405,11 +396,12 @@ impl<'a> ResponderContext<'a> {
     pub fn generate_key_exchange_rsp_signature(
         &self,
         slot_id: u8,
-        message_k: &SpdmHashCtx,
+        session: &SpdmSession,
     ) -> SpdmResult<SpdmSignatureStruct> {
+        let context = session.runtime_info.digest_context_th.as_ref().unwrap();
         let transcript_hash =
             self.common
-                .calc_rsp_transcript_hash_via_ctx(false, slot_id, &message_k.clone())?;
+                .calc_rsp_transcript_hash_via_ctx(false, slot_id, &context.clone())?;
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
@@ -444,8 +436,9 @@ impl<'a> ResponderContext<'a> {
     pub fn generate_key_exchange_rsp_signature(
         &self,
         slot_id: u8,
-        message_k: &ManagedBufferK,
+        session: &SpdmSession,
     ) -> SpdmResult<SpdmSignatureStruct> {
+        let message_k = &session.runtime_info.message_k;
         let mut message = self
             .common
             .calc_rsp_transcript_data(false, slot_id, message_k, None)?;

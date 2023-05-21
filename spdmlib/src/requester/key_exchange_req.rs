@@ -5,11 +5,11 @@
 extern crate alloc;
 use alloc::boxed::Box;
 
+use crate::common::session::SpdmSession;
 use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_ERROR_PEER;
 use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
-#[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::SPDM_STATUS_INVALID_PARAMETER;
 use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::SPDM_STATUS_SESSION_NUMBER_EXCEED;
@@ -247,10 +247,7 @@ impl<'a> RequesterContext<'a> {
                             if self
                                 .verify_key_exchange_rsp_signature(
                                     slot_id,
-                                    #[cfg(not(feature = "hashed-transcript-data"))]
-                                    &session.runtime_info.message_k,
-                                    #[cfg(feature = "hashed-transcript-data")]
-                                    session.runtime_info.digest_context_th.as_ref().unwrap(),
+                                    session,
                                     &key_exchange_rsp.signature,
                                 )
                                 .is_err()
@@ -379,14 +376,13 @@ impl<'a> RequesterContext<'a> {
     pub fn verify_key_exchange_rsp_signature(
         &self,
         slot_id: u8,
-        message_k: &SpdmHashCtx,
+        session: &SpdmSession,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        use crate::error::SPDM_STATUS_INVALID_PARAMETER;
-
+        let context = session.runtime_info.digest_context_th.as_ref().unwrap();
         let transcript_hash =
             self.common
-                .calc_req_transcript_hash_via_ctx(false, slot_id, &message_k.clone())?;
+                .calc_req_transcript_hash_via_ctx(false, slot_id, &context.clone())?;
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
@@ -436,9 +432,10 @@ impl<'a> RequesterContext<'a> {
     pub fn verify_key_exchange_rsp_signature(
         &self,
         slot_id: u8,
-        message_k: &ManagedBufferK,
+        session: &SpdmSession,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
+        let message_k = &session.runtime_info.message_k;
         let mut message = self
             .common
             .calc_req_transcript_data(false, slot_id, message_k, None)?;
