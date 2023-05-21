@@ -230,7 +230,7 @@ impl<'a> RequesterContext<'a> {
 
     #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_measurement_signature(
-        &mut self,
+        &self,
         slot_id: u8,
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
@@ -243,13 +243,14 @@ impl<'a> RequesterContext<'a> {
                     .common
                     .runtime_info
                     .digest_context_l1l2
-                    .as_mut()
+                    .as_ref()
                     .cloned()
                     .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
                 crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?
             }
             Some(session_id) => {
-                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id)
+                {
                     s
                 } else {
                     return Err(SPDM_STATUS_INVALID_MSG_FIELD);
@@ -257,7 +258,7 @@ impl<'a> RequesterContext<'a> {
                 let ctx = session
                     .runtime_info
                     .digest_context_l1l2
-                    .as_mut()
+                    .as_ref()
                     .cloned()
                     .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
                 crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?
@@ -310,7 +311,7 @@ impl<'a> RequesterContext<'a> {
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn verify_measurement_signature(
-        &mut self,
+        &self,
         slot_id: u8,
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
@@ -333,7 +334,8 @@ impl<'a> RequesterContext<'a> {
                     .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
             Some(session_id) => {
-                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id)
+                {
                     s
                 } else {
                     return Err(SPDM_STATUS_INVALID_PARAMETER);
