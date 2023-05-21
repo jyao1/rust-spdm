@@ -52,7 +52,9 @@ impl<'a> ResponderContext<'a> {
             self.common.negotiate_info.rsp_capabilities_sel =
                 self.common.config_info.rsp_capabilities;
 
-            if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+            if self.common.negotiate_info.spdm_version_sel.get_u8()
+                >= SpdmVersion::SpdmVersion12.get_u8()
+            {
                 self.common.negotiate_info.req_data_transfer_size_sel =
                     get_capabilities.data_transfer_size;
                 self.common.negotiate_info.req_max_spdm_msg_size_sel =

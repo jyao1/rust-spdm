@@ -162,12 +162,13 @@ impl<'a> ResponderContext<'a> {
             SpdmMeasurementRecordStructure::default()
         };
 
-        let content_changed =
-            if runtime_content_change_support && spdm_version_sel == SpdmVersion::SpdmVersion12 {
-                content_changed
-            } else {
-                SpdmMeasurementContentChanged::NOT_SUPPORTED
-            };
+        let content_changed = if runtime_content_change_support
+            && (spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8())
+        {
+            content_changed
+        } else {
+            SpdmMeasurementContentChanged::NOT_SUPPORTED
+        };
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {
@@ -243,7 +244,9 @@ impl<'a> ResponderContext<'a> {
         let mut message_l1l2 = ManagedBufferL1L2::default();
 
         #[cfg(not(feature = "hashed-transcript-data"))]
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             let message_a = self.common.runtime_info.message_a.clone();
             message_l1l2
                 .append_message(message_a.as_ref())
@@ -302,7 +305,9 @@ impl<'a> ResponderContext<'a> {
         };
         debug!("message_hash - {:02x?}", message_l1l2_hash.as_ref());
 
-        if self.common.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
             message_l1l2.reset_message();
             message_l1l2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)

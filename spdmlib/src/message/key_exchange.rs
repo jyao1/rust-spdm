@@ -48,7 +48,7 @@ impl SpdmCodec for SpdmKeyExchangeRequestPayload {
             .encode(bytes)
             .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        if context.negotiate_info.spdm_version_sel == SpdmVersion::SpdmVersion12 {
+        if context.negotiate_info.spdm_version_sel.get_u8() >= SpdmVersion::SpdmVersion12.get_u8() {
             cnt += self
                 .session_policy
                 .encode(bytes)
