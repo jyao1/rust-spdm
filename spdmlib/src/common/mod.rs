@@ -447,90 +447,6 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
-    pub fn init_message_k(
-        &self,
-        #[cfg(not(feature = "hashed-transcript-data"))] _use_psk: bool,
-        #[cfg(feature = "hashed-transcript-data")] use_psk: bool,
-        #[cfg(not(feature = "hashed-transcript-data"))] _slot_id: u8,
-        #[cfg(feature = "hashed-transcript-data")] slot_id: u8,
-        #[cfg(not(feature = "hashed-transcript-data"))] _is_requester: bool,
-        #[cfg(feature = "hashed-transcript-data")] is_requester: bool,
-        #[cfg(not(feature = "hashed-transcript-data"))] _message_k: &mut ManagedBufferK,
-        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
-    ) -> SpdmResult {
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            let base_hash_sel = self.negotiate_info.base_hash_sel;
-            let message_a = self.runtime_info.message_a.clone();
-
-            let cert_chain_hash = if is_requester {
-                self.get_certchain_hash_peer(use_psk, slot_id as usize)
-            } else {
-                self.get_certchain_hash_local(use_psk, slot_id as usize)
-            };
-            if !use_psk && cert_chain_hash.is_none() {
-                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
-            }
-
-            *digest_context_th = if let Some(c) = crypto::hash::hash_ctx_init(base_hash_sel) {
-                c
-            } else {
-                return Err(SPDM_STATUS_CRYPTO_ERROR);
-            };
-
-            crypto::hash::hash_ctx_update(digest_context_th, message_a.as_ref())?;
-            if !use_psk {
-                crypto::hash::hash_ctx_update(
-                    digest_context_th,
-                    cert_chain_hash.unwrap().as_ref(),
-                )?;
-            }
-        }
-
-        Ok(())
-    }
-    pub fn append_message_k(
-        &self,
-        #[cfg(not(feature = "hashed-transcript-data"))] message_k: &mut ManagedBufferK,
-        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
-        new_message: &[u8],
-    ) -> SpdmResult {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            message_k
-                .append_message(new_message)
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-        }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            crypto::hash::hash_ctx_update(digest_context_th, new_message)?;
-        }
-
-        Ok(())
-    }
-    pub fn reset_message_k(&mut self, session_id: u32) {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            let session = if let Some(s) = self.get_session_via_id(session_id) {
-                s
-            } else {
-                return;
-            };
-            session.runtime_info.message_k.reset_message();
-        }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            let session = if let Some(s) = self.get_session_via_id(session_id) {
-                s
-            } else {
-                return;
-            };
-            session.runtime_info.digest_context_th = None;
-        }
-    }
-
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,
@@ -701,9 +617,9 @@ impl<'a> SpdmContext<'a> {
         &self,
         _use_psk: bool,
         _slot_id: u8,
-        ctx: SpdmHashCtx,
+        ctx: &SpdmHashCtx,
     ) -> SpdmResult<SpdmDigestStruct> {
-        let hash = crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        let hash = crypto::hash::hash_ctx_finalize(ctx.clone()).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         Ok(hash)
     }
 
@@ -712,9 +628,9 @@ impl<'a> SpdmContext<'a> {
         &self,
         _use_psk: bool,
         _slot_id: u8,
-        ctx: SpdmHashCtx,
+        ctx: &SpdmHashCtx,
     ) -> SpdmResult<SpdmDigestStruct> {
-        let hash = crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        let hash = crypto::hash::hash_ctx_finalize(ctx.clone()).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         Ok(hash)
     }
 

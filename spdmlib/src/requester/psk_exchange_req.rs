@@ -194,44 +194,45 @@ impl<'a> RequesterContext<'a> {
                                 self.common.negotiate_info.base_hash_sel.get_size() as usize;
                             let temp_receive_used = receive_used - base_hash_size;
 
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let mut message_k = ManagedBufferK::default();
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let mut message_k = SpdmHashCtx::default();
+                            let session = self.common.get_session_via_id(session_id).unwrap();
+                            session.append_message_k(send_buffer)?;
+                            session.append_message_k(&receive_buffer[..temp_receive_used])?;
 
-                            self.common
-                                .init_message_k(true, INVALID_SLOT, true, &mut message_k)?;
-                            self.common.append_message_k(&mut message_k, send_buffer)?;
-                            self.common.append_message_k(
-                                &mut message_k,
-                                &receive_buffer[..temp_receive_used],
-                            )?;
+                            let session = self
+                                .common
+                                .get_immutable_session_via_id(session_id)
+                                .unwrap();
 
                             // generate the handshake secret (including finished_key) before verify HMAC
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let th1 = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
-                                &message_k,
+                                &session.runtime_info.message_k,
                                 None,
                             )?;
                             #[cfg(feature = "hashed-transcript-data")]
                             let th1 = self.common.calc_req_transcript_hash_via_ctx(
                                 true,
                                 INVALID_SLOT,
-                                message_k.clone(),
+                                session.runtime_info.digest_context_th.as_ref().unwrap(),
                             )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
 
                             let session = self.common.get_session_via_id(session_id).unwrap();
                             session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
+                            let session = self
+                                .common
+                                .get_immutable_session_via_id(session_id)
+                                .unwrap();
+
                             // verify HMAC with finished_key
                             #[cfg(not(feature = "hashed-transcript-data"))]
                             let transcript_data = self.common.calc_req_transcript_data(
                                 true,
                                 INVALID_SLOT,
-                                &message_k,
+                                &session.runtime_info.message_k,
                                 None,
                             )?;
 
@@ -239,7 +240,7 @@ impl<'a> RequesterContext<'a> {
                             let transcript_hash = self.common.calc_req_transcript_hash_via_ctx(
                                 true,
                                 INVALID_SLOT,
-                                message_k.clone(),
+                                session.runtime_info.digest_context_th.as_ref().unwrap(),
                             )?;
 
                             let session = self
@@ -267,7 +268,6 @@ impl<'a> RequesterContext<'a> {
 
                             // append verify_data after TH1
                             let session = self.common.get_session_via_id(session_id).unwrap();
-                            session.init_message_k(&message_k)?;
                             if session
                                 .append_message_k(psk_exchange_rsp.verify_data.as_ref())
                                 .is_err()
