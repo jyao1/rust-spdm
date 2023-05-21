@@ -151,6 +151,41 @@ impl<'a> ResponderContext<'a> {
         }
         let rsp_session_id = rsp_session_id.unwrap();
 
+        // create session structure
+        let hash_algo = self.common.negotiate_info.base_hash_sel;
+        let dhe_algo = self.common.negotiate_info.dhe_sel;
+        let aead_algo = self.common.negotiate_info.aead_sel;
+        let key_schedule_algo = self.common.negotiate_info.key_schedule_sel;
+        let sequence_number_count = self.common.transport_encap.get_sequence_number_count();
+        let max_random_count = self.common.transport_encap.get_max_random_count();
+
+        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+        let session = self.common.get_next_avaiable_session();
+        if session.is_none() {
+            error!("!!! too many sessions : fail !!!\n");
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorSessionLimitExceeded, 0, writer);
+            return;
+        }
+
+        let session = session.unwrap();
+        let session_id =
+            ((rsp_session_id as u32) << 16) + psk_exchange_req.unwrap().req_session_id as u32;
+        session.setup(session_id).unwrap();
+        session.set_use_psk(true);
+        let mut psk_key = SpdmDheFinalKeyStruct {
+            data_size: b"TestPskData\0".len() as u16,
+            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+        };
+        psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
+        session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
+        session.set_transport_param(sequence_number_count, max_random_count);
+        if session.set_dhe_secret(spdm_version_sel, psk_key).is_err() {
+            let _ = session.teardown(session_id);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+
+        // prepare response
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,
@@ -229,38 +264,8 @@ impl<'a> ResponderContext<'a> {
         }
         let th1 = th1.unwrap();
         debug!("!!! th1 : {:02x?}\n", th1.as_ref());
-        let hash_algo = self.common.negotiate_info.base_hash_sel;
-        let dhe_algo = self.common.negotiate_info.dhe_sel;
-        let aead_algo = self.common.negotiate_info.aead_sel;
-        let key_schedule_algo = self.common.negotiate_info.key_schedule_sel;
-        let sequence_number_count = self.common.transport_encap.get_sequence_number_count();
-        let max_random_count = self.common.transport_encap.get_max_random_count();
 
-        let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
-        let session = self.common.get_next_avaiable_session();
-        if session.is_none() {
-            error!("!!! too many sessions : fail !!!\n");
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorSessionLimitExceeded, 0, writer);
-            return;
-        }
-
-        let session = session.unwrap();
-        let session_id =
-            ((rsp_session_id as u32) << 16) + psk_exchange_req.unwrap().req_session_id as u32;
-        session.setup(session_id).unwrap();
-        session.set_use_psk(true);
-        let mut psk_key = SpdmDheFinalKeyStruct {
-            data_size: b"TestPskData\0".len() as u16,
-            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
-        };
-        psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
-        session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
-        session.set_transport_param(sequence_number_count, max_random_count);
-        if session.set_dhe_secret(spdm_version_sel, psk_key).is_err() {
-            let _ = session.teardown(session_id);
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
+        let session = self.common.get_session_via_id(session_id).unwrap();
         session
             .generate_handshake_secret(spdm_version_sel, &th1)
             .unwrap();
@@ -291,11 +296,6 @@ impl<'a> ResponderContext<'a> {
         let transcript_hash = transcript_hash.unwrap();
 
         let session = self.common.get_session_via_id(session_id).unwrap();
-        if session.init_message_k(&message_k).is_err() {
-            let _ = session.teardown(session_id);
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
 
         #[cfg(not(feature = "hashed-transcript-data"))]
         let hmac = session.generate_hmac_with_response_finished_key(transcript_data.as_ref());
@@ -307,6 +307,15 @@ impl<'a> ResponderContext<'a> {
             return;
         }
         let hmac = hmac.unwrap();
+
+        // append verify_data after TH1
+        let session = self.common.get_session_via_id(session_id).unwrap();
+        if session.init_message_k(&message_k).is_err() {
+            let _ = session.teardown(session_id);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+
         if session.append_message_k(hmac.as_ref()).is_err() {
             let _ = session.teardown(session_id);
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
