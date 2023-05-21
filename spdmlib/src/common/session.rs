@@ -291,21 +291,6 @@ impl SpdmSession {
         self.session_state
     }
 
-    pub fn init_message_k(
-        &mut self,
-        #[cfg(not(feature = "hashed-transcript-data"))] message_k: &ManagedBufferK,
-        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &SpdmHashCtx,
-    ) -> SpdmResult {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            self.runtime_info.message_k = message_k.clone();
-        }
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            self.runtime_info.digest_context_th = Some(digest_context_th.clone());
-        }
-        Ok(())
-    }
     pub fn append_message_k(&mut self, new_message: &[u8]) -> SpdmResult {
         #[cfg(not(feature = "hashed-transcript-data"))]
         {
@@ -318,7 +303,21 @@ impl SpdmSession {
         #[cfg(feature = "hashed-transcript-data")]
         {
             if self.runtime_info.digest_context_th.is_none() {
-                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+                self.runtime_info.digest_context_th =
+                    crypto::hash::hash_ctx_init(self.crypto_param.base_hash_algo);
+                if self.runtime_info.digest_context_th.is_none() {
+                    return Err(SPDM_STATUS_CRYPTO_ERROR);
+                }
+                crypto::hash::hash_ctx_update(
+                    self.runtime_info.digest_context_th.as_mut().unwrap(),
+                    self.runtime_info.message_a.as_ref(),
+                )?;
+                if self.runtime_info.rsp_cert_hash.is_some() {
+                    crypto::hash::hash_ctx_update(
+                        self.runtime_info.digest_context_th.as_mut().unwrap(),
+                        self.runtime_info.rsp_cert_hash.as_ref().unwrap().as_ref(),
+                    )?;
+                }
             }
 
             crypto::hash::hash_ctx_update(
