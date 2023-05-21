@@ -228,7 +228,7 @@ impl<'a> ResponderContext<'a> {
 
         if self
             .common
-            .init_message_k(&mut message_k, slot_id as u8, false, false)
+            .init_message_k(false, slot_id as u8, false, &mut message_k)
             .is_err()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -274,7 +274,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         let th1 =
             self.common
-                .calc_rsp_transcript_hash_via_ctx(slot_id as u8, false, message_k.clone());
+                .calc_rsp_transcript_hash_via_ctx(false, slot_id as u8, message_k.clone());
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -328,7 +328,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash =
             self.common
-                .calc_rsp_transcript_hash_via_ctx(slot_id as u8, false, message_k.clone());
+                .calc_rsp_transcript_hash_via_ctx(false, slot_id as u8, message_k.clone());
         #[cfg(feature = "hashed-transcript-data")]
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -385,7 +385,7 @@ impl<'a> ResponderContext<'a> {
     ) -> SpdmResult<SpdmSignatureStruct> {
         let transcript_hash =
             self.common
-                .calc_rsp_transcript_hash_via_ctx(slot_id, false, message_k.clone())?;
+                .calc_rsp_transcript_hash_via_ctx(false, slot_id, message_k.clone())?;
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 

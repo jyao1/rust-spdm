@@ -191,7 +191,7 @@ impl<'a> ResponderContext<'a> {
 
         if self
             .common
-            .init_message_k(&mut message_k, INVALID_SLOT, true, false)
+            .init_message_k(true, INVALID_SLOT, false, &mut message_k)
             .is_err()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -222,7 +222,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         let th1 =
             self.common
-                .calc_rsp_transcript_hash_via_ctx(INVALID_SLOT, true, message_k.clone());
+                .calc_rsp_transcript_hash_via_ctx(true, INVALID_SLOT, message_k.clone());
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -281,7 +281,7 @@ impl<'a> ResponderContext<'a> {
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash =
             self.common
-                .calc_rsp_transcript_hash_via_ctx(INVALID_SLOT, true, message_k.clone());
+                .calc_rsp_transcript_hash_via_ctx(true, INVALID_SLOT, message_k.clone());
         #[cfg(feature = "hashed-transcript-data")]
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);

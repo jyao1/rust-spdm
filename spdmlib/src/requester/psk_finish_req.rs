@@ -93,15 +93,15 @@ impl<'a> RequesterContext<'a> {
             .unwrap();
         #[cfg(not(feature = "hashed-transcript-data"))]
         let transcript_data = self.common.calc_req_transcript_data(
-            INVALID_SLOT,
             true,
+            INVALID_SLOT,
             &session.runtime_info.message_k,
             Some(&session.runtime_info.message_f),
         )?;
         #[cfg(feature = "hashed-transcript-data")]
         let transcript_hash = self
             .common
-            .calc_req_transcript_hash(INVALID_SLOT, true, session)?;
+            .calc_req_transcript_hash(true, INVALID_SLOT, session)?;
 
         let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(
@@ -147,8 +147,8 @@ impl<'a> RequesterContext<'a> {
                                 .unwrap();
 
                             let th2 = self.common.calc_req_transcript_hash(
-                                INVALID_SLOT,
                                 true,
+                                INVALID_SLOT,
                                 #[cfg(not(feature = "hashed-transcript-data"))]
                                 &session.runtime_info.message_k,
                                 #[cfg(not(feature = "hashed-transcript-data"))]

@@ -449,14 +449,14 @@ impl<'a> SpdmContext<'a> {
 
     pub fn init_message_k(
         &self,
-        #[cfg(not(feature = "hashed-transcript-data"))] _message_k: &mut ManagedBufferK,
-        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
-        #[cfg(not(feature = "hashed-transcript-data"))] _slot_id: u8,
-        #[cfg(feature = "hashed-transcript-data")] slot_id: u8,
         #[cfg(not(feature = "hashed-transcript-data"))] _use_psk: bool,
         #[cfg(feature = "hashed-transcript-data")] use_psk: bool,
+        #[cfg(not(feature = "hashed-transcript-data"))] _slot_id: u8,
+        #[cfg(feature = "hashed-transcript-data")] slot_id: u8,
         #[cfg(not(feature = "hashed-transcript-data"))] _is_requester: bool,
         #[cfg(feature = "hashed-transcript-data")] is_requester: bool,
+        #[cfg(not(feature = "hashed-transcript-data"))] _message_k: &mut ManagedBufferK,
+        #[cfg(feature = "hashed-transcript-data")] digest_context_th: &mut SpdmHashCtx,
     ) -> SpdmResult {
         #[cfg(feature = "hashed-transcript-data")]
         {
@@ -534,8 +534,8 @@ impl<'a> SpdmContext<'a> {
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,
-        slot_id: u8,
         use_psk: bool,
+        slot_id: u8,
         message_k: &ManagedBufferK,
         message_f: Option<&ManagedBufferF>,
     ) -> SpdmResult<ManagedBufferTH> {
@@ -629,12 +629,12 @@ impl<'a> SpdmContext<'a> {
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_hash(
         &self,
-        slot_id: u8,
         use_psk: bool,
+        slot_id: u8,
         message_k: &ManagedBufferK,
         message_f: Option<&ManagedBufferF>,
     ) -> SpdmResult<SpdmDigestStruct> {
-        let message = self.calc_req_transcript_data(slot_id, use_psk, message_k, message_f)?;
+        let message = self.calc_req_transcript_data(use_psk, slot_id, message_k, message_f)?;
 
         let transcript_hash =
             crypto::hash::hash_all(self.negotiate_info.base_hash_sel, message.as_ref())
@@ -661,8 +661,8 @@ impl<'a> SpdmContext<'a> {
     #[cfg(feature = "hashed-transcript-data")]
     pub fn calc_req_transcript_hash(
         &self,
-        _slot_id: u8,
         _use_psk: bool,
+        _slot_id: u8,
         session: &SpdmSession,
     ) -> SpdmResult<SpdmDigestStruct> {
         let transcript_hash = crypto::hash::hash_ctx_finalize(
@@ -699,8 +699,8 @@ impl<'a> SpdmContext<'a> {
     #[cfg(feature = "hashed-transcript-data")]
     pub fn calc_req_transcript_hash_via_ctx(
         &self,
-        _slot_id: u8,
         _use_psk: bool,
+        _slot_id: u8,
         ctx: SpdmHashCtx,
     ) -> SpdmResult<SpdmDigestStruct> {
         let hash = crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
@@ -710,8 +710,8 @@ impl<'a> SpdmContext<'a> {
     #[cfg(feature = "hashed-transcript-data")]
     pub fn calc_rsp_transcript_hash_via_ctx(
         &self,
-        _slot_id: u8,
         _use_psk: bool,
+        _slot_id: u8,
         ctx: SpdmHashCtx,
     ) -> SpdmResult<SpdmDigestStruct> {
         let hash = crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
