@@ -238,7 +238,7 @@ impl<'a> ResponderContext<'a> {
     }
 
     pub fn generate_measurement_signature(
-        &mut self,
+        &self,
         session_id: Option<u32>,
     ) -> SpdmResult<SpdmSignatureStruct> {
         let mut message_l1l2 = ManagedBufferL1L2::default();
@@ -261,7 +261,8 @@ impl<'a> ResponderContext<'a> {
                     .ok_or(SPDM_STATUS_BUFFER_FULL)?;
             }
             Some(session_id) => {
-                let session = if let Some(s) = self.common.get_session_via_id(session_id) {
+                let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id)
+                {
                     s
                 } else {
                     return Err(SPDM_STATUS_INVALID_PARAMETER);
@@ -284,11 +285,11 @@ impl<'a> ResponderContext<'a> {
         let message_l1l2_hash = match session_id {
             Some(session_id) => crypto::hash::hash_ctx_finalize(
                 self.common
-                    .get_session_via_id(session_id)
+                    .get_immutable_session_via_id(session_id)
                     .unwrap()
                     .runtime_info
                     .digest_context_l1l2
-                    .as_mut()
+                    .as_ref()
                     .cloned()
                     .unwrap(),
             )
@@ -297,7 +298,7 @@ impl<'a> ResponderContext<'a> {
                 self.common
                     .runtime_info
                     .digest_context_l1l2
-                    .as_mut()
+                    .as_ref()
                     .cloned()
                     .unwrap(),
             )

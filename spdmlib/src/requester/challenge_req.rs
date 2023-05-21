@@ -143,7 +143,7 @@ impl<'a> RequesterContext<'a> {
     }
 
     pub fn verify_challenge_auth_signature(
-        &mut self,
+        &self,
         slot_id: u8,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
@@ -176,7 +176,7 @@ impl<'a> RequesterContext<'a> {
                 self.common
                     .runtime_info
                     .digest_context_m1m2
-                    .as_mut()
+                    .as_ref()
                     .cloned()
                     .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             );
