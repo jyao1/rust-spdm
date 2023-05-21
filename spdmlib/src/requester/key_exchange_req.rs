@@ -171,57 +171,7 @@ impl<'a> RequesterContext<'a> {
 
                             debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
 
-                            // verify signature
-                            let base_asym_size =
-                                self.common.negotiate_info.base_asym_sel.get_size() as usize;
-                            let base_hash_size =
-                                self.common.negotiate_info.base_hash_sel.get_size() as usize;
-                            let temp_receive_used = receive_used - base_asym_size - base_hash_size;
-
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let mut message_k = ManagedBufferK::default();
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let mut message_k = SpdmHashCtx::default();
-
-                            self.common
-                                .init_message_k(false, slot_id, true, &mut message_k)?;
-                            self.common.append_message_k(&mut message_k, send_buffer)?;
-                            self.common.append_message_k(
-                                &mut message_k,
-                                &receive_buffer[..temp_receive_used],
-                            )?;
-
-                            if self
-                                .verify_key_exchange_rsp_signature(
-                                    slot_id,
-                                    &message_k,
-                                    &key_exchange_rsp.signature,
-                                )
-                                .is_err()
-                            {
-                                error!("verify_key_exchange_rsp_signature fail");
-                                return Err(SPDM_STATUS_VERIF_FAIL);
-                            } else {
-                                info!("verify_key_exchange_rsp_signature pass");
-                            }
-
-                            self.common.append_message_k(
-                                &mut message_k,
-                                key_exchange_rsp.signature.as_ref(),
-                            )?;
-
-                            // create session - generate the handshake secret (including finished_key)
-                            #[cfg(not(feature = "hashed-transcript-data"))]
-                            let th1 = self
-                                .common
-                                .calc_req_transcript_hash(false, slot_id, &message_k, None)?;
-                            #[cfg(feature = "hashed-transcript-data")]
-                            let th1 = self.common.calc_req_transcript_hash_via_ctx(
-                                false,
-                                slot_id,
-                                message_k.clone(),
-                            )?;
-                            debug!("!!! th1 : {:02x?}\n", th1.as_ref());
+                            // create session structure
                             let base_hash_algo = self.common.negotiate_info.base_hash_sel;
                             let dhe_algo = self.common.negotiate_info.dhe_sel;
                             let aead_algo = self.common.negotiate_info.aead_sel;
@@ -266,6 +216,61 @@ impl<'a> RequesterContext<'a> {
                             );
                             session.set_transport_param(sequence_number_count, max_random_count);
                             session.set_dhe_secret(spdm_version_sel, final_key)?;
+
+                            // create transcript
+                            let base_asym_size =
+                                self.common.negotiate_info.base_asym_sel.get_size() as usize;
+                            let base_hash_size =
+                                self.common.negotiate_info.base_hash_sel.get_size() as usize;
+                            let temp_receive_used = receive_used - base_asym_size - base_hash_size;
+
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            let mut message_k = ManagedBufferK::default();
+                            #[cfg(feature = "hashed-transcript-data")]
+                            let mut message_k = SpdmHashCtx::default();
+
+                            self.common
+                                .init_message_k(false, slot_id, true, &mut message_k)?;
+                            self.common.append_message_k(&mut message_k, send_buffer)?;
+                            self.common.append_message_k(
+                                &mut message_k,
+                                &receive_buffer[..temp_receive_used],
+                            )?;
+
+                            // verify signature
+                            if self
+                                .verify_key_exchange_rsp_signature(
+                                    slot_id,
+                                    &message_k,
+                                    &key_exchange_rsp.signature,
+                                )
+                                .is_err()
+                            {
+                                error!("verify_key_exchange_rsp_signature fail");
+                                return Err(SPDM_STATUS_VERIF_FAIL);
+                            } else {
+                                info!("verify_key_exchange_rsp_signature pass");
+                            }
+
+                            self.common.append_message_k(
+                                &mut message_k,
+                                key_exchange_rsp.signature.as_ref(),
+                            )?;
+
+                            // generate the handshake secret (including finished_key) before verify HMAC
+                            #[cfg(not(feature = "hashed-transcript-data"))]
+                            let th1 = self
+                                .common
+                                .calc_req_transcript_hash(false, slot_id, &message_k, None)?;
+                            #[cfg(feature = "hashed-transcript-data")]
+                            let th1 = self.common.calc_req_transcript_hash_via_ctx(
+                                false,
+                                slot_id,
+                                message_k.clone(),
+                            )?;
+                            debug!("!!! th1 : {:02x?}\n", th1.as_ref());
+
+                            let session = self.common.get_session_via_id(session_id).unwrap();
                             session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
                             // verify HMAC with finished_key
@@ -281,12 +286,10 @@ impl<'a> RequesterContext<'a> {
                                 message_k.clone(),
                             )?;
 
-                            let mut session = self
+                            let session = self
                                 .common
-                                .get_session_via_id(session_id)
-                                .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
-
-                            session.init_message_k(&message_k)?;
+                                .get_immutable_session_via_id(session_id)
+                                .unwrap();
 
                             if session
                                 .verify_hmac_with_response_finished_key(
@@ -299,12 +302,16 @@ impl<'a> RequesterContext<'a> {
                                 .is_err()
                             {
                                 error!("verify_hmac_with_response_finished_key fail");
+                                let session = self.common.get_session_via_id(session_id).unwrap();
                                 let _ = session.teardown(session_id);
                                 return Err(SPDM_STATUS_VERIF_FAIL);
                             } else {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
 
+                            // append verify_data after TH1
+                            let session = self.common.get_session_via_id(session_id).unwrap();
+                            session.init_message_k(&message_k)?;
                             if session
                                 .append_message_k(key_exchange_rsp.verify_data.as_ref())
                                 .is_err()
@@ -312,6 +319,7 @@ impl<'a> RequesterContext<'a> {
                                 let _ = session.teardown(session_id);
                                 return Err(SPDM_STATUS_BUFFER_FULL);
                             }
+
                             session.set_session_state(
                                 crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                             );
