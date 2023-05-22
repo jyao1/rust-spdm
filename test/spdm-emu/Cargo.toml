@@ -8,10 +8,8 @@ edition = "2018"
 
 [dependencies]
 log = "0.4.13"
-ring = { git = "https://github.com/jyao1/ring", branch = "uefi_support" }
-webpki = { git = "https://github.com/jyao1/webpki", branch = "uefi_support", default-features = false, features = [
-    "alloc",
-] }
+ring = { version = "0.16.20" }
+webpki = { version = "0.22.0", default-features = false, features = ["alloc"]}
 untrusted = { version = "0.7.1" }
 codec = { path = "../../codec" }
 spdmlib = { path = "../../spdmlib", default-features = false }

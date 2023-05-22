@@ -15,7 +15,7 @@ zeroize = { version = "1.5.0", features = ["zeroize_derive"]}
 cc = { version = "1.0.63", default-features = false }
 
 [dev-dependencies]
-ring = { git="https://github.com/jyao1/ring", branch="uefi_support" }
+ring = { version = "0.16.20" }
 log = { version = "0.4.13" }
 
 [features]
