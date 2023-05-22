@@ -22,18 +22,22 @@ jobs:
         runs-on: [ubuntu-latest]
         run_requester_features:
           [
-            "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data",
-            "spdmlib/spdm-ring,spdmlib/std",
+            "spdm-ring",
+            "spdm-ring,hashed-transcript-data",
+            "spdm-mbedtls",
+            "spdm-mbedtls,hashed-transcript-data,spdm-mbedtls-hashed-transcript-data",
           ]
         run_responder_features:
           [
-            "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data",
-            "spdmlib/spdm-ring,spdmlib/std",
+            "spdm-ring",
+            "spdm-ring,hashed-transcript-data",
+            "spdm-mbedtls",
+            "spdm-mbedtls,hashed-transcript-data,spdm-mbedtls-hashed-transcript-data",
           ]
         include:
           - runs-on: windows-latest
-            run_requester_features: "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data"
-            run_responder_features: "spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data"
+            run_requester_features: "spdm-ring,hashed-transcript-data"
+            run_responder_features: "spdm-ring,hashed-transcript-data"
     # The type of runner that the job will run on
     runs-on: ${{ matrix.runs-on }}
 

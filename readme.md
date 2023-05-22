@@ -101,16 +101,29 @@ cargo run -p spdm-requester-emu
 ```
 
 ### Run emulator with selected feature
-For example, run the emulator without hashed-transcript-data feature be enabled  
+
+The following list shows the supported combinations for both spdm-requester-emu and spdm-responder-emu
+
+
+| Features                                                                | CryptoLibrary | Hashed transcript data support | Notes                                                              |
+| ----------------------------------------------------------------------- | ------------- | ------------------------------ | ------------------------------------------------------------------ |
+| spdm-ring                                                               | ring          | No                             | use ring as crypto library with hashed-transcript-data disabled    |
+| spdm-ring,hashed-transcript-data                                        | ring          | Yes                            | use ring as crypto library with hashed-transcript-data enabled     |
+| spdm-mbedtls                                                            | mbedtls       | No                             | use mbedtls as crypto library with hashed-transcript-data disabled |
+| spdm-mbedtls,hashed-transcript-data,spdm-mbedtls-hashed-transcript-data | mbedtls       | Yes                            | use mbedtls as crypto library with hashed-transcript-data          |
+
+For example, run the emulator with spdm-ring enabled and without hashed-transcript-data enabled.  
 Open one command windows and run:
 ```
-cargo run -p spdm-responder-emu --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"
+cargo run -p spdm-responder-emu --no-default-features --features "spdm-ring"
 ```
 
+run the emulator with spdm-mbedtls enabled and with hashed-transcript-data enabled.  
 Open another command windows and run:
 ```
-cargo run -p spdm-requester-emu --no-default-features --features "spdmlib/std,spdmlib/spdm-ring"
+cargo run -p spdm-requester-emu --no-default-features --features "spdm-mbedtls,hashed-transcript-data,spdm-mbedtls-hashed-transcript-data"
 ```
+
 
 ### Cross test with [spdm_emu](https://github.com/DMTF/spdm-emu)
 Open one command windows in workspace and run:
