@@ -19,8 +19,11 @@ mctp_transport = { path = "../../mctp_transport" }
 pcidoe_transport = { path = "../../pcidoe_transport" }
 bytes = { version = "1", default-features = false }
 
-spdmlib_crypto_mbedtls = { path = "../../spdmlib_crypto_mbedtls", optional = true }
+spdmlib_crypto_mbedtls = { path = "../../spdmlib_crypto_mbedtls", default-features = false, optional = true }
 
 [features]
-default = ["spdmlib/std", "spdmlib/spdm-ring", "spdmlib/hashed-transcript-data"]
-crypto_mbedtls = ["spdmlib_crypto_mbedtls"]
+default = ["spdm-ring", "spdmlib/hashed-transcript-data"]
+spdm-ring = ["spdmlib/spdm-ring", "spdmlib/std"]
+spdm-mbedtls = ["spdmlib_crypto_mbedtls"]
+hashed-transcript-data = ["spdmlib/hashed-transcript-data"]
+spdm-mbedtls-hashed-transcript-data = ["spdmlib_crypto_mbedtls/hashed-transcript-data"]

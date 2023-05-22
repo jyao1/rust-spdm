@@ -16,5 +16,7 @@ simple_logger = "1.11.0"
 log = "0.4.13"
 
 [features]
-default = ["spdm-emu/default"]
-crypto_mbedtls = ["spdm-emu/crypto_mbedtls"]
+spdm-ring = ["spdm-emu/spdm-ring"]
+spdm-mbedtls = ["spdm-emu/spdm-mbedtls"]
+hashed-transcript-data = ["spdm-emu/hashed-transcript-data"]
+spdm-mbedtls-hashed-transcript-data = ["spdm-emu/spdm-mbedtls-hashed-transcript-data"]
