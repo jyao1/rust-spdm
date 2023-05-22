@@ -11,13 +11,16 @@
 
 ### Platform
 
-afl.rs works on x86-64 Linux and x86-64 macOS.
+* afl.rs works on x86-64 Linux and x86-64 macOS.
+* libFuzzer works on x86-64 Linux, x86-64 macOS and Apple-Silicon (aarch64) macOS for now.
 
-`cargo install afl`
+* `cargo install afl`
+* `cargo install cargo-fuzz`
 
 ### Upgrading
 
-`cargo install --force afl`
+* `cargo install --force afl`
+* `cargo install --force cargo-fuzz`
 
 ### Provide starting inputs
 
@@ -31,6 +34,17 @@ $sudo mount -t tmpfs -o size=1024M tmpfs in
 ### Build the fuzz target
 
 `cargo afl build --features "fuzz" -p rspversion`
+
+```
+# for cargo fuzz:
+cd spdmlib
+# list all fuzz
+`cargo fuzz list`
+# build: replace xxx with one listed in cargo fuzz list.
+`cargo fuzz build xxx`
+# run
+`cargo fuzz run xxx`
+```
 
 ### Start fuzzing
 
