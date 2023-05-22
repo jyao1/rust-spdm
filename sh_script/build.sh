@@ -39,7 +39,52 @@ check() {
     set +x
 }
 
+
+build_mbedtls() {
+    pushd mbedtls
+    cp ../include/mbedtls/config.h ./include/mbedtls/
+    CURRENT_DIR=`pwd`/../include
+    export CFLAGS="-I$CURRENT_DIR -nostdlibinc -isystem -ffunction-sections -fdata-sections -fPIE"
+    make clean
+    make lib -j ${nproc:-1}
+    unset CFLAGS
+    popd
+}
+
+build_mbedtls_c_build_env() {
+    if [ -v CC ]; then
+        CC_BACKUP=$CC
+    fi
+    if [ -v AR ]; then
+        AR_BACKUP=$AR
+    fi
+    export CC=clang
+    export AR=llvm-ar
+    "$@"
+    if [ -v CC_BACKUP ]; then
+        CC=$CC_BACKUP;export $CC
+    else
+        unset CC
+    fi
+    if [ -v AR_BACKUP ]; then
+        AR=$AR_BACKUP;export $AR
+    else
+        unset AR
+    fi
+}
+
+build_mbedtls_crate() {
+    echo "Building Mbedtls library for Rust-SPDM..."
+    build_mbedtls_c_build_env build_mbedtls
+}
+
 build() {
+    pushd spdmlib_crypto_mbedtls
+    if [ "${RUNNER_OS:-Linux}" == "Linux" ]; then
+        build_mbedtls_crate
+    fi
+    popd
+    
     pushd spdmlib
     echo "Building Rust-SPDM..."
     cargo build
@@ -84,8 +129,8 @@ download_spdm_emu() {
     
 }
 
-RUN_REQUESTER_FEATURES=${RUN_REQUESTER_FEATURES:-spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data}
-RUN_RESPONDER_FEATURES=${RUN_RESPONDER_FEATURES:-spdmlib/spdm-ring,spdmlib/std,spdmlib/hashed-transcript-data}
+RUN_REQUESTER_FEATURES=${RUN_REQUESTER_FEATURES:-spdm-ring,hashed-transcript-data}
+RUN_RESPONDER_FEATURES=${RUN_RESPONDER_FEATURES:-spdm-ring,hashed-transcript-data}
 
 run_with_spdm_emu() {
     echo "Running with spdm-emu..."
@@ -103,16 +148,24 @@ run_with_spdm_emu() {
     popd
 }
 
-run() {
-    echo "Running tests..."
-    cargo test -- --test-threads=1
-    cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1
+run_basic_test() {
+    echo "Running basic tests..."
+    echo_command cargo test -- --test-threads=1
+    echo_command cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1
+    echo "Running basic tests finished..."
+}
 
+run_rust_spdm_emu() {
     echo "Running requester and responder..."
     echo_command cargo run -p spdm-responder-emu --no-default-features --features="$RUN_REQUESTER_FEATURES" &
     sleep 5
     echo_command cargo run -p spdm-requester-emu --no-default-features --features="$RUN_RESPONDER_FEATURES"
     cleanup
+}
+
+run() {
+    run_basic_test
+    run_rust_spdm_emu
 }
 
 CHECK_OPTION=false
