@@ -1,3 +1,6 @@
 [submodule "spdmlib_crypto_mbedtls/mbedtls"]
 	path = spdmlib_crypto_mbedtls/mbedtls
 	url = https://github.com/Mbed-TLS/mbedtls.git
+[submodule "external/ring"]
+	path = external/ring
+	url = https://github.com/briansmith/ring.git
