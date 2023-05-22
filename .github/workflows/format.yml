@@ -9,7 +9,12 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
+        with:
+          submodules: recursive
+      - name: Apply patch
+        shell: bash
+        run: |
+            ./sh_script/pre-build.sh
       - name: Install nightly toolchain with clippy available
         uses: actions-rs/toolchain@v1
         with:
@@ -30,7 +35,12 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
+        with:
+          submodules: recursive
+      - name: Apply patch
+        shell: bash
+        run: |
+            ./sh_script/pre-build.sh
       - name: Install nightly toolchain with rustfmt available
         uses: actions-rs/toolchain@v1
         with:
@@ -58,7 +68,12 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-
+        with:
+          submodules: recursive
+      - name: Apply patch
+        shell: bash
+        run: |
+            ./sh_script/pre-build.sh
       - name: Install nightly toolchain
         uses: actions-rs/toolchain@v1
         with:

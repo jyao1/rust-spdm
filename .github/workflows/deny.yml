@@ -13,7 +13,15 @@ jobs:
     continue-on-error: ${{ matrix.checks == 'sources' }}
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout sources
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: Apply patch
+      shell: bash
+      run: |
+          ./sh_script/pre-build.sh
+
     - uses: EmbarkStudios/cargo-deny-action@v1
       with:
         command: check ${{ matrix.checks }}

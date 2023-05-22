@@ -198,6 +198,8 @@ process_args() {
 }
 
 main() {
+    ./sh_script/pre-build.sh
+
     if [[ ${CHECK_OPTION} == true ]]; then
         check
         exit 0
