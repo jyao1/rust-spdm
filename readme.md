@@ -40,6 +40,11 @@ git clone https://github.com/jyao1/rust-spdm.git
 git submodule update --init --recursive
 ```
 
+Then patch the ring/webpki.
+```
+sh_script/pre-build.sh
+```
+
 ### Tools
 
 1. Install [RUST](https://www.rust-lang.org/)
