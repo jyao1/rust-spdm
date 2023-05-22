@@ -7,6 +7,7 @@ pub mod opaque;
 pub mod session;
 pub mod spdm_codec;
 
+use crate::message::SpdmRequestResponseCode;
 use crate::{crypto, protocol::*};
 
 pub use opaque::*;
@@ -664,6 +665,37 @@ impl<'a> SpdmContext<'a> {
             }
         } else {
             None
+        }
+    }
+
+    pub fn reset_buffer_via_request_code(
+        &mut self,
+        opcode: SpdmRequestResponseCode,
+        session_id: Option<u32>,
+    ) {
+        if opcode != SpdmRequestResponseCode::SpdmRequestGetMeasurements {
+            self.reset_message_m(session_id)
+        }
+        match opcode {
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements
+            | SpdmRequestResponseCode::SpdmRequestKeyExchange
+            | SpdmRequestResponseCode::SpdmRequestFinish
+            | SpdmRequestResponseCode::SpdmRequestPskExchange
+            | SpdmRequestResponseCode::SpdmRequestPskFinish
+            | SpdmRequestResponseCode::SpdmRequestKeyUpdate
+            | SpdmRequestResponseCode::SpdmRequestHeartbeat
+            | SpdmRequestResponseCode::SpdmRequestEndSession => {
+                if self.runtime_info.connection_state.get_u8()
+                    < SpdmConnectionState::SpdmConnectionAuthenticated.get_u8()
+                {
+                    self.reset_message_b();
+                    self.reset_message_c();
+                }
+            }
+            SpdmRequestResponseCode::SpdmRequestGetDigests => {
+                self.reset_message_b();
+            }
+            _ => {}
         }
     }
 
