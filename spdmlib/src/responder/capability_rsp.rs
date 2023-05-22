@@ -41,6 +41,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+            None,
+        );
+
         let get_capabilities =
             SpdmGetCapabilitiesRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(get_capabilities) = get_capabilities {

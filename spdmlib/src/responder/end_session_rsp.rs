@@ -10,11 +10,16 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_end_session(&mut self, session_id: u32, bytes: &[u8]) {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_end_session_response(bytes, &mut writer);
+        self.write_spdm_end_session_response(session_id, bytes, &mut writer);
         let _ = self.send_secured_message(session_id, writer.used_slice(), false);
     }
 
-    pub fn write_spdm_end_session_response(&mut self, bytes: &[u8], writer: &mut Writer) {
+    pub fn write_spdm_end_session_response(
+        &mut self,
+        session_id: u32,
+        bytes: &[u8],
+        writer: &mut Writer,
+    ) {
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
@@ -36,6 +41,11 @@ impl<'a> ResponderContext<'a> {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
             return;
         }
+
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestEndSession,
+            Some(session_id),
+        );
 
         info!("send spdm end_session rsp\n");
 

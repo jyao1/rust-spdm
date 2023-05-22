@@ -49,6 +49,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetDigests,
+            session_id,
+        );
+
         let get_digests = SpdmGetDigestsRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(get_digests) = get_digests {
             debug!("!!! get_digests : {:02x?}\n", get_digests);

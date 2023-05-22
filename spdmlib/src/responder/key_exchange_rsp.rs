@@ -49,6 +49,9 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestKeyExchange, None);
+
         let key_exchange_req =
             SpdmKeyExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);
 
@@ -136,8 +139,6 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        info!("send spdm key_exchange rsp\n");
-
         let key_exchange_req = key_exchange_req.unwrap();
         let slot_id = key_exchange_req.slot_id as usize;
         if slot_id >= SPDM_MAX_SLOT_NUMBER {
@@ -167,9 +168,6 @@ impl<'a> ResponderContext<'a> {
         }
         let final_key = final_key.unwrap();
         debug!("!!! final_key : {:02x?}\n", final_key.as_ref());
-
-        let mut random = [0u8; SPDM_RANDOM_SIZE];
-        let _ = crypto::rand::get_random(&mut random);
 
         let rsp_session_id = self.common.get_next_half_session_id(false);
         if rsp_session_id.is_err() {
@@ -216,6 +214,11 @@ impl<'a> ResponderContext<'a> {
         session.runtime_info.message_a = message_a;
         session.runtime_info.rsp_cert_hash = cert_chain_hash;
         session.runtime_info.req_cert_hash = None;
+
+        let mut random = [0u8; SPDM_RANDOM_SIZE];
+        let _ = crypto::rand::get_random(&mut random);
+
+        info!("send spdm key_exchange rsp\n");
 
         // prepare response
         let response = SpdmMessage {

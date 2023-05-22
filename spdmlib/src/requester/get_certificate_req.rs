@@ -199,6 +199,11 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetCertificate,
+            session_id,
+        );
+
         self.common.peer_info.peer_cert_chain_temp = Some(SpdmCertChainBuffer::default());
         while length != 0 {
             let (portion_length, remainder_length) = self.send_receive_spdm_certificate_partial(

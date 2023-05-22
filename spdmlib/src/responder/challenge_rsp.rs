@@ -46,6 +46,9 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestChallenge, None);
+
         let challenge = SpdmChallengeRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(challenge) = &challenge {
             debug!("!!! challenge : {:02x?}\n", challenge);
@@ -85,11 +88,6 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        info!("send spdm challenge_auth\n");
-
-        let mut nonce = [0u8; SPDM_NONCE_SIZE];
-        let _ = crypto::rand::get_random(&mut nonce);
-
         let my_cert_chain = self.common.provision_info.my_cert_chain[slot_id]
             .as_ref()
             .unwrap();
@@ -98,6 +96,11 @@ impl<'a> ResponderContext<'a> {
             my_cert_chain.as_ref(),
         )
         .unwrap();
+
+        let mut nonce = [0u8; SPDM_NONCE_SIZE];
+        let _ = crypto::rand::get_random(&mut nonce);
+
+        info!("send spdm challenge_auth\n");
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {

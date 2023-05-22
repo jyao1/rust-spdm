@@ -36,6 +36,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms,
+            None,
+        );
+
         let other_params_support;
 
         let negotiate_algorithms =

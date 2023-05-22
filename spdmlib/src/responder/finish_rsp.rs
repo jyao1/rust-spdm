@@ -37,6 +37,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestFinish,
+            Some(session_id),
+        );
+
         let finish_req = SpdmFinishRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(finish_req) = &finish_req {
             debug!("!!! finish req : {:02x?}\n", finish_req);

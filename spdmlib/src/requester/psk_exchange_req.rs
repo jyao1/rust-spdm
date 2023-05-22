@@ -25,6 +25,9 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult<u32> {
         info!("send spdm psk exchange\n");
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestPskExchange, None);
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let half_session_id = self.common.get_next_half_session_id(true)?;
         let send_used = self.encode_spdm_psk_exchange(

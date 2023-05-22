@@ -35,6 +35,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestPskFinish,
+            Some(session_id),
+        );
+
         let psk_finish_req = SpdmPskFinishRequestPayload::spdm_read(&mut self.common, &mut reader);
 
         if let Some(psk_finish_req) = &psk_finish_req {

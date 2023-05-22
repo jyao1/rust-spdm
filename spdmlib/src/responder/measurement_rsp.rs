@@ -60,6 +60,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+            session_id,
+        );
+
         let get_measurements =
             SpdmGetMeasurementsRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(get_measurements) = &get_measurements {
@@ -114,11 +119,6 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        info!("send spdm measurement\n");
-
-        let mut nonce = [0u8; SPDM_NONCE_SIZE];
-        let _ = crypto::rand::get_random(&mut nonce);
-
         let real_measurement_block_count = spdm_measurement_collection(
             spdm_version_sel,
             measurement_specification_sel,
@@ -172,6 +172,11 @@ impl<'a> ResponderContext<'a> {
         } else {
             SpdmMeasurementContentChanged::NOT_SUPPORTED
         };
+
+        let mut nonce = [0u8; SPDM_NONCE_SIZE];
+        let _ = crypto::rand::get_random(&mut nonce);
+
+        info!("send spdm measurement\n");
 
         let response = SpdmMessage {
             header: SpdmMessageHeader {

@@ -46,6 +46,9 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestPskExchange, None);
+
         let psk_exchange_req =
             SpdmPskExchangeRequestPayload::spdm_read(&mut self.common, &mut reader);
 
@@ -134,8 +137,6 @@ impl<'a> ResponderContext<'a> {
         )
         .unwrap();
 
-        info!("send spdm psk_exchange rsp\n");
-
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
         let _ = crypto::rand::get_random(&mut psk_context);
 
@@ -184,6 +185,8 @@ impl<'a> ResponderContext<'a> {
         session.runtime_info.message_a = message_a;
         session.runtime_info.rsp_cert_hash = None;
         session.runtime_info.req_cert_hash = None;
+
+        info!("send spdm psk_exchange rsp\n");
 
         // prepare response
         let response = SpdmMessage {
