@@ -84,7 +84,7 @@ fn new_logger_from_env() -> SimpleLogger {
 fn main() {
     new_logger_from_env().init().unwrap();
 
-    #[cfg(feature = "crypto_mbedtls")]
+    #[cfg(feature = "spdm-mbedtls")]
     spdm_emu::crypto::crypto_mbedtls_register_handles();
 
     register(SECRET_IMPL_INSTANCE.clone());

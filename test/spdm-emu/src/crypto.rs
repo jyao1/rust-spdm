@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(feature = "crypto_mbedtls")]
+#[cfg(feature = "spdm-mbedtls")]
 pub fn crypto_mbedtls_register_handles() {
     spdmlib::crypto::aead::register(spdmlib_crypto_mbedtls::aead_impl::DEFAULT.clone());
 
