@@ -231,6 +231,41 @@ impl<'a> ResponderContext<'a> {
                             self.handle_spdm_psk_finish(session_id, bytes);
                             true
                         }
+
+                        SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest => {
+                            self.handle_spdm_vendor_defined_request(Some(session_id), bytes);
+                            true
+                        }
+
+                        SpdmRequestResponseCode::SpdmRequestGetVersion
+                        | SpdmRequestResponseCode::SpdmRequestGetCapabilities
+                        | SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms
+                        | SpdmRequestResponseCode::SpdmRequestGetDigests
+                        | SpdmRequestResponseCode::SpdmRequestGetCertificate
+                        | SpdmRequestResponseCode::SpdmRequestChallenge
+                        | SpdmRequestResponseCode::SpdmRequestGetMeasurements
+                        | SpdmRequestResponseCode::SpdmRequestKeyExchange
+                        | SpdmRequestResponseCode::SpdmRequestPskExchange
+                        | SpdmRequestResponseCode::SpdmRequestHeartbeat
+                        | SpdmRequestResponseCode::SpdmRequestKeyUpdate
+                        | SpdmRequestResponseCode::SpdmRequestEndSession => {
+                            self.handle_error_request(
+                                SpdmErrorCode::SpdmErrorUnexpectedRequest,
+                                Some(session_id),
+                                bytes,
+                            );
+                            true
+                        }
+
+                        SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
+                            self.handle_error_request(
+                                SpdmErrorCode::SpdmErrorUnsupportedRequest,
+                                Some(session_id),
+                                bytes,
+                            );
+                            true
+                        }
+
                         _ => false,
                     },
                     None => false,
@@ -271,15 +306,30 @@ impl<'a> ResponderContext<'a> {
                             true
                         }
 
-                        SpdmRequestResponseCode::SpdmRequestGetVersion => false,
-                        SpdmRequestResponseCode::SpdmRequestGetCapabilities => false,
-                        SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms => false,
-                        SpdmRequestResponseCode::SpdmRequestChallenge => false,
-                        SpdmRequestResponseCode::SpdmRequestKeyExchange => false,
-                        SpdmRequestResponseCode::SpdmRequestPskExchange => false,
-                        SpdmRequestResponseCode::SpdmRequestFinish => false,
-                        SpdmRequestResponseCode::SpdmRequestPskFinish => false,
-                        SpdmRequestResponseCode::SpdmRequestResponseIfReady => false,
+                        SpdmRequestResponseCode::SpdmRequestGetVersion
+                        | SpdmRequestResponseCode::SpdmRequestGetCapabilities
+                        | SpdmRequestResponseCode::SpdmRequestNegotiateAlgorithms
+                        | SpdmRequestResponseCode::SpdmRequestChallenge
+                        | SpdmRequestResponseCode::SpdmRequestKeyExchange
+                        | SpdmRequestResponseCode::SpdmRequestPskExchange
+                        | SpdmRequestResponseCode::SpdmRequestFinish
+                        | SpdmRequestResponseCode::SpdmRequestPskFinish => {
+                            self.handle_error_request(
+                                SpdmErrorCode::SpdmErrorUnexpectedRequest,
+                                Some(session_id),
+                                bytes,
+                            );
+                            true
+                        }
+
+                        SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
+                            self.handle_error_request(
+                                SpdmErrorCode::SpdmErrorUnsupportedRequest,
+                                Some(session_id),
+                                bytes,
+                            );
+                            true
+                        }
 
                         _ => false,
                     },
@@ -308,7 +358,6 @@ impl<'a> ResponderContext<'a> {
         let mut reader = Reader::init(bytes);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => match message_header.request_response_code {
-                SpdmRequestResponseCode::SpdmRequestResponseIfReady => false,
                 SpdmRequestResponseCode::SpdmRequestGetVersion => {
                     self.handle_spdm_version(bytes);
                     true
@@ -353,11 +402,27 @@ impl<'a> ResponderContext<'a> {
                     true
                 }
 
-                SpdmRequestResponseCode::SpdmRequestFinish => false,
-                SpdmRequestResponseCode::SpdmRequestPskFinish => false,
-                SpdmRequestResponseCode::SpdmRequestHeartbeat => false,
-                SpdmRequestResponseCode::SpdmRequestKeyUpdate => false,
-                SpdmRequestResponseCode::SpdmRequestEndSession => false,
+                SpdmRequestResponseCode::SpdmRequestFinish
+                | SpdmRequestResponseCode::SpdmRequestPskFinish
+                | SpdmRequestResponseCode::SpdmRequestHeartbeat
+                | SpdmRequestResponseCode::SpdmRequestKeyUpdate
+                | SpdmRequestResponseCode::SpdmRequestEndSession => {
+                    self.handle_error_request(
+                        SpdmErrorCode::SpdmErrorUnexpectedRequest,
+                        None,
+                        bytes,
+                    );
+                    true
+                }
+
+                SpdmRequestResponseCode::SpdmRequestResponseIfReady => {
+                    self.handle_error_request(
+                        SpdmErrorCode::SpdmErrorUnsupportedRequest,
+                        None,
+                        bytes,
+                    );
+                    true
+                }
 
                 _ => false,
             },
