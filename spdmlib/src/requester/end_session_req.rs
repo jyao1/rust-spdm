@@ -12,6 +12,12 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_end_session(&mut self, session_id: u32) -> SpdmResult {
         info!("send spdm end_session\n");
+
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestEndSession,
+            Some(session_id),
+        );
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let used = self.encode_spdm_end_session(&mut send_buffer);
         self.send_secured_message(session_id, &send_buffer[..used], false)?;

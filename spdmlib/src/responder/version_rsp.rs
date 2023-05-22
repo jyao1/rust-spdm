@@ -28,6 +28,9 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestGetVersion, None);
+
         let get_version = SpdmGetVersionRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(get_version) = get_version {
             debug!("!!! get_version : {:02x?}\n", get_version);

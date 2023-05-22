@@ -24,6 +24,9 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestChallenge, None);
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used =
             self.encode_spdm_challenge(slot_id, measurement_summary_hash_type, &mut send_buffer)?;

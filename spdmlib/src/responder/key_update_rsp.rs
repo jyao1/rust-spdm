@@ -32,6 +32,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestKeyUpdate,
+            Some(session_id),
+        );
+
         let key_update_req = SpdmKeyUpdateRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(key_update_req) = &key_update_req {
             debug!("!!! key_update req : {:02x?}\n", key_update_req);

@@ -45,6 +45,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetCertificate,
+            session_id,
+        );
+
         let get_certificate =
             SpdmGetCertificateRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(get_certificate) = &get_certificate {
@@ -108,10 +113,10 @@ impl<'a> ResponderContext<'a> {
 
         let cert_chain_data =
             &my_cert_chain.data[(offset as usize)..(offset as usize + length as usize)];
-
-        info!("send spdm certificate\n");
         let mut cert_chain = [0u8; MAX_SPDM_CERT_PORTION_LEN];
         cert_chain[..cert_chain_data.len()].copy_from_slice(cert_chain_data);
+
+        info!("send spdm certificate\n");
         let response = SpdmMessage {
             header: SpdmMessageHeader {
                 version: self.common.negotiate_info.spdm_version_sel,

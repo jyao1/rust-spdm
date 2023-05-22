@@ -15,6 +15,15 @@ impl<'a> RequesterContext<'a> {
         req_payload_struct: VendorDefinedReqPayloadStruct,
     ) -> SpdmResult<VendorDefinedRspPayloadStruct> {
         info!("send vendor defined request\n");
+
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestVendorDefinedRequest,
+            session_id,
+        );
+
+        // clear cache data
+        self.common.reset_context();
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         let request = SpdmMessage {

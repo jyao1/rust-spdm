@@ -9,6 +9,12 @@ use crate::requester::*;
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_digest(&mut self, session_id: Option<u32>) -> SpdmResult {
         info!("send spdm digest\n");
+
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetDigests,
+            session_id,
+        );
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used = self.encode_spdm_digest(&mut send_buffer);
         match session_id {

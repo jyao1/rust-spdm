@@ -36,6 +36,11 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestFinish,
+            Some(session_id),
+        );
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let res = self.encode_spdm_finish(session_id, req_slot_id, &mut send_buffer);
         if res.is_err() {

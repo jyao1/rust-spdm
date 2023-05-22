@@ -38,6 +38,9 @@ impl<'a> RequesterContext<'a> {
 
         let req_session_id = self.common.get_next_half_session_id(true)?;
 
+        self.common
+            .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestKeyExchange, None);
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let (key_exchange_context, send_used) = self.encode_spdm_key_exchange(
             req_session_id,

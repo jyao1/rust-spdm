@@ -9,6 +9,11 @@ use crate::requester::*;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_capability(&mut self) -> SpdmResult {
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetCapabilities,
+            None,
+        );
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used = self.encode_spdm_capability(&mut send_buffer);
         self.send_message(&send_buffer[..send_used])?;

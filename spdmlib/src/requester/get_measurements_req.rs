@@ -33,6 +33,11 @@ impl<'a> RequesterContext<'a> {
             return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
+        self.common.reset_buffer_via_request_code(
+            SpdmRequestResponseCode::SpdmRequestGetMeasurements,
+            session_id,
+        );
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used = self.encode_spdm_measurement_record(
             measurement_attributes,
