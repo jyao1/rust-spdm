@@ -294,6 +294,35 @@ impl<'a> ResponderContext<'a> {
         let session = self.common.get_session_via_id(session_id).unwrap();
         session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap();
+        let psk_without_context = self
+            .common
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT);
+        if psk_without_context {
+            // generate the data secret directly to skip PSK_FINISH
+            let th2 = self.common.calc_rsp_transcript_hash(true, 0, session);
+            if th2.is_err() {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
+            }
+            let th2 = th2.unwrap();
+            debug!("!!! th2 : {:02x?}\n", th2.as_ref());
+            let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
+            let session = self.common.get_session_via_id(session_id).unwrap();
+            session
+                .generate_data_secret(spdm_version_sel, &th2)
+                .unwrap();
+            session.set_session_state(
+                crate::common::session::SpdmSessionState::SpdmSessionEstablished,
+            );
+        }
+
+        let session = self.common.get_session_via_id(session_id).unwrap();
         session.heartbeat_period = heartbeat_period;
         if return_opaque.data_size != 0 {
             session.secure_spdm_version_sel =
