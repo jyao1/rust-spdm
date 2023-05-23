@@ -14,7 +14,7 @@ pub fn fuzz_total_requesters() {
 
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let mut responder = responder::ResponderContext::new(
         &mut device_io_responder,

@@ -16,7 +16,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -80,7 +80,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let message_m = &[
             0x11, 0xe0, 0x00, 0x00, 0x11, 0x60, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

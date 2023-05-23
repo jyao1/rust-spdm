@@ -6,7 +6,7 @@ use fuzzlib::*;
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_digest(data: &[u8]) {
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
     let (config_info, provision_info) = rsp_create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};

@@ -13,7 +13,7 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
     spdmlib::crypto::rand::register(FUZZ_RAND.clone());
 
     let mut responder = responder::ResponderContext::new(
