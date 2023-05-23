@@ -5,8 +5,9 @@
 #![allow(unused)]
 
 use spdmlib::common::*;
-use spdmlib::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
+use spdmlib::crypto::{SpdmCryptoRandom, SpdmHmac};
 use spdmlib::protocol::*;
+use spdmlib::secret::SpdmAsymSign;
 use spdmlib::{common, responder};
 
 use codec::enum_builder;
