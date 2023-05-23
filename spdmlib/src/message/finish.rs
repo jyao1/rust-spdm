@@ -127,10 +127,11 @@ impl SpdmCodec for SpdmFinishResponsePayload {
                 .rsp_capabilities_sel
                 .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
 
-        let mut verify_data = SpdmDigestStruct::default();
-        if in_clear_text {
-            verify_data = SpdmDigestStruct::spdm_read(context, r)?;
-        }
+        let verify_data = if in_clear_text {
+            SpdmDigestStruct::spdm_read(context, r)?
+        } else {
+            SpdmDigestStruct::default()
+        };
 
         Some(SpdmFinishResponsePayload { verify_data })
     }

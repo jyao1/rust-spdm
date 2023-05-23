@@ -8,7 +8,7 @@ use crate::common::spdm_codec::SpdmCodec;
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDheExchangeStruct, SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmRandomStruct,
-    SpdmResponseCapabilityFlags, SpdmSignatureStruct,
+    SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags, SpdmSignatureStruct,
 };
 use codec::{Codec, Reader, Writer};
 
@@ -182,7 +182,18 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
         }
         cnt += self.opaque.spdm_encode(context, bytes)?;
         cnt += self.signature.spdm_encode(context, bytes)?;
-        cnt += self.verify_data.spdm_encode(context, bytes)?;
+
+        let in_clear_text = context
+            .negotiate_info
+            .req_capabilities_sel
+            .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            && context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+        if !in_clear_text {
+            cnt += self.verify_data.spdm_encode(context, bytes)?;
+        }
         Ok(cnt)
     }
 
@@ -205,7 +216,19 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
         };
         let opaque = SpdmOpaqueStruct::spdm_read(context, r)?;
         let signature = SpdmSignatureStruct::spdm_read(context, r)?;
-        let verify_data = SpdmDigestStruct::spdm_read(context, r)?;
+        let in_clear_text = context
+            .negotiate_info
+            .req_capabilities_sel
+            .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            && context
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+        let verify_data = if !in_clear_text {
+            SpdmDigestStruct::spdm_read(context, r)?
+        } else {
+            SpdmDigestStruct::default()
+        };
 
         Some(SpdmKeyExchangeResponsePayload {
             heartbeat_period,

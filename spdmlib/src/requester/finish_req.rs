@@ -19,6 +19,17 @@ impl<'a> RequesterContext<'a> {
         session_id: u32,
     ) -> SpdmResult {
         info!("send spdm finish\n");
+        let in_clear_text = self
+            .common
+            .negotiate_info
+            .req_capabilities_sel
+            .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            && self
+                .common
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+        info!("in_clear_text {:?}\n", in_clear_text);
 
         let req_slot_id = if let Some(req_slot_id) = req_slot_id {
             if req_slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
@@ -52,7 +63,11 @@ impl<'a> RequesterContext<'a> {
             return Err(res.err().unwrap());
         }
         let send_used = res.unwrap();
-        let res = self.send_secured_message(session_id, &send_buffer[..send_used], false);
+        let res = if in_clear_text {
+            self.send_message(&send_buffer[..send_used])
+        } else {
+            self.send_secured_message(session_id, &send_buffer[..send_used], false)
+        };
         if res.is_err() {
             let _ = self
                 .common
@@ -63,7 +78,11 @@ impl<'a> RequesterContext<'a> {
         }
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let res = self.receive_secured_message(session_id, &mut receive_buffer, false);
+        let res = if in_clear_text {
+            self.receive_message(&mut receive_buffer, false)
+        } else {
+            self.receive_secured_message(session_id, &mut receive_buffer, false)
+        };
         if res.is_err() {
             let _ = self
                 .common
@@ -230,6 +249,8 @@ impl<'a> RequesterContext<'a> {
                             crate::common::session::SpdmSessionState::SpdmSessionEstablished,
                         );
 
+                        self.common.runtime_info.set_last_session_id(None);
+
                         Ok(())
                     } else {
                         error!("!!! finish : fail !!!\n");
@@ -311,7 +332,10 @@ mod tests_requester {
         );
         responder.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
-
+        responder
+            .common
+            .runtime_info
+            .set_last_session_id(Some(4294901758));
         responder.common.session[0].runtime_info.digest_context_th = Some(
             crypto::hash::hash_ctx_init(responder.common.negotiate_info.base_hash_sel).unwrap(),
         );
