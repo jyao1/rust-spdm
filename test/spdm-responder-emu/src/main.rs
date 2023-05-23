@@ -234,7 +234,7 @@ fn handle_message(
         peer_root_cert_data: None,
     };
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
     let mut context = responder::ResponderContext::new(
         &mut socket_io_transport,
         transport_encap,

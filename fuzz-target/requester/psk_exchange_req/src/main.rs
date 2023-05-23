@@ -16,7 +16,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -52,7 +52,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

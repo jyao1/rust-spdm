@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 
-use spdmlib::crypto::SpdmAsymSign;
+use spdmlib::secret::SpdmAsymSign;
 
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, RSAPSS_2048_KEY_SIZE,

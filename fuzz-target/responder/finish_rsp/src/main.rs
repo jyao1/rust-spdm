@@ -18,7 +18,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
-    spdmlib::crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
     spdmlib::crypto::hmac::register(FUZZ_HMAC.clone());
 
     let shared_buffer = SharedBuffer::new();
