@@ -198,6 +198,10 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
         }
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+        context
+            .common
+            .runtime_info
+            .set_last_session_id(Some(4294901758));
 
         context.handle_spdm_finish(4294901758, data);
     }
@@ -234,6 +238,10 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
+        context
+            .common
+            .runtime_info
+            .set_last_session_id(Some(4294901758));
 
         #[cfg(feature = "hashed-transcript-data")]
         {
