@@ -69,15 +69,6 @@ pub struct SpdmAead {
 }
 
 #[derive(Clone)]
-pub struct SpdmAsymSign {
-    pub sign_cb: fn(
-        base_hash_algo: SpdmBaseHashAlgo,
-        base_asym_algo: SpdmBaseAsymAlgo,
-        data: &[u8],
-    ) -> Option<SpdmSignatureStruct>,
-}
-
-#[derive(Clone)]
 pub struct SpdmAsymVerify {
     pub verify_cb: fn(
         base_hash_algo: SpdmBaseHashAlgo,

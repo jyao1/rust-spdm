@@ -160,7 +160,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -219,7 +219,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -302,7 +302,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::protocol::{
-    SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
-    SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo,
-    SpdmSignatureStruct, SpdmVersion,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct,
+    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
+    SpdmReqAsymAlgo, SpdmSignatureStruct, SpdmVersion,
 };
 
 type SpdmMeasurementCollectionCbType = fn(
@@ -71,4 +71,13 @@ pub struct SpdmSecret {
     pub spdm_psk_handshake_secret_hkdf_expand_cb: SpdmPskHandshakeSecretHkdfExpandCbType,
 
     pub spdm_psk_master_secret_hkdf_expand_cb: SpdmPskMasterSecretHkdfExpandCbType,
+}
+
+#[derive(Clone)]
+pub struct SpdmAsymSign {
+    pub sign_cb: fn(
+        base_hash_algo: SpdmBaseHashAlgo,
+        base_asym_algo: SpdmBaseAsymAlgo,
+        data: &[u8],
+    ) -> Option<SpdmSignatureStruct>,
 }

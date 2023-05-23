@@ -106,7 +106,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -168,7 +168,7 @@ mod tests_responder {
     fn test_case1_handle_spdm_key_update() {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let (config_info, provision_info) = create_info();
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let mut context = responder::ResponderContext::new(

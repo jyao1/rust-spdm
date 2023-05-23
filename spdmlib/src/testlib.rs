@@ -5,8 +5,9 @@
 #![allow(unused)]
 
 use crate::common::*;
-use crate::crypto::{SpdmAsymSign, SpdmCryptoRandom, SpdmHmac};
+use crate::crypto::{SpdmCryptoRandom, SpdmHmac};
 pub use crate::protocol::*;
+use crate::secret::SpdmAsymSign;
 use crate::{common, responder};
 
 use crate::error::{

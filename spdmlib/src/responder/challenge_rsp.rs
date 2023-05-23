@@ -191,7 +191,7 @@ impl<'a> ResponderContext<'a> {
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
-        crypto::asym_sign::sign(
+        crate::secret::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
@@ -236,7 +236,7 @@ impl<'a> ResponderContext<'a> {
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
-        crypto::asym_sign::sign(
+        crate::secret::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
             message.as_ref(),
@@ -261,7 +261,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crypto::rand::register(DEFAULT_TEST.clone());
 
         let mut context = responder::ResponderContext::new(

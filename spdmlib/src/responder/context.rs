@@ -506,7 +506,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
@@ -554,7 +554,7 @@ mod tests_responder {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
@@ -597,7 +597,7 @@ mod tests_responder {
         shared_buffer.set_buffer(receive_buffer);
 
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
             pcidoe_transport_encap,
@@ -667,7 +667,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;

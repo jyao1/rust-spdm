@@ -5,9 +5,10 @@ mod secret_callback;
 
 use crate::protocol::*;
 use conquer_once::spin::OnceCell;
-pub use secret_callback::SpdmSecret;
+pub use secret_callback::{SpdmAsymSign, SpdmSecret};
 
 pub static SECRET_INSTANCE: OnceCell<SpdmSecret> = OnceCell::uninit();
+static CRYPTO_ASYM_SIGN: OnceCell<SpdmAsymSign> = OnceCell::uninit();
 
 pub fn register(context: SpdmSecret) -> bool {
     SECRET_INSTANCE.try_init_once(|| context).is_ok()
@@ -203,4 +204,32 @@ pub fn spdm_psk_master_secret_hkdf_expand(
         info,
         info_size,
     )
+}
+
+pub mod asym_sign {
+    use super::CRYPTO_ASYM_SIGN;
+    use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
+    use crate::secret::SpdmAsymSign;
+
+    pub fn register(context: SpdmAsymSign) -> bool {
+        CRYPTO_ASYM_SIGN.try_init_once(|| context).is_ok()
+    }
+
+    static DEFAULT: SpdmAsymSign = SpdmAsymSign {
+        sign_cb: |_base_hash_algo: SpdmBaseHashAlgo,
+                  _base_asym_algo: SpdmBaseAsymAlgo,
+                  _data: &[u8]|
+         -> Option<SpdmSignatureStruct> { unimplemented!() },
+    };
+
+    pub fn sign(
+        base_hash_algo: SpdmBaseHashAlgo,
+        base_asym_algo: SpdmBaseAsymAlgo,
+        data: &[u8],
+    ) -> Option<SpdmSignatureStruct> {
+        (CRYPTO_ASYM_SIGN
+            .try_get_or_init(|| DEFAULT.clone())
+            .ok()?
+            .sign_cb)(base_hash_algo, base_asym_algo, data)
+    }
 }

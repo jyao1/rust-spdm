@@ -336,7 +336,7 @@ impl<'a> ResponderContext<'a> {
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
-        crypto::asym_sign::sign(
+        crate::secret::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
             message_l1l2.as_ref(),
@@ -367,7 +367,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
@@ -464,7 +464,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crypto::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
         context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;

@@ -9,8 +9,8 @@ mod crypto_callbacks;
 mod spdm_ring;
 
 pub use crypto_callbacks::{
-    SpdmAead, SpdmAsymSign, SpdmAsymVerify, SpdmCertOperation, SpdmCryptoRandom, SpdmDhe,
-    SpdmDheKeyExchange, SpdmHash, SpdmHkdf, SpdmHmac,
+    SpdmAead, SpdmAsymVerify, SpdmCertOperation, SpdmCryptoRandom, SpdmDhe, SpdmDheKeyExchange,
+    SpdmHash, SpdmHkdf, SpdmHmac,
 };
 
 #[cfg(feature = "hashed-transcript-data")]
@@ -21,7 +21,6 @@ use conquer_once::spin::OnceCell;
 static CRYPTO_HASH: OnceCell<SpdmHash> = OnceCell::uninit();
 static CRYPTO_HMAC: OnceCell<SpdmHmac> = OnceCell::uninit();
 static CRYPTO_AEAD: OnceCell<SpdmAead> = OnceCell::uninit();
-static CRYPTO_ASYM_SIGN: OnceCell<SpdmAsymSign> = OnceCell::uninit();
 static CRYPTO_ASYM_VERIFY: OnceCell<SpdmAsymVerify> = OnceCell::uninit();
 static CRYPTO_DHE: OnceCell<SpdmDhe> = OnceCell::uninit();
 static CRYPTO_CERT_OPERATION: OnceCell<SpdmCertOperation> = OnceCell::uninit();
@@ -191,34 +190,6 @@ pub mod hmac {
             .try_get_or_init(|| DEFAULT.clone())
             .map_err(|_| SPDM_STATUS_VERIF_FAIL)?
             .hmac_verify_cb)(base_hash_algo, key, data, hmac)
-    }
-}
-
-pub mod asym_sign {
-    use super::CRYPTO_ASYM_SIGN;
-    use crate::crypto::SpdmAsymSign;
-    use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
-
-    pub fn register(context: SpdmAsymSign) -> bool {
-        CRYPTO_ASYM_SIGN.try_init_once(|| context).is_ok()
-    }
-
-    static DEFAULT: SpdmAsymSign = SpdmAsymSign {
-        sign_cb: |_base_hash_algo: SpdmBaseHashAlgo,
-                  _base_asym_algo: SpdmBaseAsymAlgo,
-                  _data: &[u8]|
-         -> Option<SpdmSignatureStruct> { unimplemented!() },
-    };
-
-    pub fn sign(
-        base_hash_algo: SpdmBaseHashAlgo,
-        base_asym_algo: SpdmBaseAsymAlgo,
-        data: &[u8],
-    ) -> Option<SpdmSignatureStruct> {
-        (CRYPTO_ASYM_SIGN
-            .try_get_or_init(|| DEFAULT.clone())
-            .ok()?
-            .sign_cb)(base_hash_algo, base_asym_algo, data)
     }
 }
 
