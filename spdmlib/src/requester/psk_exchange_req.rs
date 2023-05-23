@@ -263,6 +263,33 @@ impl<'a> RequesterContext<'a> {
                                 crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                             );
 
+                            let session = self
+                                .common
+                                .get_immutable_session_via_id(session_id)
+                                .unwrap();
+                            let psk_without_context = self
+                                .common
+                                .negotiate_info
+                                .rsp_capabilities_sel
+                                .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT);
+                            if psk_without_context {
+                                // generate the data secret directly to skip PSK_FINISH
+                                let th2 = self.common.calc_req_transcript_hash(
+                                    true,
+                                    INVALID_SLOT,
+                                    session,
+                                )?;
+
+                                debug!("!!! th2 : {:02x?}\n", th2.as_ref());
+
+                                let session = self.common.get_session_via_id(session_id).unwrap();
+                                session.generate_data_secret(spdm_version_sel, &th2)?;
+                                session.set_session_state(
+                                    crate::common::session::SpdmSessionState::SpdmSessionEstablished,
+                                );
+                            }
+
+                            let session = self.common.get_session_via_id(session_id).unwrap();
                             session.secure_spdm_version_sel = secure_spdm_version_sel;
                             session.heartbeat_period = psk_exchange_rsp.heartbeat_period;
 

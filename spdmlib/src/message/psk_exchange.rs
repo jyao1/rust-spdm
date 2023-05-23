@@ -165,11 +165,19 @@ impl SpdmCodec for SpdmPskExchangeResponsePayload {
             .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
         cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
 
-        cnt += self
-            .psk_context
-            .data_size
-            .encode(bytes)
-            .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        let psk_without_context = context
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT);
+        if psk_without_context {
+            cnt += 0u16.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            cnt += self
+                .psk_context
+                .data_size
+                .encode(bytes)
+                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        }
         cnt += self
             .opaque
             .data_size
@@ -179,13 +187,15 @@ impl SpdmCodec for SpdmPskExchangeResponsePayload {
         if context.runtime_info.need_measurement_summary_hash {
             cnt += self.measurement_summary_hash.spdm_encode(context, bytes)?;
         }
-        for d in self
-            .psk_context
-            .data
-            .iter()
-            .take(self.psk_context.data_size as usize)
-        {
-            cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+        if !psk_without_context {
+            for d in self
+                .psk_context
+                .data
+                .iter()
+                .take(self.psk_context.data_size as usize)
+            {
+                cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+            }
         }
         for d in self.opaque.data.iter().take(self.opaque.data_size as usize) {
             cnt += d.encode(bytes).map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
@@ -208,6 +218,16 @@ impl SpdmCodec for SpdmPskExchangeResponsePayload {
         let mut opaque = SpdmOpaqueStruct::default();
 
         psk_context.data_size = u16::read(r)?;
+        let psk_without_context = context
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT);
+        if (psk_without_context && (psk_context.data_size != 0))
+            || (!psk_without_context && (psk_context.data_size == 0))
+        {
+            return None;
+        }
+
         opaque.data_size = u16::read(r)?;
 
         let measurement_summary_hash = if context.runtime_info.need_measurement_summary_hash {
@@ -491,6 +511,8 @@ mod tests {
 
         create_spdm_context!(context);
         context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
+        context.negotiate_info.rsp_capabilities_sel =
+            SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT;
 
         context.runtime_info.need_measurement_summary_hash = true;
 
