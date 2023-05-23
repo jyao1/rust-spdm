@@ -5,6 +5,7 @@
 use crate::common;
 use crate::common::opaque::{SpdmOpaqueStruct, MAX_SPDM_OPAQUE_SIZE};
 use crate::common::spdm_codec::SpdmCodec;
+use crate::config::{MAX_SPDM_PSK_CONTEXT_SIZE, MAX_SPDM_PSK_HINT_SIZE};
 use crate::error::{SpdmStatus, SPDM_STATUS_BUFFER_FULL};
 use crate::protocol::{
     SpdmDigestStruct, SpdmMeasurementSummaryHashType, SpdmPskContextStruct, SpdmPskHintStruct,
@@ -107,7 +108,13 @@ impl SpdmCodec for SpdmPskExchangeRequestPayload {
         let mut opaque = SpdmOpaqueStruct::default();
 
         psk_hint.data_size = u16::read(r)?;
+        if psk_hint.data_size > MAX_SPDM_PSK_HINT_SIZE as u16 {
+            return None;
+        }
         psk_context.data_size = u16::read(r)?;
+        if psk_context.data_size > MAX_SPDM_PSK_CONTEXT_SIZE as u16 {
+            return None;
+        }
         opaque.data_size = u16::read(r)?;
         if opaque.data_size > MAX_SPDM_OPAQUE_SIZE as u16 {
             return None;
@@ -227,8 +234,14 @@ impl SpdmCodec for SpdmPskExchangeResponsePayload {
         {
             return None;
         }
+        if psk_context.data_size > MAX_SPDM_PSK_CONTEXT_SIZE as u16 {
+            return None;
+        }
 
         opaque.data_size = u16::read(r)?;
+        if opaque.data_size > MAX_SPDM_OPAQUE_SIZE as u16 {
+            return None;
+        }
 
         let measurement_summary_hash = if context.runtime_info.need_measurement_summary_hash {
             SpdmDigestStruct::spdm_read(context, r)?
