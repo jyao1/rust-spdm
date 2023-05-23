@@ -8,6 +8,7 @@ use crate::common::{session::SpdmSessionState, SpdmDeviceIo, SpdmTransportEncap}
 use crate::config;
 use crate::error::SpdmResult;
 use crate::message::*;
+use crate::protocol::{SpdmRequestCapabilityFlags, SpdmResponseCapabilityFlags};
 use codec::{Codec, Reader, Writer};
 
 pub struct ResponderContext<'a> {
@@ -77,6 +78,15 @@ impl<'a> ResponderContext<'a> {
                 self.common
                     .runtime_info
                     .set_connection_state(SpdmConnectionState::SpdmConnectionAuthenticated);
+            } else if opcode == SpdmRequestResponseCode::SpdmResponseFinishRsp.get_u8() {
+                let session = self
+                    .common
+                    .get_session_via_id(self.common.runtime_info.get_last_session_id().unwrap())
+                    .unwrap();
+                session.set_session_state(
+                    crate::common::session::SpdmSessionState::SpdmSessionEstablished,
+                );
+                self.common.runtime_info.set_last_session_id(None);
             }
         }
         result
@@ -220,6 +230,20 @@ impl<'a> ResponderContext<'a> {
 
         match session.get_session_state() {
             SpdmSessionState::SpdmSessionHandshaking => {
+                let in_clear_text = self
+                    .common
+                    .negotiate_info
+                    .req_capabilities_sel
+                    .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+                    && self
+                        .common
+                        .negotiate_info
+                        .rsp_capabilities_sel
+                        .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+                if in_clear_text {
+                    return false;
+                }
+
                 match SpdmMessageHeader::read(&mut reader) {
                     Some(message_header) => match message_header.request_response_code {
                         SpdmRequestResponseCode::SpdmRequestFinish => {
@@ -402,8 +426,41 @@ impl<'a> ResponderContext<'a> {
                     true
                 }
 
-                SpdmRequestResponseCode::SpdmRequestFinish
-                | SpdmRequestResponseCode::SpdmRequestPskFinish
+                SpdmRequestResponseCode::SpdmRequestFinish => {
+                    let in_clear_text = self
+                        .common
+                        .negotiate_info
+                        .req_capabilities_sel
+                        .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+                        && self
+                            .common
+                            .negotiate_info
+                            .rsp_capabilities_sel
+                            .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+                    if in_clear_text {
+                        if let Some(session_id) = self.common.runtime_info.get_last_session_id() {
+                            if let Some(session) =
+                                self.common.get_immutable_session_via_id(session_id)
+                            {
+                                if session.get_session_state()
+                                    == SpdmSessionState::SpdmSessionHandshaking
+                                {
+                                    self.handle_spdm_finish(session_id, bytes);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+
+                    self.handle_error_request(
+                        SpdmErrorCode::SpdmErrorUnexpectedRequest,
+                        None,
+                        bytes,
+                    );
+                    true
+                }
+
+                SpdmRequestResponseCode::SpdmRequestPskFinish
                 | SpdmRequestResponseCode::SpdmRequestHeartbeat
                 | SpdmRequestResponseCode::SpdmRequestKeyUpdate
                 | SpdmRequestResponseCode::SpdmRequestEndSession => {

@@ -148,6 +148,18 @@ impl<'a> RequesterContext<'a> {
             self.common.runtime_info.need_measurement_summary_hash = false;
         }
 
+        let in_clear_text = self
+            .common
+            .negotiate_info
+            .req_capabilities_sel
+            .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            && self
+                .common
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+        info!("in_clear_text {:?}\n", in_clear_text);
+
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
             Some(message_header) => {
@@ -235,7 +247,11 @@ impl<'a> RequesterContext<'a> {
                                 self.common.negotiate_info.base_asym_sel.get_size() as usize;
                             let base_hash_size =
                                 self.common.negotiate_info.base_hash_sel.get_size() as usize;
-                            let temp_receive_used = receive_used - base_asym_size - base_hash_size;
+                            let temp_receive_used = if in_clear_text {
+                                receive_used - base_asym_size
+                            } else {
+                                receive_used - base_asym_size - base_hash_size
+                            };
 
                             let session = self.common.get_session_via_id(session_id).unwrap();
                             session.append_message_k(send_buffer)?;
@@ -278,53 +294,65 @@ impl<'a> RequesterContext<'a> {
                             let session = self.common.get_session_via_id(session_id).unwrap();
                             session.generate_handshake_secret(spdm_version_sel, &th1)?;
 
-                            let session = self
-                                .common
-                                .get_immutable_session_via_id(session_id)
-                                .unwrap();
+                            if !in_clear_text {
+                                let session = self
+                                    .common
+                                    .get_immutable_session_via_id(session_id)
+                                    .unwrap();
 
-                            // verify HMAC with finished_key
-                            let transcript_hash = self
-                                .common
-                                .calc_req_transcript_hash(false, slot_id, session)?;
+                                // verify HMAC with finished_key
+                                let transcript_hash = self
+                                    .common
+                                    .calc_req_transcript_hash(false, slot_id, session)?;
 
-                            let session = self
-                                .common
-                                .get_immutable_session_via_id(session_id)
-                                .unwrap();
+                                let session = self
+                                    .common
+                                    .get_immutable_session_via_id(session_id)
+                                    .unwrap();
 
-                            if session
-                                .verify_hmac_with_response_finished_key(
-                                    transcript_hash.as_ref(),
-                                    &key_exchange_rsp.verify_data,
-                                )
-                                .is_err()
-                            {
-                                error!("verify_hmac_with_response_finished_key fail");
+                                if session
+                                    .verify_hmac_with_response_finished_key(
+                                        transcript_hash.as_ref(),
+                                        &key_exchange_rsp.verify_data,
+                                    )
+                                    .is_err()
+                                {
+                                    error!("verify_hmac_with_response_finished_key fail");
+                                    let session =
+                                        self.common.get_session_via_id(session_id).unwrap();
+                                    let _ = session.teardown(session_id);
+                                    return Err(SPDM_STATUS_VERIF_FAIL);
+                                } else {
+                                    info!("verify_hmac_with_response_finished_key pass");
+                                }
+
+                                // append verify_data after TH1
                                 let session = self.common.get_session_via_id(session_id).unwrap();
-                                let _ = session.teardown(session_id);
-                                return Err(SPDM_STATUS_VERIF_FAIL);
-                            } else {
-                                info!("verify_hmac_with_response_finished_key pass");
+
+                                if session
+                                    .append_message_k(key_exchange_rsp.verify_data.as_ref())
+                                    .is_err()
+                                {
+                                    let _ = session.teardown(session_id);
+                                    return Err(SPDM_STATUS_BUFFER_FULL);
+                                }
                             }
 
                             // append verify_data after TH1
                             let session = self.common.get_session_via_id(session_id).unwrap();
 
-                            if session
-                                .append_message_k(key_exchange_rsp.verify_data.as_ref())
-                                .is_err()
-                            {
-                                let _ = session.teardown(session_id);
-                                return Err(SPDM_STATUS_BUFFER_FULL);
-                            }
+                            session.secure_spdm_version_sel = secure_spdm_version_sel;
+                            session.heartbeat_period = key_exchange_rsp.heartbeat_period;
 
                             session.set_session_state(
                                 crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                             );
 
-                            session.secure_spdm_version_sel = secure_spdm_version_sel;
-                            session.heartbeat_period = key_exchange_rsp.heartbeat_period;
+                            if in_clear_text {
+                                self.common
+                                    .runtime_info
+                                    .set_last_session_id(Some(session_id));
+                            }
 
                             Ok(session_id)
                         } else {

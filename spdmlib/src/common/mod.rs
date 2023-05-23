@@ -1153,6 +1153,7 @@ bitflags! {
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmRuntimeInfo {
     connection_state: SpdmConnectionState,
+    last_session_id: Option<u32>,
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
     pub message_a: ManagedBufferA,
@@ -1167,6 +1168,7 @@ pub struct SpdmRuntimeInfo {
 #[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmRuntimeInfo {
     connection_state: SpdmConnectionState,
+    last_session_id: Option<u32>,
     pub need_measurement_summary_hash: bool,
     pub need_measurement_signature: bool,
     pub message_a: ManagedBufferA,
@@ -1183,6 +1185,14 @@ impl SpdmRuntimeInfo {
 
     pub fn get_connection_state(&self) -> SpdmConnectionState {
         self.connection_state
+    }
+
+    pub fn set_last_session_id(&mut self, last_session_id: Option<u32>) {
+        self.last_session_id = last_session_id;
+    }
+
+    pub fn get_last_session_id(&self) -> Option<u32> {
+        self.last_session_id
     }
 }
 

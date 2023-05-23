@@ -12,10 +12,26 @@ use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
+        let in_clear_text = self
+            .common
+            .negotiate_info
+            .req_capabilities_sel
+            .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            && self
+                .common
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+        info!("in_clear_text {:?}\n", in_clear_text);
+
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_finish_response(session_id, bytes, &mut writer);
-        let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+        if in_clear_text {
+            let _ = self.send_message(writer.used_slice());
+        } else {
+            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+        }
     }
 
     // Return true on success, false otherwise.

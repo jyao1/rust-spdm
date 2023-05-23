@@ -218,6 +218,18 @@ impl<'a> ResponderContext<'a> {
         let mut random = [0u8; SPDM_RANDOM_SIZE];
         let _ = crypto::rand::get_random(&mut random);
 
+        let in_clear_text = self
+            .common
+            .negotiate_info
+            .req_capabilities_sel
+            .contains(SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP)
+            && self
+                .common
+                .negotiate_info
+                .rsp_capabilities_sel
+                .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+        info!("in_clear_text {:?}\n", in_clear_text);
+
         info!("send spdm key_exchange rsp\n");
 
         // prepare response
@@ -259,7 +271,11 @@ impl<'a> ResponderContext<'a> {
         // generate signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
-        let temp_used = used - base_asym_size - base_hash_size;
+        let temp_used = if in_clear_text {
+            used - base_asym_size
+        } else {
+            used - base_asym_size - base_hash_size
+        };
 
         let session = self.common.get_session_via_id(session_id).unwrap();
         if session.append_message_k(&bytes[..reader.used()]).is_err() {
@@ -313,52 +329,62 @@ impl<'a> ResponderContext<'a> {
             .generate_handshake_secret(spdm_version_sel, &th1)
             .unwrap();
 
-        let session = self
-            .common
-            .get_immutable_session_via_id(session_id)
-            .unwrap();
+        if !in_clear_text {
+            let session = self
+                .common
+                .get_immutable_session_via_id(session_id)
+                .unwrap();
 
-        // generate HMAC with finished_key
-        let transcript_hash = self
-            .common
-            .calc_rsp_transcript_hash(false, slot_id as u8, session);
-        if transcript_hash.is_err() {
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
+            // generate HMAC with finished_key
+            let transcript_hash =
+                self.common
+                    .calc_rsp_transcript_hash(false, slot_id as u8, session);
+            if transcript_hash.is_err() {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
+            }
+            let transcript_hash = transcript_hash.unwrap();
+
+            let session = self.common.get_session_via_id(session_id).unwrap();
+
+            let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
+            if hmac.is_err() {
+                let _ = session.teardown(session_id);
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
+            }
+            let hmac = hmac.unwrap();
+
+            // append verify_data after TH1
+            let session = self.common.get_session_via_id(session_id).unwrap();
+            if session.append_message_k(hmac.as_ref()).is_err() {
+                let _ = session.teardown(session_id);
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
+            }
+
+            // patch the message before send
+            writer.mut_used_slice()
+                [(used - base_hash_size - base_asym_size)..(used - base_hash_size)]
+                .copy_from_slice(signature.as_ref());
+            writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
         }
-        let transcript_hash = transcript_hash.unwrap();
-
-        let session = self.common.get_session_via_id(session_id).unwrap();
-
-        let hmac = session.generate_hmac_with_response_finished_key(transcript_hash.as_ref());
-        if hmac.is_err() {
-            let _ = session.teardown(session_id);
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
-        let hmac = hmac.unwrap();
-
-        // append verify_data after TH1
-        let session = self.common.get_session_via_id(session_id).unwrap();
-        if session.append_message_k(hmac.as_ref()).is_err() {
-            let _ = session.teardown(session_id);
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
-
-        // patch the message before send
-        writer.mut_used_slice()[(used - base_hash_size - base_asym_size)..(used - base_hash_size)]
-            .copy_from_slice(signature.as_ref());
-        writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref()); // impl AsRef<[u8]> for SpdmDigestStruct
 
         let heartbeat_period = self.common.config_info.heartbeat_period;
         let session = self.common.get_session_via_id(session_id).unwrap();
-        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
 
         session.heartbeat_period = heartbeat_period;
         if return_opaque.data_size != 0 {
             session.secure_spdm_version_sel =
                 return_opaque.data[return_opaque.data_size as usize - 1];
+        }
+
+        session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
+
+        if in_clear_text {
+            self.common
+                .runtime_info
+                .set_last_session_id(Some(session_id));
         }
     }
 
