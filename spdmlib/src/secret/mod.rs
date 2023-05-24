@@ -31,24 +31,6 @@ static UNIMPLETEMTED: SpdmSecret = SpdmSecret {
          _measurement_summary_hash_type: SpdmMeasurementSummaryHashType|
          -> Option<SpdmDigestStruct> { unimplemented!() },
 
-    spdm_requester_data_sign_cb: |_spdm_version: SpdmVersion,
-                                  _op_code: u8,
-                                  _req_base_asym_alg: SpdmReqAsymAlgo,
-                                  _base_hash_algo: SpdmBaseHashAlgo,
-                                  _is_data_hash: bool,
-                                  _message: &[u8],
-                                  _message_size: u8|
-     -> Option<SpdmSignatureStruct> { unimplemented!() },
-
-    spdm_responder_data_sign_cb: |_spdm_version: SpdmVersion,
-                                  _op_code: u8,
-                                  _req_base_asym_alg: SpdmReqAsymAlgo,
-                                  _base_hash_algo: SpdmBaseHashAlgo,
-                                  _is_data_hash: bool,
-                                  _message: &[u8],
-                                  _message_size: u8|
-     -> Option<SpdmSignatureStruct> { unimplemented!() },
-
     spdm_psk_handshake_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
                                                _base_hash_algo: SpdmBaseHashAlgo,
                                                _psk_hint: &[u8],
@@ -115,52 +97,6 @@ pub fn spdm_generate_measurement_summary_hash(
         measurement_specification,
         measurement_hash_algo,
         measurement_summary_hash_type,
-    )
-}
-
-pub fn spdm_requester_data_sign(
-    spdm_version: SpdmVersion,
-    op_code: u8,
-    req_base_asym_alg: SpdmReqAsymAlgo,
-    base_hash_algo: SpdmBaseHashAlgo,
-    is_data_hash: bool,
-    message: &[u8],
-    message_size: u8,
-) -> Option<SpdmSignatureStruct> {
-    (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED.clone())
-        .ok()?
-        .spdm_requester_data_sign_cb)(
-        spdm_version,
-        op_code,
-        req_base_asym_alg,
-        base_hash_algo,
-        is_data_hash,
-        message,
-        message_size,
-    )
-}
-
-pub fn spdm_responder_data_sign(
-    spdm_version: SpdmVersion,
-    op_code: u8,
-    req_base_asym_alg: SpdmReqAsymAlgo,
-    base_hash_algo: SpdmBaseHashAlgo,
-    is_data_hash: bool,
-    message: &[u8],
-    message_size: u8,
-) -> Option<SpdmSignatureStruct> {
-    (SECRET_INSTANCE
-        .try_get_or_init(|| UNIMPLETEMTED.clone())
-        .ok()?
-        .spdm_responder_data_sign_cb)(
-        spdm_version,
-        op_code,
-        req_base_asym_alg,
-        base_hash_algo,
-        is_data_hash,
-        message,
-        message_size,
     )
 }
 

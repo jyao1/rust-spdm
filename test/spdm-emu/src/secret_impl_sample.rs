@@ -13,16 +13,13 @@ use spdmlib::message::*;
 use spdmlib::protocol::*;
 use spdmlib::protocol::{
     SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
-    SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo,
-    SpdmSignatureStruct,
+    SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
 };
 use spdmlib::secret::*;
 
 pub static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
     spdm_measurement_collection_cb: spdm_measurement_collection_impl,
     spdm_generate_measurement_summary_hash_cb: spdm_generate_measurement_summary_hash_impl,
-    spdm_requester_data_sign_cb: spdm_requester_data_sign_impl,
-    spdm_responder_data_sign_cb: spdm_responder_data_sign_impl,
     spdm_psk_handshake_secret_hkdf_expand_cb: spdm_psk_handshake_secret_hkdf_expand_impl,
     spdm_psk_master_secret_hkdf_expand_cb: spdm_psk_master_secret_hkdf_expand_impl,
 };
@@ -190,30 +187,6 @@ fn spdm_generate_measurement_summary_hash_impl(
     measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
 ) -> Option<SpdmDigestStruct> {
     Some(SpdmDigestStruct::default())
-}
-
-fn spdm_requester_data_sign_impl(
-    spdm_version: SpdmVersion,
-    op_code: u8,
-    req_base_asym_alg: SpdmReqAsymAlgo,
-    base_hash_algo: SpdmBaseHashAlgo,
-    is_data_hash: bool,
-    message: &[u8],
-    message_size: u8,
-) -> Option<SpdmSignatureStruct> {
-    Some(SpdmSignatureStruct::default())
-}
-
-fn spdm_responder_data_sign_impl(
-    spdm_version: SpdmVersion,
-    op_code: u8,
-    req_base_asym_alg: SpdmReqAsymAlgo,
-    base_hash_algo: SpdmBaseHashAlgo,
-    is_data_hash: bool,
-    message: &[u8],
-    message_size: u8,
-) -> Option<SpdmSignatureStruct> {
-    Some(SpdmSignatureStruct::default())
 }
 
 fn spdm_psk_handshake_secret_hkdf_expand_impl(
