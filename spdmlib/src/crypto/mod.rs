@@ -341,7 +341,7 @@ pub mod hkdf {
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHkdf = SpdmHkdf {
         hkdf_expand_cb: |_hash_algo: SpdmBaseHashAlgo,
-                         _pk: &[u8],
+                         _prk: &[u8],
                          _info: &[u8],
                          _out_size: u16|
          -> Option<SpdmDigestStruct> { unimplemented!() },
@@ -356,14 +356,14 @@ pub mod hkdf {
 
     pub fn hkdf_expand(
         hash_algo: SpdmBaseHashAlgo,
-        pk: &[u8],
+        prk: &[u8],
         info: &[u8],
         out_size: u16,
     ) -> Option<SpdmDigestStruct> {
         (CRYPTO_HKDF
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
-            .hkdf_expand_cb)(hash_algo, pk, info, out_size)
+            .hkdf_expand_cb)(hash_algo, prk, info, out_size)
     }
 }
 

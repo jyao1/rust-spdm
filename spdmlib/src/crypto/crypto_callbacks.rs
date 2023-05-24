@@ -92,7 +92,7 @@ pub struct SpdmAsymVerify {
 pub struct SpdmHkdf {
     pub hkdf_expand_cb: fn(
         hash_algo: SpdmBaseHashAlgo,
-        pk: &[u8],
+        prk: &[u8],
         info: &[u8],
         out_size: u16,
     ) -> Option<SpdmDigestStruct>,
