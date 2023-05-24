@@ -17,7 +17,7 @@ const MBEDTLS_MD_SHA512: c_int = 8;
 
 fn hkdf_expand(
     hash_algo: SpdmBaseHashAlgo,
-    pk: &[u8],
+    prk: &[u8],
     info: &[u8],
     out_size: u16,
 ) -> Option<SpdmDigestStruct> {
@@ -35,8 +35,8 @@ fn hkdf_expand(
         }
         let res = mbedtls_hkdf_expand(
             md_info,
-            pk.as_ptr(),
-            pk.len(),
+            prk.as_ptr(),
+            prk.len(),
             info.as_ptr(),
             info.len(),
             digest.data.as_mut_ptr(),
@@ -57,10 +57,10 @@ mod tests {
     #[test]
     fn test_case0_hkdf_expand() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        let pk = &mut [100u8; 64];
+        let prk = &mut [100u8; 64];
         let info = &mut [100u8; 64];
         let out_size = 64;
-        let hkdf_expand = hkdf_expand(base_hash_algo, pk, info, out_size);
+        let hkdf_expand = hkdf_expand(base_hash_algo, prk, info, out_size);
 
         match hkdf_expand {
             Some(_) => {
@@ -75,10 +75,10 @@ mod tests {
     #[should_panic]
     fn test_case1_hkdf_expand() {
         let base_hash_algo = SpdmBaseHashAlgo::empty();
-        let pk = &mut [100u8; 64];
+        let prk = &mut [100u8; 64];
         let info = &mut [100u8; 64];
         let out_size = 64;
-        let hkdf_expand = hkdf_expand(base_hash_algo, pk, info, out_size);
+        let hkdf_expand = hkdf_expand(base_hash_algo, prk, info, out_size);
 
         match hkdf_expand {
             Some(_) => {
