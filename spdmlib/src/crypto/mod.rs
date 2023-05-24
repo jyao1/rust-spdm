@@ -311,6 +311,10 @@ pub mod hkdf {
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHkdf = SpdmHkdf {
+        hkdf_extract_cb: |_hash_algo: SpdmBaseHashAlgo,
+                          _salt: &[u8],
+                          _ikm: &[u8]|
+         -> Option<SpdmDigestStruct> { unimplemented!() },
         hkdf_expand_cb: |_hash_algo: SpdmBaseHashAlgo,
                          _prk: &[u8],
                          _info: &[u8],
@@ -323,6 +327,17 @@ pub mod hkdf {
 
     pub fn register(context: SpdmHkdf) -> bool {
         CRYPTO_HKDF.try_init_once(|| context).is_ok()
+    }
+
+    pub fn hkdf_extract(
+        hash_algo: SpdmBaseHashAlgo,
+        salt: &[u8],
+        ikm: &[u8],
+    ) -> Option<SpdmDigestStruct> {
+        (CRYPTO_HKDF
+            .try_get_or_init(|| DEFAULT.clone())
+            .ok()?
+            .hkdf_extract_cb)(hash_algo, salt, ikm)
     }
 
     pub fn hkdf_expand(

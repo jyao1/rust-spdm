@@ -81,6 +81,8 @@ pub struct SpdmAsymVerify {
 
 #[derive(Clone)]
 pub struct SpdmHkdf {
+    pub hkdf_extract_cb:
+        fn(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<SpdmDigestStruct>,
     pub hkdf_expand_cb: fn(
         hash_algo: SpdmBaseHashAlgo,
         prk: &[u8],
