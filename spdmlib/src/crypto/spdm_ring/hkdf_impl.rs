@@ -6,8 +6,25 @@ use crate::crypto::SpdmHkdf;
 use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHkdf = SpdmHkdf {
+    hkdf_extract_cb: hkdf_extract,
     hkdf_expand_cb: hkdf_expand,
 };
+
+fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<SpdmDigestStruct> {
+    let algorithm = match hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => ring::hmac::HMAC_SHA256,
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => ring::hmac::HMAC_SHA512,
+        _ => {
+            panic!();
+        }
+    };
+
+    let s_key = ring::hmac::Key::new(algorithm, salt);
+    let tag = ring::hmac::sign(&s_key, ikm);
+    let tag = tag.as_ref();
+    Some(SpdmDigestStruct::from(tag))
+}
 
 fn hkdf_expand(
     hash_algo: SpdmBaseHashAlgo,

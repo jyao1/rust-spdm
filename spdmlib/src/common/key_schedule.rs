@@ -45,7 +45,7 @@ impl SpdmKeySchedule {
         hash_algo: SpdmBaseHashAlgo,
         key: &[u8],
     ) -> Option<SpdmDigestStruct> {
-        crypto::hmac::hmac(hash_algo, &SALT_0[0..hash_algo.get_size() as usize], key)
+        crypto::hkdf::hkdf_extract(hash_algo, &SALT_0[0..hash_algo.get_size() as usize], key)
     }
 
     pub fn derive_master_secret(
@@ -65,7 +65,7 @@ impl SpdmKeySchedule {
         let salt_1 = crypto::hkdf::hkdf_expand(hash_algo, key, bin_str0, hash_algo.get_size())?;
         debug!("salt_1 - {:02x?}", salt_1.as_ref());
 
-        crypto::hmac::hmac(
+        crypto::hkdf::hkdf_extract(
             hash_algo,
             salt_1.as_ref(),
             &ZERO_FILLED[0..hash_algo.get_size() as usize],

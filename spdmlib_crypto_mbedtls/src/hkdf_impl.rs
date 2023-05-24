@@ -6,14 +6,50 @@ use spdmlib::crypto::SpdmHkdf;
 use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
 
 pub static DEFAULT: SpdmHkdf = SpdmHkdf {
+    hkdf_extract_cb: hkdf_extract,
     hkdf_expand_cb: hkdf_expand,
 };
 
-use super::ffi::{mbedtls_hkdf_expand, mbedtls_md_info_from_type};
+use super::ffi::{
+    mbedtls_hkdf_expand, mbedtls_md_get_size, mbedtls_md_hmac, mbedtls_md_info_from_type,
+};
 use core::ffi::c_int;
 const MBEDTLS_MD_SHA256: c_int = 6;
 const MBEDTLS_MD_SHA384: c_int = 7;
 const MBEDTLS_MD_SHA512: c_int = 8;
+
+fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<SpdmDigestStruct> {
+    let algorithm = match hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => MBEDTLS_MD_SHA256,
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => MBEDTLS_MD_SHA384,
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => MBEDTLS_MD_SHA512,
+        _ => {
+            panic!();
+        }
+    };
+
+    let mut digest = SpdmDigestStruct::default();
+    unsafe {
+        let md_info = mbedtls_md_info_from_type(algorithm);
+        if md_info.is_null() {
+            return None;
+        }
+        let olen = mbedtls_md_get_size(md_info) as usize;
+        let ret = mbedtls_md_hmac(
+            md_info,
+            salt.as_ptr(),
+            salt.len(),
+            ikm.as_ptr(),
+            ikm.len(),
+            digest.data.as_mut_ptr(),
+        );
+        if ret != 0 {
+            return None;
+        }
+        digest.data_size = olen as u16;
+    }
+    Some(digest)
+}
 
 fn hkdf_expand(
     hash_algo: SpdmBaseHashAlgo,
