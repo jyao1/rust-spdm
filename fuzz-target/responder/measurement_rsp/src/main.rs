@@ -2,42 +2,116 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use fuzzlib::*;
-use spdmlib::common::SpdmConnectionState;
-use spdmlib::protocol::*;
+use fuzzlib::{
+    spdmlib::common::session::{SpdmSession, SpdmSessionState},
+    spdmlib::common::SpdmConnectionState,
+    spdmlib::protocol::*,
+    *,
+};
 
 fn fuzz_handle_spdm_measurement(data: &[u8]) {
-    let (config_info, provision_info) = rsp_create_info();
-    let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-    let mctp_transport_encap = &mut MctpTransportEncap {};
-
     spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle measurement request'
+    // - description: '<p>Respond MEASUREMENTS without session.</p>'
+    // -
+    {
+        let (config_info, provision_info) = rsp_create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let mctp_transport_encap = &mut MctpTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-    let shared_buffer = SharedBuffer::new();
-    let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info,
+            provision_info,
+        );
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.measurement_specification_sel =
+            SpdmMeasurementSpecification::DMTF;
+        context.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
+        context
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
-    let mut context = responder::ResponderContext::new(
-        &mut socket_io_transport,
-        if USE_PCIDOE {
-            pcidoe_transport_encap
-        } else {
-            mctp_transport_encap
-        },
-        config_info,
-        provision_info,
-    );
+        context.handle_spdm_measurement(None, data);
+    }
+    // TCD:
+    // - id: 0
+    // - title: 'Fuzz SPDM handle measurement request'
+    // - description: '<p>Respond MEASUREMENTS in a session.</p>'
+    // -
+    {
+        let (config_info, provision_info) = rsp_create_info();
+        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
+        let mctp_transport_encap = &mut MctpTransportEncap {};
+        let shared_buffer = SharedBuffer::new();
+        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-    context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-    context.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-    context.common.negotiate_info.measurement_specification_sel =
-        SpdmMeasurementSpecification::DMTF;
-    context
-        .common
-        .runtime_info
-        .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
+        let mut context = responder::ResponderContext::new(
+            &mut socket_io_transport,
+            if USE_PCIDOE {
+                pcidoe_transport_encap
+            } else {
+                mctp_transport_encap
+            },
+            config_info,
+            provision_info,
+        );
+        context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        context.common.negotiate_info.measurement_hash_sel =
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+        context.common.negotiate_info.measurement_specification_sel =
+            SpdmMeasurementSpecification::DMTF;
+        context.common.provision_info.my_cert_chain = [
+            Some(RSP_CERT_CHAIN_BUFF),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
+        context.common.session[0] = SpdmSession::new();
+        context.common.session[0].setup(4294836221).unwrap();
+        context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+        context.common.session[0].set_crypto_param(
+            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmDheAlgo::SECP_384_R1,
+            SpdmAeadAlgo::AES_256_GCM,
+            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
+        );
+        context
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
-    context.handle_spdm_measurement(None, data);
+        context.handle_spdm_measurement(Some(4294836221), data);
+    }
 }
 
 #[cfg(not(feature = "use_libfuzzer"))]
