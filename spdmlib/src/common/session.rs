@@ -87,6 +87,7 @@ pub struct SpdmSessionTransportParam {
 #[derive(Debug, Clone, Default)]
 #[cfg(not(feature = "hashed-transcript-data"))]
 pub struct SpdmSessionRuntimeInfo {
+    pub psk_hint: Option<SpdmPskHintStruct>,
     pub message_a: ManagedBufferA,
     pub rsp_cert_hash: Option<SpdmDigestStruct>,
     pub req_cert_hash: Option<SpdmDigestStruct>,
@@ -98,6 +99,7 @@ pub struct SpdmSessionRuntimeInfo {
 #[derive(Clone, Default)]
 #[cfg(feature = "hashed-transcript-data")]
 pub struct SpdmSessionRuntimeInfo {
+    pub psk_hint: Option<SpdmPskHintStruct>,
     pub message_a: ManagedBufferA,
     pub rsp_cert_hash: Option<SpdmDigestStruct>,
     pub req_cert_hash: Option<SpdmDigestStruct>,
@@ -387,9 +389,15 @@ impl SpdmSession {
 
         self.handshake_secret.request_handshake_secret = if let Some(rhs) =
             self.key_schedule.derive_request_handshake_secret(
+                self.use_psk,
                 spdm_version,
                 hash_algo,
-                self.master_secret.handshake_secret.as_ref(),
+                if self.use_psk {
+                    None
+                } else {
+                    Some(self.master_secret.handshake_secret.as_ref())
+                },
+                self.runtime_info.psk_hint.as_ref(),
                 th1.as_ref(),
             ) {
             rhs
@@ -402,9 +410,15 @@ impl SpdmSession {
         );
         self.handshake_secret.response_handshake_secret = if let Some(rhs) =
             self.key_schedule.derive_response_handshake_secret(
+                self.use_psk,
                 spdm_version,
                 hash_algo,
-                self.master_secret.handshake_secret.as_ref(),
+                if self.use_psk {
+                    None
+                } else {
+                    Some(self.master_secret.handshake_secret.as_ref())
+                },
+                self.runtime_info.psk_hint.as_ref(),
                 th1.as_ref(),
             ) {
             rhs
@@ -495,9 +509,15 @@ impl SpdmSession {
 
         self.handshake_secret.export_master_secret = if let Some(ems) =
             self.key_schedule.derive_export_master_secret(
+                self.use_psk,
                 spdm_version,
                 hash_algo,
-                self.master_secret.master_secret.as_ref(),
+                if self.use_psk {
+                    None
+                } else {
+                    Some(self.master_secret.master_secret.as_ref())
+                },
+                self.runtime_info.psk_hint.as_ref(),
             ) {
             ems
         } else {
@@ -519,9 +539,15 @@ impl SpdmSession {
 
         self.application_secret.request_data_secret = if let Some(rds) =
             self.key_schedule.derive_request_data_secret(
+                self.use_psk,
                 spdm_version,
                 hash_algo,
-                self.master_secret.master_secret.as_ref(),
+                if self.use_psk {
+                    None
+                } else {
+                    Some(self.master_secret.master_secret.as_ref())
+                },
+                self.runtime_info.psk_hint.as_ref(),
                 th2.as_ref(),
             ) {
             rds
@@ -530,9 +556,15 @@ impl SpdmSession {
         };
         self.application_secret.response_data_secret = if let Some(rds) =
             self.key_schedule.derive_response_data_secret(
+                self.use_psk,
                 spdm_version,
                 hash_algo,
-                self.master_secret.master_secret.as_ref(),
+                if self.use_psk {
+                    None
+                } else {
+                    Some(self.master_secret.master_secret.as_ref())
+                },
+                self.runtime_info.psk_hint.as_ref(),
                 th2.as_ref(),
             ) {
             rds

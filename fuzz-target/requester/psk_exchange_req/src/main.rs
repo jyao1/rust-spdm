@@ -58,6 +58,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            None,
         );
     }
 
@@ -110,6 +111,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            None,
         );
     }
     // TCD:
@@ -159,6 +161,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            None,
         );
     }
     // TCD:
@@ -206,6 +209,7 @@ fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
 
         let _ = requester.send_receive_spdm_psk_exchange(
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+            None,
         );
     }
 }

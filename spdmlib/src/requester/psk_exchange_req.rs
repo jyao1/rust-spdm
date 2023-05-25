@@ -16,14 +16,20 @@ use crate::protocol::SpdmMeasurementSummaryHashType;
 use crate::protocol::*;
 use crate::requester::*;
 extern crate alloc;
-use alloc::boxed::Box;
 
 impl<'a> RequesterContext<'a> {
     pub fn send_receive_spdm_psk_exchange(
         &mut self,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        psk_hint: Option<&SpdmPskHintStruct>,
     ) -> SpdmResult<u32> {
         info!("send spdm psk exchange\n");
+
+        let psk_hint = if let Some(hint) = psk_hint {
+            hint.clone()
+        } else {
+            SpdmPskHintStruct::default()
+        };
 
         self.common
             .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestPskExchange, None);
@@ -33,6 +39,7 @@ impl<'a> RequesterContext<'a> {
         let send_used = self.encode_spdm_psk_exchange(
             half_session_id,
             measurement_summary_hash_type,
+            &psk_hint,
             &mut send_buffer,
         )?;
 
@@ -44,6 +51,7 @@ impl<'a> RequesterContext<'a> {
         self.handle_spdm_psk_exchange_response(
             half_session_id,
             measurement_summary_hash_type,
+            &psk_hint,
             &send_buffer[..send_used],
             &receive_buffer[..receive_used],
         )
@@ -53,6 +61,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         half_session_id: u16,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        psk_hint: &SpdmPskHintStruct,
         buf: &mut [u8],
     ) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
@@ -97,7 +106,7 @@ impl<'a> RequesterContext<'a> {
             payload: SpdmMessagePayload::SpdmPskExchangeRequest(SpdmPskExchangeRequestPayload {
                 measurement_summary_hash_type,
                 req_session_id: half_session_id,
-                psk_hint: SpdmPskHintStruct::default(),
+                psk_hint: psk_hint.clone(),
                 psk_context: SpdmPskContextStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
                     data: psk_context,
@@ -112,6 +121,7 @@ impl<'a> RequesterContext<'a> {
         &mut self,
         half_session_id: u16,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
+        psk_hint: &SpdmPskHintStruct,
         send_buffer: &[u8],
         receive_buffer: &[u8],
     ) -> SpdmResult<u32> {
@@ -174,12 +184,7 @@ impl<'a> RequesterContext<'a> {
                             session.setup(session_id)?;
 
                             session.set_use_psk(true);
-                            let mut psk_key = SpdmDheFinalKeyStruct {
-                                data_size: b"TestPskData\0".len() as u16,
-                                data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
-                            };
-                            psk_key.data[0..(psk_key.data_size as usize)]
-                                .copy_from_slice(b"TestPskData\0");
+
                             session.set_crypto_param(
                                 base_hash_algo,
                                 dhe_algo,
@@ -187,7 +192,8 @@ impl<'a> RequesterContext<'a> {
                                 key_schedule_algo,
                             );
                             session.set_transport_param(sequence_number_count, max_random_count);
-                            session.set_dhe_secret(spdm_version_sel, psk_key)?;
+
+                            session.runtime_info.psk_hint = Some(psk_hint.clone());
                             session.runtime_info.message_a = message_a;
                             session.runtime_info.rsp_cert_hash = None;
                             session.runtime_info.req_cert_hash = None;
@@ -322,6 +328,7 @@ impl<'a> RequesterContext<'a> {
 #[cfg(all(test,))]
 mod tests_requester {
     use super::*;
+    use crate::config::MAX_SPDM_PSK_HINT_SIZE;
     use crate::testlib::*;
     use crate::{crypto, responder};
 
@@ -367,8 +374,14 @@ mod tests_requester {
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone;
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
 
+        let mut psk_key = SpdmPskHintStruct {
+            data_size: b"TestPskHint\0".len() as u16,
+            data: [0u8; MAX_SPDM_PSK_HINT_SIZE],
+        };
+        psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskHint\0");
+
         let status = requester
-            .send_receive_spdm_psk_exchange(measurement_summary_hash_type)
+            .send_receive_spdm_psk_exchange(measurement_summary_hash_type, Some(&psk_key))
             .is_ok();
         assert!(status);
     }

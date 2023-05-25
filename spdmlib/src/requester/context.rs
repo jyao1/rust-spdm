@@ -47,7 +47,8 @@ impl<'a> RequesterContext<'a> {
             self.send_receive_spdm_finish(None, session_id)?;
             Ok(session_id)
         } else {
-            let session_id = self.send_receive_spdm_psk_exchange(measurement_summary_hash_type)?;
+            let session_id =
+                self.send_receive_spdm_psk_exchange(measurement_summary_hash_type, None)?;
             self.send_receive_spdm_psk_finish(session_id)?;
             Ok(session_id)
         }

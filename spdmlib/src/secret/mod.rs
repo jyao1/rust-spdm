@@ -97,61 +97,39 @@ pub mod psk {
     static UNIMPLETEMTED: SpdmSecretPsk = SpdmSecretPsk {
         handshake_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
                                           _base_hash_algo: SpdmBaseHashAlgo,
-                                          _psk_hint: &[u8],
-                                          _psk_hint_size: Option<usize>,
-                                          _info: Option<&[u8]>,
-                                          _info_size: Option<usize>|
-         -> Option<SpdmHKDFKeyStruct> { unimplemented!() },
+                                          _psk_hint: &SpdmPskHintStruct,
+                                          _info: &[u8]|
+         -> Option<SpdmDigestStruct> { unimplemented!() },
 
         master_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
                                        _base_hash_algo: SpdmBaseHashAlgo,
-                                       _psk_hint: &[u8],
-                                       _psk_hint_size: Option<usize>,
-                                       _info: Option<&[u8]>,
-                                       _info_size: Option<usize>|
-         -> Option<SpdmHKDFKeyStruct> { unimplemented!() },
+                                       _psk_hint: &SpdmPskHintStruct,
+                                       _info: &[u8]|
+         -> Option<SpdmDigestStruct> { unimplemented!() },
     };
 
     pub fn handshake_secret_hkdf_expand(
         spdm_version: SpdmVersion,
         base_hash_algo: SpdmBaseHashAlgo,
-        psk_hint: &[u8],
-        psk_hint_size: Option<usize>,
-        info: Option<&[u8]>,
-        info_size: Option<usize>,
-    ) -> Option<SpdmHKDFKeyStruct> {
+        psk_hint: &SpdmPskHintStruct,
+        info: &[u8],
+    ) -> Option<SpdmDigestStruct> {
         (SECRET_PSK_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
-            .handshake_secret_hkdf_expand_cb)(
-            spdm_version,
-            base_hash_algo,
-            psk_hint,
-            psk_hint_size,
-            info,
-            info_size,
-        )
+            .handshake_secret_hkdf_expand_cb)(spdm_version, base_hash_algo, psk_hint, info)
     }
 
     pub fn master_secret_hkdf_expand(
         spdm_version: SpdmVersion,
         base_hash_algo: SpdmBaseHashAlgo,
-        psk_hint: &[u8],
-        psk_hint_size: Option<usize>,
-        info: Option<&[u8]>,
-        info_size: Option<usize>,
-    ) -> Option<SpdmHKDFKeyStruct> {
+        psk_hint: &SpdmPskHintStruct,
+        info: &[u8],
+    ) -> Option<SpdmDigestStruct> {
         (SECRET_PSK_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
-            .master_secret_hkdf_expand_cb)(
-            spdm_version,
-            base_hash_algo,
-            psk_hint,
-            psk_hint_size,
-            info,
-            info_size,
-        )
+            .master_secret_hkdf_expand_cb)(spdm_version, base_hash_algo, psk_hint, info)
     }
 }
 

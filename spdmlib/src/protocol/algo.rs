@@ -856,36 +856,6 @@ impl From<BytesMut> for SpdmSignatureStruct {
 }
 
 #[derive(Debug, Clone)]
-pub struct SpdmHKDFKeyStruct {
-    pub data_size: u16,
-    pub data: [u8; SPDM_MAX_ASYM_KEY_SIZE],
-}
-impl Default for SpdmHKDFKeyStruct {
-    fn default() -> SpdmHKDFKeyStruct {
-        SpdmHKDFKeyStruct {
-            data_size: 0,
-            data: [0u8; SPDM_MAX_ASYM_KEY_SIZE],
-        }
-    }
-}
-
-impl AsRef<[u8]> for SpdmHKDFKeyStruct {
-    fn as_ref(&self) -> &[u8] {
-        &self.data[0..(self.data_size as usize)]
-    }
-}
-
-impl From<BytesMutStrubbed> for SpdmHKDFKeyStruct {
-    fn from(value: BytesMutStrubbed) -> Self {
-        assert!(value.as_ref().len() <= SPDM_MAX_ASYM_KEY_SIZE);
-        let data_size = value.as_ref().len() as u16;
-        let mut data = [0u8; SPDM_MAX_ASYM_KEY_SIZE];
-        data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
-        Self { data_size, data }
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct SpdmCertChainData {
     pub data_size: u16,
     pub data: [u8; config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],

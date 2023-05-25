@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::protocol::{
-    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct,
-    SpdmMeasurementHashAlgo, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
-    SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmVersion,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDigestStruct, SpdmMeasurementHashAlgo,
+    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
+    SpdmPskHintStruct, SpdmSignatureStruct, SpdmVersion,
 };
 
 type SpdmMeasurementCollectionCbType = fn(
@@ -26,19 +26,15 @@ type SpdmGenerateMeasurementSummaryHashCbType = fn(
 type SpdmPskHandshakeSecretHkdfExpandCbType = fn(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
-    psk_hint: &[u8],
-    psk_hint_size: Option<usize>,
-    info: Option<&[u8]>,
-    info_size: Option<usize>,
-) -> Option<SpdmHKDFKeyStruct>;
+    psk_hint: &SpdmPskHintStruct,
+    info: &[u8],
+) -> Option<SpdmDigestStruct>;
 type SpdmPskMasterSecretHkdfExpandCbType = fn(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
-    psk_hint: &[u8],
-    psk_hint_size: Option<usize>,
-    info: Option<&[u8]>,
-    info_size: Option<usize>,
-) -> Option<SpdmHKDFKeyStruct>;
+    psk_hint: &SpdmPskHintStruct,
+    info: &[u8],
+) -> Option<SpdmDigestStruct>;
 
 #[derive(Clone)]
 pub struct SpdmSecretMeasurement {
