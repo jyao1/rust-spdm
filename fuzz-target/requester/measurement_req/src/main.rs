@@ -7,6 +7,7 @@ use fuzzlib::{
     spdmlib::message::SpdmMeasurementOperation,
     *,
 };
+use spdmlib::common::SpdmConnectionState;
 use spdmlib::message::*;
 use spdmlib::protocol::*;
 
@@ -59,6 +60,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -133,6 +138,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -212,6 +221,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -293,6 +306,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -372,6 +389,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -451,6 +472,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -555,6 +580,10 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
         }
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
