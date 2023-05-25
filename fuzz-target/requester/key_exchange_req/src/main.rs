@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::{common::SpdmOpaqueSupport, *};
+use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
@@ -50,6 +51,10 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -119,6 +124,10 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -184,6 +193,10 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =
@@ -255,6 +268,10 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
             | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
         let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
         let mut device_io_requester =

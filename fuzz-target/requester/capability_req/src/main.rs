@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::{spdmlib::protocol::SpdmVersion, *};
+use spdmlib::common::SpdmConnectionState;
 
 fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
@@ -22,6 +23,10 @@ fn fuzz_send_receive_spdm_capability(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
     responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+    responder
+        .common
+        .runtime_info
+        .set_connection_state(SpdmConnectionState::SpdmConnectionAfterVersion);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester =

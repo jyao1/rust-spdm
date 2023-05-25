@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::{spdmlib::protocol::SpdmVersion, *};
-// use crate::spdmlib::message::capability::*;
-// use spdmlib::protocol::*;
+use spdmlib::common::SpdmConnectionState;
 
 fn fuzz_handle_spdm_algorithm(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -27,6 +26,11 @@ fn fuzz_handle_spdm_algorithm(data: &[u8]) {
         provision_info,
     );
     context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+    context
+        .common
+        .runtime_info
+        .set_connection_state(SpdmConnectionState::SpdmConnectionAfterCapabilities);
+
     context.handle_spdm_algorithm(data);
 }
 

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_measurement(data: &[u8]) {
@@ -31,6 +32,10 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
     context.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
     context.common.negotiate_info.measurement_specification_sel =
         SpdmMeasurementSpecification::DMTF;
+    context
+        .common
+        .runtime_info
+        .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
 
     context.handle_spdm_measurement(None, data);
 }

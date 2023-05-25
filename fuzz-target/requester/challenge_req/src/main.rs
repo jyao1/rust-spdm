@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
@@ -23,6 +24,10 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
         rsp_provision_info,
     );
     responder.common.reset_runtime_info();
+    responder
+        .common
+        .runtime_info
+        .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
     responder.common.provision_info.my_cert_chain = [
         Some(SpdmCertChainBuffer {
             data_size: 512u16,

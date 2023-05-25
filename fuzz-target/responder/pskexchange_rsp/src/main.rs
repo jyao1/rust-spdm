@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::config::MAX_SPDM_SESSION_COUNT;
+use fuzzlib::spdmlib::common::session::SpdmSession;
 use fuzzlib::{common::SpdmConnectionState, common::SpdmOpaqueSupport, *};
-use fuzzlib::{spdmlib::common::session::SpdmSession, *};
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_psk_exchange(data: &[u8]) {

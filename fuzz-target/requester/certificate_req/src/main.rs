@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
+use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
@@ -33,6 +34,10 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         );
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -80,6 +85,10 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             rsp_provision_info1,
         );
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -126,6 +135,10 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
             rsp_provision_info2,
         );
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -176,6 +189,10 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         );
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
@@ -230,6 +247,10 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
         );
 
         responder.common.reset_runtime_info();
+        responder
+            .common
+            .runtime_info
+            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
