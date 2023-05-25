@@ -137,8 +137,20 @@ impl<'a> ResponderContext<'a> {
         )
         .unwrap();
 
+        let psk_without_context = self
+            .common
+            .negotiate_info
+            .rsp_capabilities_sel
+            .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT);
+        let psk_context_size = if psk_without_context {
+            0u16
+        } else {
+            MAX_SPDM_PSK_CONTEXT_SIZE as u16
+        };
         let mut psk_context = [0u8; MAX_SPDM_PSK_CONTEXT_SIZE];
-        let _ = crypto::rand::get_random(&mut psk_context);
+        if psk_without_context {
+            let _ = crypto::rand::get_random(&mut psk_context);
+        }
 
         let rsp_session_id = self.common.get_next_half_session_id(false);
         if rsp_session_id.is_err() {
@@ -202,7 +214,7 @@ impl<'a> ResponderContext<'a> {
                     data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
                 },
                 psk_context: SpdmPskContextStruct {
-                    data_size: self.common.negotiate_info.base_hash_sel.get_size(),
+                    data_size: psk_context_size,
                     data: psk_context,
                 },
                 opaque: return_opaque.clone(),
@@ -298,11 +310,7 @@ impl<'a> ResponderContext<'a> {
             .common
             .get_immutable_session_via_id(session_id)
             .unwrap();
-        let psk_without_context = self
-            .common
-            .negotiate_info
-            .rsp_capabilities_sel
-            .contains(SpdmResponseCapabilityFlags::PSK_CAP_WITHOUT_CONTEXT);
+
         if psk_without_context {
             // generate the data secret directly to skip PSK_FINISH
             let th2 = self.common.calc_rsp_transcript_hash(true, 0, session);
