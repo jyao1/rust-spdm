@@ -16,9 +16,12 @@ use spdmlib::protocol::{
 };
 use spdmlib::secret::*;
 
-pub static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
+pub static SECRET_IMPL_INSTANCE: SpdmSecretMeasurement = SpdmSecretMeasurement {
     spdm_measurement_collection_cb: spdm_measurement_collection_impl,
     spdm_generate_measurement_summary_hash_cb: spdm_generate_measurement_summary_hash_impl,
+};
+
+pub static SECRET_PSK_IMPL_INSTANCE: SpdmSecretPsk = SpdmSecretPsk {
     spdm_psk_handshake_secret_hkdf_expand_cb: spdm_psk_handshake_secret_hkdf_expand_impl,
     spdm_psk_master_secret_hkdf_expand_cb: spdm_psk_master_secret_hkdf_expand_impl,
 };

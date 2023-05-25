@@ -41,11 +41,14 @@ type SpdmPskMasterSecretHkdfExpandCbType = fn(
 ) -> Option<SpdmHKDFKeyStruct>;
 
 #[derive(Clone)]
-pub struct SpdmSecret {
+pub struct SpdmSecretMeasurement {
     pub spdm_measurement_collection_cb: SpdmMeasurementCollectionCbType,
 
     pub spdm_generate_measurement_summary_hash_cb: SpdmGenerateMeasurementSummaryHashCbType,
+}
 
+#[derive(Clone)]
+pub struct SpdmSecretPsk {
     pub spdm_psk_handshake_secret_hkdf_expand_cb: SpdmPskHandshakeSecretHkdfExpandCbType,
 
     pub spdm_psk_master_secret_hkdf_expand_cb: SpdmPskMasterSecretHkdfExpandCbType,

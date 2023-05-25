@@ -17,9 +17,12 @@ use spdmlib::protocol::{
 };
 use spdmlib::secret::*;
 
-pub static SECRET_IMPL_INSTANCE: SpdmSecret = SpdmSecret {
+pub static SECRET_MEASUREMENT_IMPL_INSTANCE: SpdmSecretMeasurement = SpdmSecretMeasurement {
     spdm_measurement_collection_cb: spdm_measurement_collection_impl,
     spdm_generate_measurement_summary_hash_cb: spdm_generate_measurement_summary_hash_impl,
+};
+
+pub static SECRET_PSK_IMPL_INSTANCE: SpdmSecretPsk = SpdmSecretPsk {
     spdm_psk_handshake_secret_hkdf_expand_cb: spdm_psk_handshake_secret_hkdf_expand_impl,
     spdm_psk_master_secret_hkdf_expand_cb: spdm_psk_master_secret_hkdf_expand_impl,
 };
@@ -213,7 +216,7 @@ fn spdm_psk_master_secret_hkdf_expand_impl(
 
 #[cfg(all(test,))]
 mod tests {
-    use super::SECRET_IMPL_INSTANCE;
+    use super::SECRET_MEASUREMENT_IMPL_INSTANCE;
     use codec::Codec;
     use spdmlib::protocol::{
         SpdmBaseHashAlgo, SpdmMeasurementBlockStructure, SpdmMeasurementSpecification, SpdmVersion,
@@ -222,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_case0_spdm_measurement_collection() {
-        let reg_result = register(SECRET_IMPL_INSTANCE.clone());
+        let reg_result = register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
         assert_eq!(reg_result, true);
 
         let records = spdm_measurement_collection(

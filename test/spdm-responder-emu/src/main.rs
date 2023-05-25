@@ -23,7 +23,6 @@ use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
 use spdm_emu::secret_impl_sample::*;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
-use spdmlib::secret::*;
 use spdmlib::{common, config, protocol::*, responder};
 
 fn process_socket_message(
@@ -87,7 +86,7 @@ fn main() {
     #[cfg(feature = "spdm-mbedtls")]
     spdm_emu::crypto::crypto_mbedtls_register_handles();
 
-    register(SECRET_IMPL_INSTANCE.clone());
+    spdmlib::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
 
     let listener = TcpListener::bind("127.0.0.1:2323").expect("Couldn't bind to the server");
     println!("server start!");
