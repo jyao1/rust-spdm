@@ -13,6 +13,7 @@ use crate::protocol::*;
 use crate::responder::*;
 use config::MAX_SPDM_PSK_CONTEXT_SIZE;
 extern crate alloc;
+use crate::secret;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
@@ -54,6 +55,7 @@ impl<'a> ResponderContext<'a> {
 
         let mut return_opaque = SpdmOpaqueStruct::default();
 
+        let measurement_summary_hash;
         if let Some(psk_exchange_req) = &psk_exchange_req {
             debug!("!!! psk_exchange req : {:02x?}\n", psk_exchange_req);
 
@@ -63,8 +65,26 @@ impl<'a> ResponderContext<'a> {
                     == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll)
             {
                 self.common.runtime_info.need_measurement_summary_hash = true;
+                let measurement_summary_hash_res =
+                    secret::measurement::generate_measurement_summary_hash(
+                        self.common.negotiate_info.spdm_version_sel,
+                        self.common.negotiate_info.base_hash_sel,
+                        self.common.negotiate_info.measurement_specification_sel,
+                        self.common.negotiate_info.measurement_hash_sel,
+                        psk_exchange_req.measurement_summary_hash_type,
+                    );
+                if measurement_summary_hash_res.is_none() {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                    return;
+                }
+                measurement_summary_hash = measurement_summary_hash_res.unwrap();
+                if measurement_summary_hash.data_size == 0 {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                    return;
+                }
             } else {
                 self.common.runtime_info.need_measurement_summary_hash = false;
+                measurement_summary_hash = SpdmDigestStruct::default();
             }
 
             if let Some(secured_message_version_list) = psk_exchange_req
@@ -209,10 +229,7 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmPskExchangeResponse(SpdmPskExchangeResponsePayload {
                 heartbeat_period: self.common.config_info.heartbeat_period,
                 rsp_session_id,
-                measurement_summary_hash: SpdmDigestStruct {
-                    data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
-                },
+                measurement_summary_hash,
                 psk_context: SpdmPskContextStruct {
                     data_size: psk_context_size,
                     data: psk_context,

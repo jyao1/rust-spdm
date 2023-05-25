@@ -15,7 +15,7 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
 extern crate alloc;
-use alloc::boxed::Box;
+use crate::secret;
 
 use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 
@@ -49,6 +49,7 @@ impl<'a> ResponderContext<'a> {
         self.common
             .reset_buffer_via_request_code(SpdmRequestResponseCode::SpdmRequestChallenge, None);
 
+        let measurement_summary_hash;
         let challenge = SpdmChallengeRequestPayload::spdm_read(&mut self.common, &mut reader);
         if let Some(challenge) = &challenge {
             debug!("!!! challenge : {:02x?}\n", challenge);
@@ -59,8 +60,26 @@ impl<'a> ResponderContext<'a> {
                     == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll)
             {
                 self.common.runtime_info.need_measurement_summary_hash = true;
+                let measurement_summary_hash_res =
+                    secret::measurement::generate_measurement_summary_hash(
+                        self.common.negotiate_info.spdm_version_sel,
+                        self.common.negotiate_info.base_hash_sel,
+                        self.common.negotiate_info.measurement_specification_sel,
+                        self.common.negotiate_info.measurement_hash_sel,
+                        challenge.measurement_summary_hash_type,
+                    );
+                if measurement_summary_hash_res.is_none() {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                    return;
+                }
+                measurement_summary_hash = measurement_summary_hash_res.unwrap();
+                if measurement_summary_hash.data_size == 0 {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                    return;
+                }
             } else {
                 self.common.runtime_info.need_measurement_summary_hash = false;
+                measurement_summary_hash = SpdmDigestStruct::default();
             }
         } else {
             error!("!!! challenge : fail !!!\n");
@@ -114,10 +133,7 @@ impl<'a> ResponderContext<'a> {
                     challenge_auth_attribute: SpdmChallengeAuthAttribute::empty(),
                     cert_chain_hash,
                     nonce: SpdmNonceStruct { data: nonce },
-                    measurement_summary_hash: SpdmDigestStruct {
-                        data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                        data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
-                    },
+                    measurement_summary_hash,
                     opaque: SpdmOpaqueStruct {
                         data_size: 0,
                         data: [0u8; MAX_SPDM_OPAQUE_SIZE],
