@@ -97,8 +97,8 @@ impl<'a> RequesterContext<'a> {
 mod tests_requester {
     use super::*;
     use crate::common::session::SpdmSession;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
 
     #[test]
     fn test_case0_send_receive_spdm_end_session() {

@@ -163,7 +163,6 @@ mod tests_responder {
         use super::*;
         use crate::common::session::*;
         use crate::crypto;
-        use crate::message::*;
         use crate::protocol::*;
         use crate::responder;
         use crate::testlib::*;

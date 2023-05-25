@@ -329,8 +329,8 @@ impl<'a> RequesterContext<'a> {
 mod tests_requester {
     use super::*;
     use crate::config::MAX_SPDM_PSK_HINT_SIZE;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
 
     #[test]
     fn test_case0_send_receive_spdm_psk_exchange() {

@@ -144,8 +144,8 @@ mod tests_responder {
     fn test_case0_handle_spdm_digest() {
         use super::*;
         use crate::message::SpdmMessageHeader;
+        use crate::responder;
         use crate::testlib::*;
-        use crate::{crypto, responder};
         use codec::{Codec, Writer};
 
         let (config_info, provision_info) = create_info();

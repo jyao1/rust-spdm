@@ -89,8 +89,8 @@ mod tests_responder {
     use crate::common::session::SpdmSession;
     use crate::message::SpdmMessageHeader;
     use crate::protocol::gen_array_clone;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
     use codec::{Codec, Writer};
 
     #[test]

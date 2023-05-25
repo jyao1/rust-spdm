@@ -83,8 +83,8 @@ impl<'a> ResponderContext<'a> {
 #[cfg(all(test,))]
 mod tests_responder {
     use super::*;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
     #[test]
     fn test_case0_send_spdm_error() {
         let (config_info, provision_info) = create_info();
