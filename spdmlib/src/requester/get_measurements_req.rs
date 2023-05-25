@@ -410,7 +410,6 @@ mod tests_requester {
     use crate::{crypto, responder};
 
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_case0_send_receive_spdm_measurement() {
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();
@@ -420,6 +419,7 @@ mod tests_requester {
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
         crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
