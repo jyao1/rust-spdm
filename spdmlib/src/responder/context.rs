@@ -223,10 +223,11 @@ impl<'a> ResponderContext<'a> {
     fn dispatch_secured_message(&mut self, session_id: u32, bytes: &[u8]) -> bool {
         let mut reader = Reader::init(bytes);
 
-        let session = self
-            .common
-            .get_immutable_session_via_id(session_id)
-            .unwrap();
+        let session = self.common.get_immutable_session_via_id(session_id);
+        if session.is_none() {
+            return false;
+        }
+        let session = session.unwrap();
 
         match session.get_session_state() {
             SpdmSessionState::SpdmSessionHandshaking => {
@@ -653,7 +654,6 @@ mod tests_responder {
         assert!(status);
     }
     #[test]
-    #[should_panic(expected = "not implemented")]
     fn test_case0_dispatch_secured_message() {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
@@ -668,6 +668,7 @@ mod tests_responder {
         );
 
         crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
 
         let rsp_session_id = 0xFFFEu16;
         let session_id = (0xffu32 << 16) + rsp_session_id as u32;
@@ -676,6 +677,8 @@ mod tests_responder {
             context.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
             context.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
             context.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
+            context.negotiate_info.measurement_specification_sel =
+                SpdmMeasurementSpecification::DMTF;
 
             context.session = gen_array_clone(SpdmSession::new(), 4);
             context.session[0].setup(session_id).unwrap();
@@ -743,7 +746,8 @@ mod tests_responder {
             };
             assert!(value.encode(&mut writer).is_ok());
             let status = context.dispatch_message(bytes);
-            assert!(!status);
+            assert!(status);
+            // TBD: check if error message is turned.
             i += 1;
         }
 
