@@ -1,0 +1,17 @@
+[package]
+name = "vendor_rsp"
+version = "0.1.0"
+authors = ["Xiaotian Chen <xiaotian.chen@intel.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fuzzlib = { path = "../../fuzzlib", default-features = false }
+afl = { version = "=0.12.12", optional = true }
+
+[features]
+default = ["hashed-transcript-data"]
+hashed-transcript-data = ["fuzzlib/hashed-transcript-data"]
+fuzzlogfile = []
+fuzz = ["afl"]

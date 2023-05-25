@@ -93,6 +93,7 @@ cmds=(
     "heartbeat_rsp"
     "key_update_rsp"
     "end_session_rsp"
+    "vendor_rsp"
     "version_req"
     "capability_req"
     "algorithm_req"
@@ -107,6 +108,7 @@ cmds=(
     "heartbeat_req"
     "key_update_req"
     "end_session_req"
+    "vendor_req"
 )
 
 buildpackage=''

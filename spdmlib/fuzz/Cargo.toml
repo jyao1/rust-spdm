@@ -111,6 +111,12 @@ test = false
 doc = false
 
 [[bin]]
+name = "vendor_rsp"
+path = "fuzz_targets/vendor_rsp.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "version_req"
 path = "fuzz_targets/version_req.rs"
 test = false
@@ -191,5 +197,11 @@ doc = false
 [[bin]]
 name = "end_session_req"
 path = "fuzz_targets/end_session_req.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "vendor_req"
+path = "fuzz_targets/vendor_req.rs"
 test = false
 doc = false
