@@ -46,7 +46,13 @@ impl<'a> ResponderContext<'a> {
         );
 
         let vendor_defined_request_payload =
-            SpdmVendorDefinedRequestPayload::spdm_read(&mut self.common, &mut reader).unwrap();
+            SpdmVendorDefinedRequestPayload::spdm_read(&mut self.common, &mut reader);
+        if vendor_defined_request_payload.is_none() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
+        }
+        let vendor_defined_request_payload = vendor_defined_request_payload.unwrap();
+
         let standard_id = vendor_defined_request_payload.standard_id;
         let vendor_id = vendor_defined_request_payload.vendor_id;
         let req_payload = vendor_defined_request_payload.req_payload;
