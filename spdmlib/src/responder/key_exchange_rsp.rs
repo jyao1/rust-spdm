@@ -16,6 +16,7 @@ use crate::protocol::*;
 extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::message::*;
+use crate::secret;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
@@ -57,6 +58,7 @@ impl<'a> ResponderContext<'a> {
 
         let mut return_opaque = SpdmOpaqueStruct::default();
 
+        let measurement_summary_hash;
         if let Some(key_exchange_req) = &key_exchange_req {
             debug!("!!! key_exchange req : {:02x?}\n", key_exchange_req);
 
@@ -66,8 +68,26 @@ impl<'a> ResponderContext<'a> {
                     == SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll)
             {
                 self.common.runtime_info.need_measurement_summary_hash = true;
+                let measurement_summary_hash_res =
+                    secret::measurement::generate_measurement_summary_hash(
+                        self.common.negotiate_info.spdm_version_sel,
+                        self.common.negotiate_info.base_hash_sel,
+                        self.common.negotiate_info.measurement_specification_sel,
+                        self.common.negotiate_info.measurement_hash_sel,
+                        key_exchange_req.measurement_summary_hash_type,
+                    );
+                if measurement_summary_hash_res.is_none() {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                    return;
+                }
+                measurement_summary_hash = measurement_summary_hash_res.unwrap();
+                if measurement_summary_hash.data_size == 0 {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                    return;
+                }
             } else {
                 self.common.runtime_info.need_measurement_summary_hash = false;
+                measurement_summary_hash = SpdmDigestStruct::default();
             }
 
             if key_exchange_req.session_policy
@@ -245,10 +265,7 @@ impl<'a> ResponderContext<'a> {
                 req_slot_id: 0x0,
                 random: SpdmRandomStruct { data: random },
                 exchange,
-                measurement_summary_hash: SpdmDigestStruct {
-                    data_size: self.common.negotiate_info.base_hash_sel.get_size(),
-                    data: Box::new([0xaa; SPDM_MAX_HASH_SIZE]),
-                },
+                measurement_summary_hash,
                 opaque: return_opaque.clone(),
                 signature: SpdmSignatureStruct {
                     data_size: self.common.negotiate_info.base_asym_sel.get_size(),
