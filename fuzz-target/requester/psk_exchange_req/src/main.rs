@@ -9,6 +9,7 @@ use spdmlib::protocol::*;
 fn fuzz_send_receive_spdm_psk_exchange(fuzzdata: &[u8]) {
     spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
     spdmlib::secret::measurement::register(fuzzlib::secret::SECRET_IMPL_INSTANCE.clone());
+    spdmlib::secret::psk::register(fuzzlib::secret::SECRET_PSK_IMPL_INSTANCE.clone());
     spdmlib::crypto::hkdf::register(FAKE_HKDF.clone());
 
     // TCD:

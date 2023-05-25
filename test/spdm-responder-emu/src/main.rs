@@ -87,6 +87,7 @@ fn main() {
     spdm_emu::crypto::crypto_mbedtls_register_handles();
 
     spdmlib::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
+    spdmlib::secret::psk::register(SECRET_PSK_IMPL_INSTANCE.clone());
 
     let listener = TcpListener::bind("127.0.0.1:2323").expect("Couldn't bind to the server");
     println!("server start!");
