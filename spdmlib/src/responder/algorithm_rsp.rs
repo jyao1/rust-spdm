@@ -146,6 +146,7 @@ impl<'a> ResponderContext<'a> {
                         Some(SpdmCertChainBuffer { data_size, data });
                     debug!("my_cert_chain - {:02x?}\n", &data[..(data_size as usize)]);
                 } else {
+                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                     return;
                 }
             }
