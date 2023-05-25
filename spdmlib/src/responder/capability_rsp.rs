@@ -111,8 +111,8 @@ impl<'a> ResponderContext<'a> {
 mod tests_responder {
     use super::*;
     use crate::message::SpdmMessageHeader;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
     use codec::{Codec, Writer};
     #[test]
     fn test_case0_handle_spdm_capability() {

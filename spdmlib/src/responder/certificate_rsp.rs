@@ -148,8 +148,8 @@ mod tests_responder {
     #[cfg(feature = "hashed-transcript-data")]
     fn test_case0_handle_spdm_certificate() {
         use super::*;
+        use crate::responder;
         use crate::testlib::*;
-        use crate::{crypto, responder};
         use codec::{Codec, Writer};
 
         let (config_info, provision_info) = create_info();

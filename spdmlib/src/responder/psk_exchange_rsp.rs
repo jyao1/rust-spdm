@@ -358,8 +358,8 @@ mod tests_responder {
     use crate::common::opaque::MAX_SPDM_OPAQUE_SIZE;
     use crate::config::MAX_SPDM_PSK_HINT_SIZE;
     use crate::message::SpdmMessageHeader;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
     use codec::{Codec, Writer};
 
     #[test]

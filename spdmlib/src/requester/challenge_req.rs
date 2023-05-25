@@ -241,8 +241,6 @@ mod tests_requester {
     #[cfg(feature = "hashed-transcript-data")]
     fn test_case0_send_receive_spdm_challenge() {
         use super::*;
-        use crate::message::*;
-        use crate::protocol::*;
         use crate::testlib::*;
         use crate::{crypto, responder};
 

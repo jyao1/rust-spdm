@@ -281,7 +281,6 @@ mod tests {
     use super::*;
     use crate::common::*;
     use crate::common::{SpdmConfigInfo, SpdmContext, SpdmProvisionInfo};
-    use crate::config::*;
     use crate::protocol::*;
     use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 

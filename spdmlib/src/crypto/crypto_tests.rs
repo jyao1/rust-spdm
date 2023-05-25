@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use super::{
-    aead::{decrypt, encrypt},
-    hash,
-};
+use super::aead::{decrypt, encrypt};
+#[cfg(feature = "hashed-transcript-data")]
+use super::hash;
 use crate::protocol::SpdmAeadAlgo;
+#[cfg(feature = "hashed-transcript-data")]
 use crate::protocol::SpdmBaseHashAlgo;
 
 #[cfg(feature = "hashed-transcript-data")]

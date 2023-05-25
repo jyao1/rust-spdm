@@ -148,8 +148,8 @@ mod tests_requester {
     use crate::common::session::SpdmSession;
     use crate::common::*;
     use crate::message::*;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
     use codec::Writer;
 
     #[test]

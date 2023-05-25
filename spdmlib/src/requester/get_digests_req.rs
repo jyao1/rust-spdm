@@ -112,8 +112,8 @@ mod tests_requester {
     #[cfg(feature = "hashed-transcript-data")]
     fn test_case0_send_receive_spdm_digest() {
         use super::*;
+        use crate::responder;
         use crate::testlib::*;
-        use crate::{crypto, responder};
 
         let (rsp_config_info, rsp_provision_info) = create_info();
         let (req_config_info, req_provision_info) = create_info();

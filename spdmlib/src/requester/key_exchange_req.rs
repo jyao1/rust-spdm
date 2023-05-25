@@ -500,8 +500,8 @@ impl<'a> RequesterContext<'a> {
 #[cfg(all(test,))]
 mod tests_requester {
     use super::*;
+    use crate::responder;
     use crate::testlib::*;
-    use crate::{crypto, responder};
 
     #[test]
     fn test_case0_send_receive_spdm_key_exchange() {
