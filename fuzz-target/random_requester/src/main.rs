@@ -115,6 +115,7 @@ fn run_spdm(spdm: Vec<i32>) {
                 if requester
                     .send_receive_spdm_psk_exchange(
                         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
+                        None,
                     )
                     .is_err()
                 {

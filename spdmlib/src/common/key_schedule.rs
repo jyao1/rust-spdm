@@ -6,6 +6,7 @@ use crate::crypto;
 use crate::protocol::*;
 use codec::{Codec, Writer};
 extern crate alloc;
+use crate::secret;
 use alloc::boxed::Box;
 
 const MAX_BIN_CONCAT_BUF_SIZE: usize = 2 + 8 + 12 + SPDM_MAX_HASH_SIZE;
@@ -74,9 +75,11 @@ impl SpdmKeySchedule {
 
     pub fn derive_request_handshake_secret(
         &self,
+        use_psk: bool,
         spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
-        key: &[u8],
+        key: Option<&[u8]>,
+        psk_hint: Option<&SpdmPskHintStruct>,
         th1: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
@@ -87,14 +90,25 @@ impl SpdmKeySchedule {
             Some(th1),
             buffer,
         )?;
-        crypto::hkdf::hkdf_expand(hash_algo, key, bin_str1, hash_algo.get_size())
+        if !use_psk {
+            crypto::hkdf::hkdf_expand(hash_algo, key.unwrap(), bin_str1, hash_algo.get_size())
+        } else {
+            secret::psk::handshake_secret_hkdf_expand(
+                spdm_version,
+                hash_algo,
+                psk_hint.unwrap(),
+                bin_str1,
+            )
+        }
     }
 
     pub fn derive_response_handshake_secret(
         &self,
+        use_psk: bool,
         spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
-        key: &[u8],
+        key: Option<&[u8]>,
+        psk_hint: Option<&SpdmPskHintStruct>,
         th1: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
@@ -105,7 +119,16 @@ impl SpdmKeySchedule {
             Some(th1),
             buffer,
         )?;
-        crypto::hkdf::hkdf_expand(hash_algo, key, bin_str2, hash_algo.get_size())
+        if !use_psk {
+            crypto::hkdf::hkdf_expand(hash_algo, key.unwrap(), bin_str2, hash_algo.get_size())
+        } else {
+            secret::psk::handshake_secret_hkdf_expand(
+                spdm_version,
+                hash_algo,
+                psk_hint.unwrap(),
+                bin_str2,
+            )
+        }
     }
 
     pub fn derive_finished_key(
@@ -173,9 +196,11 @@ impl SpdmKeySchedule {
 
     pub fn derive_request_data_secret(
         &self,
+        use_psk: bool,
         spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
-        key: &[u8],
+        key: Option<&[u8]>,
+        psk_hint: Option<&SpdmPskHintStruct>,
         th2: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
@@ -186,14 +211,25 @@ impl SpdmKeySchedule {
             Some(th2),
             buffer,
         )?;
-        crypto::hkdf::hkdf_expand(hash_algo, key, bin_str3, hash_algo.get_size())
+        if !use_psk {
+            crypto::hkdf::hkdf_expand(hash_algo, key.unwrap(), bin_str3, hash_algo.get_size())
+        } else {
+            secret::psk::master_secret_hkdf_expand(
+                spdm_version,
+                hash_algo,
+                psk_hint.unwrap(),
+                bin_str3,
+            )
+        }
     }
 
     pub fn derive_response_data_secret(
         &self,
+        use_psk: bool,
         spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
-        key: &[u8],
+        key: Option<&[u8]>,
+        psk_hint: Option<&SpdmPskHintStruct>,
         th2: &[u8],
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
@@ -204,14 +240,25 @@ impl SpdmKeySchedule {
             Some(th2),
             buffer,
         )?;
-        crypto::hkdf::hkdf_expand(hash_algo, key, bin_str4, hash_algo.get_size())
+        if !use_psk {
+            crypto::hkdf::hkdf_expand(hash_algo, key.unwrap(), bin_str4, hash_algo.get_size())
+        } else {
+            secret::psk::master_secret_hkdf_expand(
+                spdm_version,
+                hash_algo,
+                psk_hint.unwrap(),
+                bin_str4,
+            )
+        }
     }
 
     pub fn derive_export_master_secret(
         &self,
+        use_psk: bool,
         spdm_version: SpdmVersion,
         hash_algo: SpdmBaseHashAlgo,
-        key: &[u8],
+        key: Option<&[u8]>,
+        psk_hint: Option<&SpdmPskHintStruct>,
     ) -> Option<SpdmDigestStruct> {
         let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
         let bin_str8 = self.binconcat(
@@ -221,7 +268,16 @@ impl SpdmKeySchedule {
             None,
             buffer,
         )?;
-        crypto::hkdf::hkdf_expand(hash_algo, key, bin_str8, hash_algo.get_size())
+        if !use_psk {
+            crypto::hkdf::hkdf_expand(hash_algo, key.unwrap(), bin_str8, hash_algo.get_size())
+        } else {
+            secret::psk::master_secret_hkdf_expand(
+                spdm_version,
+                hash_algo,
+                psk_hint.unwrap(),
+                bin_str8,
+            )
+        }
     }
 
     pub fn derive_update_secret(

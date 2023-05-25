@@ -12,7 +12,7 @@ use spdmlib::crypto::hash;
 use spdmlib::message::*;
 use spdmlib::protocol::*;
 use spdmlib::protocol::{
-    SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
+    SpdmBaseHashAlgo, SpdmDigestStruct, SpdmMeasurementRecordStructure,
     SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
 };
 use spdmlib::secret::*;
@@ -211,23 +211,19 @@ fn generate_measurement_summary_hash_impl(
 fn handshake_secret_hkdf_expand_impl(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
-    psk_hint: &[u8],
-    psk_hint_size: Option<usize>,
-    info: Option<&[u8]>,
-    info_size: Option<usize>,
-) -> Option<SpdmHKDFKeyStruct> {
-    Some(SpdmHKDFKeyStruct::default())
+    psk_hint: &SpdmPskHintStruct,
+    info: &[u8],
+) -> Option<SpdmDigestStruct> {
+    Some(SpdmDigestStruct::default())
 }
 
 fn master_secret_hkdf_expand_impl(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
-    psk_hint: &[u8],
-    psk_hint_size: Option<usize>,
-    info: Option<&[u8]>,
-    info_size: Option<usize>,
-) -> Option<SpdmHKDFKeyStruct> {
-    Some(SpdmHKDFKeyStruct::default())
+    psk_hint: &SpdmPskHintStruct,
+    info: &[u8],
+) -> Option<SpdmDigestStruct> {
+    Some(SpdmDigestStruct::default())
 }
 
 #[cfg(all(test,))]

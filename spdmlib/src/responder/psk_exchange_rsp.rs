@@ -56,6 +56,7 @@ impl<'a> ResponderContext<'a> {
         let mut return_opaque = SpdmOpaqueStruct::default();
 
         let measurement_summary_hash;
+        let psk_hint;
         if let Some(psk_exchange_req) = &psk_exchange_req {
             debug!("!!! psk_exchange req : {:02x?}\n", psk_exchange_req);
 
@@ -86,6 +87,8 @@ impl<'a> ResponderContext<'a> {
                 self.common.runtime_info.need_measurement_summary_hash = false;
                 measurement_summary_hash = SpdmDigestStruct::default();
             }
+
+            psk_hint = psk_exchange_req.psk_hint.clone();
 
             if let Some(secured_message_version_list) = psk_exchange_req
                 .opaque
@@ -202,18 +205,11 @@ impl<'a> ResponderContext<'a> {
             ((rsp_session_id as u32) << 16) + psk_exchange_req.unwrap().req_session_id as u32;
         session.setup(session_id).unwrap();
         session.set_use_psk(true);
-        let mut psk_key = SpdmDheFinalKeyStruct {
-            data_size: b"TestPskData\0".len() as u16,
-            data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
-        };
-        psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
+
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
         session.set_transport_param(sequence_number_count, max_random_count);
-        if session.set_dhe_secret(spdm_version_sel, psk_key).is_err() {
-            let _ = session.teardown(session_id);
-            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
-        }
+
+        session.runtime_info.psk_hint = Some(psk_hint);
         session.runtime_info.message_a = message_a;
         session.runtime_info.rsp_cert_hash = None;
         session.runtime_info.req_cert_hash = None;
