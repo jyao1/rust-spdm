@@ -10,9 +10,9 @@ use spdmlib::crypto::hash;
 use spdmlib::message::*;
 use spdmlib::protocol::*;
 use spdmlib::protocol::{
-    SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementRecordStructure,
-    SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo,
-    SpdmSignatureStruct,
+    SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct, SpdmMeasurementHashAlgo,
+    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
+    SpdmReqAsymAlgo, SpdmSignatureStruct,
 };
 use spdmlib::secret::*;
 
@@ -30,13 +30,24 @@ pub static SECRET_PSK_IMPL_INSTANCE: SpdmSecretPsk = SpdmSecretPsk {
 fn measurement_collection_impl(
     spdm_version: SpdmVersion,
     measurement_specification: SpdmMeasurementSpecification,
-    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_hash_algo: SpdmMeasurementHashAlgo,
     measurement_index: usize,
 ) -> Option<SpdmMeasurementRecordStructure> {
     if measurement_specification != SpdmMeasurementSpecification::DMTF {
         None
     } else {
-        let hashsize = SpdmBaseHashAlgo::get_size(&measurement_hash_algo);
+        let base_hash_algo = match measurement_hash_algo {
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_256 => SpdmBaseHashAlgo::TPM_ALG_SHA_256,
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384 => SpdmBaseHashAlgo::TPM_ALG_SHA_384,
+            SpdmMeasurementHashAlgo::TPM_ALG_SHA_512 => SpdmBaseHashAlgo::TPM_ALG_SHA_512,
+            SpdmMeasurementHashAlgo::RAW_BIT_STREAM
+            | SpdmMeasurementHashAlgo::TPM_ALG_SHA3_256
+            | SpdmMeasurementHashAlgo::TPM_ALG_SHA3_384
+            | SpdmMeasurementHashAlgo::TPM_ALG_SHA3_512
+            | SpdmMeasurementHashAlgo::TPM_ALG_SM3 => return None,
+            _ => return None,
+        };
+        let hashsize = base_hash_algo.get_size();
         if measurement_index
             == SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize
         {
@@ -67,26 +78,16 @@ fn measurement_collection_impl(
             firmware8.copy_from_slice("adbeefde".as_bytes());
             firmware9.copy_from_slice("dbeefdea".as_bytes());
             firmware10.copy_from_slice("beefdead".as_bytes());
-            let digest1 =
-                hash::hash_all(measurement_hash_algo, &firmware1).expect("hash_all failed!");
-            let digest2 =
-                hash::hash_all(measurement_hash_algo, &firmware2).expect("hash_all failed!");
-            let digest3 =
-                hash::hash_all(measurement_hash_algo, &firmware3).expect("hash_all failed!");
-            let digest4 =
-                hash::hash_all(measurement_hash_algo, &firmware4).expect("hash_all failed!");
-            let digest5 =
-                hash::hash_all(measurement_hash_algo, &firmware5).expect("hash_all failed!");
-            let digest6 =
-                hash::hash_all(measurement_hash_algo, &firmware6).expect("hash_all failed!");
-            let digest7 =
-                hash::hash_all(measurement_hash_algo, &firmware7).expect("hash_all failed!");
-            let digest8 =
-                hash::hash_all(measurement_hash_algo, &firmware8).expect("hash_all failed!");
-            let digest9 =
-                hash::hash_all(measurement_hash_algo, &firmware9).expect("hash_all failed!");
-            let digest10 =
-                hash::hash_all(measurement_hash_algo, &firmware10).expect("hash_all failed!");
+            let digest1 = hash::hash_all(base_hash_algo, &firmware1).expect("hash_all failed!");
+            let digest2 = hash::hash_all(base_hash_algo, &firmware2).expect("hash_all failed!");
+            let digest3 = hash::hash_all(base_hash_algo, &firmware3).expect("hash_all failed!");
+            let digest4 = hash::hash_all(base_hash_algo, &firmware4).expect("hash_all failed!");
+            let digest5 = hash::hash_all(base_hash_algo, &firmware5).expect("hash_all failed!");
+            let digest6 = hash::hash_all(base_hash_algo, &firmware6).expect("hash_all failed!");
+            let digest7 = hash::hash_all(base_hash_algo, &firmware7).expect("hash_all failed!");
+            let digest8 = hash::hash_all(base_hash_algo, &firmware8).expect("hash_all failed!");
+            let digest9 = hash::hash_all(base_hash_algo, &firmware9).expect("hash_all failed!");
+            let digest10 = hash::hash_all(base_hash_algo, &firmware10).expect("hash_all failed!");
             let mut digest_value1: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
                 [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
             let mut digest_value2: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
@@ -118,8 +119,8 @@ fn measurement_collection_impl(
             digest_value9[..64].copy_from_slice(digest9.data.as_ref());
             digest_value10[..64].copy_from_slice(digest10.data.as_ref());
 
-            let spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
-                index: measurement_index as u8,
+            let mut spdm_measurement_block_structure = SpdmMeasurementBlockStructure {
+                index: 1u8,
                 measurement_specification,
                 measurement_size: digest1.data_size + 3,
                 measurement: SpdmDmtfMeasurementStructure {
@@ -133,7 +134,8 @@ fn measurement_collection_impl(
             let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE];
             let mut writer = Writer::init(&mut measurement_record_data);
             for i in 0..10 {
-                spdm_measurement_block_structure.encode(&mut writer);
+                spdm_measurement_block_structure.encode(&mut writer).ok()?;
+                spdm_measurement_block_structure.index += 1;
             }
 
             Some(SpdmMeasurementRecordStructure {
@@ -147,7 +149,7 @@ fn measurement_collection_impl(
             let mut firmware: [u8; 8] = [0; 8];
             firmware.copy_from_slice("deadbeef".as_bytes());
 
-            let digest = hash::hash_all(measurement_hash_algo, &firmware)?;
+            let digest = hash::hash_all(base_hash_algo, &firmware)?;
 
             let mut digest_value: [u8; config::MAX_SPDM_MEASUREMENT_VALUE_LEN] =
                 [0; config::MAX_SPDM_MEASUREMENT_VALUE_LEN];
@@ -184,10 +186,25 @@ fn generate_measurement_summary_hash_impl(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
     measurement_specification: SpdmMeasurementSpecification,
-    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_hash_algo: SpdmMeasurementHashAlgo,
     measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
 ) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
+    match measurement_summary_hash_type {
+        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeAll => {
+            let mut dummyall: [u8; 8] = [0; 8];
+            dummyall.copy_from_slice("dummyall".as_bytes());
+            let digest = hash::hash_all(base_hash_algo, &dummyall)?;
+            Some(digest)
+        }
+        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeTcb => {
+            let mut dummytcb: [u8; 8] = [0; 8];
+            dummytcb.copy_from_slice("dummytcb".as_bytes());
+            let digest = hash::hash_all(base_hash_algo, &dummytcb)?;
+            Some(digest)
+        }
+        SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone => None,
+        _ => None,
+    }
 }
 
 fn spdm_requester_data_sign_impl(

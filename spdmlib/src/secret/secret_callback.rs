@@ -4,14 +4,14 @@
 
 use crate::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHKDFKeyStruct,
-    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
-    SpdmSignatureStruct, SpdmVersion,
+    SpdmMeasurementHashAlgo, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
+    SpdmMeasurementSummaryHashType, SpdmSignatureStruct, SpdmVersion,
 };
 
 type SpdmMeasurementCollectionCbType = fn(
     spdm_version: SpdmVersion,
     measurement_specification: SpdmMeasurementSpecification,
-    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_hash_algo: SpdmMeasurementHashAlgo,
     measurement_index: usize,
 ) -> Option<SpdmMeasurementRecordStructure>;
 
@@ -19,7 +19,7 @@ type SpdmGenerateMeasurementSummaryHashCbType = fn(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
     measurement_specification: SpdmMeasurementSpecification,
-    measurement_hash_algo: SpdmBaseHashAlgo,
+    measurement_hash_algo: SpdmMeasurementHashAlgo,
     measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
 ) -> Option<SpdmDigestStruct>;
 

@@ -102,7 +102,7 @@ impl<'a> ResponderContext<'a> {
             }
         }
 
-        let base_hash_sel = self.common.negotiate_info.base_hash_sel;
+        let measurement_hash_sel = self.common.negotiate_info.measurement_hash_sel;
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let measurement_specification_sel =
             self.common.negotiate_info.measurement_specification_sel;
@@ -122,7 +122,7 @@ impl<'a> ResponderContext<'a> {
         let real_measurement_block_count = secret::measurement::measurement_collection(
             spdm_version_sel,
             measurement_specification_sel,
-            base_hash_sel,
+            measurement_hash_sel,
             SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber.get_u8() as usize,
         )
         .unwrap()
@@ -143,7 +143,7 @@ impl<'a> ResponderContext<'a> {
             secret::measurement::measurement_collection(
                 spdm_version_sel,
                 measurement_specification_sel,
-                base_hash_sel,
+                measurement_hash_sel,
                 SpdmMeasurementOperation::SpdmMeasurementRequestAll.get_u8() as usize,
             )
             .unwrap()
@@ -157,7 +157,7 @@ impl<'a> ResponderContext<'a> {
             secret::measurement::measurement_collection(
                 spdm_version_sel,
                 measurement_specification_sel,
-                base_hash_sel,
+                measurement_hash_sel,
                 index as usize,
             )
             .unwrap()
