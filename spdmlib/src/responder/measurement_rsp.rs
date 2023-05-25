@@ -19,7 +19,7 @@ use crate::error::SPDM_STATUS_INVALID_PARAMETER;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
-use crate::secret::*;
+use crate::secret;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
@@ -119,7 +119,7 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        let real_measurement_block_count = spdm_measurement_collection(
+        let real_measurement_block_count = secret::measurement::measurement_collection(
             spdm_version_sel,
             measurement_specification_sel,
             base_hash_sel,
@@ -140,7 +140,7 @@ impl<'a> ResponderContext<'a> {
         let measurement_record = if get_measurements.measurement_operation
             == SpdmMeasurementOperation::SpdmMeasurementRequestAll
         {
-            spdm_measurement_collection(
+            secret::measurement::measurement_collection(
                 spdm_version_sel,
                 measurement_specification_sel,
                 base_hash_sel,
@@ -154,7 +154,7 @@ impl<'a> ResponderContext<'a> {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return;
             }
-            spdm_measurement_collection(
+            secret::measurement::measurement_collection(
                 spdm_version_sel,
                 measurement_specification_sel,
                 base_hash_sel,

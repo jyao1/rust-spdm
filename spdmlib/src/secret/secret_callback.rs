@@ -42,20 +42,20 @@ type SpdmPskMasterSecretHkdfExpandCbType = fn(
 
 #[derive(Clone)]
 pub struct SpdmSecretMeasurement {
-    pub spdm_measurement_collection_cb: SpdmMeasurementCollectionCbType,
+    pub measurement_collection_cb: SpdmMeasurementCollectionCbType,
 
-    pub spdm_generate_measurement_summary_hash_cb: SpdmGenerateMeasurementSummaryHashCbType,
+    pub generate_measurement_summary_hash_cb: SpdmGenerateMeasurementSummaryHashCbType,
 }
 
 #[derive(Clone)]
 pub struct SpdmSecretPsk {
-    pub spdm_psk_handshake_secret_hkdf_expand_cb: SpdmPskHandshakeSecretHkdfExpandCbType,
+    pub handshake_secret_hkdf_expand_cb: SpdmPskHandshakeSecretHkdfExpandCbType,
 
-    pub spdm_psk_master_secret_hkdf_expand_cb: SpdmPskMasterSecretHkdfExpandCbType,
+    pub master_secret_hkdf_expand_cb: SpdmPskMasterSecretHkdfExpandCbType,
 }
 
 #[derive(Clone)]
-pub struct SpdmAsymSign {
+pub struct SpdmSecretAsymSign {
     pub sign_cb: fn(
         base_hash_algo: SpdmBaseHashAlgo,
         base_asym_algo: SpdmBaseAsymAlgo,

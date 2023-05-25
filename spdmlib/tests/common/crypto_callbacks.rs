@@ -4,7 +4,7 @@
 
 #![allow(unused)]
 
-use spdmlib::secret::SpdmAsymSign;
+use spdmlib::secret::SpdmSecretAsymSign;
 
 use spdmlib::protocol::{
     SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct, RSAPSS_2048_KEY_SIZE,
@@ -14,7 +14,7 @@ use spdmlib::protocol::{
 
 use super::utils::get_test_key_directory;
 
-pub static ASYM_SIGN_IMPL: SpdmAsymSign = SpdmAsymSign { sign_cb: asym_sign };
+pub static ASYM_SIGN_IMPL: SpdmSecretAsymSign = SpdmSecretAsymSign { sign_cb: asym_sign };
 
 fn asym_sign(
     base_hash_algo: SpdmBaseHashAlgo,

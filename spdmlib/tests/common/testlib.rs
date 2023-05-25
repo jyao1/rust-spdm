@@ -7,7 +7,7 @@
 use spdmlib::common::*;
 use spdmlib::crypto::{SpdmCryptoRandom, SpdmHmac};
 use spdmlib::protocol::*;
-use spdmlib::secret::SpdmAsymSign;
+use spdmlib::secret::SpdmSecretAsymSign;
 use spdmlib::{common, responder};
 
 use codec::enum_builder;
@@ -306,7 +306,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     }
 }
 
-pub static ASYM_SIGN_IMPL: SpdmAsymSign = SpdmAsymSign { sign_cb: asym_sign };
+pub static ASYM_SIGN_IMPL: SpdmSecretAsymSign = SpdmSecretAsymSign { sign_cb: asym_sign };
 
 fn asym_sign(
     base_hash_algo: SpdmBaseHashAlgo,
