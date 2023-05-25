@@ -4,11 +4,11 @@
 mod secret_callback;
 
 use conquer_once::spin::OnceCell;
-pub use secret_callback::{SpdmAsymSign, SpdmSecretMeasurement, SpdmSecretPsk};
+pub use secret_callback::{SpdmSecretAsymSign, SpdmSecretMeasurement, SpdmSecretPsk};
 
 static SECRET_MEASUREMENT_INSTANCE: OnceCell<SpdmSecretMeasurement> = OnceCell::uninit();
 static SECRET_PSK_INSTANCE: OnceCell<SpdmSecretPsk> = OnceCell::uninit();
-static CRYPTO_ASYM_SIGN: OnceCell<SpdmAsymSign> = OnceCell::uninit();
+static CRYPTO_ASYM_SIGN: OnceCell<SpdmSecretAsymSign> = OnceCell::uninit();
 
 pub mod measurement {
     use super::{SpdmSecretMeasurement, SECRET_MEASUREMENT_INSTANCE};
@@ -21,14 +21,15 @@ pub mod measurement {
     }
 
     static UNIMPLETEMTED: SpdmSecretMeasurement = SpdmSecretMeasurement {
-        spdm_measurement_collection_cb:
-            |_spdm_version: SpdmVersion,
-             _measurement_specification: SpdmMeasurementSpecification,
-             _measurement_hash_algo: SpdmBaseHashAlgo,
-             _measurement_index: usize|
-             -> Option<SpdmMeasurementRecordStructure> { unimplemented!() },
+        measurement_collection_cb: |_spdm_version: SpdmVersion,
+                                    _measurement_specification: SpdmMeasurementSpecification,
+                                    _measurement_hash_algo: SpdmBaseHashAlgo,
+                                    _measurement_index: usize|
+         -> Option<SpdmMeasurementRecordStructure> {
+            unimplemented!()
+        },
 
-        spdm_generate_measurement_summary_hash_cb:
+        generate_measurement_summary_hash_cb:
             |_spdm_version: SpdmVersion,
              _base_hash_algo: SpdmBaseHashAlgo,
              _measurement_specification: SpdmMeasurementSpecification,
@@ -40,7 +41,7 @@ pub mod measurement {
     /*
         Function to get measurements.
 
-        This function wraps SpdmSecret.spdm_measurement_collection_cb callback
+        This function wraps SpdmSecret.measurement_collection_cb callback
         Device security lib is responsible for the implementation of SpdmSecret.
         If SECRET_INSTANCE got no registered, a panic with string "not implemented"
         will be emit.
@@ -51,7 +52,7 @@ pub mod measurement {
         @When measurement_index != SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber
                 A normal Some(SpdmMeasurementRecordStructure) is returned, with all fields valid.
     */
-    pub fn spdm_measurement_collection(
+    pub fn measurement_collection(
         spdm_version: SpdmVersion,
         measurement_specification: SpdmMeasurementSpecification,
         measurement_hash_algo: SpdmBaseHashAlgo,
@@ -60,14 +61,14 @@ pub mod measurement {
         (SECRET_MEASUREMENT_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
-            .spdm_measurement_collection_cb)(
+            .measurement_collection_cb)(
             spdm_version,
             measurement_specification,
             measurement_hash_algo,
             measurement_index,
         )
     }
-    pub fn spdm_generate_measurement_summary_hash(
+    pub fn generate_measurement_summary_hash(
         spdm_version: SpdmVersion,
         base_hash_algo: SpdmBaseHashAlgo,
         measurement_specification: SpdmMeasurementSpecification,
@@ -77,7 +78,7 @@ pub mod measurement {
         (SECRET_MEASUREMENT_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
-            .spdm_generate_measurement_summary_hash_cb)(
+            .generate_measurement_summary_hash_cb)(
             spdm_version,
             base_hash_algo,
             measurement_specification,
@@ -94,28 +95,24 @@ pub mod psk {
     }
 
     static UNIMPLETEMTED: SpdmSecretPsk = SpdmSecretPsk {
-        spdm_psk_handshake_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
-                                                   _base_hash_algo: SpdmBaseHashAlgo,
-                                                   _psk_hint: &[u8],
-                                                   _psk_hint_size: Option<usize>,
-                                                   _info: Option<&[u8]>,
-                                                   _info_size: Option<usize>|
-         -> Option<SpdmHKDFKeyStruct> {
-            unimplemented!()
-        },
+        handshake_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
+                                          _base_hash_algo: SpdmBaseHashAlgo,
+                                          _psk_hint: &[u8],
+                                          _psk_hint_size: Option<usize>,
+                                          _info: Option<&[u8]>,
+                                          _info_size: Option<usize>|
+         -> Option<SpdmHKDFKeyStruct> { unimplemented!() },
 
-        spdm_psk_master_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
-                                                _base_hash_algo: SpdmBaseHashAlgo,
-                                                _psk_hint: &[u8],
-                                                _psk_hint_size: Option<usize>,
-                                                _info: Option<&[u8]>,
-                                                _info_size: Option<usize>|
-         -> Option<SpdmHKDFKeyStruct> {
-            unimplemented!()
-        },
+        master_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
+                                       _base_hash_algo: SpdmBaseHashAlgo,
+                                       _psk_hint: &[u8],
+                                       _psk_hint_size: Option<usize>,
+                                       _info: Option<&[u8]>,
+                                       _info_size: Option<usize>|
+         -> Option<SpdmHKDFKeyStruct> { unimplemented!() },
     };
 
-    pub fn spdm_psk_handshake_secret_hkdf_expand(
+    pub fn handshake_secret_hkdf_expand(
         spdm_version: SpdmVersion,
         base_hash_algo: SpdmBaseHashAlgo,
         psk_hint: &[u8],
@@ -126,7 +123,7 @@ pub mod psk {
         (SECRET_PSK_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
-            .spdm_psk_handshake_secret_hkdf_expand_cb)(
+            .handshake_secret_hkdf_expand_cb)(
             spdm_version,
             base_hash_algo,
             psk_hint,
@@ -136,7 +133,7 @@ pub mod psk {
         )
     }
 
-    pub fn spdm_psk_master_secret_hkdf_expand(
+    pub fn master_secret_hkdf_expand(
         spdm_version: SpdmVersion,
         base_hash_algo: SpdmBaseHashAlgo,
         psk_hint: &[u8],
@@ -147,7 +144,7 @@ pub mod psk {
         (SECRET_PSK_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
-            .spdm_psk_master_secret_hkdf_expand_cb)(
+            .master_secret_hkdf_expand_cb)(
             spdm_version,
             base_hash_algo,
             psk_hint,
@@ -158,21 +155,16 @@ pub mod psk {
     }
 }
 
-pub use measurement::spdm_generate_measurement_summary_hash;
-pub use measurement::spdm_measurement_collection;
-pub use psk::spdm_psk_handshake_secret_hkdf_expand;
-pub use psk::spdm_psk_master_secret_hkdf_expand;
-
 pub mod asym_sign {
     use super::CRYPTO_ASYM_SIGN;
     use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
-    use crate::secret::SpdmAsymSign;
+    use crate::secret::SpdmSecretAsymSign;
 
-    pub fn register(context: SpdmAsymSign) -> bool {
+    pub fn register(context: SpdmSecretAsymSign) -> bool {
         CRYPTO_ASYM_SIGN.try_init_once(|| context).is_ok()
     }
 
-    static DEFAULT: SpdmAsymSign = SpdmAsymSign {
+    static DEFAULT: SpdmSecretAsymSign = SpdmSecretAsymSign {
         sign_cb: |_base_hash_algo: SpdmBaseHashAlgo,
                   _base_asym_algo: SpdmBaseAsymAlgo,
                   _data: &[u8]|

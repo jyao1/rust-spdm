@@ -7,7 +7,7 @@
 use crate::common::*;
 use crate::crypto::{SpdmCryptoRandom, SpdmHmac};
 pub use crate::protocol::*;
-use crate::secret::SpdmAsymSign;
+use crate::secret::SpdmSecretAsymSign;
 use crate::{common, responder};
 
 use crate::error::{
@@ -316,7 +316,7 @@ impl SpdmTransportEncap for PciDoeTransportEncap {
     }
 }
 
-pub static ASYM_SIGN_IMPL: SpdmAsymSign = SpdmAsymSign { sign_cb: asym_sign };
+pub static ASYM_SIGN_IMPL: SpdmSecretAsymSign = SpdmSecretAsymSign { sign_cb: asym_sign };
 
 fn asym_sign(
     base_hash_algo: SpdmBaseHashAlgo,
