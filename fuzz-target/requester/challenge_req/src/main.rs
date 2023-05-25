@@ -14,6 +14,7 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
     spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::measurement::register(fuzzlib::secret::SECRET_IMPL_INSTANCE.clone());
     spdmlib::crypto::rand::register(FUZZ_RAND.clone());
 
     let mut responder = responder::ResponderContext::new(
