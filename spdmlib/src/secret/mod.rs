@@ -23,7 +23,7 @@ pub mod measurement {
     static UNIMPLETEMTED: SpdmSecretMeasurement = SpdmSecretMeasurement {
         measurement_collection_cb: |_spdm_version: SpdmVersion,
                                     _measurement_specification: SpdmMeasurementSpecification,
-                                    _measurement_hash_algo: SpdmBaseHashAlgo,
+                                    _measurement_hash_algo: SpdmMeasurementHashAlgo,
                                     _measurement_index: usize|
          -> Option<SpdmMeasurementRecordStructure> {
             unimplemented!()
@@ -33,7 +33,7 @@ pub mod measurement {
             |_spdm_version: SpdmVersion,
              _base_hash_algo: SpdmBaseHashAlgo,
              _measurement_specification: SpdmMeasurementSpecification,
-             _measurement_hash_algo: SpdmBaseHashAlgo,
+             _measurement_hash_algo: SpdmMeasurementHashAlgo,
              _measurement_summary_hash_type: SpdmMeasurementSummaryHashType|
              -> Option<SpdmDigestStruct> { unimplemented!() },
     };
@@ -55,7 +55,7 @@ pub mod measurement {
     pub fn measurement_collection(
         spdm_version: SpdmVersion,
         measurement_specification: SpdmMeasurementSpecification,
-        measurement_hash_algo: SpdmBaseHashAlgo,
+        measurement_hash_algo: SpdmMeasurementHashAlgo,
         measurement_index: usize,
     ) -> Option<SpdmMeasurementRecordStructure> {
         (SECRET_MEASUREMENT_INSTANCE
@@ -72,7 +72,7 @@ pub mod measurement {
         spdm_version: SpdmVersion,
         base_hash_algo: SpdmBaseHashAlgo,
         measurement_specification: SpdmMeasurementSpecification,
-        measurement_hash_algo: SpdmBaseHashAlgo,
+        measurement_hash_algo: SpdmMeasurementHashAlgo,
         measurement_summary_hash_type: SpdmMeasurementSummaryHashType,
     ) -> Option<SpdmDigestStruct> {
         (SECRET_MEASUREMENT_INSTANCE
