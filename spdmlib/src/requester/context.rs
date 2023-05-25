@@ -163,6 +163,7 @@ mod tests_requester {
 
         crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crate::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
+        crate::secret::psk::register(SECRET_PSK_IMPL_INSTANCE.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,
@@ -223,6 +224,7 @@ mod tests_requester {
 
         crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
         crate::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
+        crate::secret::psk::register(SECRET_PSK_IMPL_INSTANCE.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

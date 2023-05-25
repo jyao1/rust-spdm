@@ -10,6 +10,7 @@ use log::LevelFilter;
 use log::*;
 use simple_logger::SimpleLogger;
 
+use spdm_emu::secret_impl_sample::SECRET_PSK_IMPL_INSTANCE;
 use spdmlib::common;
 use spdmlib::common::SpdmOpaqueSupport;
 use spdmlib::common::ST1;
@@ -299,6 +300,8 @@ fn new_logger_from_env() -> SimpleLogger {
 
 fn main() {
     new_logger_from_env().init().unwrap();
+
+    spdmlib::secret::psk::register(SECRET_PSK_IMPL_INSTANCE.clone());
 
     #[cfg(feature = "spdm-mbedtls")]
     spdm_emu::crypto::crypto_mbedtls_register_handles();

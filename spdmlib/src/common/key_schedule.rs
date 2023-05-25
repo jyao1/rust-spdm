@@ -297,7 +297,7 @@ impl SpdmKeySchedule {
         crypto::hkdf::hkdf_expand(hash_algo, key, bin_str9, hash_algo.get_size())
     }
 
-    fn binconcat<'a>(
+    pub fn binconcat<'a>(
         &self,
         length: u16,
         spdm_version: SpdmVersion,

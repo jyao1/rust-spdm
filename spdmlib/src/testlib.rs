@@ -4,12 +4,15 @@
 
 #![allow(unused)]
 
+use crate::common::key_schedule::SpdmKeySchedule;
 use crate::common::*;
 use crate::config;
+use crate::crypto;
 use crate::crypto::{hash, SpdmCryptoRandom, SpdmHmac};
 pub use crate::protocol::*;
 use crate::secret::SpdmSecretAsymSign;
 use crate::secret::SpdmSecretMeasurement;
+use crate::secret::SpdmSecretPsk;
 use crate::{common, responder};
 
 use crate::error::{
@@ -548,6 +551,88 @@ fn generate_measurement_summary_hash_impl(
         SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone => None,
         _ => None,
     }
+}
+
+pub static SECRET_PSK_IMPL_INSTANCE: SpdmSecretPsk = SpdmSecretPsk {
+    handshake_secret_hkdf_expand_cb: handshake_secret_hkdf_expand_impl,
+    master_secret_hkdf_expand_cb: master_secret_hkdf_expand_impl,
+};
+
+const MAX_BIN_CONCAT_BUF_SIZE: usize = 2 + 8 + 12 + SPDM_MAX_HASH_SIZE;
+const SALT_0: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];
+const ZERO_FILLED: [u8; SPDM_MAX_HASH_SIZE] = [0u8; SPDM_MAX_HASH_SIZE];
+const BIN_STR0_LABEL: &[u8] = b"derived";
+
+fn handshake_secret_hkdf_expand_impl(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    psk_hint: &SpdmPskHintStruct,
+    info: &[u8],
+) -> Option<SpdmDigestStruct> {
+    let mut psk_key: SpdmDheFinalKeyStruct = SpdmDheFinalKeyStruct {
+        data_size: b"TestPskData\0".len() as u16,
+        data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+    };
+    psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
+
+    let hs_sec = crypto::hkdf::hkdf_extract(
+        base_hash_algo,
+        &SALT_0[0..base_hash_algo.get_size() as usize],
+        psk_key.as_ref(),
+    )?;
+    crypto::hkdf::hkdf_expand(
+        base_hash_algo,
+        hs_sec.as_ref(),
+        info,
+        base_hash_algo.get_size(),
+    )
+}
+
+fn master_secret_hkdf_expand_impl(
+    spdm_version: SpdmVersion,
+    base_hash_algo: SpdmBaseHashAlgo,
+    psk_hint: &SpdmPskHintStruct,
+    info: &[u8],
+) -> Option<SpdmDigestStruct> {
+    let mut psk_key: SpdmDheFinalKeyStruct = SpdmDheFinalKeyStruct {
+        data_size: b"TestPskData\0".len() as u16,
+        data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
+    };
+    psk_key.data[0..(psk_key.data_size as usize)].copy_from_slice(b"TestPskData\0");
+
+    let buffer = &mut [0; MAX_BIN_CONCAT_BUF_SIZE];
+    let bin_str0 = SpdmKeySchedule::binconcat(
+        &SpdmKeySchedule::default(),
+        base_hash_algo.get_size(),
+        spdm_version,
+        BIN_STR0_LABEL,
+        None,
+        buffer,
+    )?;
+
+    let hs_sec = crypto::hkdf::hkdf_extract(
+        base_hash_algo,
+        &SALT_0[0..base_hash_algo.get_size() as usize],
+        psk_key.as_ref(),
+    )?;
+    let salt_1 = crypto::hkdf::hkdf_expand(
+        base_hash_algo,
+        hs_sec.as_ref(),
+        bin_str0,
+        base_hash_algo.get_size(),
+    )?;
+
+    let mst_sec = crypto::hkdf::hkdf_extract(
+        base_hash_algo,
+        salt_1.as_ref(),
+        &ZERO_FILLED[0..base_hash_algo.get_size() as usize],
+    )?;
+    crypto::hkdf::hkdf_expand(
+        base_hash_algo,
+        mst_sec.as_ref(),
+        info,
+        base_hash_algo.get_size(),
+    )
 }
 
 pub struct FakeSpdmDeviceIo<'a> {
