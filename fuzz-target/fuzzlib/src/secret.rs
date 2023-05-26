@@ -172,7 +172,7 @@ fn measurement_collection_impl(
 
             let mut measurement_record_data = [0u8; config::MAX_SPDM_MEASUREMENT_RECORD_SIZE];
             let mut writer = Writer::init(&mut measurement_record_data);
-            spdm_measurement_block_structure.encode(&mut writer);
+            spdm_measurement_block_structure.encode(&mut writer).ok()?;
 
             Some(SpdmMeasurementRecordStructure {
                 number_of_blocks: 1,
