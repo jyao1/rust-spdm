@@ -82,7 +82,7 @@ fn asym_verify(
                 | SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => {
                     let mut der_signature = [0u8; 66 * 2 + 8 + 1];
                     let der_sign_size =
-                        ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature);
+                        ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature)?;
 
                     match cert.verify_signature(algorithm, data, &der_signature[..(der_sign_size)])
                     {
@@ -110,7 +110,7 @@ fn asym_verify(
 }
 
 // add ASN.1 for the ECDSA binary signature
-fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize {
+fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> SpdmResult<usize> {
     let sign_size = signature.len();
     let half_size = sign_size / 2;
 
@@ -134,7 +134,7 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     let s_size = half_size - s_index;
     let s = &signature[half_size + s_index..sign_size];
     if r_size == 0 || s_size == 0 {
-        return 0;
+        return Ok(0);
     }
 
     let der_r_size = if r[0] < 0x80 { r_size } else { r_size + 1 };
@@ -142,7 +142,8 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
     let der_sign_size = der_r_size + der_s_size + 6;
 
     if der_signature.len() < der_sign_size {
-        panic!("der_signature too small");
+        error!("der_signature too small");
+        return Err(SPDM_STATUS_VERIF_FAIL);
     }
 
     der_signature[0] = 0x30u8;
@@ -165,7 +166,7 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> usize
         der_signature[(7 + der_r_size)..(7 + der_r_size + s_size)].copy_from_slice(s);
     }
 
-    der_sign_size
+    Ok(der_sign_size)
 }
 
 #[cfg(all(test,))]
@@ -181,7 +182,7 @@ mod tests {
 
         let der_signature = &mut [0u8; 64];
 
-        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature);
+        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature).unwrap();
         assert_eq!(der_sign_size, 60);
     }
     #[test]
@@ -193,7 +194,7 @@ mod tests {
 
         let der_signature = &mut [0u8; 64];
 
-        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature);
+        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature).unwrap();
         assert_eq!(der_sign_size, 30);
     }
     #[test]
@@ -201,15 +202,14 @@ mod tests {
         let signature = &mut [0x0u8; 64];
         let der_signature = &mut [0u8; 64];
         signature[63] = 0xff;
-        let der_sign_size = ecc_signature_bin_to_der(signature, der_signature);
-        assert_eq!(der_sign_size, 0);
+        ecc_signature_bin_to_der(signature, der_signature).unwrap();
     }
     #[test]
     #[should_panic]
     fn test_case3_ecc_signature_bin_to_der() {
         let signature = &mut [0xffu8; 64];
         let der_signature = &mut [0u8; 64];
-        ecc_signature_bin_to_der(signature, der_signature);
+        ecc_signature_bin_to_der(signature, der_signature).unwrap();
     }
     #[test]
     fn test_case0_asym_verify() {
