@@ -159,6 +159,14 @@ run_fuzz_target() {
         echo "fuzzing ${fuzz_target_name} test PASS in ${EACH_FUZZ_TIMEOUT} seconds..."
     else
         echo "fuzzing ${fuzz_target_name} test FAILED in ${EACH_FUZZ_TIMEOUT} seconds..."
+        for file in $(find $fuzz_target_out_dir/default/crashes -type f -name "id*" -print); do
+            echo "Crash file [encode_base64_string]: (between ========= and =========)"
+            echo "========="
+            cat "$file" | base64
+            echo "========="
+            echo "Use echo -n "[encode_base64_string]" | base64 -d > seed.raw to decode, replace [encode_base64_string]"
+            cargo run -p ${fuzz_target_name} --no-default-features -- $file
+        done
         exit 1
     fi
 }

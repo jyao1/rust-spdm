@@ -140,6 +140,21 @@ if args.len() < 2 {
 `cargo r -p package -- file_address`
 
 
+## How to debug fuzz failure.
+
+Step1. Get the input which cause the failure.
+
+Step2. Build an application to debug that input.
+
+Note: If fuzzing failed in CI, crash file will be displayed in base64 encoded format. search `[encode_base64_string]` in CI log.
+
+For example:
+
+```
+echo -n [encode_base64_string] | base64 -d > seed.raw
+cargo run -p version_rsp --no-default-features -- seed.raw
+```
+
 ## reference
 
 [Rust Fuzz Book](https://rust-fuzz.github.io/book/afl/setup.html)
