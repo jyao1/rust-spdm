@@ -43,14 +43,10 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0].set_use_psk(true);
+        context.common.session[0].runtime_info.psk_hint = Some(SpdmPskHintStruct::default());
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-            dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-            context.common.session[0]
-                .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-                .unwrap();
             context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
@@ -86,6 +82,7 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0].set_use_psk(true);
+        context.common.session[0].runtime_info.psk_hint = Some(SpdmPskHintStruct::default());
 
         context
             .common
@@ -95,11 +92,6 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-            dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-            context.common.session[0]
-                .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-                .unwrap();
             context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
@@ -135,14 +127,10 @@ fn fuzz_handle_spdm_psk_finish(data: &[u8]) {
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
         context.common.session[0].set_use_psk(true);
+        context.common.session[0].runtime_info.psk_hint = Some(SpdmPskHintStruct::default());
 
         #[cfg(feature = "hashed-transcript-data")]
         {
-            let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-            dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-            context.common.session[0]
-                .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-                .unwrap();
             context.common.session[0].runtime_info.digest_context_th =
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }

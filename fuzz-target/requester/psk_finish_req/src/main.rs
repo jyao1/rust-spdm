@@ -42,14 +42,11 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    responder.common.session[0].set_use_psk(true);
+    responder.common.session[0].runtime_info.psk_hint = Some(SpdmPskHintStruct::default());
 
     #[cfg(feature = "hashed-transcript-data")]
     {
-        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-        responder.common.session[0]
-            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-            .unwrap();
         responder.common.session[0].runtime_info.digest_context_th =
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
@@ -80,14 +77,11 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    requester.common.session[0].set_use_psk(true);
+    requester.common.session[0].runtime_info.psk_hint = Some(SpdmPskHintStruct::default());
 
     #[cfg(feature = "hashed-transcript-data")]
     {
-        let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-        dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-        requester.common.session[0]
-            .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-            .unwrap();
         requester.common.session[0].runtime_info.digest_context_th =
             spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
     }
