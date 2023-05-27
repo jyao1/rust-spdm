@@ -12,7 +12,9 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
     let mctp_transport_encap = &mut MctpTransportEncap {};
 
     spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
-    spdmlib::secret::measurement::register(fuzzlib::secret::SECRET_IMPL_INSTANCE.clone());
+    spdmlib::secret::measurement::register(
+        fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
+    );
     spdmlib::crypto::rand::register(FUZZ_RAND.clone());
 
     let shared_buffer = SharedBuffer::new();
