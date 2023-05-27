@@ -153,7 +153,7 @@ mod tests_responder {
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
-        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,

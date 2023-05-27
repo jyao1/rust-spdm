@@ -8,7 +8,7 @@ use fuzzlib::{
     spdmlib::{protocol::SpdmVersion, requester::RequesterContext},
     spdmlib::{protocol::MAX_SPDM_VERSION_COUNT, responder::ResponderContext},
     time::SPDM_TIME_IMPL,
-    FuzzSpdmDeviceIoReceve, PciDoeTransportEncap, SharedBuffer, ASYM_SIGN_IMPL,
+    FuzzSpdmDeviceIoReceve, PciDoeTransportEncap, SharedBuffer, SECRET_ASYM_IMPL_INSTANCE,
 };
 
 #[allow(unused)]
@@ -28,7 +28,7 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
         spdmlib::time::register(SPDM_TIME_IMPL.clone());
 
         let mut responder = ResponderContext::new(
@@ -67,7 +67,7 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
         spdmlib::time::register(SPDM_TIME_IMPL.clone());
 
         let mut responder = ResponderContext::new(

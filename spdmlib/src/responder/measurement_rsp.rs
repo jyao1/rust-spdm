@@ -366,7 +366,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
         crate::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;
@@ -465,7 +465,7 @@ mod tests_responder {
             provision_info,
         );
 
-        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
         crate::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
 
         context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion10;

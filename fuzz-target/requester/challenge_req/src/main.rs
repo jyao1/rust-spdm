@@ -14,7 +14,7 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
     spdmlib::secret::measurement::register(
         fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
     );

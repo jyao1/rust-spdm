@@ -136,7 +136,7 @@ mod tests_requester {
         let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

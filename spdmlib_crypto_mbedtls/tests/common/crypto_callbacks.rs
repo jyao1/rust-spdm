@@ -14,7 +14,8 @@ use spdmlib::protocol::{
 
 use super::utils::get_test_key_directory;
 
-pub static ASYM_SIGN_IMPL: SpdmSecretAsymSign = SpdmSecretAsymSign { sign_cb: asym_sign };
+pub static SECRET_ASYM_IMPL_INSTANCE: SpdmSecretAsymSign =
+    SpdmSecretAsymSign { sign_cb: asym_sign };
 
 fn asym_sign(
     base_hash_algo: SpdmBaseHashAlgo,

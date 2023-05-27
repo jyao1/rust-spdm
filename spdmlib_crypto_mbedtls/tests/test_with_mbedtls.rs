@@ -89,7 +89,8 @@ mod test_mbedtls {
         cert_chain: &[u8],
     ) {
         let data = &b"hello"[..];
-        let sig = (crypto_callbacks::ASYM_SIGN_IMPL.sign_cb)(hash_algo, asym_algo, data).unwrap();
+        let sig = (crypto_callbacks::SECRET_ASYM_IMPL_INSTANCE.sign_cb)(hash_algo, asym_algo, data)
+            .unwrap();
 
         spdmlib::crypto::asym_verify::verify(hash_algo, asym_algo, cert_chain, data, &sig).unwrap();
 

@@ -31,7 +31,7 @@ pub use codec;
 pub use mctp_transport::MctpTransportEncap;
 pub use pcidoe_transport::PciDoeTransportEncap;
 use simple_logger::SimpleLogger;
-pub use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
+pub use spdm_emu::crypto_callback::SECRET_ASYM_IMPL_INSTANCE;
 pub use spdm_emu::spdm_emu::*;
 pub use spdmlib;
 pub use spdmlib::common::{SpdmDeviceIo, SpdmTransportEncap};

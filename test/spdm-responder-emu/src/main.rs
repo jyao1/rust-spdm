@@ -19,7 +19,7 @@ use mctp_transport::MctpTransportEncap;
 use pcidoe_transport::{
     PciDoeDataObjectType, PciDoeMessageHeader, PciDoeTransportEncap, PciDoeVendorId,
 };
-use spdm_emu::crypto_callback::ASYM_SIGN_IMPL;
+use spdm_emu::crypto_callback::SECRET_ASYM_IMPL_INSTANCE;
 use spdm_emu::secret_impl_sample::*;
 use spdm_emu::socket_io_transport::SocketIoTransport;
 use spdm_emu::spdm_emu::*;
@@ -234,7 +234,7 @@ fn handle_message(
         peer_root_cert_data: None,
     };
 
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
     let mut context = responder::ResponderContext::new(
         &mut socket_io_transport,
         transport_encap,

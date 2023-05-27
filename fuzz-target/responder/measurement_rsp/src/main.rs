@@ -10,7 +10,7 @@ use fuzzlib::{
 };
 
 fn fuzz_handle_spdm_measurement(data: &[u8]) {
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
     // TCD:
     // - id: 0
     // - title: 'Fuzz SPDM handle measurement request'
