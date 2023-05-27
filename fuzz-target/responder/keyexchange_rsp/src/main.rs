@@ -7,7 +7,7 @@ use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_handle_spdm_key_exchange(data: &[u8]) {
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
     spdmlib::secret::measurement::register(
         fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
     );

@@ -252,7 +252,7 @@ mod tests_requester {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
         crypto::rand::register(DEFAULT_TEST.clone());
 
         let mut responder = responder::ResponderContext::new(

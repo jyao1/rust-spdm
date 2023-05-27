@@ -217,7 +217,7 @@ mod tests_responder {
         let (config_info, provision_info) = create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        crate::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
 
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);

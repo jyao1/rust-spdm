@@ -13,7 +13,9 @@ use spdmlib::responder;
 
 #[test]
 fn intergration_client_server() {
-    spdmlib::secret::asym_sign::register(common::crypto_callbacks::ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(
+        common::crypto_callbacks::SECRET_ASYM_IMPL_INSTANCE.clone(),
+    );
 
     let shared_buffer = SharedBuffer::new();
     let device_io_responder = &mut FakeSpdmDeviceIoReceve::new(&shared_buffer);

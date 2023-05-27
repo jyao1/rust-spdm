@@ -24,7 +24,7 @@ fn fuzz_send_receive_spdm_certificate(fuzzdata: &[u8]) {
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
 
         let mut responder = responder::ResponderContext::new(
             &mut device_io_responder,

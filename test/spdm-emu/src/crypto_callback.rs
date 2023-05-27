@@ -12,7 +12,8 @@ use spdmlib::protocol::{
     RSASSA_4096_KEY_SIZE, SPDM_MAX_ASYM_KEY_SIZE,
 };
 
-pub static ASYM_SIGN_IMPL: SpdmSecretAsymSign = SpdmSecretAsymSign { sign_cb: asym_sign };
+pub static SECRET_ASYM_IMPL_INSTANCE: SpdmSecretAsymSign =
+    SpdmSecretAsymSign { sign_cb: asym_sign };
 
 fn asym_sign(
     base_hash_algo: SpdmBaseHashAlgo,

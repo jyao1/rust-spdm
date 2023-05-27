@@ -11,7 +11,7 @@ use spdmlib::message::{
 use spdmlib::protocol::*;
 
 fn fuzz_send_spdm_vendor_defined_request(fuzzdata: &[u8]) {
-    spdmlib::secret::asym_sign::register(ASYM_SIGN_IMPL.clone());
+    spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
 
     let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
