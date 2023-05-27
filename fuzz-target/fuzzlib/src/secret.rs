@@ -17,7 +17,7 @@ use spdmlib::protocol::{
 };
 use spdmlib::secret::*;
 
-pub static SECRET_IMPL_INSTANCE: SpdmSecretMeasurement = SpdmSecretMeasurement {
+pub static SECRET_MEASUREMENT_IMPL_INSTANCE: SpdmSecretMeasurement = SpdmSecretMeasurement {
     measurement_collection_cb: measurement_collection_impl,
     generate_measurement_summary_hash_cb: generate_measurement_summary_hash_impl,
 };
