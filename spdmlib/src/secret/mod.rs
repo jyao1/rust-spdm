@@ -8,7 +8,7 @@ pub use secret_callback::{SpdmSecretAsymSign, SpdmSecretMeasurement, SpdmSecretP
 
 static SECRET_MEASUREMENT_INSTANCE: OnceCell<SpdmSecretMeasurement> = OnceCell::uninit();
 static SECRET_PSK_INSTANCE: OnceCell<SpdmSecretPsk> = OnceCell::uninit();
-static CRYPTO_ASYM_SIGN: OnceCell<SpdmSecretAsymSign> = OnceCell::uninit();
+static SECRET_ASYM_INSTANCE: OnceCell<SpdmSecretAsymSign> = OnceCell::uninit();
 
 pub mod measurement {
     use super::{SpdmSecretMeasurement, SECRET_MEASUREMENT_INSTANCE};
@@ -134,12 +134,12 @@ pub mod psk {
 }
 
 pub mod asym_sign {
-    use super::CRYPTO_ASYM_SIGN;
+    use super::SECRET_ASYM_INSTANCE;
     use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
     use crate::secret::SpdmSecretAsymSign;
 
     pub fn register(context: SpdmSecretAsymSign) -> bool {
-        CRYPTO_ASYM_SIGN.try_init_once(|| context).is_ok()
+        SECRET_ASYM_INSTANCE.try_init_once(|| context).is_ok()
     }
 
     static DEFAULT: SpdmSecretAsymSign = SpdmSecretAsymSign {
@@ -154,7 +154,7 @@ pub mod asym_sign {
         base_asym_algo: SpdmBaseAsymAlgo,
         data: &[u8],
     ) -> Option<SpdmSignatureStruct> {
-        (CRYPTO_ASYM_SIGN
+        (SECRET_ASYM_INSTANCE
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
             .sign_cb)(base_hash_algo, base_asym_algo, data)
