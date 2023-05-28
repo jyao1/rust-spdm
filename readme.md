@@ -174,7 +174,7 @@ cargo run -p spdm-responder-emu --no-default-features --features "spdm-ring,hash
 2. run libspdm in spdm-emu as requester:
 ```
 cd bin
-spdm_requester_emu.exe --trans PCI_DOE --exe_session KEY_EX,PSK,KEY_UPDATE,HEARTBEAT,MEAS,DIGEST,CERT
+spdm_requester_emu.exe --trans PCI_DOE --exe_conn DIGEST,CERT,CHAL,MEAS --exe_session KEY_EX,PSK,KEY_UPDATE,HEARTBEAT,MEAS,DIGEST,CERT
 ```
 
 ### Run test cases
