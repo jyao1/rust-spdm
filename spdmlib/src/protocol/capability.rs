@@ -21,6 +21,20 @@ bitflags! {
         const HANDSHAKE_IN_THE_CLEAR_CAP = 0b1000_0000_0000_0000;
         const PUB_KEY_ID_CAP = 0b0000_0001_0000_0000_0000_0000;
         const CHUNK_CAP = 0b0000_0010_0000_0000_0000_0000;
+        const VALID_MASK = Self::CERT_CAP.bits
+            | Self::CHAL_CAP.bits
+            | Self::ENCRYPT_CAP.bits
+            | Self::MAC_CAP.bits
+            | Self::MUT_AUTH_CAP.bits
+            | Self::KEY_EX_CAP.bits
+            | Self::PSK_CAP.bits
+            | Self::PSK_RSVD.bits
+            | Self::ENCAP_CAP.bits
+            | Self::HBEAT_CAP.bits
+            | Self::KEY_UPD_CAP.bits
+            | Self::HANDSHAKE_IN_THE_CLEAR_CAP.bits
+            | Self::PUB_KEY_ID_CAP.bits
+            | Self::CHUNK_CAP.bits;
     }
 }
 
@@ -32,7 +46,7 @@ impl Codec for SpdmRequestCapabilityFlags {
     fn read(r: &mut Reader) -> Option<SpdmRequestCapabilityFlags> {
         let bits = u32::read(r)?;
 
-        SpdmRequestCapabilityFlags::from_bits(bits)
+        SpdmRequestCapabilityFlags::from_bits(bits & SpdmRequestCapabilityFlags::VALID_MASK.bits)
     }
 }
 
@@ -61,6 +75,28 @@ bitflags! {
         const SET_CERT_CAP = 0b0000_1000_0000_0000_0000_0000;
         const CSR_CAP = 0b0001_0000_0000_0000_0000_0000;
         const CERT_INSTALL_RESET_CAP = 0b0010_0000_0000_0000_0000_0000;
+        const VALID_MASK = Self::CACHE_CAP.bits
+            | Self::CERT_CAP.bits
+            | Self::CHAL_CAP.bits
+            | Self::MEAS_CAP_NO_SIG.bits
+            | Self::MEAS_CAP_SIG.bits
+            | Self::MEAS_FRESH_CAP.bits
+            | Self::ENCRYPT_CAP.bits
+            | Self::MAC_CAP.bits
+            | Self::MUT_AUTH_CAP.bits
+            | Self::KEY_EX_CAP.bits
+            | Self::PSK_CAP_WITHOUT_CONTEXT.bits
+            | Self::PSK_CAP_WITH_CONTEXT.bits
+            | Self::ENCAP_CAP.bits
+            | Self::HBEAT_CAP.bits
+            | Self::KEY_UPD_CAP.bits
+            | Self::HANDSHAKE_IN_THE_CLEAR_CAP.bits
+            | Self::PUB_KEY_ID_CAP.bits
+            | Self::CHUNK_CAP.bits
+            | Self::ALIAS_CERT_CAP.bits
+            | Self::SET_CERT_CAP.bits
+            | Self::CSR_CAP.bits
+            | Self::CERT_INSTALL_RESET_CAP.bits;
     }
 }
 
@@ -72,6 +108,6 @@ impl Codec for SpdmResponseCapabilityFlags {
     fn read(r: &mut Reader) -> Option<SpdmResponseCapabilityFlags> {
         let bits = u32::read(r)?;
 
-        SpdmResponseCapabilityFlags::from_bits(bits)
+        SpdmResponseCapabilityFlags::from_bits(bits & SpdmResponseCapabilityFlags::VALID_MASK.bits)
     }
 }

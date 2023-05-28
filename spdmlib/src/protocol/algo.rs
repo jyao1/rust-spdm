@@ -105,7 +105,9 @@ impl Codec for SpdmMeasurementSpecification {
 
     fn read(r: &mut Reader) -> Option<SpdmMeasurementSpecification> {
         let bits = u8::read(r)?;
-        SpdmMeasurementSpecification::from_bits(bits)
+        SpdmMeasurementSpecification::from_bits(
+            bits & SpdmMeasurementSpecification::VALID_MASK.bits,
+        )
     }
 }
 impl SpdmMeasurementSpecification {
@@ -198,7 +200,7 @@ impl Codec for SpdmMeasurementHashAlgo {
     fn read(r: &mut Reader) -> Option<SpdmMeasurementHashAlgo> {
         let bits = u32::read(r)?;
 
-        SpdmMeasurementHashAlgo::from_bits(bits)
+        SpdmMeasurementHashAlgo::from_bits(bits & SpdmMeasurementHashAlgo::VALID_MASK.bits)
     }
 }
 
@@ -285,7 +287,7 @@ impl Codec for SpdmBaseAsymAlgo {
     fn read(r: &mut Reader) -> Option<SpdmBaseAsymAlgo> {
         let bits = u32::read(r)?;
 
-        SpdmBaseAsymAlgo::from_bits(bits)
+        SpdmBaseAsymAlgo::from_bits(bits & SpdmBaseAsymAlgo::VALID_MASK.bits)
     }
 }
 
@@ -352,7 +354,7 @@ impl Codec for SpdmBaseHashAlgo {
     fn read(r: &mut Reader) -> Option<SpdmBaseHashAlgo> {
         let bits = u32::read(r)?;
 
-        SpdmBaseHashAlgo::from_bits(bits)
+        SpdmBaseHashAlgo::from_bits(bits & SpdmBaseHashAlgo::VALID_MASK.bits)
     }
 }
 
@@ -428,7 +430,7 @@ impl Codec for SpdmDheAlgo {
     fn read(r: &mut Reader) -> Option<SpdmDheAlgo> {
         let bits = u16::read(r)?;
 
-        SpdmDheAlgo::from_bits(bits)
+        SpdmDheAlgo::from_bits(bits & SpdmDheAlgo::VALID_MASK.bits)
     }
 }
 
@@ -515,7 +517,7 @@ impl Codec for SpdmAeadAlgo {
     fn read(r: &mut Reader) -> Option<SpdmAeadAlgo> {
         let bits = u16::read(r)?;
 
-        SpdmAeadAlgo::from_bits(bits)
+        SpdmAeadAlgo::from_bits(bits & SpdmAeadAlgo::VALID_MASK.bits)
     }
 }
 
@@ -602,7 +604,7 @@ impl Codec for SpdmReqAsymAlgo {
     fn read(r: &mut Reader) -> Option<SpdmReqAsymAlgo> {
         let bits = u16::read(r)?;
 
-        SpdmReqAsymAlgo::from_bits(bits)
+        SpdmReqAsymAlgo::from_bits(bits & SpdmReqAsymAlgo::VALID_MASK.bits)
     }
 }
 
@@ -651,7 +653,7 @@ impl Codec for SpdmKeyScheduleAlgo {
     fn read(r: &mut Reader) -> Option<SpdmKeyScheduleAlgo> {
         let bits = u16::read(r)?;
 
-        SpdmKeyScheduleAlgo::from_bits(bits)
+        SpdmKeyScheduleAlgo::from_bits(bits & SpdmKeyScheduleAlgo::VALID_MASK.bits)
     }
 }
 
