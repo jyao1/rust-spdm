@@ -103,12 +103,12 @@ cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-no
 
 Open one command windows and run:
 ```
-cargo run -p spdm-responder-emu
+cargo run -p spdm-responder-emu --no-default-features --features "spdm-ring,hashed-transcript-data"
 ```
 
 Open another command windows and run:
 ```
-cargo run -p spdm-requester-emu
+cargo run -p spdm-requester-emu --no-default-features --features "spdm-ring,hashed-transcript-data"
 ```
 
 ### Run emulator with selected feature
@@ -135,6 +135,7 @@ Open another command windows and run:
 cargo run -p spdm-requester-emu --no-default-features --features "spdm-mbedtls,hashed-transcript-data,spdm-mbedtls-hashed-transcript-data"
 ```
 
+NOTE: In order to run the emu without hashed-transcript-data, please change `max_cert_chain_data_size` in `spdmlib/etc/config.json` from `4096` to `3500`.
 
 ### Cross test with [spdm_emu](https://github.com/DMTF/spdm-emu)
 Open one command windows in workspace and run:
@@ -148,16 +149,44 @@ cd build
 cmake -G"NMake Makefiles" -DARCH=<x64|ia32> -DTOOLCHAIN=<toolchain> -DTARGET=<Debug|Release> -DCRYPTO=<mbedtls|openssl> ..
 nmake copy_sample_key
 nmake
+```
+
+Test rust-spdm as requester:
+
+1. run libspdm in spdm-emu as responder:
+```
 cd bin
 spdm_responder_emu.exe
 ```
-In root folder of rust spdm repo, open a command window and run:
+
+2. run rust-spdm-emu as requester:
 ```
-cargo run -p spdm-requester-emu
+cargo run -p spdm-requester-emu --no-default-features --features "spdm-ring,hashed-transcript-data"
+```
+
+Test rust-spdm as responder:
+
+1. run rust-spdm-emu as Test rust-spdm as responder:
+```
+cargo run -p spdm-responder-emu --no-default-features --features "spdm-ring,hashed-transcript-data"
+```
+
+2. run libspdm in spdm-emu as requester:
+```
+cd bin
+spdm_requester_emu.exe
 ```
 
 ### Run test cases
-Run `cargo test -- --test-threads=1` and `cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1`
+Test with hashed-transcript-data:
+```
+cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring,spdmlib/hashed-transcript-data" -- --test-threads=1
+```
+
+Test without hashed-transcript-data:
+```
+cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1
+```
 
 To run a specific test, use `cargo test <test_func_name>`
 
