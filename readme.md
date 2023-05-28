@@ -156,7 +156,7 @@ Test rust-spdm as requester:
 1. run libspdm in spdm-emu as responder:
 ```
 cd bin
-spdm_responder_emu.exe
+spdm_responder_emu.exe --trans PCI_DOE
 ```
 
 2. run rust-spdm-emu as requester:
@@ -174,7 +174,7 @@ cargo run -p spdm-responder-emu --no-default-features --features "spdm-ring,hash
 2. run libspdm in spdm-emu as requester:
 ```
 cd bin
-spdm_requester_emu.exe
+spdm_requester_emu.exe --trans PCI_DOE
 ```
 
 ### Run test cases
