@@ -146,6 +146,14 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> SpdmR
         return Err(SPDM_STATUS_VERIF_FAIL);
     }
 
+    if der_r_size > u8::MAX as usize
+        || der_s_size > u8::MAX as usize
+        || der_sign_size > u8::MAX as usize
+    {
+        error!("size check fails!");
+        return Err(SPDM_STATUS_VERIF_FAIL);
+    }
+
     der_signature[0] = 0x30u8;
     der_signature[1] = (der_sign_size - 2) as u8;
     der_signature[2] = 0x02u8;
