@@ -1,8 +1,11 @@
 // Copyright (c) 2020 Intel Corporation
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
-use fuzzlib::{spdmlib::protocol::SpdmVersion, *};
-use spdmlib::common::SpdmConnectionState;
+use fuzzlib::{
+    spdmlib::common::SpdmConnectionState,
+    spdmlib::protocol::{SpdmBaseHashAlgo, SpdmVersion},
+    *,
+};
 
 fn fuzz_handle_spdm_certificate(data: &[u8]) {
     let (config_info, provision_info) = rsp_create_info();
@@ -26,6 +29,7 @@ fn fuzz_handle_spdm_certificate(data: &[u8]) {
     );
 
     context.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+    context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     context.common.provision_info.my_cert_chain = [
         Some(RSP_CERT_CHAIN_BUFF),
         None,

@@ -29,6 +29,7 @@ fn fuzz_send_receive_spdm_key_update(data: &[u8]) {
             rsp_provision_info,
         );
         responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.session[0] = SpdmSession::new();
         responder.common.session[0].setup(4294836221).unwrap();
         responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
@@ -49,6 +50,7 @@ fn fuzz_send_receive_spdm_key_update(data: &[u8]) {
             req_provision_info,
         );
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         requester.common.session[0] = SpdmSession::new();
         requester.common.session[0].setup(4294836221).unwrap();
         requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
