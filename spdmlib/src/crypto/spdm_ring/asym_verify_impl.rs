@@ -18,6 +18,10 @@ fn asym_verify(
     data: &[u8],
     signature: &SpdmSignatureStruct,
 ) -> SpdmResult {
+    if signature.data_size != base_asym_algo.get_size() {
+        return Err(SPDM_STATUS_VERIF_FAIL);
+    }
+
     let algorithm = match (base_hash_algo, base_asym_algo) {
         (SpdmBaseHashAlgo::TPM_ALG_SHA_256, SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256) => {
             &webpki::ECDSA_P256_SHA256
@@ -296,7 +300,6 @@ mod tests {
         }
     }
     #[test]
-    #[should_panic]
     fn test_case3_asym_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
         let base_asym_algo = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;

@@ -23,6 +23,10 @@ fn asym_verify(
     data: &[u8],
     signature: &SpdmSignatureStruct,
 ) -> SpdmResult {
+    if signature.data_size != base_asym_algo.get_size() {
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
+    }
+
     let mbedtls_hash_algo = match base_hash_algo {
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => MBEDTLS_MD_SHA384,
         SpdmBaseHashAlgo::TPM_ALG_SHA_256 => MBEDTLS_MD_SHA256,
