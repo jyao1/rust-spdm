@@ -98,11 +98,9 @@ impl<'a> RequesterContext<'a> {
             &receive_buffer[..receive_used],
         );
         if res.is_err() {
-            let _ = self
-                .common
-                .get_session_via_id(session_id)
-                .unwrap()
-                .teardown(session_id);
+            if let Some(session) = self.common.get_session_via_id(session_id) {
+                let _ = session.teardown(session_id);
+            }
         }
         res
     }
