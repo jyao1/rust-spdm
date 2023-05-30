@@ -193,7 +193,7 @@ impl<'a> ResponderContext<'a> {
                 .cloned()
                 .unwrap(),
         )
-        .unwrap();
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
 
         debug!("message_m1m2_hash - {:02x?}", message_m1m2_hash.as_ref());
 

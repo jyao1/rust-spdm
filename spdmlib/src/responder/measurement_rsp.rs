@@ -268,7 +268,7 @@ impl<'a> ResponderContext<'a> {
                     .cloned()
                     .unwrap(),
             )
-            .unwrap(),
+            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
             None => crypto::hash::hash_ctx_finalize(
                 self.common
                     .runtime_info
@@ -277,7 +277,7 @@ impl<'a> ResponderContext<'a> {
                     .cloned()
                     .unwrap(),
             )
-            .unwrap(),
+            .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
         };
         debug!("message_l1l2_hash - {:02x?}", message_l1l2_hash.as_ref());
 
