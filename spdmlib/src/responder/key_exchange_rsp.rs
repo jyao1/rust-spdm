@@ -238,7 +238,11 @@ impl<'a> ResponderContext<'a> {
         session.runtime_info.req_cert_hash = None;
 
         let mut random = [0u8; SPDM_RANDOM_SIZE];
-        let _ = crypto::rand::get_random(&mut random);
+        let res = crypto::rand::get_random(&mut random);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
 
         let in_clear_text = self
             .common
