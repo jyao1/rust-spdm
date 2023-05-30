@@ -16,6 +16,8 @@ use crate::error::SPDM_STATUS_BUFFER_FULL;
 use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 #[cfg(not(feature = "hashed-transcript-data"))]
 use crate::error::SPDM_STATUS_INVALID_PARAMETER;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
@@ -245,52 +247,11 @@ impl<'a> ResponderContext<'a> {
         }
     }
 
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_measurement_signature(
         &self,
         session_id: Option<u32>,
     ) -> SpdmResult<SpdmSignatureStruct> {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message_l1l2 = ManagedBufferL1L2::default();
-
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        if self.common.negotiate_info.spdm_version_sel.get_u8()
-            >= SpdmVersion::SpdmVersion12.get_u8()
-        {
-            let message_a = self.common.runtime_info.message_a.clone();
-            message_l1l2
-                .append_message(message_a.as_ref())
-                .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
-        }
-
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        match session_id {
-            None => {
-                message_l1l2
-                    .append_message(self.common.runtime_info.message_m.as_ref())
-                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            }
-            Some(session_id) => {
-                let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id)
-                {
-                    s
-                } else {
-                    return Err(SPDM_STATUS_INVALID_PARAMETER);
-                };
-                message_l1l2
-                    .append_message(session.runtime_info.message_m.as_ref())
-                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            }
-        }
-        // we dont need create message hash for verify
-        // we just print message hash for debug purpose
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let message_l1l2_hash = crypto::hash::hash_all(
-            self.common.negotiate_info.base_hash_sel,
-            message_l1l2.as_ref(),
-        )
-        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-
-        #[cfg(feature = "hashed-transcript-data")]
         let message_l1l2_hash = match session_id {
             Some(session_id) => crypto::hash::hash_ctx_finalize(
                 self.common
@@ -313,10 +274,81 @@ impl<'a> ResponderContext<'a> {
             )
             .unwrap(),
         };
-        debug!("message_hash - {:02x?}", message_l1l2_hash.as_ref());
+        debug!("message_l1l2_hash - {:02x?}", message_l1l2_hash.as_ref());
 
-        #[cfg(feature = "hashed-transcript-data")]
-        let mut message_l1l2 = ManagedBuffer12Sign::default();
+        let mut message_sign = ManagedBuffer12Sign::default();
+
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            message_sign.reset_message();
+            message_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            message_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            message_sign
+                .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            message_sign
+                .append_message(message_l1l2_hash.as_ref())
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
+        crate::secret::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            message_sign.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
+    }
+
+    #[cfg(not(feature = "hashed-transcript-data"))]
+    pub fn generate_measurement_signature(
+        &self,
+        session_id: Option<u32>,
+    ) -> SpdmResult<SpdmSignatureStruct> {
+        let mut message_l1l2 = ManagedBufferL1L2::default();
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            let message_a = self.common.runtime_info.message_a.clone();
+            message_l1l2
+                .append_message(message_a.as_ref())
+                .map_or_else(|| Err(SPDM_STATUS_BUFFER_FULL), |_| Ok(()))?;
+        }
+
+        match session_id {
+            None => {
+                message_l1l2
+                    .append_message(self.common.runtime_info.message_m.as_ref())
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            }
+            Some(session_id) => {
+                let session = if let Some(s) = self.common.get_immutable_session_via_id(session_id)
+                {
+                    s
+                } else {
+                    return Err(SPDM_STATUS_INVALID_PARAMETER);
+                };
+                message_l1l2
+                    .append_message(session.runtime_info.message_m.as_ref())
+                    .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            }
+        }
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_l1l2_hash = crypto::hash::hash_all(
+            self.common.negotiate_info.base_hash_sel,
+            message_l1l2.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+
+        debug!("message_l1l2_hash - {:02x?}", message_l1l2_hash.as_ref());
 
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()

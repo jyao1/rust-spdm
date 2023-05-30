@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::{SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 use crate::responder::*;
 
@@ -417,29 +419,32 @@ impl<'a> ResponderContext<'a> {
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
-        let mut message = ManagedBuffer12Sign::default();
+        let mut message_sign = ManagedBuffer12Sign::default();
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {
-            message.reset_message();
-            message
+            message_sign.reset_message();
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(transcript_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
         crate::secret::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
-            message.as_ref(),
+            message_sign.as_ref(),
         )
         .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
