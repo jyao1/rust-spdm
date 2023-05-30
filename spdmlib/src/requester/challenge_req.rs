@@ -152,20 +152,15 @@ impl<'a> RequesterContext<'a> {
         slot_id: u8,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        let message_m1m2_hash;
-        let digest = crypto::hash::hash_ctx_finalize(
+        let message_m1m2_hash = crypto::hash::hash_ctx_finalize(
             self.common
                 .runtime_info
                 .digest_context_m1m2
                 .as_ref()
                 .cloned()
                 .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
-        );
-        if let Some(digest) = digest {
-            message_m1m2_hash = digest;
-        } else {
-            return Err(SPDM_STATUS_CRYPTO_ERROR);
-        }
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
         debug!("message_m1m2_hash - {:02x?}", message_m1m2_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
