@@ -150,16 +150,6 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        #[cfg(feature = "hashed-transcript-data")]
-        let mut digest_context_th =
-            crypto::hash::hash_ctx_init(self.common.negotiate_info.base_hash_sel).unwrap();
-        #[cfg(feature = "hashed-transcript-data")]
-        crypto::hash::hash_ctx_update(
-            &mut digest_context_th,
-            self.common.runtime_info.message_a.as_ref(),
-        )
-        .unwrap();
-
         let psk_without_context = self
             .common
             .negotiate_info
