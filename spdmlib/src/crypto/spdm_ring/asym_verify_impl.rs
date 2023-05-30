@@ -84,7 +84,9 @@ fn asym_verify(
             match base_asym_algo {
                 SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256
                 | SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384 => {
-                    let mut der_signature = [0u8; 66 * 2 + 8 + 1];
+                    // DER has this format: 0x30 size 0x02 r_size 0x00 [r_size] 0x02 s_size 0x00 [s_size]
+                    let mut der_signature =
+                        [0u8; crate::protocol::ECDSA_ECC_NIST_P384_KEY_SIZE + 8];
                     let der_sign_size =
                         ecc_signature_bin_to_der(signature.as_ref(), &mut der_signature)?;
 
@@ -143,6 +145,7 @@ fn ecc_signature_bin_to_der(signature: &[u8], der_signature: &mut [u8]) -> SpdmR
 
     let der_r_size = if r[0] < 0x80 { r_size } else { r_size + 1 };
     let der_s_size = if s[0] < 0x80 { s_size } else { s_size + 1 };
+    // der_sign_size includes: 0x30 _ 0x02 _ [der_r_size] 0x02 _ [der_s_size]
     let der_sign_size = der_r_size + der_s_size + 6;
 
     if der_signature.len() < der_sign_size {
