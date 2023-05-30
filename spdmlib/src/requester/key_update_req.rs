@@ -24,7 +24,7 @@ impl<'a> RequesterContext<'a> {
         );
 
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer);
+        let used = self.encode_spdm_key_update_op(key_update_operation, tag, &mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         // update key
@@ -54,7 +54,7 @@ impl<'a> RequesterContext<'a> {
         key_update_operation: SpdmKeyUpdateOperation,
         tag: u8,
         buf: &mut [u8],
-    ) -> usize {
+    ) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -66,11 +66,7 @@ impl<'a> RequesterContext<'a> {
                 tag,
             }),
         };
-        if let Ok(sz) = request.spdm_encode(&mut self.common, &mut writer) {
-            sz
-        } else {
-            0
-        }
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     pub fn handle_spdm_key_update_op_response(

@@ -16,7 +16,7 @@ impl<'a> RequesterContext<'a> {
         );
 
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let used = self.encode_spdm_heartbeat(&mut send_buffer);
+        let used = self.encode_spdm_heartbeat(&mut send_buffer)?;
         self.send_secured_message(session_id, &send_buffer[..used], false)?;
 
         // Receive
@@ -25,7 +25,7 @@ impl<'a> RequesterContext<'a> {
         self.handle_spdm_heartbeat_response(session_id, &receive_buffer[..used])
     }
 
-    pub fn encode_spdm_heartbeat(&mut self, buf: &mut [u8]) -> usize {
+    pub fn encode_spdm_heartbeat(&mut self, buf: &mut [u8]) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -34,11 +34,7 @@ impl<'a> RequesterContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmHeartbeatRequest(SpdmHeartbeatRequestPayload {}),
         };
-        if let Ok(sz) = request.spdm_encode(&mut self.common, &mut writer) {
-            sz
-        } else {
-            0
-        }
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     pub fn handle_spdm_heartbeat_response(
