@@ -146,7 +146,11 @@ impl<'a> ResponderContext<'a> {
                 },
             ),
         };
-        let _ = response.spdm_encode(&mut self.common, writer);
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
         let used = writer.used();
 
         // generat signature
@@ -164,7 +168,7 @@ impl<'a> ResponderContext<'a> {
 
         let signature = self.generate_challenge_auth_signature();
         if signature.is_err() {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+            self.send_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0);
             return;
         }
         let signature = signature.unwrap();

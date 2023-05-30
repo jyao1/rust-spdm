@@ -280,12 +280,12 @@ impl<'a> ResponderContext<'a> {
             }),
         };
 
-        let used = response.spdm_encode(&mut self.common, writer);
-        if used.is_err() {
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
-        let used = used.unwrap();
+        let used = writer.used();
 
         // generate signature
         let base_asym_size = self.common.negotiate_info.base_asym_sel.get_size() as usize;

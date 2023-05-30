@@ -238,11 +238,12 @@ impl<'a> ResponderContext<'a> {
             }),
         };
 
-        let used = if let Ok(sz) = response.spdm_encode(&mut self.common, writer) {
-            sz
-        } else {
-            panic!("Failed to encode!");
-        };
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+        let used = writer.used();
 
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = used - base_hash_size;

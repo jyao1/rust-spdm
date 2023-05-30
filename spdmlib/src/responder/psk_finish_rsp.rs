@@ -124,7 +124,11 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmPskFinishResponse(SpdmPskFinishResponsePayload {}),
         };
 
-        response.spdm_encode(&mut self.common, writer).unwrap();
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
 
         let session = self.common.get_session_via_id(session_id).unwrap();
 
