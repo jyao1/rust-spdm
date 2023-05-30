@@ -31,7 +31,7 @@ fn fuzz_handle_spdm_challenge(data: &[u8]) {
         provision_info,
     );
     context.common.provision_info.my_cert_chain = [
-        Some(RSP_CERT_CHAIN_BUFF),
+        Some(get_rsp_cert_chain_buff()),
         None,
         None,
         None,

@@ -76,7 +76,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
         requester.common.reset_runtime_info();
 
         let _ = requester.send_receive_spdm_key_exchange(
@@ -149,7 +149,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
         requester.common.reset_runtime_info();
 
         let _ = requester.send_receive_spdm_key_exchange(
@@ -217,7 +217,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
         requester.common.reset_runtime_info();
 
         let _ = requester.send_receive_spdm_key_exchange(
@@ -293,7 +293,7 @@ fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
         requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
         requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP
             | SpdmRequestCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
         requester.common.negotiate_info.rsp_capabilities_sel = SpdmResponseCapabilityFlags::CERT_CAP

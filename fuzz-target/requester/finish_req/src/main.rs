@@ -56,7 +56,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
         responder.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -184,7 +184,7 @@ fn fuzz_send_receive_spdm_finish(fuzzdata: &[u8]) {
         responder.common.negotiate_info.key_schedule_sel = SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE;
 
         responder.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
