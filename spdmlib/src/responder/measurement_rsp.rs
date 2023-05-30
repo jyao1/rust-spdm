@@ -176,7 +176,11 @@ impl<'a> ResponderContext<'a> {
         };
 
         let mut nonce = [0u8; SPDM_NONCE_SIZE];
-        let _ = crypto::rand::get_random(&mut nonce);
+        let res = crypto::rand::get_random(&mut nonce);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
 
         info!("send spdm measurement\n");
 
