@@ -3,16 +3,17 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::error::SpdmResult;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_version(&mut self, bytes: &[u8]) {
+    pub fn handle_spdm_version(&mut self, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_version_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        self.send_message(writer.used_slice())
     }
 
     pub fn write_spdm_version_response(&mut self, bytes: &[u8], writer: &mut Writer) {

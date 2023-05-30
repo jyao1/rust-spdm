@@ -24,17 +24,13 @@ use crate::responder::*;
 use crate::secret;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) {
+    pub fn handle_spdm_measurement(&mut self, session_id: Option<u32>, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_measurement_response(session_id, bytes, &mut writer);
         match session_id {
-            None => {
-                let _ = self.send_message(writer.used_slice());
-            }
-            Some(session_id) => {
-                let _ = self.send_secured_message(session_id, writer.used_slice(), false);
-            }
+            None => self.send_message(writer.used_slice()),
+            Some(session_id) => self.send_secured_message(session_id, writer.used_slice(), false),
         }
     }
 
