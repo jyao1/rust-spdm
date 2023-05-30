@@ -37,7 +37,6 @@ impl SpdmCodec for SpdmGetDigestsRequestPayload {
 #[derive(Debug, Clone, Default)]
 pub struct SpdmDigestsResponsePayload {
     pub slot_mask: u8,
-    pub slot_count: u8,
     pub digests: [SpdmDigestStruct; SPDM_MAX_SLOT_NUMBER],
 }
 
@@ -59,10 +58,6 @@ impl SpdmCodec for SpdmDigestsResponsePayload {
             if (self.slot_mask & (1 << i)) != 0 {
                 count += 1;
             }
-        }
-
-        if count != self.slot_count {
-            panic!();
         }
 
         for digest in self.digests.iter().take(count as usize) {
@@ -89,11 +84,7 @@ impl SpdmCodec for SpdmDigestsResponsePayload {
         for digest in digests.iter_mut().take(slot_count as usize) {
             *digest = SpdmDigestStruct::spdm_read(context, r)?;
         }
-        Some(SpdmDigestsResponsePayload {
-            slot_mask,
-            slot_count,
-            digests,
-        })
+        Some(SpdmDigestsResponsePayload { slot_mask, digests })
     }
 }
 
@@ -115,7 +106,6 @@ mod tests {
 
         let mut value = SpdmDigestsResponsePayload {
             slot_mask: 0b11111111,
-            slot_count: SPDM_MAX_SLOT_NUMBER as u8,
             digests: gen_array_clone(
                 SpdmDigestStruct {
                     data_size: SPDM_MAX_HASH_SIZE as u16,
@@ -140,10 +130,6 @@ mod tests {
         let spdm_digests_response_payload =
             SpdmDigestsResponsePayload::spdm_read(&mut context, &mut reader).unwrap();
         assert_eq!(spdm_digests_response_payload.slot_mask, 0b11111111);
-        assert_eq!(
-            spdm_digests_response_payload.slot_count,
-            SPDM_MAX_SLOT_NUMBER as u8
-        );
         for i in 0..SPDM_MAX_SLOT_NUMBER {
             for j in 0..SHA512_DIGEST_SIZE {
                 assert_eq!(spdm_digests_response_payload.digests[i].data_size, 64u16);
@@ -162,7 +148,6 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let mut value = SpdmDigestsResponsePayload::default();
         value.slot_mask = 0b00000000;
-        value.slot_count = 0;
         value.digests = gen_array_clone(SpdmDigestStruct::default(), SPDM_MAX_SLOT_NUMBER);
 
         create_spdm_context!(context);
@@ -176,7 +161,6 @@ mod tests {
         let mut writer = Writer::init(u8_slice);
         let mut value = SpdmDigestsResponsePayload::default();
         value.slot_mask = 0b00011111;
-        value.slot_count = 3;
         value.digests = gen_array_clone(SpdmDigestStruct::default(), SPDM_MAX_SLOT_NUMBER);
 
         create_spdm_context!(context);

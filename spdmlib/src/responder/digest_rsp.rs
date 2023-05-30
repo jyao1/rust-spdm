@@ -80,11 +80,9 @@ impl<'a> ResponderContext<'a> {
         let digest_size = self.common.negotiate_info.base_hash_sel.get_size();
 
         let mut slot_mask = 0u8;
-        let mut slot_count = 0u8;
         for slot_id in 0..SPDM_MAX_SLOT_NUMBER {
             if self.common.provision_info.my_cert_chain[slot_id].is_some() {
                 slot_mask |= (1 << slot_id) as u8;
-                slot_count += 1;
             }
         }
 
@@ -96,7 +94,6 @@ impl<'a> ResponderContext<'a> {
             },
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
                 slot_mask,
-                slot_count,
                 digests: gen_array_clone(
                     SpdmDigestStruct {
                         data_size: digest_size,
