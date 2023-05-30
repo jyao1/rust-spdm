@@ -15,7 +15,7 @@ impl<'a> RequesterContext<'a> {
         );
 
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let send_used = self.encode_spdm_capability(&mut send_buffer);
+        let send_used = self.encode_spdm_capability(&mut send_buffer)?;
         self.send_message(&send_buffer[..send_used])?;
 
         let mut receive_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
@@ -23,7 +23,7 @@ impl<'a> RequesterContext<'a> {
         self.handle_spdm_capability_response(0, &send_buffer[..send_used], &receive_buffer[..used])
     }
 
-    pub fn encode_spdm_capability(&mut self, buf: &mut [u8]) -> usize {
+    pub fn encode_spdm_capability(&mut self, buf: &mut [u8]) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -39,11 +39,7 @@ impl<'a> RequesterContext<'a> {
                 },
             ),
         };
-        if let Ok(sz) = request.spdm_encode(&mut self.common, &mut writer) {
-            sz
-        } else {
-            0
-        }
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     pub fn handle_spdm_capability_response(

@@ -4,9 +4,8 @@
 
 use crate::crypto;
 use crate::error::{
-    SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
-    SPDM_STATUS_INVALID_CERT, SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER,
-    SPDM_STATUS_INVALID_STATE_LOCAL,
+    SpdmResult, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_CERT,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -24,10 +23,8 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm certificate\n");
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let send_used =
-            self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer);
-        if send_used == 0 {
-            return Err(SPDM_STATUS_BUFFER_FULL);
-        }
+            self.encode_spdm_certificate_partial(slot_id, offset, length, &mut send_buffer)?;
+
         match session_id {
             Some(session_id) => {
                 self.send_secured_message(session_id, &send_buffer[..send_used], false)?;
@@ -62,7 +59,7 @@ impl<'a> RequesterContext<'a> {
         offset: u16,
         length: u16,
         buf: &mut [u8],
-    ) -> usize {
+    ) -> SpdmResult<usize> {
         let mut writer = Writer::init(buf);
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -77,11 +74,7 @@ impl<'a> RequesterContext<'a> {
                 },
             ),
         };
-        if let Ok(sz) = request.spdm_encode(&mut self.common, &mut writer) {
-            sz
-        } else {
-            0
-        }
+        request.spdm_encode(&mut self.common, &mut writer)
     }
 
     #[allow(clippy::too_many_arguments)]
