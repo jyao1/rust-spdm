@@ -1620,7 +1620,6 @@ mod tests {
             },
             payload: SpdmMessagePayload::SpdmDigestsResponse(SpdmDigestsResponsePayload {
                 slot_mask: 0b11111111,
-                slot_count: 8,
                 digests: gen_array_clone(
                     SpdmDigestStruct {
                         data_size: SPDM_MAX_HASH_SIZE as u16,
@@ -1639,7 +1638,6 @@ mod tests {
         );
         if let SpdmMessagePayload::SpdmDigestsResponse(payload) = &spdm_message.payload {
             assert_eq!(payload.slot_mask, 0b11111111);
-            assert_eq!(payload.slot_count, 8);
             assert_eq!(payload.digests[1].data_size, SHA512_DIGEST_SIZE as u16);
             assert_eq!(payload.digests[1].data[1], 100u8);
         }
