@@ -38,7 +38,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -100,7 +100,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             SpdmResponseCapabilityFlags::CERT_CAP | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
 
         context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -162,7 +162,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -223,7 +223,7 @@ fn fuzz_handle_spdm_finish(data: &[u8]) {
             | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP;
 
         context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,

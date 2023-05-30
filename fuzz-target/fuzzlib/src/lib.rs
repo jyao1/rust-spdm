@@ -23,7 +23,7 @@ pub use fake_aead_impl::FAKE_AEAD;
 pub use fake_asym_verify_impl::FAKE_ASYM_VERIFY;
 pub use fake_hkdf_impl::FAKE_HKDF;
 pub use fake_hmac_impl::{FAKE_HMAC, FUZZ_RAND};
-pub use requesterlib::{certificata_data, req_create_info, RSP_CERT_CHAIN_BUFF};
+pub use requesterlib::{certificata_data, get_rsp_cert_chain_buff, req_create_info};
 pub use responderlib::rsp_create_info;
 pub use shared_buffer::SharedBuffer;
 

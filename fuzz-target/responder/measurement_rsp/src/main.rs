@@ -41,7 +41,7 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
         context.common.negotiate_info.measurement_specification_sel =
             SpdmMeasurementSpecification::DMTF;
         context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -87,7 +87,7 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
         context.common.negotiate_info.measurement_specification_sel =
             SpdmMeasurementSpecification::DMTF;
         context.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,

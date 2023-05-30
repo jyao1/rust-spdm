@@ -526,7 +526,7 @@ mod tests_requester {
         );
 
         responder.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -546,7 +546,7 @@ mod tests_requester {
         responder.common.reset_runtime_info();
 
         responder.common.provision_info.my_cert_chain = [
-            Some(RSP_CERT_CHAIN_BUFF),
+            Some(get_rsp_cert_chain_buff()),
             None,
             None,
             None,
@@ -581,7 +581,7 @@ mod tests_requester {
 
         requester.common.reset_runtime_info();
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
 
         let measurement_summary_hash_type =
             SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone;

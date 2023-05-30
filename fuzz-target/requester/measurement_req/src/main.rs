@@ -253,7 +253,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
 
         requester.common.reset_runtime_info();
 
@@ -638,7 +638,7 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
                 spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
         }
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
 
         requester.common.reset_runtime_info();
         let mut total_number = 0;

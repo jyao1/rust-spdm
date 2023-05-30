@@ -352,7 +352,7 @@ mod tests_requester {
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
         requester.common.runtime_info.need_measurement_summary_hash = true;
 
-        requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
+        requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
 
         let status = requester
