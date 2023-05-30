@@ -15,9 +15,10 @@ use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
 extern crate alloc;
-use crate::secret;
-
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
+use crate::secret;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_challenge(&mut self, bytes: &[u8]) {
@@ -176,7 +177,7 @@ impl<'a> ResponderContext<'a> {
 
     #[cfg(feature = "hashed-transcript-data")]
     pub fn generate_challenge_auth_signature(&self) -> SpdmResult<SpdmSignatureStruct> {
-        let message_hash = crypto::hash::hash_ctx_finalize(
+        let message_m1m2_hash = crypto::hash::hash_ctx_finalize(
             self.common
                 .runtime_info
                 .digest_context_m1m2
@@ -186,76 +187,81 @@ impl<'a> ResponderContext<'a> {
         )
         .unwrap();
 
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+        debug!("message_m1m2_hash - {:02x?}", message_m1m2_hash.as_ref());
 
-        let mut message = ManagedBuffer12Sign::default();
+        let mut message_sign = ManagedBuffer12Sign::default();
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {
-            message.reset_message();
-            message
+            message_sign.reset_message();
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
-                .append_message(message_hash.as_ref())
+            message_sign
+                .append_message(message_m1m2_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
         crate::secret::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
-            message.as_ref(),
+            message_sign.as_ref(),
         )
         .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }
 
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn generate_challenge_auth_signature(&self) -> SpdmResult<SpdmSignatureStruct> {
-        let mut message = ManagedBufferM1M2::default();
-        message
+        let mut message_m1m2 = ManagedBufferM1M2::default();
+        message_m1m2
             .append_message(self.common.runtime_info.message_a.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-        message
+        message_m1m2
             .append_message(self.common.runtime_info.message_b.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-        message
+        message_m1m2
             .append_message(self.common.runtime_info.message_c.as_ref())
             .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
-        let message_hash =
-            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+        let message_m1m2_hash = crypto::hash::hash_all(
+            self.common.negotiate_info.base_hash_sel,
+            message_m1m2.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        debug!("message_m1m2_hash - {:02x?}", message_m1m2_hash.as_ref());
 
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {
-            message.reset_message();
-            message
+            message_m1m2.reset_message();
+            message_m1m2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_m1m2
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_m1m2
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
-                .append_message(message_hash.as_ref())
+            message_m1m2
+                .append_message(message_m1m2_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
         crate::secret::asym_sign::sign(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
-            message.as_ref(),
+            message_m1m2.as_ref(),
         )
         .ok_or(SPDM_STATUS_CRYPTO_ERROR)
     }

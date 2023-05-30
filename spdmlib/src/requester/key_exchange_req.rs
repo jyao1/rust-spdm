@@ -11,6 +11,7 @@ use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_ERROR_PEER;
 use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
 use crate::error::SPDM_STATUS_INVALID_PARAMETER;
+#[cfg(feature = "hashed-transcript-data")]
 use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::SPDM_STATUS_SESSION_NUMBER_EXCEED;
 use crate::error::SPDM_STATUS_UNSUPPORTED_CAP;
@@ -33,7 +34,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm key exchange\n");
 
         if slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
-            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let req_session_id = self.common.get_next_half_session_id(true)?;
@@ -406,30 +407,33 @@ impl<'a> RequesterContext<'a> {
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .data_size as usize)];
 
-        let mut message = ManagedBuffer12Sign::default();
+        let mut message_sign = ManagedBuffer12Sign::default();
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {
-            message.reset_message();
-            message
+            message_sign.reset_message();
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_2)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_KEY_EXCHANGE_RESPONSE_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(transcript_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing verification!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
         crypto::asym_verify::verify(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
             cert_chain_data,
-            message.as_ref(),
+            message_sign.as_ref(),
             signature,
         )
     }
@@ -537,6 +541,7 @@ mod tests_requester {
         responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         responder.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        responder.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
 
         responder.common.reset_runtime_info();
 
@@ -550,7 +555,7 @@ mod tests_requester {
             None,
             None,
         ];
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder
             .common
             .runtime_info
@@ -571,7 +576,8 @@ mod tests_requester {
         requester.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
         requester.common.negotiate_info.base_asym_sel =
             SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        requester.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
 
         requester.common.reset_runtime_info();
 

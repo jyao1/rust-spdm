@@ -3,10 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
-    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
-    SPDM_STATUS_VERIF_FAIL,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -21,7 +22,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm challenge\n");
 
         if slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
-            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         self.common
@@ -145,55 +146,31 @@ impl<'a> RequesterContext<'a> {
         }
     }
 
+    #[cfg(feature = "hashed-transcript-data")]
     pub fn verify_challenge_auth_signature(
         &self,
         slot_id: u8,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let mut message = ManagedBufferM1M2::default();
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            message
-                .append_message(self.common.runtime_info.message_a.as_ref())
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
-                .append_message(self.common.runtime_info.message_b.as_ref())
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
-                .append_message(self.common.runtime_info.message_c.as_ref())
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        let message_m1m2_hash;
+        let digest = crypto::hash::hash_ctx_finalize(
+            self.common
+                .runtime_info
+                .digest_context_m1m2
+                .as_ref()
+                .cloned()
+                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
+        );
+        if let Some(digest) = digest {
+            message_m1m2_hash = digest;
+        } else {
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
-
-        // we dont need create message hash for verify
-        // we just print message hash for debug purpose
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        let message_hash =
-            crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, message.as_ref())
-                .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
-        #[cfg(feature = "hashed-transcript-data")]
-        let message_hash;
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            let digest = crypto::hash::hash_ctx_finalize(
-                self.common
-                    .runtime_info
-                    .digest_context_m1m2
-                    .as_ref()
-                    .cloned()
-                    .ok_or(SPDM_STATUS_CRYPTO_ERROR)?,
-            );
-            if let Some(digest) = digest {
-                message_hash = digest;
-            } else {
-                return Err(SPDM_STATUS_CRYPTO_ERROR);
-            }
-        }
-        debug!("message_hash - {:02x?}", message_hash.as_ref());
+        debug!("message_m1m2_hash - {:02x?}", message_m1m2_hash.as_ref());
 
         if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
             error!("peer_cert_chain is not populated!\n");
-            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
@@ -205,24 +182,93 @@ impl<'a> RequesterContext<'a> {
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .data_size as usize)];
 
-        #[cfg(feature = "hashed-transcript-data")]
-        let mut message = ManagedBuffer12Sign::default();
+        let mut message_sign = ManagedBuffer12Sign::default();
 
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {
-            message.reset_message();
-            message
+            message_sign.reset_message();
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
+            message_sign
                 .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message
-                .append_message(message_hash.as_ref())
+            message_sign
+                .append_message(message_m1m2_hash.as_ref())
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing verification!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            cert_chain_data,
+            message_sign.as_ref(),
+            signature,
+        )
+    }
+
+    #[cfg(not(feature = "hashed-transcript-data"))]
+    pub fn verify_challenge_auth_signature(
+        &self,
+        slot_id: u8,
+        signature: &SpdmSignatureStruct,
+    ) -> SpdmResult {
+        let mut message_m1m2 = ManagedBufferM1M2::default();
+        message_m1m2
+            .append_message(self.common.runtime_info.message_a.as_ref())
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        message_m1m2
+            .append_message(self.common.runtime_info.message_b.as_ref())
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        message_m1m2
+            .append_message(self.common.runtime_info.message_c.as_ref())
+            .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+
+        // we dont need create message hash for verify
+        // we just print message hash for debug purpose
+        let message_m1m2_hash = crypto::hash::hash_all(
+            self.common.negotiate_info.base_hash_sel,
+            message_m1m2.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+        debug!("message_m1m2_hash - {:02x?}", message_m1m2_hash.as_ref());
+
+        if self.common.peer_info.peer_cert_chain[slot_id as usize].is_none() {
+            error!("peer_cert_chain is not populated!\n");
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
+        }
+
+        let cert_chain_data = &self.common.peer_info.peer_cert_chain[slot_id as usize]
+            .as_ref()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[slot_id as usize]
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                .data_size as usize)];
+
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            message_m1m2.reset_message();
+            message_m1m2
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            message_m1m2
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_4)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            message_m1m2
+                .append_message(&SPDM_CHALLENGE_AUTH_SIGN_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            message_m1m2
+                .append_message(message_m1m2_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
         }
 
@@ -230,7 +276,7 @@ impl<'a> RequesterContext<'a> {
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
             cert_chain_data,
-            message.as_ref(),
+            message_m1m2.as_ref(),
             signature,
         )
     }
@@ -276,7 +322,7 @@ mod tests_requester {
             None,
             None,
         ];
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
 
         responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
         responder.common.negotiate_info.base_asym_sel =
@@ -312,7 +358,7 @@ mod tests_requester {
         requester.common.runtime_info.need_measurement_summary_hash = true;
 
         requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
-        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
 
         let status = requester
             .send_receive_spdm_challenge(

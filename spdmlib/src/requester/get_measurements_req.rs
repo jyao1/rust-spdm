@@ -3,16 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto;
-#[cfg(not(feature = "hashed-transcript-data"))]
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::{
     SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR, SPDM_STATUS_ERROR_PEER,
-    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL,
-    SPDM_STATUS_VERIF_FAIL,
-};
-#[cfg(feature = "hashed-transcript-data")]
-use crate::error::{
-    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
+    SPDM_STATUS_INVALID_MSG_FIELD, SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_VERIF_FAIL,
 };
 use crate::message::*;
 use crate::protocol::*;
@@ -30,7 +25,7 @@ impl<'a> RequesterContext<'a> {
         info!("send spdm measurement\n");
 
         if slot_id >= SPDM_MAX_SLOT_NUMBER as u8 {
-            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            return Err(SPDM_STATUS_INVALID_PARAMETER);
         }
 
         self.common.reset_buffer_via_request_code(
@@ -240,8 +235,6 @@ impl<'a> RequesterContext<'a> {
         session_id: Option<u32>,
         signature: &SpdmSignatureStruct,
     ) -> SpdmResult {
-        use crate::error::{SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
-
         let message_l1l2_hash = match session_id {
             None => {
                 let ctx = self
@@ -250,7 +243,7 @@ impl<'a> RequesterContext<'a> {
                     .digest_context_l1l2
                     .as_ref()
                     .cloned()
-                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+                    .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                 crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?
             }
             Some(session_id) => {
@@ -265,7 +258,7 @@ impl<'a> RequesterContext<'a> {
                     .digest_context_l1l2
                     .as_ref()
                     .cloned()
-                    .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+                    .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
                 crypto::hash::hash_ctx_finalize(ctx).ok_or(SPDM_STATUS_CRYPTO_ERROR)?
             }
         };
@@ -286,30 +279,33 @@ impl<'a> RequesterContext<'a> {
                 .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
                 .data_size as usize)];
 
-        let mut message_l1l2 = ManagedBuffer12Sign::default();
+        let mut message_sign = ManagedBuffer12Sign::default();
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             >= SpdmVersion::SpdmVersion12.get_u8()
         {
-            message_l1l2.reset_message();
-            message_l1l2
+            message_sign.reset_message();
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message_l1l2
+            message_sign
                 .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_6)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message_l1l2
+            message_sign
                 .append_message(&SPDM_MEASUREMENTS_SIGN_CONTEXT)
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-            message_l1l2
+            message_sign
                 .append_message(message_l1l2_hash.as_ref())
                 .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing verification!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
         crypto::asym_verify::verify(
             self.common.negotiate_info.base_hash_sel,
             self.common.negotiate_info.base_asym_sel,
             cert_chain_data,
-            message_l1l2.as_ref(),
+            message_sign.as_ref(),
             signature,
         )
     }
@@ -467,7 +463,7 @@ mod tests_requester {
             None,
             None,
         ];
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         responder
             .common
             .runtime_info
@@ -499,7 +495,7 @@ mod tests_requester {
         requester.common.negotiate_info.measurement_hash_sel =
             SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
         requester.common.peer_info.peer_cert_chain[0] = Some(RSP_CERT_CHAIN_BUFF);
-        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion11;
+        requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
         requester.common.reset_runtime_info();
 
         let measurement_operation = SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber;
