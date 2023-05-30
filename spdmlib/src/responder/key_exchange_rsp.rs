@@ -2,11 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-#[cfg(feature = "hashed-transcript-data")]
-use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
-use crate::error::{SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
-use crate::responder::*;
-
 use crate::common::session::SpdmSession;
 #[cfg(feature = "hashed-transcript-data")]
 use crate::common::ManagedBuffer12Sign;
@@ -14,7 +9,11 @@ use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
 use crate::common::SpdmOpaqueSupport;
 use crate::crypto;
+#[cfg(feature = "hashed-transcript-data")]
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
+use crate::error::{SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_CRYPTO_ERROR};
 use crate::protocol::*;
+use crate::responder::*;
 extern crate alloc;
 use crate::common::opaque::SpdmOpaqueStruct;
 use crate::message::*;
@@ -22,11 +21,11 @@ use crate::secret;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) {
+    pub fn handle_spdm_key_exchange(&mut self, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_key_exchange_response(bytes, &mut writer);
-        let _ = self.send_message(writer.used_slice());
+        self.send_message(writer.used_slice())
     }
 
     pub fn write_spdm_key_exchange_response(&mut self, bytes: &[u8], writer: &mut Writer) {

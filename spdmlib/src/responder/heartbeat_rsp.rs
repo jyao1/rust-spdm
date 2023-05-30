@@ -3,15 +3,16 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::error::SpdmResult;
 use crate::message::*;
 use crate::responder::*;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_heartbeat(&mut self, session_id: u32, bytes: &[u8]) {
+    pub fn handle_spdm_heartbeat(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_heartbeat_response(session_id, bytes, &mut writer);
-        let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+        self.send_secured_message(session_id, writer.used_slice(), false)
     }
 
     pub fn write_spdm_heartbeat_response(

@@ -3,15 +3,15 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::common::SpdmCodec;
+use crate::error::SpdmResult;
+use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
-
-use crate::message::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
 impl<'a> ResponderContext<'a> {
-    pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) {
+    pub fn handle_spdm_finish(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
         let in_clear_text = self
             .common
             .negotiate_info
@@ -28,9 +28,9 @@ impl<'a> ResponderContext<'a> {
         let mut writer = Writer::init(&mut send_buffer);
         self.write_spdm_finish_response(session_id, bytes, &mut writer);
         if in_clear_text {
-            let _ = self.send_message(writer.used_slice());
+            self.send_message(writer.used_slice())
         } else {
-            let _ = self.send_secured_message(session_id, writer.used_slice(), false);
+            self.send_secured_message(session_id, writer.used_slice(), false)
         }
     }
 
