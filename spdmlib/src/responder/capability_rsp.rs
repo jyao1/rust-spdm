@@ -100,7 +100,11 @@ impl<'a> ResponderContext<'a> {
                 },
             ),
         };
-        let _ = response.spdm_encode(&mut self.common, writer);
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
         if self.common.append_message_a(writer.used_slice()).is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
         }

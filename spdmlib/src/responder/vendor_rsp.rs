@@ -78,7 +78,10 @@ impl<'a> ResponderContext<'a> {
             ),
         };
 
-        let _ = response.spdm_encode(&mut self.common, writer);
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+        }
     }
 
     pub fn respond_to_vendor_defined_request<F>(

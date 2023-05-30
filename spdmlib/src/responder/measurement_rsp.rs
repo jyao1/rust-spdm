@@ -204,11 +204,12 @@ impl<'a> ResponderContext<'a> {
             ),
         };
 
-        let used = if let Ok(sz) = response.spdm_encode(&mut self.common, writer) {
-            sz
-        } else {
-            panic!("Failed to encode!");
-        };
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+        let used = writer.used();
 
         // generat signature
         if get_measurements
@@ -229,7 +230,7 @@ impl<'a> ResponderContext<'a> {
 
             let signature = self.generate_measurement_signature(session_id);
             if signature.is_err() {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
+                self.send_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0);
                 return;
             }
             let signature = signature.unwrap();

@@ -106,7 +106,11 @@ impl<'a> ResponderContext<'a> {
                 ),
             }),
         };
-        let _ = response.spdm_encode(&mut self.common, writer);
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
 
         for slot_id in 0..SPDM_MAX_SLOT_NUMBER {
             if self.common.provision_info.my_cert_chain[slot_id].is_some() {

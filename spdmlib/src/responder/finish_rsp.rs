@@ -158,7 +158,11 @@ impl<'a> ResponderContext<'a> {
             }),
         };
 
-        let _ = response.spdm_encode(&mut self.common, writer);
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
         let used = writer.used();
 
         let session = self.common.get_session_via_id(session_id).unwrap();

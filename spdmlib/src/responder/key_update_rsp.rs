@@ -79,7 +79,10 @@ impl<'a> ResponderContext<'a> {
                 tag: key_update_req.tag,
             }),
         };
-        let _ = response.spdm_encode(&mut self.common, writer);
+        let res = response.spdm_encode(&mut self.common, writer);
+        if res.is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+        }
     }
 }
 
