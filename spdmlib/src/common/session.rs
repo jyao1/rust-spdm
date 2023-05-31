@@ -10,6 +10,7 @@ use crate::error::SPDM_STATUS_BUFFER_TOO_SMALL;
 use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_DECODE_AEAD_FAIL;
 use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
+use crate::error::SPDM_STATUS_SEQUENCE_NUMBER_OVERFLOW;
 
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -965,6 +966,11 @@ impl SpdmSession {
         let mut writer = Writer::init(&mut aad_buffer);
         let app_length = app_buffer.len() as u16;
         let length = cipher_text_size as u16 + tag_size as u16;
+
+        if secret_param.sequence_number == 0xFFFFFFFFFFFFFFFFu64 {
+            return Err(SPDM_STATUS_SEQUENCE_NUMBER_OVERFLOW);
+        }
+
         session_id
             .encode(&mut writer)
             .map_err(|_| SPDM_STATUS_BUFFER_TOO_SMALL)?;
@@ -1033,6 +1039,10 @@ impl SpdmSession {
         let aead_algo = self.crypto_param.aead_algo;
         let transport_param = &self.transport_param;
         let tag_size = aead_algo.get_tag_size() as usize;
+
+        if secret_param.sequence_number == 0xFFFFFFFFFFFFFFFFu64 {
+            return Err(SPDM_STATUS_SEQUENCE_NUMBER_OVERFLOW);
+        }
 
         let mut reader = Reader::init(secured_buffer);
         let read_session_id = u32::read(&mut reader).ok_or(SPDM_STATUS_DECODE_AEAD_FAIL)?;
