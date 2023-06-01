@@ -18,37 +18,37 @@ mod test_mbedtls {
             (
                 SpdmBaseAsymAlgo::TPM_ALG_RSASSA_2048,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/Rsa2048/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/rsa2048/bundle_responder.certchain.der"
                 )[..],
             ),
             (
                 SpdmBaseAsymAlgo::TPM_ALG_RSASSA_3072,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/Rsa3072/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/rsa3072/bundle_responder.certchain.der"
                 )[..],
             ),
             (
                 SpdmBaseAsymAlgo::TPM_ALG_RSASSA_4096,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/Rsa4096/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/rsa4096/bundle_responder.certchain.der"
                 )[..],
             ),
             (
                 SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_2048,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/Rsa2048/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/rsa2048/bundle_responder.certchain.der"
                 )[..],
             ),
             (
                 SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_3072,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/Rsa3072/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/rsa3072/bundle_responder.certchain.der"
                 )[..],
             ),
             (
                 SpdmBaseAsymAlgo::TPM_ALG_RSAPSS_4096,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/Rsa4096/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/rsa4096/bundle_responder.certchain.der"
                 )[..],
             ),
         ];
@@ -67,14 +67,14 @@ mod test_mbedtls {
                 SpdmBaseHashAlgo::TPM_ALG_SHA_256,
                 SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P256,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/EcP256/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/ecp256/bundle_responder.certchain.der"
                 )[..],
             ),
             (
                 SpdmBaseHashAlgo::TPM_ALG_SHA_384,
                 SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384,
                 &include_bytes!(
-                    "../../../rust-spdm/test_key/EcP384/bundle_responder.certchain.der"
+                    "../../../rust-spdm/test_key/ecp384/bundle_responder.certchain.der"
                 )[..],
             ),
         ];

@@ -91,11 +91,11 @@ pub fn create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) {
     };
 
     let crate_dir = get_test_key_directory();
-    let ca_file_path = crate_dir.join("test_key/EcP384/ca.cert.der");
+    let ca_file_path = crate_dir.join("test_key/ecp384/ca.cert.der");
     let ca_cert = std::fs::read(ca_file_path).expect("unable to read ca cert!");
-    let inter_file_path = crate_dir.join("test_key/EcP384/inter.cert.der");
+    let inter_file_path = crate_dir.join("test_key/ecp384/inter.cert.der");
     let inter_cert = std::fs::read(inter_file_path).expect("unable to read inter cert!");
-    let leaf_file_path = crate_dir.join("test_key/EcP384/end_responder.cert.der");
+    let leaf_file_path = crate_dir.join("test_key/ecp384/end_responder.cert.der");
     let leaf_cert = std::fs::read(leaf_file_path).expect("unable to read leaf cert!");
 
     let ca_len = ca_cert.len();
@@ -332,7 +332,7 @@ fn sign_ecdsa_asym_algo(
     data: &[u8],
 ) -> Option<SpdmSignatureStruct> {
     let crate_dir = get_test_key_directory();
-    let key_file_path = crate_dir.join("test_key/EcP384/end_responder.key.p8");
+    let key_file_path = crate_dir.join("test_key/ecp384/end_responder.key.p8");
     let der_file = std::fs::read(key_file_path).expect("unable to read key der!");
     let key_bytes = der_file.as_slice();
 
@@ -518,7 +518,7 @@ fn get_random(data: &mut [u8]) -> SpdmResult<usize> {
 
 pub fn get_rsp_cert_chain_buff() -> SpdmCertChainBuffer {
     let hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    let cert_chain = include_bytes!("../../../test_key/EcP384/bundle_responder.certchain.der");
+    let cert_chain = include_bytes!("../../../test_key/ecp384/bundle_responder.certchain.der");
 
     let (root_cert_begin, root_cert_end) =
         crypto::cert_operation::get_cert_from_cert_chain(cert_chain, 0)
