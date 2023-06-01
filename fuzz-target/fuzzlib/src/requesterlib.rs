@@ -43,22 +43,22 @@ pub fn req_create_info() -> (common::SpdmConfigInfo, common::SpdmProvisionInfo) 
     };
     let crate_dir = get_test_key_directory();
     let ca_file_path = if USE_ECDSA {
-        "test_key/EcP384/ca.cert.der"
+        "test_key/ecp384/ca.cert.der"
     } else {
-        "test_key/Rsa3072/ca.cert.der"
+        "test_key/rsa3072/ca.cert.der"
     };
     let ca_cert = std::fs::read(crate_dir.join(ca_file_path)).expect("unable to read ca cert!");
     let inter_file_path = if USE_ECDSA {
-        "test_key/EcP384/inter.cert.der"
+        "test_key/ecp384/inter.cert.der"
     } else {
-        "test_key/Rsa3072/inter.cert.der"
+        "test_key/rsa3072/inter.cert.der"
     };
     let inter_cert =
         std::fs::read(crate_dir.join(inter_file_path)).expect("unable to read inter cert!");
     let leaf_file_path = if USE_ECDSA {
-        "test_key/EcP384/end_responder.cert.der"
+        "test_key/ecp384/end_responder.cert.der"
     } else {
-        "test_key/Rsa3072/end_responder.cert.der"
+        "test_key/rsa3072/end_responder.cert.der"
     };
     let leaf_cert =
         std::fs::read(crate_dir.join(leaf_file_path)).expect("unable to read leaf cert!");
@@ -241,7 +241,7 @@ pub fn certificata_data() -> [[u8; 528]; 4] {
 pub fn get_rsp_cert_chain_buff() -> SpdmCertChainBuffer {
     use spdmlib::crypto;
     let hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    let cert_chain = include_bytes!("../../../test_key/EcP384/bundle_responder.certchain.der");
+    let cert_chain = include_bytes!("../../../test_key/ecp384/bundle_responder.certchain.der");
 
     let (root_cert_begin, root_cert_end) =
         crypto::cert_operation::get_cert_from_cert_chain(cert_chain, 0)

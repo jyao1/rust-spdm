@@ -98,9 +98,9 @@ fn sign_ecdsa_asym_algo(
     let crate_dir = get_test_key_directory();
     println!("crate dir: {:?}", crate_dir.as_os_str().to_str());
     let key_file_path = if algorithm == &ring::signature::ECDSA_P256_SHA256_FIXED_SIGNING {
-        crate_dir.join("test_key/EcP256/end_responder.key.p8")
+        crate_dir.join("test_key/ecp256/end_responder.key.p8")
     } else if algorithm == &ring::signature::ECDSA_P384_SHA384_FIXED_SIGNING {
-        crate_dir.join("test_key/EcP384/end_responder.key.p8")
+        crate_dir.join("test_key/ecp384/end_responder.key.p8")
     } else {
         panic!("not support")
     };
@@ -135,13 +135,13 @@ fn sign_rsa_asym_algo(
     #[allow(unreachable_patterns)]
     let key_file_path = match key_len {
         RSASSA_2048_KEY_SIZE | RSAPSS_2048_KEY_SIZE => {
-            crate_dir.join("test_key/Rsa2048/end_responder.key.der")
+            crate_dir.join("test_key/rsa2048/end_responder.key.der")
         }
         RSASSA_3072_KEY_SIZE | RSAPSS_3072_KEY_SIZE => {
-            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+            crate_dir.join("test_key/rsa3072/end_responder.key.der")
         }
         RSASSA_4096_KEY_SIZE | RSAPSS_4096_KEY_SIZE => {
-            crate_dir.join("test_key/Rsa3072/end_responder.key.der")
+            crate_dir.join("test_key/rsa3072/end_responder.key.der")
         }
         _ => {
             panic!("RSA key len not supported")

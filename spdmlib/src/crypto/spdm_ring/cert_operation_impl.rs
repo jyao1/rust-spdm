@@ -187,7 +187,7 @@ mod tests {
         assert!(verify_cert_chain(bundle_certs_der).is_ok());
 
         let bundle_certs_der =
-            &include_bytes!("../../../../test_key/EcP384/bundle_requester.certchain.der")[..];
+            &include_bytes!("../../../../test_key/ecp384/bundle_requester.certchain.der")[..];
         assert!(verify_cert_chain(bundle_certs_der).is_ok());
 
         let bundle_certs_der =
