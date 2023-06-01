@@ -897,6 +897,46 @@ impl AsRef<[u8]> for SpdmCertChainBuffer {
     }
 }
 
+impl SpdmCertChainBuffer {
+    ///
+    /// Table 28 — Certificate chain format
+    /// This function generate the SpdmCertChainBuffer from a x509 certificates chain.
+    ///
+    pub fn new(cert_chain: &[u8], root_cert_hash: &[u8]) -> Option<Self> {
+        if cert_chain.len() + 4 + root_cert_hash.len() > u16::MAX as usize {
+            return None;
+        }
+
+        let total_len = (cert_chain.len() + root_cert_hash.len() + 4) as u16;
+        let mut buff = Self::default();
+        let mut pos;
+        pos = 0;
+
+        // Length
+        let len = 2;
+        buff.data[pos..(pos + len)].copy_from_slice(&total_len.to_le_bytes());
+        pos += len;
+
+        // Reserved
+        buff.data[pos] = 0;
+        buff.data[pos + 1] = 0;
+        pos += 2;
+
+        // RootHash HashLen
+        let len = root_cert_hash.len();
+        buff.data[pos..(pos + len)].copy_from_slice(root_cert_hash);
+        pos += len;
+
+        // Certificates
+        let len = cert_chain.len();
+        buff.data[pos..(pos + len)].copy_from_slice(cert_chain);
+        pos += len;
+
+        buff.data_size = pos as u16;
+        Some(buff)
+    }
+}
+
 enum_builder! {
     @U8
     EnumName: SpdmDmtfMeasurementType;
