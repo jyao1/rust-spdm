@@ -1,0 +1,16 @@
+[package]
+name = "spdmlib-test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+spdmlib = { path = "../../spdmlib", default-features = false, features=["spdm-ring"] }
+codec = { path = "../../codec" }
+log = "0.4.13"
+ring = { version = "0.16.20" }
+
+[features]
+default = ["hashed-transcript-data"]
+hashed-transcript-data = ["spdmlib/hashed-transcript-data"]
