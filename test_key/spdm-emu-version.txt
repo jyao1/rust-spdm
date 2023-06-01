@@ -1,0 +1,1 @@
+https://github.com/DMTF/spdm-emu/commit/85e52e37014e653e2b917ddac9fb1121a26c3267
