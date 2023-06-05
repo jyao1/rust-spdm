@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::crypto::SpdmAsymVerify;
+use crate::crypto::{x509v3, SpdmAsymVerify};
 use crate::error::{SpdmResult, SPDM_STATUS_INVALID_CERT, SPDM_STATUS_VERIF_FAIL};
 use crate::protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmSignatureStruct};
 use core::convert::TryFrom;
@@ -69,6 +69,8 @@ fn asym_verify(
             panic!();
         }
     };
+
+    x509v3::check_cert_chain_format(public_cert_der, base_asym_algo)?;
 
     let (leaf_begin, leaf_end) =
         (super::cert_operation_impl::DEFAULT.get_cert_from_cert_chain_cb)(public_cert_der, -1)?;

@@ -4,6 +4,8 @@
 
 pub mod bytes_mut_scrubbed;
 mod crypto_callbacks;
+mod x509v3;
+pub use x509v3::*;
 
 #[cfg(feature = "spdm-ring")]
 mod spdm_ring;
