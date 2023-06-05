@@ -299,13 +299,17 @@ impl<'a> ResponderContext<'a> {
             used - base_asym_size - base_hash_size
         };
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
-        if session.append_message_k(&bytes[..reader.used()]).is_err() {
+        if self
+            .common
+            .append_message_k(session_id, &bytes[..reader.used()])
+            .is_err()
+        {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
-        if session
-            .append_message_k(&writer.used_slice()[..temp_used])
+        if self
+            .common
+            .append_message_k(session_id, &writer.used_slice()[..temp_used])
             .is_err()
         {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -324,8 +328,11 @@ impl<'a> ResponderContext<'a> {
         }
         let signature = signature.unwrap();
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
-        if session.append_message_k(signature.as_ref()).is_err() {
+        if self
+            .common
+            .append_message_k(session_id, signature.as_ref())
+            .is_err()
+        {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
         }
@@ -378,8 +385,12 @@ impl<'a> ResponderContext<'a> {
             let hmac = hmac.unwrap();
 
             // append verify_data after TH1
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            if session.append_message_k(hmac.as_ref()).is_err() {
+            if self
+                .common
+                .append_message_k(session_id, hmac.as_ref())
+                .is_err()
+            {
+                let session = self.common.get_session_via_id(session_id).unwrap();
                 let _ = session.teardown(session_id);
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;

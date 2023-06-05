@@ -203,9 +203,11 @@ impl<'a> RequesterContext<'a> {
                                 self.common.negotiate_info.base_hash_sel.get_size() as usize;
                             let temp_receive_used = receive_used - base_hash_size;
 
-                            let session = self.common.get_session_via_id(session_id).unwrap();
-                            session.append_message_k(send_buffer)?;
-                            session.append_message_k(&receive_buffer[..temp_receive_used])?;
+                            self.common.append_message_k(session_id, send_buffer)?;
+                            self.common.append_message_k(
+                                session_id,
+                                &receive_buffer[..temp_receive_used],
+                            )?;
 
                             let session = self
                                 .common
@@ -256,15 +258,23 @@ impl<'a> RequesterContext<'a> {
                             }
 
                             // append verify_data after TH1
-                            let session = self.common.get_session_via_id(session_id).unwrap();
-                            if session
-                                .append_message_k(psk_exchange_rsp.verify_data.as_ref())
+                            if self
+                                .common
+                                .append_message_k(session_id, psk_exchange_rsp.verify_data.as_ref())
                                 .is_err()
                             {
+                                let session = self
+                                    .common
+                                    .get_session_via_id(session_id)
+                                    .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
                                 let _ = session.teardown(session_id);
                                 return Err(SPDM_STATUS_BUFFER_FULL);
                             }
 
+                            let session = self
+                                .common
+                                .get_session_via_id(session_id)
+                                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?;
                             session.set_session_state(
                                 crate::common::session::SpdmSessionState::SpdmSessionHandshaking,
                             );

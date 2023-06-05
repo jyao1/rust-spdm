@@ -254,9 +254,11 @@ impl<'a> RequesterContext<'a> {
                                 receive_used - base_asym_size - base_hash_size
                             };
 
-                            let session = self.common.get_session_via_id(session_id).unwrap();
-                            session.append_message_k(send_buffer)?;
-                            session.append_message_k(&receive_buffer[..temp_receive_used])?;
+                            self.common.append_message_k(session_id, send_buffer)?;
+                            self.common.append_message_k(
+                                session_id,
+                                &receive_buffer[..temp_receive_used],
+                            )?;
 
                             let session = self
                                 .common
@@ -278,8 +280,10 @@ impl<'a> RequesterContext<'a> {
                                 info!("verify_key_exchange_rsp_signature pass");
                             }
 
-                            let session = self.common.get_session_via_id(session_id).unwrap();
-                            session.append_message_k(key_exchange_rsp.signature.as_ref())?;
+                            self.common.append_message_k(
+                                session_id,
+                                key_exchange_rsp.signature.as_ref(),
+                            )?;
 
                             let session = self
                                 .common
@@ -328,12 +332,16 @@ impl<'a> RequesterContext<'a> {
                                 }
 
                                 // append verify_data after TH1
-                                let session = self.common.get_session_via_id(session_id).unwrap();
-
-                                if session
-                                    .append_message_k(key_exchange_rsp.verify_data.as_ref())
+                                if self
+                                    .common
+                                    .append_message_k(
+                                        session_id,
+                                        key_exchange_rsp.verify_data.as_ref(),
+                                    )
                                     .is_err()
                                 {
+                                    let session =
+                                        self.common.get_session_via_id(session_id).unwrap();
                                     let _ = session.teardown(session_id);
                                     return Err(SPDM_STATUS_BUFFER_FULL);
                                 }

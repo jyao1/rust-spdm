@@ -81,7 +81,11 @@ impl<'a> ResponderContext<'a> {
             }
 
             let temp_used = read_used - base_hash_size;
-            if session.append_message_f(&bytes[..temp_used]).is_err() {
+            if self
+                .common
+                .append_message_f(session_id, &bytes[..temp_used])
+                .is_err()
+            {
                 error!("message_f add the message error");
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -117,9 +121,9 @@ impl<'a> ResponderContext<'a> {
                 info!("verify_hmac_with_request_finished_key pass");
             }
 
-            let session = self.common.get_session_via_id(session_id).unwrap();
-            if session
-                .append_message_f(finish_req.verify_data.as_ref())
+            if self
+                .common
+                .append_message_f(session_id, finish_req.verify_data.as_ref())
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -165,14 +169,13 @@ impl<'a> ResponderContext<'a> {
         }
         let used = writer.used();
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
-
         if in_clear_text {
             // generate HMAC with finished_key
             let temp_used = used - base_hash_size;
 
-            if session
-                .append_message_f(&writer.used_slice()[..temp_used])
+            if self
+                .common
+                .append_message_f(session_id, &writer.used_slice()[..temp_used])
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -203,16 +206,22 @@ impl<'a> ResponderContext<'a> {
             }
             let hmac = hmac.unwrap();
 
-            let session = self.common.get_session_via_id(session_id).unwrap();
-
-            if session.append_message_f(hmac.as_ref()).is_err() {
+            if self
+                .common
+                .append_message_f(session_id, hmac.as_ref())
+                .is_err()
+            {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
             }
 
             // patch the message before send
             writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
-        } else if session.append_message_f(writer.used_slice()).is_err() {
+        } else if self
+            .common
+            .append_message_f(session_id, writer.used_slice())
+            .is_err()
+        {
             error!("message_f add the message error");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;

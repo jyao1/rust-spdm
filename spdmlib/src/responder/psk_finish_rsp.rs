@@ -59,14 +59,21 @@ impl<'a> ResponderContext<'a> {
         let temp_used = read_used - base_hash_size;
 
         {
-            let session = self.common.get_session_via_id(session_id).unwrap();
+            let session = self
+                .common
+                .get_immutable_session_via_id(session_id)
+                .unwrap();
 
             if !session.get_use_psk() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
                 return;
             }
 
-            if session.append_message_f(&bytes[..temp_used]).is_err() {
+            if self
+                .common
+                .append_message_f(session_id, &bytes[..temp_used])
+                .is_err()
+            {
                 error!("message_f add the message error");
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -102,10 +109,9 @@ impl<'a> ResponderContext<'a> {
                 info!("verify_hmac_with_request_finished_key pass");
             }
 
-            let session = self.common.get_session_via_id(session_id).unwrap();
-
-            if session
-                .append_message_f(psk_finish_req.verify_data.as_ref())
+            if self
+                .common
+                .append_message_f(session_id, psk_finish_req.verify_data.as_ref())
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -130,9 +136,11 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
-
-        if session.append_message_f(writer.used_slice()).is_err() {
+        if self
+            .common
+            .append_message_f(session_id, writer.used_slice())
+            .is_err()
+        {
             error!("message_f add the message error");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;

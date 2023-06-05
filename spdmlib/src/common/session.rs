@@ -268,6 +268,10 @@ impl SpdmSession {
         Ok(())
     }
 
+    pub fn get_crypto_param(&self) -> SpdmSessionCryptoParam {
+        self.crypto_param.clone()
+    }
+
     pub fn set_crypto_param(
         &mut self,
         base_hash_algo: SpdmBaseHashAlgo,
@@ -292,90 +296,6 @@ impl SpdmSession {
 
     pub fn get_session_state(&self) -> SpdmSessionState {
         self.session_state
-    }
-
-    pub fn append_message_k(&mut self, new_message: &[u8]) -> SpdmResult {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            self.runtime_info
-                .message_k
-                .append_message(new_message)
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-        }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            if self.runtime_info.digest_context_th.is_none() {
-                self.runtime_info.digest_context_th =
-                    crypto::hash::hash_ctx_init(self.crypto_param.base_hash_algo);
-                if self.runtime_info.digest_context_th.is_none() {
-                    return Err(SPDM_STATUS_CRYPTO_ERROR);
-                }
-                crypto::hash::hash_ctx_update(
-                    self.runtime_info.digest_context_th.as_mut().unwrap(),
-                    self.runtime_info.message_a.as_ref(),
-                )?;
-                if self.runtime_info.rsp_cert_hash.is_some() {
-                    crypto::hash::hash_ctx_update(
-                        self.runtime_info.digest_context_th.as_mut().unwrap(),
-                        self.runtime_info.rsp_cert_hash.as_ref().unwrap().as_ref(),
-                    )?;
-                }
-            }
-
-            crypto::hash::hash_ctx_update(
-                self.runtime_info.digest_context_th.as_mut().unwrap(),
-                new_message,
-            )?;
-        }
-
-        Ok(())
-    }
-    pub fn reset_message_k(&mut self) {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            self.runtime_info.message_f.reset_message();
-        }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            self.runtime_info.digest_context_th = None;
-        }
-    }
-
-    pub fn append_message_f(&mut self, new_message: &[u8]) -> SpdmResult {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            self.runtime_info
-                .message_f
-                .append_message(new_message)
-                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
-        }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            if self.runtime_info.digest_context_th.is_none() {
-                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
-            }
-
-            crypto::hash::hash_ctx_update(
-                self.runtime_info.digest_context_th.as_mut().unwrap(),
-                new_message,
-            )?;
-        }
-
-        Ok(())
-    }
-    pub fn reset_message_f(&mut self) {
-        #[cfg(not(feature = "hashed-transcript-data"))]
-        {
-            self.runtime_info.message_f.reset_message();
-        }
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            self.runtime_info.digest_context_th = None;
-        }
     }
 
     pub fn generate_handshake_secret(
