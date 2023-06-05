@@ -207,6 +207,15 @@ impl SpdmCodec for SpdmKeyExchangeResponsePayload {
         let rsp_session_id = u16::read(r)?; // reserved
         let mut_auth_req = SpdmKeyExchangeMutAuthAttributes::read(r)?;
         let req_slot_id = u8::read(r)?;
+
+        if !mut_auth_req.is_empty()
+            && mut_auth_req != SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ
+            && mut_auth_req != SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ_WITH_ENCAP_REQUEST
+            && mut_auth_req != SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ_WITH_GET_DIGESTS
+        {
+            return None;
+        }
+
         let random = SpdmRandomStruct::read(r)?;
         let exchange = SpdmDheExchangeStruct::spdm_read(context, r)?;
         let measurement_summary_hash = if context.runtime_info.need_measurement_summary_hash {
