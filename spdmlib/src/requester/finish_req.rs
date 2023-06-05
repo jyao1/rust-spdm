@@ -135,22 +135,23 @@ impl<'a> RequesterContext<'a> {
         let temp_used = send_used - base_hash_size;
 
         self.common
-            .append_message_f(session_id, &buf[..temp_used])?;
+            .append_message_f(true, session_id, &buf[..temp_used])?;
 
         let session = self
             .common
             .get_immutable_session_via_id(session_id)
             .unwrap();
 
-        let transcript_hash = self
-            .common
-            .calc_req_transcript_hash(false, req_slot_id, session)?;
+        let transcript_hash =
+            self.common
+                .calc_req_transcript_hash(false, req_slot_id, false, session)?;
 
         let session = self.common.get_session_via_id(session_id).unwrap();
 
         let hmac = session.generate_hmac_with_request_finished_key(transcript_hash.as_ref())?;
 
-        self.common.append_message_f(session_id, hmac.as_ref())?;
+        self.common
+            .append_message_f(true, session_id, hmac.as_ref())?;
 
         // patch the message before send
         buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
@@ -190,8 +191,11 @@ impl<'a> RequesterContext<'a> {
                         if in_clear_text {
                             // verify HMAC with finished_key
                             let temp_used = receive_used - base_hash_size;
-                            self.common
-                                .append_message_f(session_id, &receive_buffer[..temp_used])?;
+                            self.common.append_message_f(
+                                true,
+                                session_id,
+                                &receive_buffer[..temp_used],
+                            )?;
 
                             let session = self
                                 .common
@@ -201,6 +205,7 @@ impl<'a> RequesterContext<'a> {
                             let transcript_hash = self.common.calc_req_transcript_hash(
                                 false,
                                 req_slot_id,
+                                false,
                                 session,
                             )?;
 
@@ -217,11 +222,17 @@ impl<'a> RequesterContext<'a> {
                                 info!("verify_hmac_with_response_finished_key pass");
                             }
 
-                            self.common
-                                .append_message_f(session_id, finish_rsp.verify_data.as_ref())?;
+                            self.common.append_message_f(
+                                true,
+                                session_id,
+                                finish_rsp.verify_data.as_ref(),
+                            )?;
                         } else {
-                            self.common
-                                .append_message_f(session_id, &receive_buffer[..receive_used])?;
+                            self.common.append_message_f(
+                                true,
+                                session_id,
+                                &receive_buffer[..receive_used],
+                            )?;
                         }
 
                         let session = self
@@ -230,9 +241,12 @@ impl<'a> RequesterContext<'a> {
                             .unwrap();
 
                         // generate the data secret
-                        let th2 =
-                            self.common
-                                .calc_req_transcript_hash(false, req_slot_id, session)?;
+                        let th2 = self.common.calc_req_transcript_hash(
+                            false,
+                            req_slot_id,
+                            false,
+                            session,
+                        )?;
 
                         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
                         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;

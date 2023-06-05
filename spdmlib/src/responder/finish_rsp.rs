@@ -83,7 +83,7 @@ impl<'a> ResponderContext<'a> {
             let temp_used = read_used - base_hash_size;
             if self
                 .common
-                .append_message_f(session_id, &bytes[..temp_used])
+                .append_message_f(false, session_id, &bytes[..temp_used])
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -100,7 +100,7 @@ impl<'a> ResponderContext<'a> {
 
             let transcript_hash = self
                 .common
-                .calc_rsp_transcript_hash(false, slot_id, session);
+                .calc_rsp_transcript_hash(false, slot_id, false, session);
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -123,7 +123,7 @@ impl<'a> ResponderContext<'a> {
 
             if self
                 .common
-                .append_message_f(session_id, finish_req.verify_data.as_ref())
+                .append_message_f(false, session_id, finish_req.verify_data.as_ref())
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -175,7 +175,7 @@ impl<'a> ResponderContext<'a> {
 
             if self
                 .common
-                .append_message_f(session_id, &writer.used_slice()[..temp_used])
+                .append_message_f(false, session_id, &writer.used_slice()[..temp_used])
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -192,7 +192,7 @@ impl<'a> ResponderContext<'a> {
 
             let transcript_hash = self
                 .common
-                .calc_rsp_transcript_hash(false, slot_id, session);
+                .calc_rsp_transcript_hash(false, slot_id, false, session);
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -208,7 +208,7 @@ impl<'a> ResponderContext<'a> {
 
             if self
                 .common
-                .append_message_f(session_id, hmac.as_ref())
+                .append_message_f(false, session_id, hmac.as_ref())
                 .is_err()
             {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -219,7 +219,7 @@ impl<'a> ResponderContext<'a> {
             writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
         } else if self
             .common
-            .append_message_f(session_id, writer.used_slice())
+            .append_message_f(false, session_id, writer.used_slice())
             .is_err()
         {
             error!("message_f add the message error");
@@ -235,7 +235,7 @@ impl<'a> ResponderContext<'a> {
         let slot_id = session.get_slot_id();
         let th2 = self
             .common
-            .calc_rsp_transcript_hash(false, slot_id, session);
+            .calc_rsp_transcript_hash(false, slot_id, false, session);
 
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);

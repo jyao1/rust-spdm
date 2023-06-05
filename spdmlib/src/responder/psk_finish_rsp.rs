@@ -71,7 +71,7 @@ impl<'a> ResponderContext<'a> {
 
             if self
                 .common
-                .append_message_f(session_id, &bytes[..temp_used])
+                .append_message_f(false, session_id, &bytes[..temp_used])
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -84,9 +84,9 @@ impl<'a> ResponderContext<'a> {
                 .get_immutable_session_via_id(session_id)
                 .unwrap();
 
-            let transcript_hash = self
-                .common
-                .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
+            let transcript_hash =
+                self.common
+                    .calc_rsp_transcript_hash(true, INVALID_SLOT, false, session);
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -111,7 +111,7 @@ impl<'a> ResponderContext<'a> {
 
             if self
                 .common
-                .append_message_f(session_id, psk_finish_req.verify_data.as_ref())
+                .append_message_f(false, session_id, psk_finish_req.verify_data.as_ref())
                 .is_err()
             {
                 error!("message_f add the message error");
@@ -138,7 +138,7 @@ impl<'a> ResponderContext<'a> {
 
         if self
             .common
-            .append_message_f(session_id, writer.used_slice())
+            .append_message_f(false, session_id, writer.used_slice())
             .is_err()
         {
             error!("message_f add the message error");
@@ -151,7 +151,9 @@ impl<'a> ResponderContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
         // generate the data secret
-        let th2 = self.common.calc_rsp_transcript_hash(true, 0, session);
+        let th2 = self
+            .common
+            .calc_rsp_transcript_hash(true, 0, false, session);
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
