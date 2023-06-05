@@ -268,7 +268,7 @@ impl<'a> ResponderContext<'a> {
         // create session - generate the handshake secret (including finished_key)
         let th1 = self
             .common
-            .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
+            .calc_rsp_transcript_hash(true, INVALID_SLOT, false, session);
         if th1.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -286,9 +286,9 @@ impl<'a> ResponderContext<'a> {
             .get_immutable_session_via_id(session_id)
             .unwrap();
         // generate HMAC with finished_key
-        let transcript_hash = self
-            .common
-            .calc_rsp_transcript_hash(true, INVALID_SLOT, session);
+        let transcript_hash =
+            self.common
+                .calc_rsp_transcript_hash(true, INVALID_SLOT, false, session);
         if transcript_hash.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
             return;
@@ -329,7 +329,9 @@ impl<'a> ResponderContext<'a> {
 
         if psk_without_context {
             // generate the data secret directly to skip PSK_FINISH
-            let th2 = self.common.calc_rsp_transcript_hash(true, 0, session);
+            let th2 = self
+                .common
+                .calc_rsp_transcript_hash(true, 0, false, session);
             if th2.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;

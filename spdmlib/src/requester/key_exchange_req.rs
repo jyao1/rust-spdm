@@ -293,7 +293,7 @@ impl<'a> RequesterContext<'a> {
                             // generate the handshake secret (including finished_key) before verify HMAC
                             let th1 = self
                                 .common
-                                .calc_req_transcript_hash(false, slot_id, session)?;
+                                .calc_req_transcript_hash(false, slot_id, false, session)?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
 
                             let session = self.common.get_session_via_id(session_id).unwrap();
@@ -308,7 +308,7 @@ impl<'a> RequesterContext<'a> {
                                 // verify HMAC with finished_key
                                 let transcript_hash = self
                                     .common
-                                    .calc_req_transcript_hash(false, slot_id, session)?;
+                                    .calc_req_transcript_hash(false, slot_id, false, session)?;
 
                                 let session = self
                                     .common
@@ -397,7 +397,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let transcript_hash = self
             .common
-            .calc_req_transcript_hash(false, slot_id, session)?;
+            .calc_req_transcript_hash(false, slot_id, false, session)?;
 
         debug!("message_hash - {:02x?}", transcript_hash.as_ref());
 
@@ -455,7 +455,7 @@ impl<'a> RequesterContext<'a> {
     ) -> SpdmResult {
         let message_hash = self
             .common
-            .calc_req_transcript_hash(false, slot_id, session)?;
+            .calc_req_transcript_hash(false, slot_id, false, session)?;
         // we dont need create message hash for verify
         // we just print message hash for debug purpose
         debug!("message_hash - {:02x?}", message_hash.as_ref());
@@ -477,6 +477,7 @@ impl<'a> RequesterContext<'a> {
         let mut message = self.common.calc_req_transcript_data(
             false,
             slot_id,
+            false,
             &session.runtime_info.message_k,
             None,
         )?;

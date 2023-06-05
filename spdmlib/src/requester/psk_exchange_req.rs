@@ -218,6 +218,7 @@ impl<'a> RequesterContext<'a> {
                             let th1 = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
+                                false,
                                 session,
                             )?;
                             debug!("!!! th1 : {:02x?}\n", th1.as_ref());
@@ -234,6 +235,7 @@ impl<'a> RequesterContext<'a> {
                             let transcript_hash = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
+                                false,
                                 session,
                             )?;
 
@@ -293,6 +295,7 @@ impl<'a> RequesterContext<'a> {
                                 let th2 = self.common.calc_req_transcript_hash(
                                     true,
                                     INVALID_SLOT,
+                                    false,
                                     session,
                                 )?;
 

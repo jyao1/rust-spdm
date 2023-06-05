@@ -88,20 +88,21 @@ impl<'a> RequesterContext<'a> {
         let temp_used = send_used - base_hash_size;
 
         self.common
-            .append_message_f(session_id, &buf[..temp_used])?;
+            .append_message_f(true, session_id, &buf[..temp_used])?;
 
         let session = self
             .common
             .get_immutable_session_via_id(session_id)
             .unwrap();
-        let transcript_hash = self
-            .common
-            .calc_req_transcript_hash(true, INVALID_SLOT, session)?;
+        let transcript_hash =
+            self.common
+                .calc_req_transcript_hash(true, INVALID_SLOT, false, session)?;
 
         let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(transcript_hash.as_ref())?;
 
-        self.common.append_message_f(session_id, hmac.as_ref())?;
+        self.common
+            .append_message_f(true, session_id, hmac.as_ref())?;
 
         // patch the message before send
         buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
@@ -128,8 +129,11 @@ impl<'a> RequesterContext<'a> {
                             debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
                             let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
 
-                            self.common
-                                .append_message_f(session_id, &receive_buffer[..receive_used])?;
+                            self.common.append_message_f(
+                                true,
+                                session_id,
+                                &receive_buffer[..receive_used],
+                            )?;
 
                             let session = self
                                 .common
@@ -139,6 +143,7 @@ impl<'a> RequesterContext<'a> {
                             let th2 = self.common.calc_req_transcript_hash(
                                 true,
                                 INVALID_SLOT,
+                                false,
                                 session,
                             )?;
 

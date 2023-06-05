@@ -11,6 +11,7 @@ use crate::error::SPDM_STATUS_CRYPTO_ERROR;
 use crate::error::SPDM_STATUS_DECODE_AEAD_FAIL;
 use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::error::SPDM_STATUS_SEQUENCE_NUMBER_OVERFLOW;
+use crate::message::SpdmKeyExchangeMutAuthAttributes;
 
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -102,6 +103,7 @@ pub struct SpdmSessionRuntimeInfo {
 pub struct SpdmSessionRuntimeInfo {
     pub psk_hint: Option<SpdmPskHintStruct>,
     pub message_a: ManagedBufferA,
+    pub message_f_initialized: bool,
     pub rsp_cert_hash: Option<SpdmDigestStruct>,
     pub req_cert_hash: Option<SpdmDigestStruct>,
     pub digest_context_th: Option<SpdmHashCtx>,
@@ -112,6 +114,7 @@ pub struct SpdmSessionRuntimeInfo {
 pub struct SpdmSession {
     session_id: u32,
     use_psk: bool,
+    mut_auth_requested: SpdmKeyExchangeMutAuthAttributes,
     session_state: SpdmSessionState,
     crypto_param: SpdmSessionCryptoParam,
     master_secret: SpdmSessionMasterSecret,
@@ -149,6 +152,7 @@ impl SpdmSession {
             slot_id: 0,
             heartbeat_period: 0,
             secure_spdm_version_sel: DMTF_SECURE_SPDM_VERSION_11,
+            mut_auth_requested: SpdmKeyExchangeMutAuthAttributes::default(),
         }
     }
 
@@ -182,6 +186,7 @@ impl SpdmSession {
         self.key_schedule = SpdmKeySchedule::default();
         self.heartbeat_period = 0;
         self.secure_spdm_version_sel = DMTF_SECURE_SPDM_VERSION_11;
+        self.mut_auth_requested = SpdmKeyExchangeMutAuthAttributes::empty();
     }
 
     pub fn get_session_id(&self) -> u32 {
@@ -296,6 +301,14 @@ impl SpdmSession {
 
     pub fn get_session_state(&self) -> SpdmSessionState {
         self.session_state
+    }
+
+    pub fn set_mut_auth_requested(&mut self, mut_auth_requested: SpdmKeyExchangeMutAuthAttributes) {
+        self.mut_auth_requested = mut_auth_requested;
+    }
+
+    pub fn get_mut_auth_requested(&self) -> SpdmKeyExchangeMutAuthAttributes {
+        self.mut_auth_requested
     }
 
     pub fn generate_handshake_secret(
