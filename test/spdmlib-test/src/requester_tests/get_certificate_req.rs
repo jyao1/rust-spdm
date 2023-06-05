@@ -1,20 +1,19 @@
-// Copyright (c) 2021 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::crypto_callback::FAKE_RAND;
 use crate::common::device_io::{FakeSpdmDeviceIo, FakeSpdmDeviceIoReceve, SharedBuffer};
-use crate::common::secret_callback::SECRET_ASYM_IMPL_INSTANCE;
+use crate::common::secret_callback::*;
 use crate::common::transport::PciDoeTransportEncap;
 use crate::common::util::{create_info, get_rsp_cert_chain_buff};
 use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 use spdmlib::requester::RequesterContext;
-use spdmlib::{config, crypto, responder, secret};
+use spdmlib::{responder, secret};
 
 #[test]
 #[cfg(feature = "hashed-transcript-data")]
-fn test_case0_send_receive_spdm_challenge() {
+fn test_case0_send_receive_spdm_certificate() {
     let (rsp_config_info, rsp_provision_info) = create_info();
     let (req_config_info, req_provision_info) = create_info();
 
@@ -24,7 +23,6 @@ fn test_case0_send_receive_spdm_challenge() {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
     secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-    crypto::rand::register(FAKE_RAND.clone());
 
     let mut responder = responder::ResponderContext::new(
         &mut device_io_responder,
@@ -34,11 +32,10 @@ fn test_case0_send_receive_spdm_challenge() {
     );
 
     responder.common.reset_runtime_info();
+    responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
+    responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     responder.common.provision_info.my_cert_chain = [
-        Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        }),
+        Some(get_rsp_cert_chain_buff()),
         None,
         None,
         None,
@@ -47,11 +44,6 @@ fn test_case0_send_receive_spdm_challenge() {
         None,
         None,
     ];
-    responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-
-    responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-    responder.common.runtime_info.need_measurement_summary_hash = true;
 
     responder
         .common
@@ -67,26 +59,10 @@ fn test_case0_send_receive_spdm_challenge() {
         req_config_info,
         req_provision_info,
     );
-    requester.common.reset_runtime_info();
 
-    requester
-        .common
-        .negotiate_info
-        .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-    requester.common.negotiate_info.measurement_hash_sel = SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
     requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
     requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-    requester.common.runtime_info.need_measurement_summary_hash = true;
 
-    requester.common.peer_info.peer_cert_chain[0] = Some(get_rsp_cert_chain_buff());
-    requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-
-    let status = requester
-        .send_receive_spdm_challenge(
-            0,
-            SpdmMeasurementSummaryHashType::SpdmMeasurementSummaryHashTypeNone,
-        )
-        .is_ok();
+    let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
     assert!(status);
 }
