@@ -14,11 +14,12 @@ pub mod capability;
 pub mod certificate;
 pub mod challenge;
 pub mod digest;
+#[cfg(feature = "mut-auth")]
+pub mod encapsulated;
 pub mod error;
 pub mod measurement;
 pub mod vendor;
 pub mod version;
-
 // SPDM 1.1
 pub mod end_session;
 pub mod finish;
@@ -34,6 +35,8 @@ pub use capability::*;
 pub use certificate::*;
 pub use challenge::*;
 pub use digest::*;
+#[cfg(feature = "mut-auth")]
+pub use encapsulated::*;
 pub use end_session::*;
 pub use error::*;
 pub use finish::*;
@@ -69,8 +72,8 @@ enum_builder! {
         SpdmResponsePskFinishRsp => 0x67,
         SpdmResponseHeartbeatAck => 0x68,
         SpdmResponseKeyUpdateAck => 0x69,
-//        SpdmResponseEncapsulatedRequest => 0x6A,
-//        SpdmResponseEncapsulatedResponseAck => 0x6B,
+        SpdmResponseEncapsulatedRequest => 0x6A,
+        SpdmResponseEncapsulatedResponseAck => 0x6B,
         SpdmResponseEndSessionAck => 0x6C,
 
         // 1.0 rerquest
@@ -90,8 +93,8 @@ enum_builder! {
         SpdmRequestPskFinish => 0xE7,
         SpdmRequestHeartbeat => 0xE8,
         SpdmRequestKeyUpdate => 0xE9,
-//        SpdmRequestGetEncapsulatedRequest => 0xEA,
-//        SpdmRequestDeliverEncapsulatedResponse => 0xEB,
+        SpdmRequestGetEncapsulatedRequest => 0xEA,
+        SpdmRequestDeliverEncapsulatedResponse => 0xEB,
         SpdmRequestEndSession => 0xEC
     }
 }
@@ -210,6 +213,15 @@ pub enum SpdmMessagePayload {
 
     SpdmPskExchangeRequest(SpdmPskExchangeRequestPayload),
     SpdmPskExchangeResponse(SpdmPskExchangeResponsePayload),
+
+    #[cfg(feature = "mut-auth")]
+    SpdmGetEncapsulatedRequestPayload(SpdmGetEncapsulatedRequestPayload),
+    #[cfg(feature = "mut-auth")]
+    SpdmEncapsulatedRequestPayload(SpdmEncapsulatedRequestPayload),
+    #[cfg(feature = "mut-auth")]
+    SpdmDeliverEncapsulatedResponsePayload(SpdmDeliverEncapsulatedResponsePayload),
+    #[cfg(feature = "mut-auth")]
+    SpdmEncapsulatedResponseAckPayload(SpdmEncapsulatedResponseAckPayload),
 
     SpdmPskFinishRequest(SpdmPskFinishRequestPayload),
     SpdmPskFinishResponse(SpdmPskFinishResponsePayload),
@@ -515,6 +527,23 @@ impl SpdmCodec for SpdmMessage {
                 cnt += payload.spdm_encode(context, bytes)?;
             }
             SpdmMessagePayload::SpdmKeyUpdateResponse(payload) => {
+                cnt += payload.spdm_encode(context, bytes)?;
+            }
+
+            #[cfg(feature = "mut-auth")]
+            SpdmMessagePayload::SpdmGetEncapsulatedRequestPayload(payload) => {
+                cnt += payload.spdm_encode(context, bytes)?;
+            }
+            #[cfg(feature = "mut-auth")]
+            SpdmMessagePayload::SpdmEncapsulatedRequestPayload(payload) => {
+                cnt += payload.spdm_encode(context, bytes)?;
+            }
+            #[cfg(feature = "mut-auth")]
+            SpdmMessagePayload::SpdmDeliverEncapsulatedResponsePayload(payload) => {
+                cnt += payload.spdm_encode(context, bytes)?;
+            }
+            #[cfg(feature = "mut-auth")]
+            SpdmMessagePayload::SpdmEncapsulatedResponseAckPayload(payload) => {
                 cnt += payload.spdm_encode(context, bytes)?;
             }
 
