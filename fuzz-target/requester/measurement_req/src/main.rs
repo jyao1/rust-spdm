@@ -671,10 +671,8 @@ fn main() {
         .start()
         .unwrap();
 
-    spdmlib::secret::measurement::register(
-        fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
-    );
-    spdmlib::secret::psk::register(fuzzlib::secret::SECRET_PSK_IMPL_INSTANCE.clone());
+    spdmlib::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
+    spdmlib::secret::psk::register(SECRET_PSK_IMPL_INSTANCE.clone());
     #[cfg(not(feature = "fuzz"))]
     {
         let args: Vec<String> = std::env::args().collect();

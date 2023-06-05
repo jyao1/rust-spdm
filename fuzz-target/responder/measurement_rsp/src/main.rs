@@ -19,17 +19,12 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
     {
         let (config_info, provision_info) = rsp_create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let mctp_transport_encap = &mut MctpTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
+            pcidoe_transport_encap,
             config_info,
             provision_info,
         );
@@ -65,17 +60,12 @@ fn fuzz_handle_spdm_measurement(data: &[u8]) {
     {
         let (config_info, provision_info) = rsp_create_info();
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let mctp_transport_encap = &mut MctpTransportEncap {};
         let shared_buffer = SharedBuffer::new();
         let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
 
         let mut context = responder::ResponderContext::new(
             &mut socket_io_transport,
-            if USE_PCIDOE {
-                pcidoe_transport_encap
-            } else {
-                mctp_transport_encap
-            },
+            pcidoe_transport_encap,
             config_info,
             provision_info,
         );
@@ -131,10 +121,8 @@ fn main() {
         .start()
         .unwrap();
 
-    spdmlib::secret::measurement::register(
-        fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
-    );
-    spdmlib::secret::psk::register(fuzzlib::secret::SECRET_PSK_IMPL_INSTANCE.clone());
+    spdmlib::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
+    spdmlib::secret::psk::register(SECRET_PSK_IMPL_INSTANCE.clone());
     #[cfg(not(feature = "fuzz"))]
     {
         let args: Vec<String> = std::env::args().collect();

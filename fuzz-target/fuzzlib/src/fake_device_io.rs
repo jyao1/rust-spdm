@@ -4,10 +4,9 @@
 
 #![forbid(unsafe_code)]
 
-use crate::spdmlib::error::SPDM_STATUS_SEND_FAIL;
-use spdmlib::error::SpdmResult;
-
 use super::*;
+use crate::spdmlib::error::SPDM_STATUS_SEND_FAIL;
+use spdmlib_test::common::device_io::SharedBuffer;
 
 pub struct FakeSpdmDeviceIoReceve<'a> {
     data: &'a SharedBuffer,
