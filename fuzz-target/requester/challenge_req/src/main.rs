@@ -12,10 +12,8 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
     spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-    spdmlib::secret::measurement::register(
-        fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
-    );
-    spdmlib::crypto::rand::register(FUZZ_RAND.clone());
+    spdmlib::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
+    spdmlib::crypto::rand::register(FAKE_RAND.clone());
 
     let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
     device_io_requester.set_rx(fuzzdata);
