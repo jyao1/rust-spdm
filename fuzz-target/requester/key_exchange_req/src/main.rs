@@ -8,9 +8,7 @@ use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_key_exchange(fuzzdata: &[u8]) {
     spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-    spdmlib::secret::measurement::register(
-        fuzzlib::secret::SECRET_MEASUREMENT_IMPL_INSTANCE.clone(),
-    );
+    spdmlib::secret::measurement::register(SECRET_MEASUREMENT_IMPL_INSTANCE.clone());
     spdmlib::crypto::asym_verify::register(FAKE_ASYM_VERIFY.clone());
     spdmlib::crypto::hkdf::register(FAKE_HKDF.clone());
 
