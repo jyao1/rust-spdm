@@ -137,6 +137,9 @@ pub struct SpdmContext<'a> {
     pub provision_info: SpdmProvisionInfo,
     pub peer_info: SpdmPeerInfo,
 
+    #[cfg(feature = "mut-auth")]
+    pub encap_context: SpdmEncapContext,
+
     pub session: [SpdmSession; config::MAX_SPDM_SESSION_COUNT],
 }
 
@@ -155,6 +158,8 @@ impl<'a> SpdmContext<'a> {
             runtime_info: SpdmRuntimeInfo::default(),
             provision_info,
             peer_info: SpdmPeerInfo::default(),
+            #[cfg(feature = "mut-auth")]
+            encap_context: SpdmEncapContext::default(),
             session: gen_array(config::MAX_SPDM_SESSION_COUNT),
         }
     }
@@ -1474,4 +1479,12 @@ pub struct SpdmProvisionInfo {
 pub struct SpdmPeerInfo {
     pub peer_cert_chain: [Option<SpdmCertChainBuffer>; SPDM_MAX_SLOT_NUMBER],
     pub peer_cert_chain_temp: Option<SpdmCertChainBuffer>,
+}
+
+#[cfg(feature = "mut-auth")]
+#[derive(Default)]
+pub struct SpdmEncapContext {
+    pub req_slot_id: u8,
+    pub request_id: u8,
+    pub encap_cert_size: u16,
 }
