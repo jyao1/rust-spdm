@@ -448,6 +448,104 @@ impl<'a> SpdmContext<'a> {
         }
     }
 
+    pub fn append_message_k(&mut self, session_id: u32, new_message: &[u8]) -> SpdmResult {
+        let session = self.get_session_via_id(session_id).unwrap();
+
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            self.runtime_info
+                .message_k
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            if session.runtime_info.digest_context_th.is_none() {
+                session.runtime_info.digest_context_th =
+                    crypto::hash::hash_ctx_init(session.get_crypto_param().base_hash_algo);
+                if session.runtime_info.digest_context_th.is_none() {
+                    return Err(SPDM_STATUS_CRYPTO_ERROR);
+                }
+                crypto::hash::hash_ctx_update(
+                    session.runtime_info.digest_context_th.as_mut().unwrap(),
+                    session.runtime_info.message_a.as_ref(),
+                )?;
+                if session.runtime_info.rsp_cert_hash.is_some() {
+                    crypto::hash::hash_ctx_update(
+                        session.runtime_info.digest_context_th.as_mut().unwrap(),
+                        session
+                            .runtime_info
+                            .rsp_cert_hash
+                            .as_ref()
+                            .unwrap()
+                            .as_ref(),
+                    )?;
+                }
+            }
+
+            crypto::hash::hash_ctx_update(
+                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                new_message,
+            )?;
+        }
+
+        Ok(())
+    }
+    pub fn reset_message_k(&mut self, session_id: u32) {
+        let session = self.get_session_via_id(session_id).unwrap();
+
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            session.runtime_info.message_f.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            session.runtime_info.digest_context_th = None;
+        }
+    }
+
+    pub fn append_message_f(&mut self, session_id: u32, new_message: &[u8]) -> SpdmResult {
+        let session = self.get_session_via_id(session_id).unwrap();
+
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            session
+                .runtime_info
+                .message_f
+                .append_message(new_message)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            if session.runtime_info.digest_context_th.is_none() {
+                return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+            }
+
+            crypto::hash::hash_ctx_update(
+                session.runtime_info.digest_context_th.as_mut().unwrap(),
+                new_message,
+            )?;
+        }
+
+        Ok(())
+    }
+    pub fn reset_message_f(&mut self, session_id: u32) {
+        let session = self.get_session_via_id(session_id).unwrap();
+
+        #[cfg(not(feature = "hashed-transcript-data"))]
+        {
+            session.runtime_info.message_f.reset_message();
+        }
+
+        #[cfg(feature = "hashed-transcript-data")]
+        {
+            session.runtime_info.digest_context_th = None;
+        }
+    }
+
     #[cfg(not(feature = "hashed-transcript-data"))]
     pub fn calc_req_transcript_data(
         &self,

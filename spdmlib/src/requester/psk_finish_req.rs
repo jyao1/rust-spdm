@@ -87,8 +87,8 @@ impl<'a> RequesterContext<'a> {
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
         let temp_used = send_used - base_hash_size;
 
-        let session = self.common.get_session_via_id(session_id).unwrap();
-        session.append_message_f(&buf[..temp_used])?;
+        self.common
+            .append_message_f(session_id, &buf[..temp_used])?;
 
         let session = self
             .common
@@ -101,7 +101,7 @@ impl<'a> RequesterContext<'a> {
         let session = self.common.get_session_via_id(session_id).unwrap();
         let hmac = session.generate_hmac_with_request_finished_key(transcript_hash.as_ref())?;
 
-        session.append_message_f(hmac.as_ref())?;
+        self.common.append_message_f(session_id, hmac.as_ref())?;
 
         // patch the message before send
         buf[(send_used - base_hash_size)..send_used].copy_from_slice(hmac.as_ref());
@@ -128,8 +128,8 @@ impl<'a> RequesterContext<'a> {
                             debug!("!!! psk_finish rsp : {:02x?}\n", psk_finish_rsp);
                             let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
 
-                            let session = self.common.get_session_via_id(session_id).unwrap();
-                            session.append_message_f(&receive_buffer[..receive_used])?;
+                            self.common
+                                .append_message_f(session_id, &receive_buffer[..receive_used])?;
 
                             let session = self
                                 .common
