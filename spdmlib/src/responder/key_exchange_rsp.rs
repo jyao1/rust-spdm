@@ -171,6 +171,10 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        self.common
+            .runtime_info
+            .set_local_used_cert_chain_slot_id(key_exchange_req.slot_id);
+
         let (exchange, key_exchange_context) =
             crypto::dhe::generate_key_pair(self.common.negotiate_info.dhe_sel).unwrap();
 
@@ -220,12 +224,18 @@ impl<'a> ResponderContext<'a> {
             return;
         }
 
+        #[cfg(feature = "mut-auth")]
+        let mut_auth_req = SpdmKeyExchangeMutAuthAttributes::MUT_AUTH_REQ_WITH_GET_DIGESTS;
+        #[cfg(not(feature = "mut-auth"))]
+        let mut_auth_req = SpdmKeyExchangeMutAuthAttributes::empty();
+
         let session = session.unwrap();
         let session_id = ((rsp_session_id as u32) << 16) + key_exchange_req.req_session_id as u32;
         session.setup(session_id).unwrap();
         session.set_use_psk(false);
         session.set_slot_id(slot_id as u8);
         session.set_crypto_param(hash_algo, dhe_algo, aead_algo, key_schedule_algo);
+        session.set_mut_auth_requested(mut_auth_req);
         session.set_transport_param(sequence_number_count, max_random_count);
         if session.set_dhe_secret(spdm_version_sel, final_key).is_err() {
             let _ = session.teardown(session_id);
@@ -266,7 +276,7 @@ impl<'a> ResponderContext<'a> {
             payload: SpdmMessagePayload::SpdmKeyExchangeResponse(SpdmKeyExchangeResponsePayload {
                 heartbeat_period: self.common.config_info.heartbeat_period,
                 rsp_session_id,
-                mut_auth_req: SpdmKeyExchangeMutAuthAttributes::empty(),
+                mut_auth_req,
                 req_slot_id: 0x0,
                 random: SpdmRandomStruct { data: random },
                 exchange,
