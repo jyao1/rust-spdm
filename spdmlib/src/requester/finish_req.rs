@@ -2,10 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::error::{
-    SpdmResult, SPDM_STATUS_ERROR_PEER, SPDM_STATUS_INVALID_MSG_FIELD,
-    SPDM_STATUS_INVALID_PARAMETER, SPDM_STATUS_INVALID_STATE_LOCAL, SPDM_STATUS_VERIF_FAIL,
-};
+use crate::common::session::SpdmSession;
+use crate::error::*;
 use crate::message::*;
 use crate::protocol::*;
 use crate::requester::*;
@@ -111,7 +109,19 @@ impl<'a> RequesterContext<'a> {
         req_slot_id: u8,
         buf: &mut [u8],
     ) -> SpdmResult<usize> {
-        let mut writer = Writer::init(buf);
+        let mut finish_request_attributes = SpdmFinishRequestAttributes::empty();
+        let mut signature = SpdmSignatureStruct::default();
+        let mut is_mut_auth = false;
+
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+        if !session.get_mut_auth_requested().is_empty() {
+            finish_request_attributes = SpdmFinishRequestAttributes::SIGNATURE_INCLUDED;
+            signature.data_size = self.common.negotiate_info.req_asym_sel.get_size();
+            is_mut_auth = true;
+        }
 
         let request = SpdmMessage {
             header: SpdmMessageHeader {
@@ -119,23 +129,37 @@ impl<'a> RequesterContext<'a> {
                 request_response_code: SpdmRequestResponseCode::SpdmRequestFinish,
             },
             payload: SpdmMessagePayload::SpdmFinishRequest(SpdmFinishRequestPayload {
-                finish_request_attributes: SpdmFinishRequestAttributes::empty(),
+                finish_request_attributes,
                 req_slot_id,
-                signature: SpdmSignatureStruct::default(),
+                signature,
                 verify_data: SpdmDigestStruct {
                     data_size: self.common.negotiate_info.base_hash_sel.get_size(),
                     data: Box::new([0xcc; SPDM_MAX_HASH_SIZE]),
                 },
             }),
         };
+
+        let mut writer = Writer::init(buf);
         let send_used = request.spdm_encode(&mut self.common, &mut writer)?;
+
+        // Record the header of finish request
+        self.common.append_message_f(true, session_id, &buf[..4])?;
+
+        let session = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?;
+        if !session.get_mut_auth_requested().is_empty() {
+            signature = self.generate_finish_req_signature(session.get_slot_id(), session)?;
+            // patch the signature
+            buf[4..4 + signature.data_size as usize].copy_from_slice(signature.as_ref());
+
+            self.common
+                .append_message_f(true, session_id, signature.as_ref())?;
+        }
 
         // generate HMAC with finished_key
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
-        let temp_used = send_used - base_hash_size;
-
-        self.common
-            .append_message_f(true, session_id, &buf[..temp_used])?;
 
         let session = self
             .common
@@ -144,7 +168,7 @@ impl<'a> RequesterContext<'a> {
 
         let transcript_hash =
             self.common
-                .calc_req_transcript_hash(false, req_slot_id, false, session)?;
+                .calc_req_transcript_hash(false, req_slot_id, is_mut_auth, session)?;
 
         let session = self.common.get_session_via_id(session_id).unwrap();
 
@@ -174,6 +198,13 @@ impl<'a> RequesterContext<'a> {
                 .negotiate_info
                 .rsp_capabilities_sel
                 .contains(SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP);
+
+        let is_mut_auth = !self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .ok_or(SPDM_STATUS_INVALID_STATE_LOCAL)?
+            .get_mut_auth_requested()
+            .is_empty();
 
         let mut reader = Reader::init(receive_buffer);
         match SpdmMessageHeader::read(&mut reader) {
@@ -205,7 +236,7 @@ impl<'a> RequesterContext<'a> {
                             let transcript_hash = self.common.calc_req_transcript_hash(
                                 false,
                                 req_slot_id,
-                                false,
+                                is_mut_auth,
                                 session,
                             )?;
 
@@ -244,7 +275,7 @@ impl<'a> RequesterContext<'a> {
                         let th2 = self.common.calc_req_transcript_hash(
                             false,
                             req_slot_id,
-                            false,
+                            is_mut_auth,
                             session,
                         )?;
 
@@ -279,6 +310,106 @@ impl<'a> RequesterContext<'a> {
             },
             None => Err(SPDM_STATUS_INVALID_MSG_FIELD),
         }
+    }
+
+    #[cfg(not(feature = "hashed-transcript-data"))]
+    fn generate_finish_req_signature(
+        &self,
+        slot_id: u8,
+        session: &SpdmSession,
+    ) -> SpdmResult<SpdmSignatureStruct> {
+        let transcript_data_hash = self
+            .common
+            .calc_req_transcript_hash(false, slot_id, true, session)?;
+
+        let mut transcript_sign = ManagedBuffer12Sign::default();
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            transcript_sign.reset_message();
+            transcript_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_12)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(&SPDM_FINISH_SIGN_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(transcript_data_hash.as_ref())
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        crate::secret::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            transcript_sign.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
+    fn generate_finish_req_signature(
+        &self,
+        _slot_id: u8,
+        session: &SpdmSession,
+    ) -> SpdmResult<SpdmSignatureStruct> {
+        let transcript_hash =
+            self.common
+                .calc_req_transcript_hash(false, INVALID_SLOT, true, session)?;
+
+        debug!("transcript_hash - {:02x?}", transcript_hash.as_ref());
+
+        let mut transcript_sign = ManagedBuffer12Sign::default();
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            transcript_sign.reset_message();
+            transcript_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_12)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(&SPDM_FINISH_SIGN_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(transcript_hash.as_ref())
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
+        let signature = crate::secret::asym_sign::sign(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            transcript_sign.as_ref(),
+        )
+        .ok_or(SPDM_STATUS_CRYPTO_ERROR)?;
+
+        let peer_slot_id = self.common.runtime_info.get_local_used_cert_chain_slot_id();
+        let peer_cert = &self.common.provision_info.my_cert_chain[peer_slot_id as usize]
+            .as_ref()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[peer_slot_id as usize]
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                .data_size as usize)];
+
+        crate::crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            peer_cert,
+            transcript_sign.as_ref(),
+            &signature,
+        )
+        .unwrap();
+
+        Ok(signature)
     }
 }
 
