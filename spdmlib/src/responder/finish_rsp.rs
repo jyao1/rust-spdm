@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::common::SpdmCodec;
-use crate::error::SpdmResult;
+use crate::common::session::SpdmSession;
+use crate::common::{ManagedBuffer12Sign, SpdmCodec};
+use crate::crypto;
+use crate::error::*;
 use crate::message::*;
 use crate::protocol::*;
 use crate::responder::*;
@@ -67,7 +69,47 @@ impl<'a> ResponderContext<'a> {
             return;
         }
         let finish_req = finish_req.unwrap();
-        let read_used = reader.used();
+
+        if self
+            .common
+            .append_message_f(false, session_id, &bytes[..4])
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
+
+        let mut is_mut_auth = false;
+        if finish_req
+            .finish_request_attributes
+            .contains(SpdmFinishRequestAttributes::SIGNATURE_INCLUDED)
+        {
+            is_mut_auth = true;
+
+            let session = self
+                .common
+                .get_immutable_session_via_id(session_id)
+                .unwrap();
+
+            if self
+                .verify_finish_req_signature(&finish_req.signature, session)
+                .is_err()
+            {
+                error!("verify finish request signature error");
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorDecryptError, 0, writer);
+                return;
+            }
+            info!("verify_finish_req_signature pass");
+
+            if self
+                .common
+                .append_message_f(false, session_id, finish_req.signature.as_ref())
+                .is_err()
+            {
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+                return;
+            }
+        }
 
         // verify HMAC with finished_key
         let base_hash_size = self.common.negotiate_info.base_hash_sel.get_size() as usize;
@@ -80,17 +122,6 @@ impl<'a> ResponderContext<'a> {
                 return;
             }
 
-            let temp_used = read_used - base_hash_size;
-            if self
-                .common
-                .append_message_f(false, session_id, &bytes[..temp_used])
-                .is_err()
-            {
-                error!("message_f add the message error");
-                self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
-            }
-
             let session = self
                 .common
                 .get_immutable_session_via_id(session_id)
@@ -98,9 +129,9 @@ impl<'a> ResponderContext<'a> {
 
             let slot_id = session.get_slot_id();
 
-            let transcript_hash = self
-                .common
-                .calc_rsp_transcript_hash(false, slot_id, false, session);
+            let transcript_hash =
+                self.common
+                    .calc_rsp_transcript_hash(false, slot_id, is_mut_auth, session);
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -190,9 +221,9 @@ impl<'a> ResponderContext<'a> {
 
             let slot_id = session.get_slot_id();
 
-            let transcript_hash = self
-                .common
-                .calc_rsp_transcript_hash(false, slot_id, false, session);
+            let transcript_hash =
+                self.common
+                    .calc_rsp_transcript_hash(false, slot_id, is_mut_auth, session);
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
                 return;
@@ -219,7 +250,7 @@ impl<'a> ResponderContext<'a> {
             writer.mut_used_slice()[(used - base_hash_size)..used].copy_from_slice(hmac.as_ref());
         } else if self
             .common
-            .append_message_f(false, session_id, writer.used_slice())
+            .append_message_f(false, session_id, &writer.used_slice()[..4])
             .is_err()
         {
             error!("message_f add the message error");
@@ -235,7 +266,7 @@ impl<'a> ResponderContext<'a> {
         let slot_id = session.get_slot_id();
         let th2 = self
             .common
-            .calc_rsp_transcript_hash(false, slot_id, false, session);
+            .calc_rsp_transcript_hash(false, slot_id, is_mut_auth, session);
 
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
@@ -248,6 +279,106 @@ impl<'a> ResponderContext<'a> {
         session
             .generate_data_secret(spdm_version_sel, &th2)
             .unwrap();
+    }
+
+    #[cfg(not(feature = "hashed-transcript-data"))]
+    fn verify_finish_req_signature(
+        &self,
+        signature: &SpdmSignatureStruct,
+        session: &SpdmSession,
+    ) -> SpdmResult {
+        let transcript_data_hash =
+            self.common
+                .calc_rsp_transcript_hash(false, session.get_slot_id(), true, session)?;
+
+        let peer_slot_id = self.common.runtime_info.get_peer_used_cert_chain_slot_id();
+        let peer_cert = &self.common.peer_info.peer_cert_chain[peer_slot_id as usize]
+            .as_ref()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[peer_slot_id as usize]
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                .data_size as usize)];
+        let mut transcript_sign = ManagedBuffer12Sign::default();
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            transcript_sign.reset_message();
+            transcript_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_12)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(&SPDM_FINISH_SIGN_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_sign
+                .append_message(transcript_data_hash.as_ref())
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        }
+
+        crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            peer_cert,
+            transcript_sign.as_ref(),
+            signature,
+        )
+    }
+
+    #[cfg(feature = "hashed-transcript-data")]
+    fn verify_finish_req_signature(
+        &self,
+        signature: &SpdmSignatureStruct,
+        session: &SpdmSession,
+    ) -> SpdmResult {
+        let transcript_hash =
+            self.common
+                .calc_rsp_transcript_hash(false, session.get_slot_id(), true, session)?;
+
+        let peer_slot_id = self.common.runtime_info.get_peer_used_cert_chain_slot_id();
+        let peer_cert = &self.common.peer_info.peer_cert_chain[peer_slot_id as usize]
+            .as_ref()
+            .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+            .data[(4usize + self.common.negotiate_info.base_hash_sel.get_size() as usize)
+            ..(self.common.peer_info.peer_cert_chain[peer_slot_id as usize]
+                .as_ref()
+                .ok_or(SPDM_STATUS_INVALID_PARAMETER)?
+                .data_size as usize)];
+
+        let mut transcript_hash_sign = ManagedBuffer12Sign::default();
+        if self.common.negotiate_info.spdm_version_sel.get_u8()
+            >= SpdmVersion::SpdmVersion12.get_u8()
+        {
+            transcript_hash_sign.reset_message();
+            transcript_hash_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_PREFIX_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_hash_sign
+                .append_message(&SPDM_VERSION_1_2_SIGNING_CONTEXT_ZEROPAD_12)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_hash_sign
+                .append_message(&SPDM_FINISH_SIGN_CONTEXT)
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+            transcript_hash_sign
+                .append_message(transcript_hash.as_ref())
+                .ok_or(SPDM_STATUS_BUFFER_FULL)?;
+        } else {
+            error!("hashed-transcript-data is unsupported in SPDM 1.0/1.1 signing!\n");
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+
+        let res = crypto::asym_verify::verify(
+            self.common.negotiate_info.base_hash_sel,
+            self.common.negotiate_info.base_asym_sel,
+            peer_cert,
+            transcript_hash_sign.as_ref(),
+            signature,
+        );
+
+        res
     }
 }
 
