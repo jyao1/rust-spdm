@@ -17,6 +17,7 @@ simple_logger = "1.11.0"
 
 [features]
 default = ["spdm-emu/default"]
+mut-auth = ["spdm-emu/mut-auth"]
 spdm-ring = ["spdm-emu/spdm-ring"]
 spdm-mbedtls = ["spdm-emu/spdm-mbedtls"]
 hashed-transcript-data = ["spdm-emu/hashed-transcript-data"]

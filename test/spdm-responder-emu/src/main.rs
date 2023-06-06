@@ -139,6 +139,24 @@ fn handle_message(
 ) -> Result<bool, (usize, [u8; config::RECEIVER_BUFFER_SIZE])> {
     println!("handle_message!");
     let mut socket_io_transport = SocketIoTransport::new(stream);
+    let rsp_capabilities = SpdmResponseCapabilityFlags::CERT_CAP
+        | SpdmResponseCapabilityFlags::CHAL_CAP
+        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
+        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
+        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
+        | SpdmResponseCapabilityFlags::MAC_CAP
+        | SpdmResponseCapabilityFlags::KEY_EX_CAP
+        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
+        | SpdmResponseCapabilityFlags::ENCAP_CAP
+        | SpdmResponseCapabilityFlags::HBEAT_CAP
+        | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
+    // | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
+    // | SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP
+    let rsp_capabilities = if cfg!(feature = "mut-auth") {
+        rsp_capabilities | SpdmResponseCapabilityFlags::MUT_AUTH_CAP
+    } else {
+        rsp_capabilities
+    };
 
     let config_info = common::SpdmConfigInfo {
         spdm_version: [
@@ -146,19 +164,7 @@ fn handle_message(
             SpdmVersion::SpdmVersion11,
             SpdmVersion::SpdmVersion12,
         ],
-        rsp_capabilities: SpdmResponseCapabilityFlags::CERT_CAP
-        | SpdmResponseCapabilityFlags::CHAL_CAP
-        | SpdmResponseCapabilityFlags::MEAS_CAP_SIG
-        | SpdmResponseCapabilityFlags::MEAS_FRESH_CAP
-        | SpdmResponseCapabilityFlags::ENCRYPT_CAP
-        | SpdmResponseCapabilityFlags::MAC_CAP
-        //| SpdmResponseCapabilityFlags::MUT_AUTH_CAP
-        | SpdmResponseCapabilityFlags::KEY_EX_CAP
-        | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
-        | SpdmResponseCapabilityFlags::ENCAP_CAP
-        | SpdmResponseCapabilityFlags::HBEAT_CAP
-        | SpdmResponseCapabilityFlags::KEY_UPD_CAP, // | SpdmResponseCapabilityFlags::HANDSHAKE_IN_THE_CLEAR_CAP
-        // | SpdmResponseCapabilityFlags::PUB_KEY_ID_CAP
+        rsp_capabilities,
         rsp_ct_exponent: 0,
         measurement_specification: SpdmMeasurementSpecification::DMTF,
         measurement_hash_algo: SpdmMeasurementHashAlgo::TPM_ALG_SHA_384,
@@ -170,7 +176,11 @@ fn handle_message(
         base_hash_algo: SpdmBaseHashAlgo::TPM_ALG_SHA_384,
         dhe_algo: SpdmDheAlgo::SECP_384_R1,
         aead_algo: SpdmAeadAlgo::AES_256_GCM,
-        req_asym_algo: SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048,
+        req_asym_algo: if USE_ECDSA {
+            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384
+        } else {
+            SpdmReqAsymAlgo::TPM_ALG_RSASSA_3072
+        },
         key_schedule_algo: SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         opaque_support: SpdmOpaqueSupport::OPAQUE_DATA_FMT1,
         data_transfer_size: config::MAX_SPDM_MSG_SIZE as u32,
