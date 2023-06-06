@@ -21,6 +21,7 @@ spdmlib_crypto_mbedtls = { path = "../../spdmlib_crypto_mbedtls", default-featur
 
 [features]
 default = ["spdm-ring", "spdmlib/hashed-transcript-data"]
+mut-auth = ["spdmlib/mut-auth"]
 spdm-ring = ["spdmlib/spdm-ring", "spdmlib/std"]
 spdm-mbedtls = ["spdmlib_crypto_mbedtls"]
 hashed-transcript-data = ["spdmlib/hashed-transcript-data"]

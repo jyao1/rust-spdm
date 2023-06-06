@@ -44,7 +44,13 @@ impl<'a> RequesterContext<'a> {
         if !use_psk {
             let session_id =
                 self.send_receive_spdm_key_exchange(slot_id, measurement_summary_hash_type)?;
-            self.send_receive_spdm_finish(None, session_id)?;
+            #[cfg(not(feature = "mut-auth"))]
+            let req_slot_id: Option<u8> = None;
+            #[cfg(feature = "mut-auth")]
+            self.session_based_mutual_authenticate(session_id)?;
+            #[cfg(feature = "mut-auth")]
+            let req_slot_id = Some(self.common.runtime_info.get_local_used_cert_chain_slot_id());
+            self.send_receive_spdm_finish(req_slot_id, session_id)?;
             Ok(session_id)
         } else {
             let session_id =
