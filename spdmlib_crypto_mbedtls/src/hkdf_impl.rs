@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use spdmlib::crypto::SpdmHkdf;
-use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
+use spdmlib::protocol::{
+    SpdmBaseHashAlgo, SpdmHkdfInputKeyingMaterial, SpdmHkdfOutputKeyingMaterial,
+    SpdmHkdfPseudoRandomKey,
+};
 
 pub static DEFAULT: SpdmHkdf = SpdmHkdf {
     hkdf_extract_cb: hkdf_extract,
@@ -18,7 +21,11 @@ const MBEDTLS_MD_SHA256: c_int = 6;
 const MBEDTLS_MD_SHA384: c_int = 7;
 const MBEDTLS_MD_SHA512: c_int = 8;
 
-fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<SpdmDigestStruct> {
+fn hkdf_extract(
+    hash_algo: SpdmBaseHashAlgo,
+    salt: &[u8],
+    ikm: &SpdmHkdfInputKeyingMaterial,
+) -> Option<SpdmHkdfPseudoRandomKey> {
     let algorithm = match hash_algo {
         SpdmBaseHashAlgo::TPM_ALG_SHA_256 => MBEDTLS_MD_SHA256,
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => MBEDTLS_MD_SHA384,
@@ -28,7 +35,7 @@ fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<
         }
     };
 
-    let mut digest = SpdmDigestStruct::default();
+    let mut prk = SpdmHkdfPseudoRandomKey::default();
     unsafe {
         let md_info = mbedtls_md_info_from_type(algorithm);
         if md_info.is_null() {
@@ -39,31 +46,31 @@ fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<
             md_info,
             salt.as_ptr(),
             salt.len(),
-            ikm.as_ptr(),
-            ikm.len(),
-            digest.data.as_mut_ptr(),
+            ikm.as_ref().as_ptr(),
+            ikm.get_data_size() as usize,
+            prk.data.as_mut_ptr(),
         );
         if ret != 0 {
             return None;
         }
-        digest.data_size = olen as u16;
+        prk.data_size = olen as u16;
     }
-    Some(digest)
+    Some(prk)
 }
 
 fn hkdf_expand(
     hash_algo: SpdmBaseHashAlgo,
-    prk: &[u8],
+    prk: &SpdmHkdfPseudoRandomKey,
     info: &[u8],
     out_size: u16,
-) -> Option<SpdmDigestStruct> {
+) -> Option<SpdmHkdfOutputKeyingMaterial> {
     let algorithm = match hash_algo {
         SpdmBaseHashAlgo::TPM_ALG_SHA_256 => Some(MBEDTLS_MD_SHA256),
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => Some(MBEDTLS_MD_SHA384),
         SpdmBaseHashAlgo::TPM_ALG_SHA_512 => Some(MBEDTLS_MD_SHA512),
         _ => None,
     }?;
-    let mut digest = SpdmDigestStruct::default();
+    let mut okm = SpdmHkdfOutputKeyingMaterial::default();
     unsafe {
         let md_info = mbedtls_md_info_from_type(algorithm);
         if md_info.is_null() {
@@ -71,32 +78,42 @@ fn hkdf_expand(
         }
         let res = mbedtls_hkdf_expand(
             md_info,
-            prk.as_ptr(),
-            prk.len(),
+            prk.as_ref().as_ptr(),
+            prk.data_size as usize,
             info.as_ptr(),
             info.len(),
-            digest.data.as_mut_ptr(),
+            okm.data.as_mut_ptr(),
             out_size as usize,
         );
         if res != 0 {
             return None;
         }
-        digest.data_size = out_size;
+        okm.data_size = out_size;
     }
-    Some(digest)
+    Some(okm)
 }
 
 #[cfg(all(test,))]
 mod tests {
+    use spdmlib::protocol::SPDM_MAX_HASH_SIZE;
+
     use super::*;
 
     #[test]
     fn test_case0_hkdf_expand() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        let prk = &mut [100u8; 64];
+        let prk = &SpdmDigestStruct {
+            data_size: 64,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let info = &mut [100u8; 64];
         let out_size = 64;
-        let hkdf_expand = hkdf_expand(base_hash_algo, prk, info, out_size);
+        let hkdf_expand = hkdf_expand(
+            base_hash_algo,
+            &SpdmHkdfInputKeyingMaterial::SpdmDigest(prk),
+            info,
+            out_size,
+        );
 
         match hkdf_expand {
             Some(_) => {
@@ -111,10 +128,18 @@ mod tests {
     #[should_panic]
     fn test_case1_hkdf_expand() {
         let base_hash_algo = SpdmBaseHashAlgo::empty();
-        let prk = &mut [100u8; 64];
+        let prk = &SpdmDigestStruct {
+            data_size: 64,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let info = &mut [100u8; 64];
         let out_size = 64;
-        let hkdf_expand = hkdf_expand(base_hash_algo, prk, info, out_size);
+        let hkdf_expand = hkdf_expand(
+            base_hash_algo,
+            &SpdmHkdfInputKeyingMaterial::SpdmDigest(prk),
+            info,
+            out_size,
+        );
 
         match hkdf_expand {
             Some(_) => {

@@ -5,6 +5,9 @@
 use crate::common::SpdmCodec;
 use crate::common::INVALID_SLOT;
 use crate::error::SpdmResult;
+use crate::error::SPDM_STATUS_CRYPTO_ERROR;
+use crate::error::SPDM_STATUS_INVALID_MSG_FIELD;
+use crate::error::SPDM_STATUS_INVALID_STATE_LOCAL;
 use crate::message::*;
 use crate::responder::*;
 
@@ -12,7 +15,7 @@ impl<'a> ResponderContext<'a> {
     pub fn handle_spdm_psk_finish(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
         let mut send_buffer = [0u8; config::MAX_SPDM_MSG_SIZE];
         let mut writer = Writer::init(&mut send_buffer);
-        self.write_spdm_psk_finish_response(session_id, bytes, &mut writer);
+        self.write_spdm_psk_finish_response(session_id, bytes, &mut writer)?;
         self.send_secured_message(session_id, writer.used_slice(), false)
     }
 
@@ -22,17 +25,17 @@ impl<'a> ResponderContext<'a> {
         session_id: u32,
         bytes: &[u8],
         writer: &mut Writer,
-    ) {
+    ) -> SpdmResult {
         let mut reader = Reader::init(bytes);
         let message_header = SpdmMessageHeader::read(&mut reader);
         if let Some(message_header) = message_header {
             if message_header.version != self.common.negotiate_info.spdm_version_sel {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
-                return;
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             }
         } else {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
 
         self.common.reset_buffer_via_request_code(
@@ -47,7 +50,7 @@ impl<'a> ResponderContext<'a> {
         } else {
             error!("!!! psk_finish req : fail !!!\n");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-            return;
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
         }
         // Safety to call unwrap()
         let psk_finish_req = psk_finish_req.unwrap();
@@ -66,7 +69,7 @@ impl<'a> ResponderContext<'a> {
 
             if !session.get_use_psk() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
-                return;
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             }
 
             if self
@@ -76,7 +79,7 @@ impl<'a> ResponderContext<'a> {
             {
                 error!("message_f add the message error");
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             }
 
             let session = self
@@ -89,7 +92,7 @@ impl<'a> ResponderContext<'a> {
                     .calc_rsp_transcript_hash(true, INVALID_SLOT, false, session);
             if transcript_hash.is_err() {
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             }
             let transcript_hash = transcript_hash.as_ref().unwrap();
 
@@ -104,7 +107,7 @@ impl<'a> ResponderContext<'a> {
             if res.is_err() {
                 error!("verify_hmac_with_request_finished_key fail");
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorDecryptError, 0, writer);
-                return;
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             } else {
                 info!("verify_hmac_with_request_finished_key pass");
             }
@@ -116,7 +119,7 @@ impl<'a> ResponderContext<'a> {
             {
                 error!("message_f add the message error");
                 self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                return;
+                return Err(SPDM_STATUS_CRYPTO_ERROR);
             }
         }
 
@@ -133,7 +136,7 @@ impl<'a> ResponderContext<'a> {
         let res = response.spdm_encode(&mut self.common, writer);
         if res.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
         }
 
         if self
@@ -143,7 +146,7 @@ impl<'a> ResponderContext<'a> {
         {
             error!("message_f add the message error");
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
 
         let session = self
@@ -156,16 +159,14 @@ impl<'a> ResponderContext<'a> {
             .calc_rsp_transcript_hash(true, 0, false, session);
         if th2.is_err() {
             self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-            return;
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
         // Safely to call unwrap;
         let th2 = th2.unwrap();
         debug!("!!! th2 : {:02x?}\n", th2.as_ref());
         let spdm_version_sel = self.common.negotiate_info.spdm_version_sel;
         let session = self.common.get_session_via_id(session_id).unwrap();
-        session
-            .generate_data_secret(spdm_version_sel, &th2)
-            .unwrap();
+        session.generate_data_secret(spdm_version_sel, &th2)
     }
 }
 

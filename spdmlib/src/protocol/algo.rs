@@ -51,44 +51,7 @@ pub const SPDM_MAX_ASYM_KEY_SIZE: usize = 512;
 pub const SPDM_MAX_DHE_KEY_SIZE: usize = SECP_384_R1_KEY_SIZE;
 pub const SPDM_MAX_AEAD_KEY_SIZE: usize = 32;
 pub const SPDM_MAX_AEAD_IV_SIZE: usize = 12;
-
-#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SpdmDigestStruct {
-    pub data_size: u16,
-    pub data: Box<[u8; SPDM_MAX_HASH_SIZE]>,
-}
-impl Default for SpdmDigestStruct {
-    fn default() -> SpdmDigestStruct {
-        SpdmDigestStruct {
-            data_size: 0,
-            data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
-        }
-    }
-}
-
-impl AsRef<[u8]> for SpdmDigestStruct {
-    fn as_ref(&self) -> &[u8] {
-        &self.data[0..self.data_size as usize]
-    }
-}
-
-impl From<BytesMut> for SpdmDigestStruct {
-    fn from(value: BytesMut) -> Self {
-        SpdmDigestStruct::from(value.as_ref())
-    }
-}
-
-impl From<&[u8]> for SpdmDigestStruct {
-    fn from(value: &[u8]) -> Self {
-        // TODO: verify
-        // ensure value.len() in 32 48 64
-        assert!(value.len() <= SPDM_MAX_HASH_SIZE);
-        let data_size = value.len() as u16;
-        let mut data = Box::new([0u8; SPDM_MAX_HASH_SIZE]);
-        data[0..value.len()].copy_from_slice(value.as_ref());
-        Self { data_size, data }
-    }
-}
+pub const SPDM_MAX_HKDF_OKM_SIZE: usize = SPDM_MAX_HASH_SIZE;
 
 bitflags! {
     #[derive(Default)]
@@ -1122,36 +1085,6 @@ impl From<BytesMut> for SpdmDheExchangeStruct {
     }
 }
 
-#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SpdmDheFinalKeyStruct {
-    pub data_size: u16,
-    pub data: Box<[u8; SPDM_MAX_DHE_KEY_SIZE]>,
-}
-impl Default for SpdmDheFinalKeyStruct {
-    fn default() -> SpdmDheFinalKeyStruct {
-        SpdmDheFinalKeyStruct {
-            data_size: 0,
-            data: Box::new([0u8; SPDM_MAX_DHE_KEY_SIZE]),
-        }
-    }
-}
-
-impl AsRef<[u8]> for SpdmDheFinalKeyStruct {
-    fn as_ref(&self) -> &[u8] {
-        &self.data[0..(self.data_size as usize)]
-    }
-}
-
-impl From<BytesMutStrubbed> for SpdmDheFinalKeyStruct {
-    fn from(value: BytesMutStrubbed) -> Self {
-        assert!(value.as_ref().len() <= SPDM_MAX_DHE_KEY_SIZE);
-        let data_size = value.as_ref().len() as u16;
-        let mut data = Box::new([0u8; SPDM_MAX_DHE_KEY_SIZE]);
-        data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
-        Self { data_size, data }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct SpdmPskContextStruct {
     pub data_size: u16,
@@ -1165,7 +1098,6 @@ impl Default for SpdmPskContextStruct {
         }
     }
 }
-
 impl AsRef<[u8]> for SpdmPskContextStruct {
     fn as_ref(&self) -> &[u8] {
         &self.data[0..(self.data_size as usize)]
@@ -1185,70 +1117,402 @@ impl Default for SpdmPskHintStruct {
         }
     }
 }
-
 impl AsRef<[u8]> for SpdmPskHintStruct {
     fn as_ref(&self) -> &[u8] {
         &self.data[0..(self.data_size as usize)]
     }
 }
 
-#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SpdmAeadKeyStruct {
-    pub data_size: u16,
-    pub data: Box<[u8; SPDM_MAX_AEAD_KEY_SIZE]>,
+macro_rules! create_sensitive_datatype {
+    (Name: $name:ident, Size: $size:expr) => {
+        #[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
+        pub struct $name {
+            pub data_size: u16,
+            pub data: Box<[u8; $size]>,
+        }
+
+        impl Default for $name {
+            fn default() -> $name {
+                $name {
+                    data_size: 0,
+                    data: Box::new([0u8; $size]),
+                }
+            }
+        }
+
+        impl AsRef<[u8]> for $name {
+            fn as_ref(&self) -> &[u8] {
+                &self.data[0..(self.data_size as usize)]
+            }
+        }
+
+        impl From<BytesMutStrubbed> for $name {
+            fn from(value: BytesMutStrubbed) -> Self {
+                assert!(value.as_ref().len() <= $size);
+                let data_size = value.as_ref().len() as u16;
+                let mut data = Box::new([0u8; $size]);
+                data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
+                Self { data_size, data }
+            }
+        }
+
+        impl From<&[u8]> for $name {
+            fn from(value: &[u8]) -> Self {
+                assert!(value.len() <= $size);
+                let data_size = value.len() as u16;
+                let mut data = Box::new([0u8; $size]);
+                data[0..value.len()].copy_from_slice(value.as_ref());
+                Self { data_size, data }
+            }
+        }
+    };
 }
-impl Default for SpdmAeadKeyStruct {
-    fn default() -> SpdmAeadKeyStruct {
-        SpdmAeadKeyStruct {
-            data_size: 0,
-            data: Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]),
+
+create_sensitive_datatype!(Name: SpdmDigestStruct, Size: SPDM_MAX_HASH_SIZE);
+create_sensitive_datatype!(Name: SpdmDheFinalKeyStruct, Size: SPDM_MAX_DHE_KEY_SIZE);
+create_sensitive_datatype!(Name: SpdmHandshakeSecretStruct, Size: SPDM_MAX_HASH_SIZE);
+create_sensitive_datatype!(
+    Name: SpdmDirectionHandshakeSecretStruct,
+    Size: SPDM_MAX_HASH_SIZE
+);
+create_sensitive_datatype!(Name: SpdmFinishedKeyStruct, Size: SPDM_MAX_HASH_SIZE);
+create_sensitive_datatype!(Name: SpdmMasterSecretStruct, Size: SPDM_MAX_HASH_SIZE);
+create_sensitive_datatype!(
+    Name: SpdmDirectionDataSecretStruct,
+    Size: SPDM_MAX_HASH_SIZE
+);
+create_sensitive_datatype!(Name: SpdmAeadKeyStruct, Size: SPDM_MAX_AEAD_KEY_SIZE);
+create_sensitive_datatype!(Name: SpdmAeadIvStruct, Size: SPDM_MAX_AEAD_IV_SIZE);
+create_sensitive_datatype!(Name: SpdmExportMasterSecretStruct, Size: SPDM_MAX_HASH_SIZE);
+create_sensitive_datatype!(Name: SpdmZeroFilledStruct, Size: SPDM_MAX_HASH_SIZE);
+
+create_sensitive_datatype!(Name: SpdmHkdfPseudoRandomKey, Size: SPDM_MAX_HASH_SIZE);
+create_sensitive_datatype!(
+    Name: SpdmHkdfOutputKeyingMaterial,
+    Size: SPDM_MAX_HKDF_OKM_SIZE
+);
+
+#[derive(Debug, Clone)]
+pub enum SpdmMajorSecret<'a> {
+    SpdmDirectionHandshakeSecret(&'a SpdmDirectionHandshakeSecretStruct),
+    SpdmDirectionDataSecret(&'a SpdmDirectionDataSecretStruct),
+}
+
+#[derive(Debug, Clone)]
+pub enum SpdmHkdfInputKeyingMaterial<'a> {
+    SpdmZeroFilled(&'a SpdmZeroFilledStruct),
+    SpdmDheFinalKey(&'a SpdmDheFinalKeyStruct),
+    SpdmHandshakeSecret(&'a SpdmHandshakeSecretStruct),
+    SpdmDirectionHandshakeSecret(&'a SpdmDirectionHandshakeSecretStruct),
+    SpdmFinishedKey(&'a SpdmFinishedKeyStruct),
+    SpdmDigest(&'a SpdmDigestStruct),
+    SpdmMasterSecret(&'a SpdmMasterSecretStruct),
+    SpdmDirectionDataSecret(&'a SpdmDirectionDataSecretStruct),
+}
+
+impl AsRef<[u8]> for SpdmHkdfInputKeyingMaterial<'_> {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            SpdmHkdfInputKeyingMaterial::SpdmZeroFilled(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmDheFinalKey(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmHandshakeSecret(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmDirectionHandshakeSecret(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmDigest(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmMasterSecret(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmDirectionDataSecret(inner) => inner.as_ref(),
+            SpdmHkdfInputKeyingMaterial::SpdmFinishedKey(inner) => inner.as_ref(),
         }
     }
 }
 
-impl AsRef<[u8]> for SpdmAeadKeyStruct {
-    fn as_ref(&self) -> &[u8] {
-        &self.data[0..self.data_size as usize]
-    }
-}
-
-impl From<BytesMutStrubbed> for SpdmAeadKeyStruct {
-    fn from(value: BytesMutStrubbed) -> Self {
-        assert!(value.as_ref().len() <= SPDM_MAX_AEAD_KEY_SIZE);
-        let data_size = value.as_ref().len() as u16;
-        let mut data = Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]);
-        data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
-        Self { data_size, data }
-    }
-}
-
-#[derive(Debug, Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SpdmAeadIvStruct {
-    pub data_size: u16,
-    pub data: Box<[u8; SPDM_MAX_AEAD_IV_SIZE]>,
-}
-impl Default for SpdmAeadIvStruct {
-    fn default() -> SpdmAeadIvStruct {
-        SpdmAeadIvStruct {
-            data_size: 0,
-            data: Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]),
+impl SpdmHkdfInputKeyingMaterial<'_> {
+    pub fn get_data_size(&self) -> u16 {
+        match self {
+            SpdmHkdfInputKeyingMaterial::SpdmZeroFilled(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmDheFinalKey(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmHandshakeSecret(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmDirectionHandshakeSecret(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmDigest(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmMasterSecret(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmDirectionDataSecret(inner) => inner.data_size,
+            SpdmHkdfInputKeyingMaterial::SpdmFinishedKey(inner) => inner.data_size,
         }
     }
 }
 
-impl AsRef<[u8]> for SpdmAeadIvStruct {
-    fn as_ref(&self) -> &[u8] {
-        &self.data[0..self.data_size as usize]
+impl SpdmHandshakeSecretStruct {
+    pub fn from_spdm_hkdf_okm(
+        okm: SpdmHkdfOutputKeyingMaterial,
+    ) -> Option<SpdmHandshakeSecretStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut hds = SpdmHandshakeSecretStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            hds.data[..okm.data_size as usize].copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(hds)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(prk: SpdmHkdfPseudoRandomKey) -> Option<SpdmHandshakeSecretStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut hds = SpdmHandshakeSecretStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            hds.data[..prk.data_size as usize].copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(hds)
+        }
     }
 }
 
-impl From<BytesMutStrubbed> for SpdmAeadIvStruct {
-    fn from(value: BytesMutStrubbed) -> Self {
-        assert!(value.as_ref().len() <= SPDM_MAX_AEAD_IV_SIZE);
-        let data_size = value.as_ref().len() as u16;
-        let mut data = Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]);
-        data[0..value.as_ref().len()].copy_from_slice(value.as_ref());
-        Self { data_size, data }
+impl SpdmDirectionHandshakeSecretStruct {
+    pub fn from_spdm_hkdf_okm(
+        okm: SpdmHkdfOutputKeyingMaterial,
+    ) -> Option<SpdmDirectionHandshakeSecretStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut dhds = SpdmDirectionHandshakeSecretStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            dhds.data[..okm.data_size as usize]
+                .copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(dhds)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(
+        prk: SpdmHkdfPseudoRandomKey,
+    ) -> Option<SpdmDirectionHandshakeSecretStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut dhds = SpdmDirectionHandshakeSecretStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            dhds.data[..prk.data_size as usize]
+                .copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(dhds)
+        }
+    }
+}
+
+impl SpdmMasterSecretStruct {
+    pub fn from_spdm_hkdf_okm(okm: SpdmHkdfOutputKeyingMaterial) -> Option<SpdmMasterSecretStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut mts = SpdmMasterSecretStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            mts.data[..okm.data_size as usize].copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(mts)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(prk: SpdmHkdfPseudoRandomKey) -> Option<SpdmMasterSecretStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut mts = SpdmMasterSecretStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            mts.data[..prk.data_size as usize].copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(mts)
+        }
+    }
+}
+
+impl SpdmDirectionDataSecretStruct {
+    pub fn from_spdm_hkdf_okm(
+        okm: SpdmHkdfOutputKeyingMaterial,
+    ) -> Option<SpdmDirectionDataSecretStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut dmts = SpdmDirectionDataSecretStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            dmts.data[..okm.data_size as usize]
+                .copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(dmts)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(
+        prk: SpdmHkdfPseudoRandomKey,
+    ) -> Option<SpdmDirectionDataSecretStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut dmts = SpdmDirectionDataSecretStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            dmts.data[..prk.data_size as usize]
+                .copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(dmts)
+        }
+    }
+}
+
+impl SpdmAeadKeyStruct {
+    pub fn from_spdm_hkdf_okm(okm: SpdmHkdfOutputKeyingMaterial) -> Option<SpdmAeadKeyStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_AEAD_KEY_SIZE as u16 {
+            None
+        } else {
+            let mut adk = SpdmAeadKeyStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]),
+            };
+            adk.data[..okm.data_size as usize].copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(adk)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(prk: SpdmHkdfPseudoRandomKey) -> Option<SpdmAeadKeyStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_AEAD_KEY_SIZE as u16 {
+            None
+        } else {
+            let mut adk = SpdmAeadKeyStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_AEAD_KEY_SIZE]),
+            };
+            adk.data[..prk.data_size as usize].copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(adk)
+        }
+    }
+}
+
+impl SpdmAeadIvStruct {
+    pub fn from_spdm_hkdf_okm(okm: SpdmHkdfOutputKeyingMaterial) -> Option<SpdmAeadIvStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_AEAD_IV_SIZE as u16 {
+            None
+        } else {
+            let mut adv = SpdmAeadIvStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]),
+            };
+            adv.data[..okm.data_size as usize].copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(adv)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(prk: SpdmHkdfPseudoRandomKey) -> Option<SpdmAeadIvStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_AEAD_IV_SIZE as u16 {
+            None
+        } else {
+            let mut adv = SpdmAeadIvStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_AEAD_IV_SIZE]),
+            };
+            adv.data[..prk.data_size as usize].copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(adv)
+        }
+    }
+}
+
+impl SpdmFinishedKeyStruct {
+    pub fn from_spdm_hkdf_okm(okm: SpdmHkdfOutputKeyingMaterial) -> Option<SpdmFinishedKeyStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut fdk = SpdmFinishedKeyStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            fdk.data[..okm.data_size as usize].copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(fdk)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(prk: SpdmHkdfPseudoRandomKey) -> Option<SpdmFinishedKeyStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut fdk = SpdmFinishedKeyStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            fdk.data[..prk.data_size as usize].copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(fdk)
+        }
+    }
+}
+
+impl SpdmExportMasterSecretStruct {
+    pub fn from_spdm_hkdf_okm(
+        okm: SpdmHkdfOutputKeyingMaterial,
+    ) -> Option<SpdmExportMasterSecretStruct> {
+        if okm.data_size == 0 || okm.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut emk = SpdmExportMasterSecretStruct {
+                data_size: okm.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            emk.data[..okm.data_size as usize].copy_from_slice(&okm.data[..okm.data_size as usize]);
+            Some(emk)
+        }
+    }
+    pub fn from_spdm_hkdf_prk(
+        prk: SpdmHkdfPseudoRandomKey,
+    ) -> Option<SpdmExportMasterSecretStruct> {
+        if prk.data_size == 0 || prk.data_size > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut emk = SpdmExportMasterSecretStruct {
+                data_size: prk.data_size,
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            emk.data[..prk.data_size as usize].copy_from_slice(&prk.data[..prk.data_size as usize]);
+            Some(emk)
+        }
+    }
+}
+
+impl SpdmHkdfPseudoRandomKey {
+    pub fn from_input_keying_material(
+        ikm: &SpdmHkdfInputKeyingMaterial,
+    ) -> Option<SpdmHkdfPseudoRandomKey> {
+        if ikm.get_data_size() == 0 || ikm.get_data_size() > SPDM_MAX_HASH_SIZE as u16 {
+            None
+        } else {
+            let mut prk = SpdmHkdfPseudoRandomKey {
+                data_size: ikm.get_data_size(),
+                data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+            };
+            match ikm {
+                SpdmHkdfInputKeyingMaterial::SpdmZeroFilled(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmDheFinalKey(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmHandshakeSecret(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmDirectionHandshakeSecret(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmFinishedKey(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmDigest(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmMasterSecret(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+                SpdmHkdfInputKeyingMaterial::SpdmDirectionDataSecret(inner) => prk.data
+                    [..inner.data_size as usize]
+                    .copy_from_slice(&inner.data[..inner.data_size as usize]),
+            }
+            Some(prk)
+        }
     }
 }
 
@@ -1446,7 +1710,7 @@ mod tests {
     }
     #[test]
     fn test_case0_spdm_digest_struct() {
-        let bytes_mut = BytesMut::new();
+        let bytes_mut = BytesMutStrubbed::new();
         let u8_slice = &mut [0u8; 68];
         let mut _writer = Writer::init(u8_slice);
         let _value = SpdmDigestStruct {

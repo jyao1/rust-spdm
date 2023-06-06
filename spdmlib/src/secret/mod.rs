@@ -99,13 +99,17 @@ pub mod psk {
                                           _base_hash_algo: SpdmBaseHashAlgo,
                                           _psk_hint: &SpdmPskHintStruct,
                                           _info: &[u8]|
-         -> Option<SpdmDigestStruct> { unimplemented!() },
+         -> Option<SpdmHkdfOutputKeyingMaterial> {
+            unimplemented!()
+        },
 
         master_secret_hkdf_expand_cb: |_spdm_version: SpdmVersion,
                                        _base_hash_algo: SpdmBaseHashAlgo,
                                        _psk_hint: &SpdmPskHintStruct,
                                        _info: &[u8]|
-         -> Option<SpdmDigestStruct> { unimplemented!() },
+         -> Option<SpdmHkdfOutputKeyingMaterial> {
+            unimplemented!()
+        },
     };
 
     pub fn handshake_secret_hkdf_expand(
@@ -113,7 +117,7 @@ pub mod psk {
         base_hash_algo: SpdmBaseHashAlgo,
         psk_hint: &SpdmPskHintStruct,
         info: &[u8],
-    ) -> Option<SpdmDigestStruct> {
+    ) -> Option<SpdmHkdfOutputKeyingMaterial> {
         (SECRET_PSK_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?
@@ -125,7 +129,7 @@ pub mod psk {
         base_hash_algo: SpdmBaseHashAlgo,
         psk_hint: &SpdmPskHintStruct,
         info: &[u8],
-    ) -> Option<SpdmDigestStruct> {
+    ) -> Option<SpdmHkdfOutputKeyingMaterial> {
         (SECRET_PSK_INSTANCE
             .try_get_or_init(|| UNIMPLETEMTED.clone())
             .ok()?

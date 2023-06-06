@@ -3,7 +3,11 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::spdmlib::crypto::SpdmHkdf;
-use spdmlib::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
+use spdmlib::protocol::{
+    SpdmBaseHashAlgo, SpdmHkdfInputKeyingMaterial, SpdmHkdfOutputKeyingMaterial,
+    SpdmHkdfPseudoRandomKey, SHA256_DIGEST_SIZE, SHA384_DIGEST_SIZE, SHA512_DIGEST_SIZE,
+    SPDM_MAX_HASH_SIZE, SPDM_MAX_HKDF_OKM_SIZE,
+};
 
 pub static FAKE_HKDF: SpdmHkdf = SpdmHkdf {
     hkdf_extract_cb: fake_hkdf_extract,
@@ -11,18 +15,46 @@ pub static FAKE_HKDF: SpdmHkdf = SpdmHkdf {
 };
 
 fn fake_hkdf_extract(
-    _hash_algo: SpdmBaseHashAlgo,
+    hash_algo: SpdmBaseHashAlgo,
     _salt: &[u8],
-    _ikm: &[u8],
-) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
+    _ikm: &SpdmHkdfInputKeyingMaterial,
+) -> Option<SpdmHkdfPseudoRandomKey> {
+    match hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => Some(SpdmHkdfPseudoRandomKey {
+            data_size: SHA256_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => Some(SpdmHkdfPseudoRandomKey {
+            data_size: SHA384_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => Some(SpdmHkdfPseudoRandomKey {
+            data_size: SHA512_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        }),
+        _ => None,
+    }
 }
 
 fn fake_hkdf_expand(
-    _hash_algo: SpdmBaseHashAlgo,
-    _pk: &[u8],
+    hash_algo: SpdmBaseHashAlgo,
+    _pk: &SpdmHkdfPseudoRandomKey,
     _info: &[u8],
     _out_size: u16,
-) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
+) -> Option<SpdmHkdfOutputKeyingMaterial> {
+    match hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => Some(SpdmHkdfOutputKeyingMaterial {
+            data_size: SHA256_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HKDF_OKM_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => Some(SpdmHkdfOutputKeyingMaterial {
+            data_size: SHA384_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HKDF_OKM_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => Some(SpdmHkdfOutputKeyingMaterial {
+            data_size: SHA512_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HKDF_OKM_SIZE]),
+        }),
+        _ => None,
+    }
 }

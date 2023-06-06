@@ -569,7 +569,7 @@ fn handshake_secret_hkdf_expand_impl(
     base_hash_algo: SpdmBaseHashAlgo,
     psk_hint: &SpdmPskHintStruct,
     info: &[u8],
-) -> Option<SpdmDigestStruct> {
+) -> Option<SpdmHkdfOutputKeyingMaterial> {
     let mut psk_key: SpdmDheFinalKeyStruct = SpdmDheFinalKeyStruct {
         data_size: b"TestPskData\0".len() as u16,
         data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
@@ -579,14 +579,9 @@ fn handshake_secret_hkdf_expand_impl(
     let hs_sec = crypto::hkdf::hkdf_extract(
         base_hash_algo,
         &SALT_0[0..base_hash_algo.get_size() as usize],
-        psk_key.as_ref(),
+        &SpdmHkdfInputKeyingMaterial::SpdmDheFinalKey(&psk_key),
     )?;
-    crypto::hkdf::hkdf_expand(
-        base_hash_algo,
-        hs_sec.as_ref(),
-        info,
-        base_hash_algo.get_size(),
-    )
+    crypto::hkdf::hkdf_expand(base_hash_algo, &hs_sec, info, base_hash_algo.get_size())
 }
 
 fn master_secret_hkdf_expand_impl(
@@ -594,7 +589,7 @@ fn master_secret_hkdf_expand_impl(
     base_hash_algo: SpdmBaseHashAlgo,
     psk_hint: &SpdmPskHintStruct,
     info: &[u8],
-) -> Option<SpdmDigestStruct> {
+) -> Option<SpdmHkdfOutputKeyingMaterial> {
     let mut psk_key: SpdmDheFinalKeyStruct = SpdmDheFinalKeyStruct {
         data_size: b"TestPskData\0".len() as u16,
         data: Box::new([0; SPDM_MAX_DHE_KEY_SIZE]),
@@ -614,26 +609,20 @@ fn master_secret_hkdf_expand_impl(
     let hs_sec = crypto::hkdf::hkdf_extract(
         base_hash_algo,
         &SALT_0[0..base_hash_algo.get_size() as usize],
-        psk_key.as_ref(),
+        &SpdmHkdfInputKeyingMaterial::SpdmDheFinalKey(&psk_key),
     )?;
-    let salt_1 = crypto::hkdf::hkdf_expand(
-        base_hash_algo,
-        hs_sec.as_ref(),
-        bin_str0,
-        base_hash_algo.get_size(),
-    )?;
+    let salt_1 =
+        crypto::hkdf::hkdf_expand(base_hash_algo, &hs_sec, bin_str0, base_hash_algo.get_size())?;
 
     let mst_sec = crypto::hkdf::hkdf_extract(
         base_hash_algo,
         salt_1.as_ref(),
-        &ZERO_FILLED[0..base_hash_algo.get_size() as usize],
+        &SpdmHkdfInputKeyingMaterial::SpdmZeroFilled(&SpdmZeroFilledStruct {
+            data_size: base_hash_algo.get_size(),
+            data: Box::new([0u8; SPDM_MAX_HASH_SIZE]),
+        }),
     )?;
-    crypto::hkdf::hkdf_expand(
-        base_hash_algo,
-        mst_sec.as_ref(),
-        info,
-        base_hash_algo.get_size(),
-    )
+    crypto::hkdf::hkdf_expand(base_hash_algo, &mst_sec, info, base_hash_algo.get_size())
 }
 
 pub struct FakeSpdmDeviceIo<'a> {
