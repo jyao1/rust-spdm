@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::protocol::{
-    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDigestStruct, SpdmMeasurementHashAlgo,
-    SpdmMeasurementRecordStructure, SpdmMeasurementSpecification, SpdmMeasurementSummaryHashType,
-    SpdmPskHintStruct, SpdmSignatureStruct, SpdmVersion,
+    SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDigestStruct, SpdmHkdfOutputKeyingMaterial,
+    SpdmMeasurementHashAlgo, SpdmMeasurementRecordStructure, SpdmMeasurementSpecification,
+    SpdmMeasurementSummaryHashType, SpdmPskHintStruct, SpdmSignatureStruct, SpdmVersion,
 };
 
 type SpdmMeasurementCollectionCbType = fn(
@@ -28,13 +28,13 @@ type SpdmPskHandshakeSecretHkdfExpandCbType = fn(
     base_hash_algo: SpdmBaseHashAlgo,
     psk_hint: &SpdmPskHintStruct,
     info: &[u8],
-) -> Option<SpdmDigestStruct>;
+) -> Option<SpdmHkdfOutputKeyingMaterial>;
 type SpdmPskMasterSecretHkdfExpandCbType = fn(
     spdm_version: SpdmVersion,
     base_hash_algo: SpdmBaseHashAlgo,
     psk_hint: &SpdmPskHintStruct,
     info: &[u8],
-) -> Option<SpdmDigestStruct>;
+) -> Option<SpdmHkdfOutputKeyingMaterial>;
 
 #[derive(Clone)]
 pub struct SpdmSecretMeasurement {

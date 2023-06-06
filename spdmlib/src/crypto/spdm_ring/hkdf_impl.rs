@@ -3,14 +3,21 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use crate::crypto::SpdmHkdf;
-use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
+use crate::protocol::{
+    SpdmBaseHashAlgo, SpdmHkdfInputKeyingMaterial, SpdmHkdfOutputKeyingMaterial,
+    SpdmHkdfPseudoRandomKey, SPDM_MAX_HKDF_OKM_SIZE,
+};
 
 pub static DEFAULT: SpdmHkdf = SpdmHkdf {
     hkdf_extract_cb: hkdf_extract,
     hkdf_expand_cb: hkdf_expand,
 };
 
-fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<SpdmDigestStruct> {
+fn hkdf_extract(
+    hash_algo: SpdmBaseHashAlgo,
+    salt: &[u8],
+    ikm: &SpdmHkdfInputKeyingMaterial,
+) -> Option<SpdmHkdfPseudoRandomKey> {
     let algorithm = match hash_algo {
         SpdmBaseHashAlgo::TPM_ALG_SHA_256 => ring::hmac::HMAC_SHA256,
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => ring::hmac::HMAC_SHA384,
@@ -21,17 +28,21 @@ fn hkdf_extract(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<
     };
 
     let s_key = ring::hmac::Key::new(algorithm, salt);
-    let tag = ring::hmac::sign(&s_key, ikm);
+    let tag = ring::hmac::sign(&s_key, ikm.as_ref());
     let tag = tag.as_ref();
-    Some(SpdmDigestStruct::from(tag))
+    Some(SpdmHkdfPseudoRandomKey::from(tag))
 }
 
 fn hkdf_expand(
     hash_algo: SpdmBaseHashAlgo,
-    prk: &[u8],
+    prk: &SpdmHkdfPseudoRandomKey,
     info: &[u8],
     out_size: u16,
-) -> Option<SpdmDigestStruct> {
+) -> Option<SpdmHkdfOutputKeyingMaterial> {
+    if out_size as usize > SPDM_MAX_HKDF_OKM_SIZE {
+        return None;
+    }
+
     let algo = match hash_algo {
         SpdmBaseHashAlgo::TPM_ALG_SHA_256 => Some(ring::hkdf::HKDF_SHA256),
         SpdmBaseHashAlgo::TPM_ALG_SHA_384 => Some(ring::hkdf::HKDF_SHA384),
@@ -39,13 +50,13 @@ fn hkdf_expand(
         _ => return None,
     }?;
 
-    if prk.len() != algo.hmac_algorithm().digest_algorithm().output_len {
+    if prk.data_size as usize != algo.hmac_algorithm().digest_algorithm().output_len {
         return None;
     }
 
-    let prk = ring::hkdf::Prk::new_less_safe(algo, prk);
+    let prk = ring::hkdf::Prk::new_less_safe(algo, prk.as_ref());
 
-    let mut ret = SpdmDigestStruct::default();
+    let mut ret = SpdmHkdfOutputKeyingMaterial::default();
     let res = prk
         .expand(&[info], SpdmCryptoHkdfKeyLen::new(out_size))
         .and_then(|okm| {
@@ -78,6 +89,8 @@ impl ring::hkdf::KeyType for SpdmCryptoHkdfKeyLen {
 
 #[cfg(all(test,))]
 mod tests {
+    use crate::testlib::SPDM_MAX_HASH_SIZE;
+
     use super::*;
 
     #[test]
@@ -85,10 +98,13 @@ mod tests {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
         // according to https://www.rfc-editor.org/rfc/rfc5869
         // prk.len should be hashlen
-        let prk = &mut [100u8; 32];
+        let prk = SpdmHkdfPseudoRandomKey {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let info = &mut [100u8; 64];
         let out_size = 64;
-        let hkdf_expand = hkdf_expand(base_hash_algo, prk, info, out_size);
+        let hkdf_expand = hkdf_expand(base_hash_algo, &prk, info, out_size);
 
         match hkdf_expand {
             Some(_) => {
@@ -104,10 +120,13 @@ mod tests {
         // remove should panic
         // hkdf_expand is a library call. It's better to return failure/success instead of panic.
         let base_hash_algo = SpdmBaseHashAlgo::empty();
-        let prk = &mut [100u8; 64];
+        let prk = SpdmHkdfPseudoRandomKey {
+            data_size: 64,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let info = &mut [100u8; 64];
         let out_size = 64;
-        let hkdf_expand = hkdf_expand(base_hash_algo, prk, info, out_size);
+        let hkdf_expand = hkdf_expand(base_hash_algo, &prk, info, out_size);
 
         match hkdf_expand {
             Some(_) => {

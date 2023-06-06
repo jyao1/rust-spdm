@@ -48,10 +48,10 @@ pub struct SpdmSessionCryptoParam {
 }
 
 #[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
-pub struct SpdmSessionMasterSecret {
+pub struct SpdmSessionDheSecretRoot {
     pub dhe_secret: SpdmDheFinalKeyStruct,
-    pub handshake_secret: SpdmDigestStruct,
-    pub master_secret: SpdmDigestStruct,
+    pub handshake_secret: SpdmHandshakeSecretStruct,
+    pub master_secret: SpdmMasterSecretStruct,
 }
 
 #[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
@@ -63,21 +63,21 @@ pub struct SpdmSessionSecretParam {
 
 #[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmSessionHandshakeSecret {
-    pub request_handshake_secret: SpdmDigestStruct,
-    pub response_handshake_secret: SpdmDigestStruct,
-    pub export_master_secret: SpdmDigestStruct,
-    pub request_finished_key: SpdmDigestStruct,
-    pub response_finished_key: SpdmDigestStruct,
+    pub request_handshake_secret: SpdmDirectionHandshakeSecretStruct,
+    pub response_handshake_secret: SpdmDirectionHandshakeSecretStruct,
+    pub request_finished_key: SpdmFinishedKeyStruct,
+    pub response_finished_key: SpdmFinishedKeyStruct,
     pub request_direction: SpdmSessionSecretParam,
     pub response_direction: SpdmSessionSecretParam,
 }
 
 #[derive(Debug, Clone, Default, Zeroize, ZeroizeOnDrop)]
 pub struct SpdmSessionAppliationSecret {
-    pub request_data_secret: SpdmDigestStruct,
-    pub response_data_secret: SpdmDigestStruct,
+    pub request_data_secret: SpdmDirectionDataSecretStruct,
+    pub response_data_secret: SpdmDirectionDataSecretStruct,
     pub request_direction: SpdmSessionSecretParam,
     pub response_direction: SpdmSessionSecretParam,
+    pub export_master_secret: SpdmExportMasterSecretStruct,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -117,7 +117,7 @@ pub struct SpdmSession {
     mut_auth_requested: SpdmKeyExchangeMutAuthAttributes,
     session_state: SpdmSessionState,
     crypto_param: SpdmSessionCryptoParam,
-    master_secret: SpdmSessionMasterSecret,
+    dhe_secret_root: SpdmSessionDheSecretRoot,
     handshake_secret: SpdmSessionHandshakeSecret,
     application_secret: SpdmSessionAppliationSecret,
     application_secret_backup: SpdmSessionAppliationSecret,
@@ -142,7 +142,7 @@ impl SpdmSession {
             use_psk: false,
             session_state: SpdmSessionState::default(),
             crypto_param: SpdmSessionCryptoParam::default(),
-            master_secret: SpdmSessionMasterSecret::default(),
+            dhe_secret_root: SpdmSessionDheSecretRoot::default(),
             handshake_secret: SpdmSessionHandshakeSecret::default(),
             application_secret: SpdmSessionAppliationSecret::default(),
             application_secret_backup: SpdmSessionAppliationSecret::default(),
@@ -177,7 +177,7 @@ impl SpdmSession {
         self.use_psk = false;
         self.session_state = SpdmSessionState::default();
         self.crypto_param = SpdmSessionCryptoParam::default();
-        self.master_secret = SpdmSessionMasterSecret::default();
+        self.dhe_secret_root = SpdmSessionDheSecretRoot::default();
         self.handshake_secret = SpdmSessionHandshakeSecret::default();
         self.application_secret = SpdmSessionAppliationSecret::default();
         self.application_secret_backup = SpdmSessionAppliationSecret::default();
@@ -233,41 +233,39 @@ impl SpdmSession {
         spdm_version: SpdmVersion,
         dhe_secret: SpdmDheFinalKeyStruct,
     ) -> SpdmResult {
-        self.master_secret.dhe_secret = dhe_secret; // take the ownership here!
-        let key = &self.master_secret.dhe_secret.as_ref();
+        self.dhe_secret_root.dhe_secret = dhe_secret; // take the ownership here!
 
-        // generate master_secret.handshake_secret and master_secret.master_secret
+        // generate dhe_secret_root.handshake_secret and dhe_secret_root.master_secret
         let handshake_secret = if let Some(hs) = self.key_schedule.derive_handshake_secret(
             spdm_version,
             self.crypto_param.base_hash_algo,
-            key,
+            &self.dhe_secret_root.dhe_secret,
         ) {
             hs
         } else {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
 
-        let key = handshake_secret.as_ref();
         let master_secret = if let Some(ms) = self.key_schedule.derive_master_secret(
             spdm_version,
             self.crypto_param.base_hash_algo,
-            key,
+            &handshake_secret,
         ) {
             ms
         } else {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
         };
 
-        self.master_secret.handshake_secret = handshake_secret;
-        self.master_secret.master_secret = master_secret;
+        self.dhe_secret_root.handshake_secret = handshake_secret;
+        self.dhe_secret_root.master_secret = master_secret;
 
         debug!(
             "!!! handshake_secret !!!: {:02x?}\n",
-            self.master_secret.handshake_secret.as_ref()
+            self.dhe_secret_root.handshake_secret.as_ref()
         );
         debug!(
             "!!! master_secret !!!: {:02x?}\n",
-            self.master_secret.master_secret.as_ref()
+            self.dhe_secret_root.master_secret.as_ref()
         );
 
         Ok(())
@@ -329,7 +327,7 @@ impl SpdmSession {
                 if self.use_psk {
                     None
                 } else {
-                    Some(self.master_secret.handshake_secret.as_ref())
+                    Some(&self.dhe_secret_root.handshake_secret)
                 },
                 self.runtime_info.psk_hint.as_ref(),
                 th1.as_ref(),
@@ -350,7 +348,7 @@ impl SpdmSession {
                 if self.use_psk {
                     None
                 } else {
-                    Some(self.master_secret.handshake_secret.as_ref())
+                    Some(&self.dhe_secret_root.handshake_secret)
                 },
                 self.runtime_info.psk_hint.as_ref(),
                 th1.as_ref(),
@@ -367,7 +365,7 @@ impl SpdmSession {
             self.key_schedule.derive_finished_key(
                 spdm_version,
                 hash_algo,
-                self.handshake_secret.request_handshake_secret.as_ref(),
+                &self.handshake_secret.request_handshake_secret,
             ) {
             rfk
         } else {
@@ -381,7 +379,7 @@ impl SpdmSession {
             self.key_schedule.derive_finished_key(
                 spdm_version,
                 hash_algo,
-                self.handshake_secret.response_handshake_secret.as_ref(),
+                &self.handshake_secret.response_handshake_secret,
             ) {
             rfk
         } else {
@@ -396,7 +394,9 @@ impl SpdmSession {
             spdm_version,
             hash_algo,
             aead_algo,
-            self.handshake_secret.request_handshake_secret.as_ref(),
+            &SpdmMajorSecret::SpdmDirectionHandshakeSecret(
+                &self.handshake_secret.request_handshake_secret,
+            ),
         ) {
             aki
         } else {
@@ -421,7 +421,9 @@ impl SpdmSession {
             spdm_version,
             hash_algo,
             aead_algo,
-            self.handshake_secret.response_handshake_secret.as_ref(),
+            &SpdmMajorSecret::SpdmDirectionHandshakeSecret(
+                &self.handshake_secret.response_handshake_secret,
+            ),
         ) {
             aki
         } else {
@@ -440,23 +442,6 @@ impl SpdmSession {
             "!!! response_direction.salt !!!: {:02x?}\n",
             self.handshake_secret.response_direction.salt.as_ref()
         );
-
-        self.handshake_secret.export_master_secret = if let Some(ems) =
-            self.key_schedule.derive_export_master_secret(
-                self.use_psk,
-                spdm_version,
-                hash_algo,
-                if self.use_psk {
-                    None
-                } else {
-                    Some(self.master_secret.master_secret.as_ref())
-                },
-                self.runtime_info.psk_hint.as_ref(),
-            ) {
-            ems
-        } else {
-            return Err(SPDM_STATUS_CRYPTO_ERROR);
-        };
 
         Ok(())
     }
@@ -479,7 +464,7 @@ impl SpdmSession {
                 if self.use_psk {
                     None
                 } else {
-                    Some(self.master_secret.master_secret.as_ref())
+                    Some(&self.dhe_secret_root.master_secret)
                 },
                 self.runtime_info.psk_hint.as_ref(),
                 th2.as_ref(),
@@ -496,7 +481,7 @@ impl SpdmSession {
                 if self.use_psk {
                     None
                 } else {
-                    Some(self.master_secret.master_secret.as_ref())
+                    Some(&self.dhe_secret_root.master_secret)
                 },
                 self.runtime_info.psk_hint.as_ref(),
                 th2.as_ref(),
@@ -518,7 +503,7 @@ impl SpdmSession {
             spdm_version,
             hash_algo,
             aead_algo,
-            self.application_secret.request_data_secret.as_ref(),
+            &SpdmMajorSecret::SpdmDirectionDataSecret(&self.application_secret.request_data_secret),
         ) {
             aki
         } else {
@@ -542,7 +527,9 @@ impl SpdmSession {
             spdm_version,
             hash_algo,
             aead_algo,
-            self.application_secret.response_data_secret.as_ref(),
+            &SpdmMajorSecret::SpdmDirectionDataSecret(
+                &self.application_secret.response_data_secret,
+            ),
         ) {
             aki
         } else {
@@ -561,6 +548,23 @@ impl SpdmSession {
             "!!! response_direction.salt !!!: {:02x?}\n",
             self.application_secret.response_direction.salt.as_ref()
         );
+
+        self.application_secret.export_master_secret = if let Some(ems) =
+            self.key_schedule.derive_export_master_secret(
+                self.use_psk,
+                spdm_version,
+                hash_algo,
+                if self.use_psk {
+                    None
+                } else {
+                    Some(&self.dhe_secret_root.master_secret)
+                },
+                self.runtime_info.psk_hint.as_ref(),
+            ) {
+            ems
+        } else {
+            return Err(SPDM_STATUS_CRYPTO_ERROR);
+        };
 
         Ok(())
     }
@@ -588,7 +592,7 @@ impl SpdmSession {
                 self.key_schedule.derive_update_secret(
                     spdm_version,
                     hash_algo,
-                    self.application_secret.request_data_secret.as_ref(),
+                    &self.application_secret.request_data_secret,
                 ) {
                 us
             } else {
@@ -603,7 +607,9 @@ impl SpdmSession {
                 spdm_version,
                 hash_algo,
                 aead_algo,
-                self.application_secret.request_data_secret.as_ref(),
+                &SpdmMajorSecret::SpdmDirectionDataSecret(
+                    &self.application_secret.request_data_secret,
+                ),
             ) {
                 aki
             } else {
@@ -635,7 +641,7 @@ impl SpdmSession {
                 self.key_schedule.derive_update_secret(
                     spdm_version,
                     hash_algo,
-                    self.application_secret.response_data_secret.as_ref(),
+                    &self.application_secret.response_data_secret,
                 ) {
                 us
             } else {
@@ -650,7 +656,9 @@ impl SpdmSession {
                 spdm_version,
                 hash_algo,
                 aead_algo,
-                self.application_secret.response_data_secret.as_ref(),
+                &SpdmMajorSecret::SpdmDirectionDataSecret(
+                    &self.application_secret.response_data_secret,
+                ),
             ) {
                 aki
             } else {
@@ -696,12 +704,14 @@ impl SpdmSession {
             }
         } else {
             if update_requester {
-                self.application_secret_backup.request_data_secret = SpdmDigestStruct::default();
+                self.application_secret_backup.request_data_secret =
+                    SpdmDirectionDataSecretStruct::default();
                 self.application_secret_backup.request_direction =
                     SpdmSessionSecretParam::default();
             }
             if update_responder {
-                self.application_secret_backup.response_data_secret = SpdmDigestStruct::default();
+                self.application_secret_backup.response_data_secret =
+                    SpdmDirectionDataSecretStruct::default();
                 self.application_secret_backup.response_direction =
                     SpdmSessionSecretParam::default();
             }

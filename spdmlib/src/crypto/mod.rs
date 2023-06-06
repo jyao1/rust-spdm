@@ -309,19 +309,22 @@ pub mod cert_operation {
 pub mod hkdf {
     use super::CRYPTO_HKDF;
     use crate::crypto::SpdmHkdf;
-    use crate::protocol::{SpdmBaseHashAlgo, SpdmDigestStruct};
+    use crate::protocol::{
+        SpdmBaseHashAlgo, SpdmHkdfInputKeyingMaterial, SpdmHkdfOutputKeyingMaterial,
+        SpdmHkdfPseudoRandomKey,
+    };
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmHkdf = SpdmHkdf {
         hkdf_extract_cb: |_hash_algo: SpdmBaseHashAlgo,
                           _salt: &[u8],
-                          _ikm: &[u8]|
-         -> Option<SpdmDigestStruct> { unimplemented!() },
+                          _ikm: &SpdmHkdfInputKeyingMaterial|
+         -> Option<SpdmHkdfPseudoRandomKey> { unimplemented!() },
         hkdf_expand_cb: |_hash_algo: SpdmBaseHashAlgo,
-                         _prk: &[u8],
+                         _prk: &SpdmHkdfPseudoRandomKey,
                          _info: &[u8],
                          _out_size: u16|
-         -> Option<SpdmDigestStruct> { unimplemented!() },
+         -> Option<SpdmHkdfOutputKeyingMaterial> { unimplemented!() },
     };
 
     #[cfg(feature = "spdm-ring")]
@@ -334,8 +337,8 @@ pub mod hkdf {
     pub fn hkdf_extract(
         hash_algo: SpdmBaseHashAlgo,
         salt: &[u8],
-        ikm: &[u8],
-    ) -> Option<SpdmDigestStruct> {
+        ikm: &SpdmHkdfInputKeyingMaterial,
+    ) -> Option<SpdmHkdfPseudoRandomKey> {
         (CRYPTO_HKDF
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?
@@ -344,10 +347,10 @@ pub mod hkdf {
 
     pub fn hkdf_expand(
         hash_algo: SpdmBaseHashAlgo,
-        prk: &[u8],
+        prk: &SpdmHkdfPseudoRandomKey,
         info: &[u8],
         out_size: u16,
-    ) -> Option<SpdmDigestStruct> {
+    ) -> Option<SpdmHkdfOutputKeyingMaterial> {
         (CRYPTO_HKDF
             .try_get_or_init(|| DEFAULT.clone())
             .ok()?

@@ -9,7 +9,8 @@ use alloc::boxed::Box;
 
 use crate::protocol::{
     SpdmAeadAlgo, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo, SpdmDheExchangeStruct,
-    SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmSignatureStruct,
+    SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmHkdfInputKeyingMaterial,
+    SpdmHkdfOutputKeyingMaterial, SpdmHkdfPseudoRandomKey, SpdmSignatureStruct,
 };
 
 #[cfg(not(feature = "hashed-transcript-data"))]
@@ -81,14 +82,17 @@ pub struct SpdmAsymVerify {
 
 #[derive(Clone)]
 pub struct SpdmHkdf {
-    pub hkdf_extract_cb:
-        fn(hash_algo: SpdmBaseHashAlgo, salt: &[u8], ikm: &[u8]) -> Option<SpdmDigestStruct>,
+    pub hkdf_extract_cb: fn(
+        hash_algo: SpdmBaseHashAlgo,
+        salt: &[u8],
+        ikm: &SpdmHkdfInputKeyingMaterial,
+    ) -> Option<SpdmHkdfPseudoRandomKey>,
     pub hkdf_expand_cb: fn(
         hash_algo: SpdmBaseHashAlgo,
-        prk: &[u8],
+        prk: &SpdmHkdfPseudoRandomKey,
         info: &[u8],
         out_size: u16,
-    ) -> Option<SpdmDigestStruct>,
+    ) -> Option<SpdmHkdfOutputKeyingMaterial>,
 }
 
 type GetCertFromCertChainCb = fn(cert_chain: &[u8], index: isize) -> SpdmResult<(usize, usize)>;

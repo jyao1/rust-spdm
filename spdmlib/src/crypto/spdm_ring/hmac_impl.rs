@@ -51,15 +51,20 @@ fn hmac_verify(
 
 #[cfg(all(test,))]
 mod tests {
+    use crate::testlib::{SpdmFinishedKeyStruct, SPDM_MAX_HASH_SIZE};
+
     use super::*;
 
     #[test]
     fn test_case0_hmac_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_512;
-        let key = &mut [100u8; 64];
+        let key = &SpdmFinishedKeyStruct {
+            data_size: 64,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let data = &mut [100u8; 64];
-        let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
-        let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
+        let spdm_digest = hmac(base_hash_algo, key.as_ref(), data).unwrap();
+        let spdm_digest_struct = hmac_verify(base_hash_algo, key.as_ref(), data, &spdm_digest);
 
         match spdm_digest_struct {
             Ok(()) => {
@@ -73,10 +78,13 @@ mod tests {
     #[test]
     fn test_case1_hmac_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        let key = &mut [10u8; 128];
+        let key = &SpdmFinishedKeyStruct {
+            data_size: 64,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let data = &mut [10u8; 128];
-        let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
-        let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
+        let spdm_digest = hmac(base_hash_algo, key.as_ref(), data).unwrap();
+        let spdm_digest_struct = hmac_verify(base_hash_algo, key.as_ref(), data, &spdm_digest);
 
         match spdm_digest_struct {
             Ok(()) => {
@@ -91,11 +99,14 @@ mod tests {
     #[should_panic]
     fn test_case2_hmac_verify() {
         let base_hash_algo = SpdmBaseHashAlgo::TPM_ALG_SHA_256;
-        let key = &mut [10u8; 128];
+        let key = &SpdmFinishedKeyStruct {
+            data_size: 128,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        };
         let data = &mut [10u8; 128];
-        let spdm_digest = hmac(base_hash_algo, key, data).unwrap();
+        let spdm_digest = hmac(base_hash_algo, key.as_ref(), data).unwrap();
         let data = &mut [100u8; 128];
-        let spdm_digest_struct = hmac_verify(base_hash_algo, key, data, &spdm_digest);
+        let spdm_digest_struct = hmac_verify(base_hash_algo, key.as_ref(), data, &spdm_digest);
 
         match spdm_digest_struct {
             Ok(()) => {
