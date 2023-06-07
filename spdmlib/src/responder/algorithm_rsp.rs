@@ -4,7 +4,6 @@
 
 use crate::common::SpdmCodec;
 use crate::common::SpdmConnectionState;
-use crate::crypto;
 use crate::error::SpdmResult;
 use crate::message::*;
 use crate::protocol::*;
@@ -117,40 +116,9 @@ impl<'a> ResponderContext<'a> {
         //
         // update cert chain - append root cert hash
         //
-        for slot_id in 0..SPDM_MAX_SLOT_NUMBER {
-            if self.common.provision_info.my_cert_chain[slot_id].is_none()
-                && self.common.provision_info.my_cert_chain_data[slot_id].is_some()
-            {
-                let cert_chain = self.common.provision_info.my_cert_chain_data[slot_id]
-                    .as_ref()
-                    .unwrap();
-                let (root_cert_begin, root_cert_end) =
-                    crypto::cert_operation::get_cert_from_cert_chain(
-                        &cert_chain.data[..(cert_chain.data_size as usize)],
-                        0,
-                    )
-                    .unwrap();
-                let root_cert = &cert_chain.data[root_cert_begin..root_cert_end];
-                if let Some(root_hash) =
-                    crypto::hash::hash_all(self.common.negotiate_info.base_hash_sel, root_cert)
-                {
-                    let data_size = 4 + root_hash.data_size + cert_chain.data_size;
-                    let mut data =
-                        [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE];
-                    data[0] = (data_size & 0xFF) as u8;
-                    data[1] = (data_size >> 8) as u8;
-                    data[4..(4 + root_hash.data_size as usize)]
-                        .copy_from_slice(&root_hash.data[..(root_hash.data_size as usize)]);
-                    data[(4 + root_hash.data_size as usize)..(data_size as usize)]
-                        .copy_from_slice(&cert_chain.data[..(cert_chain.data_size as usize)]);
-                    self.common.provision_info.my_cert_chain[slot_id] =
-                        Some(SpdmCertChainBuffer { data_size, data });
-                    debug!("my_cert_chain - {:02x?}\n", &data[..(data_size as usize)]);
-                } else {
-                    self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
-                    return;
-                }
-            }
+        if self.common.construct_my_cert_chain().is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
         }
 
         info!("send spdm algorithm\n");
