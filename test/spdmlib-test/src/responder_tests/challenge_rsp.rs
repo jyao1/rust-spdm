@@ -17,6 +17,7 @@ use spdmlib::protocol::*;
 use spdmlib::{config, crypto, responder, secret};
 
 #[test]
+#[cfg(feature = "hashed-transcript-data")]
 fn test_case0_handle_spdm_challenge() {
     let (config_info, provision_info) = create_info();
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
