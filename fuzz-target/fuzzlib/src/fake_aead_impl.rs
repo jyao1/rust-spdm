@@ -2,9 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-use crate::spdmlib::crypto::SpdmAead;
+use spdmlib::crypto::SpdmAead;
 use spdmlib::error::SpdmResult;
-use spdmlib::protocol::SpdmAeadAlgo;
+use spdmlib::protocol::{SpdmAeadAlgo, SpdmAeadIvStruct, SpdmAeadKeyStruct};
 
 pub static FAKE_AEAD: SpdmAead = SpdmAead {
     encrypt_cb: fake_encrypt,
@@ -13,8 +13,8 @@ pub static FAKE_AEAD: SpdmAead = SpdmAead {
 
 fn fake_encrypt(
     _aead_algo: SpdmAeadAlgo,
-    _key: &[u8],
-    _iv: &[u8],
+    _key: &SpdmAeadKeyStruct,
+    _iv: &SpdmAeadIvStruct,
     _aad: &[u8],
     plain_text: &[u8],
     tag: &mut [u8],
@@ -31,8 +31,8 @@ fn fake_encrypt(
 
 fn fake_decrypt(
     _aead_algo: SpdmAeadAlgo,
-    _key: &[u8],
-    _iv: &[u8],
+    _key: &SpdmAeadKeyStruct,
+    _iv: &SpdmAeadIvStruct,
     _aad: &[u8],
     cipher_text: &[u8],
     _tag: &[u8],

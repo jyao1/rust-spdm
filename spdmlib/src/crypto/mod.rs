@@ -362,21 +362,21 @@ pub mod aead {
     use super::CRYPTO_AEAD;
     use crate::crypto::SpdmAead;
     use crate::error::{SpdmResult, SPDM_STATUS_INVALID_STATE_LOCAL};
-    use crate::protocol::SpdmAeadAlgo;
+    use crate::protocol::{SpdmAeadAlgo, SpdmAeadIvStruct, SpdmAeadKeyStruct};
 
     #[cfg(not(any(feature = "spdm-ring")))]
     static DEFAULT: SpdmAead = SpdmAead {
         encrypt_cb: |_aead_algo: SpdmAeadAlgo,
-                     _key: &[u8],
-                     _iv: &[u8],
+                     _key: &SpdmAeadKeyStruct,
+                     _iv: &SpdmAeadIvStruct,
                      _aad: &[u8],
                      _plain_text: &[u8],
                      _tag: &mut [u8],
                      _cipher_text: &mut [u8]|
          -> SpdmResult<(usize, usize)> { unimplemented!() },
         decrypt_cb: |_aead_algo: SpdmAeadAlgo,
-                     _key: &[u8],
-                     _iv: &[u8],
+                     _key: &SpdmAeadKeyStruct,
+                     _iv: &SpdmAeadIvStruct,
                      _aad: &[u8],
                      _cipher_text: &[u8],
                      _tag: &[u8],
@@ -393,8 +393,8 @@ pub mod aead {
 
     pub fn encrypt(
         aead_algo: SpdmAeadAlgo,
-        key: &[u8],
-        iv: &[u8],
+        key: &SpdmAeadKeyStruct,
+        iv: &SpdmAeadIvStruct,
         aad: &[u8],
         plain_text: &[u8],
         tag: &mut [u8],
@@ -408,8 +408,8 @@ pub mod aead {
 
     pub fn decrypt(
         aead_algo: SpdmAeadAlgo,
-        key: &[u8],
-        iv: &[u8],
+        key: &SpdmAeadKeyStruct,
+        iv: &SpdmAeadIvStruct,
         aad: &[u8],
         cipher_text: &[u8],
         tag: &[u8],

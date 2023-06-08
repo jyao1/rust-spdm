@@ -6,7 +6,7 @@ use crate::crypto::bytes_mut_scrubbed::BytesMutStrubbed;
 use crate::crypto::SpdmAead;
 use crate::error::{SpdmResult, SPDM_STATUS_CRYPTO_ERROR};
 
-use crate::protocol::SpdmAeadAlgo;
+use crate::protocol::{SpdmAeadAlgo, SpdmAeadIvStruct, SpdmAeadKeyStruct};
 
 pub static DEFAULT: SpdmAead = SpdmAead {
     encrypt_cb: encrypt,
@@ -15,31 +15,35 @@ pub static DEFAULT: SpdmAead = SpdmAead {
 
 fn encrypt(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
-    iv: &[u8],
+    key: &SpdmAeadKeyStruct,
+    iv: &SpdmAeadIvStruct,
     aad: &[u8],
     plain_text: &[u8],
     tag: &mut [u8],
     cipher_text: &mut [u8],
 ) -> SpdmResult<(usize, usize)> {
-    if key.len() != aead_algo.get_key_size() as usize {
-        panic!("key len invalid");
+    if key.data_size != aead_algo.get_key_size() {
+        error!("key len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
-    if iv.len() != aead_algo.get_iv_size() as usize {
-        panic!("iv len invalid");
+    if iv.data_size != aead_algo.get_iv_size() {
+        error!("iv len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
     let tag_size = tag.len();
     if tag_size != aead_algo.get_tag_size() as usize {
-        panic!("tag len invalid");
+        error!("tag len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
     let plain_text_size = plain_text.len();
 
     if cipher_text.len() != plain_text_size {
-        panic!("cipher_text len invalid");
+        error!("cipher_text len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
 
     let mut d = [0u8; ring::aead::NONCE_LEN];
-    d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
+    d.copy_from_slice(&iv.data[..ring::aead::NONCE_LEN]);
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
 
     let mut in_out = BytesMutStrubbed::new();
@@ -63,31 +67,35 @@ fn encrypt(
 
 fn decrypt(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
-    iv: &[u8],
+    key: &SpdmAeadKeyStruct,
+    iv: &SpdmAeadIvStruct,
     aad: &[u8],
     cipher_text: &[u8],
     tag: &[u8],
     plain_text: &mut [u8],
 ) -> SpdmResult<usize> {
-    if key.len() != aead_algo.get_key_size() as usize {
-        panic!("key len invalid");
+    if key.data_size != aead_algo.get_key_size() {
+        error!("key len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
-    if iv.len() != aead_algo.get_iv_size() as usize {
-        panic!("iv len invalid");
+    if iv.data_size != aead_algo.get_iv_size() {
+        error!("iv len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
     let tag_size = tag.len();
     if tag_size != aead_algo.get_tag_size() as usize {
-        panic!("tag len invalid");
+        error!("tag len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
     let cipher_text_size = cipher_text.len();
 
     if plain_text.len() != cipher_text_size {
-        panic!("plain_text len invalid");
+        error!("plain_text len invalid");
+        return Err(SPDM_STATUS_CRYPTO_ERROR);
     }
 
     let mut d = [0u8; ring::aead::NONCE_LEN];
-    d.copy_from_slice(&iv[..ring::aead::NONCE_LEN]);
+    d.copy_from_slice(&iv.data[..ring::aead::NONCE_LEN]);
     let nonce = ring::aead::Nonce::assume_unique_for_key(d);
 
     let mut in_out = BytesMutStrubbed::new();
@@ -127,7 +135,7 @@ impl ring::aead::NonceSequence for OneNonceSequence {
 
 fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
+    key: &SpdmAeadKeyStruct,
     nonce: ring::aead::Nonce,
 ) -> SpdmResult<K> {
     let algorithm = match aead_algo {
@@ -139,7 +147,7 @@ fn make_key<K: ring::aead::BoundKey<OneNonceSequence>>(
         }
     };
 
-    let key = if let Ok(k) = ring::aead::UnboundKey::new(algorithm, key) {
+    let key = if let Ok(k) = ring::aead::UnboundKey::new(algorithm, key.as_ref()) {
         k
     } else {
         return Err(SPDM_STATUS_CRYPTO_ERROR);
@@ -156,8 +164,14 @@ mod tests {
     #[test]
     fn test_case0_encrypt() {
         let aead_algo = SpdmAeadAlgo::AES_128_GCM;
-        let key = &mut [100u8; 16];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 16,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [0u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 16];
@@ -169,8 +183,14 @@ mod tests {
     #[test]
     fn test_case1_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 32];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [0u8; 16];
 
@@ -184,8 +204,14 @@ mod tests {
     #[should_panic]
     fn test_case2_encrypt() {
         let aead_algo = SpdmAeadAlgo::empty();
-        let key = &mut [100u8; 1];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 1,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 16];
@@ -194,11 +220,16 @@ mod tests {
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case3_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 1];
-        let iv = &mut [100u8; 32];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 1,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 16];
@@ -207,11 +238,16 @@ mod tests {
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case4_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 32];
-        let iv = &mut [100u8; 1];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 1,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [100u8; 32];
         let aad = &mut [100u8; 16];
@@ -220,11 +256,16 @@ mod tests {
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case5_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 32];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 16];
@@ -233,11 +274,16 @@ mod tests {
         println!("ret_tag_size{:?}", ret_tag_size);
     }
     #[test]
-    #[should_panic]
     fn test_case6_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 32];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [100u8; 32];
         let aad = &mut [100u8; 16];
@@ -249,8 +295,14 @@ mod tests {
     #[should_panic]
     fn test_case0_decrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 32];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let cipher_text = &mut [100u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 12];

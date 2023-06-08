@@ -115,12 +115,39 @@ mod tests_responder {
             SpdmAeadAlgo::AES_256_GCM,
             SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
         );
+        assert!(context.common.session[0]
+            .set_dhe_secret(
+                SpdmVersion::SpdmVersion12,
+                SpdmDheFinalKeyStruct {
+                    data_size: 5,
+                    data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+                }
+            )
+            .is_ok());
+        assert!(context.common.session[0]
+            .generate_handshake_secret(
+                SpdmVersion::SpdmVersion12,
+                &SpdmDigestStruct {
+                    data_size: 5,
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+                }
+            )
+            .is_ok());
+        assert!(context.common.session[0]
+            .generate_data_secret(
+                SpdmVersion::SpdmVersion12,
+                &SpdmDigestStruct {
+                    data_size: 5,
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+                }
+            )
+            .is_ok());
         context.common.session[0]
             .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
         let bytes = &mut [0u8; 1024];
         bytes.copy_from_slice(&spdm_message_header[0..]);
         bytes[2..].copy_from_slice(&session_request[0..1022]);
-        context.handle_spdm_end_session(session_id, bytes);
+        assert!(context.handle_spdm_end_session(session_id, bytes).is_ok());
     }
 }

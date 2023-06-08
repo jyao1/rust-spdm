@@ -942,21 +942,21 @@ impl SpdmSession {
 
         let mut tag_buffer = [0u8; 16];
 
-        let mut salt = secret_param.salt.data.clone();
+        let mut salt = secret_param.salt.clone();
         let sequence_number = secret_param.sequence_number;
-        salt[0] ^= (sequence_number & 0xFF) as u8;
-        salt[1] ^= ((sequence_number >> 8) & 0xFF) as u8;
-        salt[2] ^= ((sequence_number >> 16) & 0xFF) as u8;
-        salt[3] ^= ((sequence_number >> 24) & 0xFF) as u8;
-        salt[4] ^= ((sequence_number >> 32) & 0xFF) as u8;
-        salt[5] ^= ((sequence_number >> 40) & 0xFF) as u8;
-        salt[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
-        salt[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
+        salt.data[0] ^= (sequence_number & 0xFF) as u8;
+        salt.data[1] ^= ((sequence_number >> 8) & 0xFF) as u8;
+        salt.data[2] ^= ((sequence_number >> 16) & 0xFF) as u8;
+        salt.data[3] ^= ((sequence_number >> 24) & 0xFF) as u8;
+        salt.data[4] ^= ((sequence_number >> 32) & 0xFF) as u8;
+        salt.data[5] ^= ((sequence_number >> 40) & 0xFF) as u8;
+        salt.data[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
+        salt.data[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
 
         let (ret_cipher_text_size, ret_tag_size) = crypto::aead::encrypt(
             aead_algo,
-            &secret_param.encryption_key.data[..(aead_algo.get_key_size() as usize)],
-            &salt[..(aead_algo.get_iv_size() as usize)],
+            &secret_param.encryption_key,
+            &salt,
             &aad_buffer[..aad_size],
             &plain_text_buf[0..cipher_text_size],
             &mut tag_buffer[0..tag_size],
@@ -1020,21 +1020,21 @@ impl SpdmSession {
 
         let mut plain_text_buf = [0; config::RECEIVER_BUFFER_SIZE];
 
-        let mut salt = secret_param.salt.data.clone();
+        let mut salt = secret_param.salt.clone();
         let sequence_number = secret_param.sequence_number;
-        salt[0] ^= (sequence_number & 0xFF) as u8;
-        salt[1] ^= ((sequence_number >> 8) & 0xFF) as u8;
-        salt[2] ^= ((sequence_number >> 16) & 0xFF) as u8;
-        salt[3] ^= ((sequence_number >> 24) & 0xFF) as u8;
-        salt[4] ^= ((sequence_number >> 32) & 0xFF) as u8;
-        salt[5] ^= ((sequence_number >> 40) & 0xFF) as u8;
-        salt[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
-        salt[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
+        salt.data[0] ^= (sequence_number & 0xFF) as u8;
+        salt.data[1] ^= ((sequence_number >> 8) & 0xFF) as u8;
+        salt.data[2] ^= ((sequence_number >> 16) & 0xFF) as u8;
+        salt.data[3] ^= ((sequence_number >> 24) & 0xFF) as u8;
+        salt.data[4] ^= ((sequence_number >> 32) & 0xFF) as u8;
+        salt.data[5] ^= ((sequence_number >> 40) & 0xFF) as u8;
+        salt.data[6] ^= ((sequence_number >> 48) & 0xFF) as u8;
+        salt.data[7] ^= ((sequence_number >> 56) & 0xFF) as u8;
 
         let ret_plain_text_size = crypto::aead::decrypt(
             aead_algo,
-            &secret_param.encryption_key.data[..(aead_algo.get_key_size() as usize)],
-            &salt[..(aead_algo.get_iv_size() as usize)],
+            &secret_param.encryption_key,
+            &salt,
             &secured_buffer[..aad_size],
             &secured_buffer[aad_size..(aad_size + cipher_text_size)],
             &secured_buffer
@@ -1141,6 +1141,25 @@ mod tests_session {
         session.set_session_state(crate::common::session::SpdmSessionState::SpdmSessionHandshaking);
         session.transport_param.sequence_number_count = 1;
         println!("session.session_id::{:?}", session.session_id);
+        assert!(session
+            .set_dhe_secret(
+                SpdmVersion::SpdmVersion12,
+                SpdmDheFinalKeyStruct {
+                    data_size: 5,
+                    data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+                }
+            )
+            .is_ok());
+        assert!(session
+            .generate_handshake_secret(
+                SpdmVersion::SpdmVersion12,
+                &SpdmDigestStruct {
+                    data_size: 5,
+                    data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+                }
+            )
+            .is_ok());
+
         let status = session
             .encode_msg(
                 &send_buffer,

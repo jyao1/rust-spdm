@@ -5,7 +5,7 @@
 use spdmlib::crypto::SpdmAead;
 use spdmlib::error::{SpdmResult, SPDM_STATUS_INVALID_PARAMETER};
 
-use spdmlib::protocol::SpdmAeadAlgo;
+use spdmlib::protocol::{SpdmAeadAlgo, SpdmAeadIvStruct, SpdmAeadKeyStruct};
 
 use crate::ffi::{
     spdm_aead_aes_gcm_decrypt, spdm_aead_aes_gcm_encrypt, spdm_aead_chacha20_poly1305_decrypt,
@@ -19,8 +19,8 @@ pub static DEFAULT: SpdmAead = SpdmAead {
 
 fn encrypt(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
-    iv: &[u8],
+    key: &SpdmAeadKeyStruct,
+    iv: &SpdmAeadIvStruct,
     aad: &[u8],
     plain_text: &[u8],
     tag: &mut [u8],
@@ -30,10 +30,10 @@ fn encrypt(
         SpdmAeadAlgo::AES_128_GCM | SpdmAeadAlgo::AES_256_GCM => unsafe {
             let mut cipher_len: usize = cipher_text.len();
             let res = spdm_aead_aes_gcm_encrypt(
-                key.as_ptr(),
-                key.len(),
-                iv.as_ptr(),
-                iv.len(),
+                key.as_ref().as_ptr(),
+                key.data_size as usize,
+                iv.as_ref().as_ptr(),
+                iv.data_size as usize,
                 aad.as_ptr(),
                 aad.len(),
                 plain_text.as_ptr(),
@@ -51,10 +51,10 @@ fn encrypt(
         SpdmAeadAlgo::CHACHA20_POLY1305 => unsafe {
             let mut cipher_text_len: usize = cipher_text.len();
             spdm_aead_chacha20_poly1305_encrypt(
-                key.as_ptr(),
-                key.len(),
-                iv.as_ptr(),
-                iv.len(),
+                key.as_ref().as_ptr(),
+                key.data_size as usize,
+                iv.as_ref().as_ptr(),
+                iv.data_size as usize,
                 aad.as_ptr(),
                 aad.len(),
                 plain_text.as_ptr(),
@@ -72,8 +72,8 @@ fn encrypt(
 
 fn decrypt(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
-    iv: &[u8],
+    key: &SpdmAeadKeyStruct,
+    iv: &SpdmAeadIvStruct,
     aad: &[u8],
     cipher_text: &[u8],
     tag: &[u8],
@@ -83,10 +83,10 @@ fn decrypt(
         SpdmAeadAlgo::AES_128_GCM | SpdmAeadAlgo::AES_256_GCM => unsafe {
             let mut plain_text_len: usize = plain_text.len();
             spdm_aead_aes_gcm_decrypt(
-                key.as_ptr(),
-                key.len(),
-                iv.as_ptr(),
-                iv.len(),
+                key.as_ref().as_ptr(),
+                key.data_size as usize,
+                iv.as_ref().as_ptr(),
+                iv.data_size as usize,
                 aad.as_ptr(),
                 aad.len(),
                 cipher_text.as_ptr(),
@@ -102,10 +102,10 @@ fn decrypt(
             let mut plain_text_len: usize = plain_text.len();
             unsafe {
                 spdm_aead_chacha20_poly1305_decrypt(
-                    key.as_ptr(),
-                    key.len(),
-                    iv.as_ptr(),
-                    iv.len(),
+                    key.as_ref().as_ptr(),
+                    key.data_size as usize,
+                    iv.as_ref().as_ptr(),
+                    iv.data_size as usize,
                     aad.as_ptr(),
                     aad.len(),
                     cipher_text.as_ptr(),
@@ -124,13 +124,21 @@ fn decrypt(
 
 #[cfg(all(test,))]
 mod tests {
+    use spdmlib::protocol::{SPDM_MAX_AEAD_IV_SIZE, SPDM_MAX_AEAD_KEY_SIZE};
+
     use super::*;
 
     #[test]
     fn test_case0() {
         let aead_algo = SpdmAeadAlgo::AES_128_GCM;
-        let key = &mut [100u8; 16];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 16,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let aad = &[0u8; 16];
         let plain_text = &b"hello"[..];
         let tag = &mut [0u8; 16];
@@ -158,8 +166,14 @@ mod tests {
     #[test]
     fn test_case0_encrypt() {
         let aead_algo = SpdmAeadAlgo::AES_128_GCM;
-        let key = &mut [100u8; 16];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 16,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [0u8; 16];
         let tag = &mut [100u8; 16];
         let aad = &mut [100u8; 16];
@@ -171,8 +185,14 @@ mod tests {
     #[test]
     fn test_case1_encrypt() {
         let aead_algo = SpdmAeadAlgo::CHACHA20_POLY1305;
-        let key = &mut [100u8; 32];
-        let iv = &mut [100u8; 12];
+        let key = &SpdmAeadKeyStruct {
+            data_size: 32,
+            data: Box::new([100u8; SPDM_MAX_AEAD_KEY_SIZE]),
+        };
+        let iv = &SpdmAeadIvStruct {
+            data_size: 12,
+            data: Box::new([100u8; SPDM_MAX_AEAD_IV_SIZE]),
+        };
         let plain_text = &mut [100u8; 16];
         let tag = &mut [0u8; 16];
 

@@ -8,9 +8,10 @@ extern crate alloc;
 use alloc::boxed::Box;
 
 use crate::protocol::{
-    SpdmAeadAlgo, SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SpdmDheAlgo, SpdmDheExchangeStruct,
-    SpdmDheFinalKeyStruct, SpdmDigestStruct, SpdmHkdfInputKeyingMaterial,
-    SpdmHkdfOutputKeyingMaterial, SpdmHkdfPseudoRandomKey, SpdmSignatureStruct,
+    SpdmAeadAlgo, SpdmAeadIvStruct, SpdmAeadKeyStruct, SpdmBaseAsymAlgo, SpdmBaseHashAlgo,
+    SpdmDheAlgo, SpdmDheExchangeStruct, SpdmDheFinalKeyStruct, SpdmDigestStruct,
+    SpdmHkdfInputKeyingMaterial, SpdmHkdfOutputKeyingMaterial, SpdmHkdfPseudoRandomKey,
+    SpdmSignatureStruct,
 };
 
 #[cfg(not(feature = "hashed-transcript-data"))]
@@ -44,8 +45,8 @@ pub struct SpdmHmac {
 
 type EncryptCb = fn(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
-    iv: &[u8],
+    key: &SpdmAeadKeyStruct,
+    iv: &SpdmAeadIvStruct,
     aad: &[u8],
     plain_text: &[u8],
     tag: &mut [u8],
@@ -54,8 +55,8 @@ type EncryptCb = fn(
 
 type DecryptCb = fn(
     aead_algo: SpdmAeadAlgo,
-    key: &[u8],
-    iv: &[u8],
+    key: &SpdmAeadKeyStruct,
+    iv: &SpdmAeadIvStruct,
     aad: &[u8],
     cipher_text: &[u8],
     tag: &[u8],
