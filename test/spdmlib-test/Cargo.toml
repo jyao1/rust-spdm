@@ -10,6 +10,7 @@ spdmlib = { path = "../../spdmlib", default-features = false, features=["spdm-ri
 codec = { path = "../../codec" }
 log = "0.4.13"
 ring = { version = "0.16.20" }
+bytes = { version="1", default-features=false }
 
 [features]
 default = ["hashed-transcript-data"]
