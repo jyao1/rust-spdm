@@ -7,7 +7,10 @@ use codec::{Codec, Reader, Writer};
 use crate::{
     common::{SpdmCodec, SpdmConnectionState},
     config,
-    error::{SpdmResult, SPDM_STATUS_NOT_READY_PEER, SPDM_STATUS_UNSUPPORTED_CAP},
+    error::{
+        SpdmResult, SPDM_STATUS_BUFFER_FULL, SPDM_STATUS_INVALID_MSG_FIELD,
+        SPDM_STATUS_INVALID_MSG_SIZE, SPDM_STATUS_NOT_READY_PEER, SPDM_STATUS_UNSUPPORTED_CAP,
+    },
     message::{
         SpdmDeliverEncapsulatedResponsePayload, SpdmEncapsulatedRequestPayload,
         SpdmEncapsulatedResponseAckPayload, SpdmEncapsulatedResponseAckPayloadType, SpdmErrorCode,
@@ -20,19 +23,28 @@ use super::ResponderContext;
 
 impl<'a> ResponderContext<'a> {
     pub fn handle_get_encapsulated_request(&mut self, session_id: u32, bytes: &[u8]) -> SpdmResult {
+        let mut encapsulated_request = [0u8; config::MAX_SPDM_MSG_SIZE];
+        let mut writer = Writer::init(&mut encapsulated_request);
+
         self.encap_check_version_cap_state(
             SpdmRequestResponseCode::SpdmRequestGetEncapsulatedRequest.get_u8(),
+            &mut writer,
         );
+        self.write_encap_request_response(bytes, &mut writer);
 
+        self.send_secured_message(session_id, writer.used_slice(), false)
+    }
+
+    fn write_encap_request_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         if let Some(request_header) = SpdmMessageHeader::read(&mut reader) {
             if request_header.version != self.common.negotiate_info.spdm_version_sel {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0);
-                return Ok(());
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
+                return;
             }
         } else {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return Ok(());
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
         };
 
         let encapsulated_request = SpdmMessage {
@@ -47,12 +59,18 @@ impl<'a> ResponderContext<'a> {
             ),
         };
 
-        let mut response = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let mut writer = Writer::init(&mut response);
-        let _ = encapsulated_request.spdm_encode(&mut self.common, &mut writer)?;
+        if encapsulated_request
+            .spdm_encode(&mut self.common, writer)
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0, writer);
+            return;
+        }
 
-        self.encode_encap_request_get_digest(&mut writer)?;
-        self.send_secured_message(session_id, writer.used_slice(), false)
+        if self.encode_encap_request_get_digest(writer).is_err() {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidResponseCode, 0, writer);
+            return;
+        }
     }
 
     pub fn handle_deliver_encapsulated_reponse(
@@ -60,19 +78,28 @@ impl<'a> ResponderContext<'a> {
         session_id: u32,
         bytes: &[u8],
     ) -> SpdmResult {
+        let mut encap_response_ack = [0u8; config::MAX_SPDM_MSG_SIZE];
+        let mut writer = Writer::init(&mut encap_response_ack);
+
         self.encap_check_version_cap_state(
             SpdmRequestResponseCode::SpdmRequestGetEncapsulatedRequest.get_u8(),
+            &mut writer,
         );
+        self.write_encap_response_ack_response(bytes, &mut writer);
 
+        self.send_secured_message(session_id, writer.used_slice(), false)
+    }
+
+    fn write_encap_response_ack_response(&mut self, bytes: &[u8], writer: &mut Writer) {
         let mut reader = Reader::init(bytes);
         if let Some(request_header) = SpdmMessageHeader::read(&mut reader) {
             if request_header.version != self.common.negotiate_info.spdm_version_sel {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0);
-                return Ok(());
+                self.write_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0, writer);
+                return;
             }
         } else {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return Ok(());
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
         };
 
         let encap_response_payload = if let Some(encap_response_payload) =
@@ -80,21 +107,19 @@ impl<'a> ResponderContext<'a> {
         {
             encap_response_payload
         } else {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return Ok(());
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return;
         };
 
-        let mut encap_response_ack = [0u8; config::MAX_SPDM_MSG_SIZE];
-        let mut writer = Writer::init(&mut encap_response_ack);
-        self.process_encapsulated_response(
-            &encap_response_payload,
-            &bytes[reader.used()..],
-            &mut writer,
-        );
-        self.send_secured_message(session_id, writer.used_slice(), false)
+        if self
+            .process_encapsulated_response(&encap_response_payload, &bytes[reader.used()..], writer)
+            .is_err()
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidResponseCode, 0, writer);
+        }
     }
 
-    fn encap_check_version_cap_state(&mut self, request_response_code: u8) {
+    fn encap_check_version_cap_state(&mut self, request_response_code: u8, writer: &mut Writer) {
         if self.common.negotiate_info.spdm_version_sel.get_u8()
             < SpdmVersion::SpdmVersion11.get_u8()
         {
@@ -115,9 +140,10 @@ impl<'a> ResponderContext<'a> {
                 .rsp_capabilities_sel
                 .contains(SpdmResponseCapabilityFlags::ENCAP_CAP)
         {
-            self.send_spdm_error(
+            self.write_spdm_error(
                 SpdmErrorCode::SpdmErrorUnsupportedRequest,
                 request_response_code,
+                writer,
             );
             return;
         }
@@ -125,7 +151,7 @@ impl<'a> ResponderContext<'a> {
         if self.common.runtime_info.get_connection_state().get_u8()
             < SpdmConnectionState::SpdmConnectionAfterCertificate.get_u8()
         {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorUnexpectedRequest, 0);
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorUnexpectedRequest, 0, writer);
         }
     }
 
@@ -134,17 +160,15 @@ impl<'a> ResponderContext<'a> {
         encap_response_payload: &SpdmDeliverEncapsulatedResponsePayload,
         encap_response: &[u8],
         encap_response_ack: &mut Writer,
-    ) {
+    ) -> SpdmResult {
         let mut reader = Reader::init(encap_response);
         let deliver_encap_response = if let Some(header) = SpdmMessageHeader::read(&mut reader) {
             if header.version != self.common.negotiate_info.spdm_version_sel {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorVersionMismatch, 0);
-                return;
+                return Err(SPDM_STATUS_INVALID_MSG_FIELD);
             }
             header
         } else {
-            self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-            return;
+            return Err(SPDM_STATUS_INVALID_MSG_SIZE);
         };
 
         let header = SpdmMessageHeader {
@@ -161,55 +185,44 @@ impl<'a> ResponderContext<'a> {
 
         match deliver_encap_response.request_response_code {
             SpdmRequestResponseCode::SpdmResponseDigests => {
-                if self.handle_encap_response_digest(encap_response).is_err() {
-                    self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-                    return;
-                }
+                self.handle_encap_response_digest(encap_response)?;
 
                 let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack);
-                if self
-                    .encode_encap_requst_get_certificate(encap_response_ack)
-                    .is_err()
-                {
-                    self.send_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0);
-                }
+                self.encode_encap_requst_get_certificate(encap_response_ack)
             }
             SpdmRequestResponseCode::SpdmResponseCertificate => {
                 match self.handle_encap_response_certificate(encap_response) {
                     Ok(need_continue) => {
                         if need_continue {
-                            let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack);
-                            if self
-                                .encode_encap_requst_get_certificate(encap_response_ack)
-                                .is_err()
-                            {
-                                self.send_spdm_error(SpdmErrorCode::SpdmErrorUnspecified, 0);
-                            }
+                            let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack)?;
+                            self.encode_encap_requst_get_certificate(encap_response_ack)
                         } else {
                             ack_params.payload_type =
                                 SpdmEncapsulatedResponseAckPayloadType::ReqSlotNumber;
-                            let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack);
+                            let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack)?;
                             let _ = self
                                 .common
                                 .encap_context
                                 .req_slot_id
-                                .encode(encap_response_ack);
+                                .encode(encap_response_ack)
+                                .map_err(|_| SPDM_STATUS_BUFFER_FULL)?;
+                            Ok(())
                         }
                     }
                     Err(e) => {
                         if e == SPDM_STATUS_NOT_READY_PEER {
                             ack_params.payload_type =
                                 SpdmEncapsulatedResponseAckPayloadType::Absent;
-                            let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack);
+                            let _ = ack_params.spdm_encode(&mut self.common, encap_response_ack)?;
+                            Ok(())
+                        } else {
+                            Err(e)
                         }
-                        self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidResponseCode, 0);
                     }
                 }
             }
-            _ => {
-                self.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidResponseCode, 0);
-            }
-        };
+            _ => Err(SPDM_STATUS_UNSUPPORTED_CAP),
+        }
     }
 
     pub fn handle_encap_error_response_main(&self, error_code: u8) -> SpdmResult {
