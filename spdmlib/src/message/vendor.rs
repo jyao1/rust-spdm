@@ -14,7 +14,7 @@ use conquer_once::spin::OnceCell;
 
 // config::MAX_SPDM_MSG_SIZE - 7 - 2
 // SPDM0274 1.2.1: Table 56, table 57 VENDOR_DEFINED_RESPONSE message format
-pub(crate) const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = config::MAX_SPDM_MSG_SIZE - 7 - 2;
+pub const MAX_SPDM_VENDOR_DEFINED_PAYLOAD_SIZE: usize = config::MAX_SPDM_MSG_SIZE - 7 - 2;
 
 pub const MAX_SPDM_VENDOR_DEFINED_VENDOR_ID_LEN: usize = 0xFF;
 
