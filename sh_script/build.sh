@@ -78,6 +78,7 @@ build_mbedtls_crate() {
     build_mbedtls_c_build_env build_mbedtls
 }
 
+RUSTFLAGS=${RUSTFLAGS:-}
 build() {
     pushd spdmlib_crypto_mbedtls
     if [ "${RUNNER_OS:-Linux}" == "Linux" ]; then
@@ -98,14 +99,17 @@ build() {
     echo "Building Rust-SPDM with spdm-ring,hashed-transcript-data feature..."
     echo_command cargo build --release --no-default-features --features=spdm-ring,hashed-transcript-data
     
-    echo "Building Rust-SPDM in no std with no-default-features..."
-    echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features
+    if [ -z "$RUSTFLAGS" ]; then
+        echo "Building Rust-SPDM in no std with no-default-features..."
+        echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features
     
-    echo "Building Rust-SPDM in no std with spdm-ring feature..."
-    echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring"
+        echo "Building Rust-SPDM in no std with spdm-ring feature..."
+        echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring"
     
-    echo "Building Rust-SPDM in no std with spdm-ring,hashed-transcript-data feature..."
-    echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring,hashed-transcript-data"
+        echo "Building Rust-SPDM in no std with spdm-ring,hashed-transcript-data feature..."
+        echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring,hashed-transcript-data"
+    fi
+
     popd
     
     echo "Building spdm-requester-emu..."

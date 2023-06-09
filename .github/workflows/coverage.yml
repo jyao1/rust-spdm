@@ -3,23 +3,36 @@ on:
   push:
     # Pattern matched against refs/tags
     tags:
-      - '**'           # Push events to every tag including hierarchical tags like v0.1.0/beta
+      - "**" # Push events to every tag including hierarchical tags like v0.1.0/beta
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-env:
-  AS: nasm
-  AR_x86_64_unknown_none: llvm-ar
-  CC_x86_64_unknown_none: clang
-  RUST_TOOLCHAIN: nightly-2022-05-15
-  TOOLCHAIN_PROFILE: minimal
 jobs:
-  build:
+  generate_coverage:
     runs-on: ubuntu-latest
-    name: Generate coverage
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: ilammy/setup-nasm@v1
-      - uses: actions/checkout@v1
+
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "12.0.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2022-11-21
+          override: true
+          components: rust-src, rustfmt, clippy
 
       - name: Run cargo install grcov
         uses: actions-rs/cargo@v1
@@ -27,46 +40,18 @@ jobs:
           command: install
           args: grcov
 
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "10.0"
-          directory: ${{ runner.temp }}/llvm
-
-      - name: install NASM
-        uses: ilammy/setup-nasm@v1
-
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: Apply patch
-        shell: bash
-        run: |
-            ./sh_script/pre-build.sh
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: ${{ env.TOOLCHAIN_PROFILE }}
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          override: true
-          components: rust-src
-
       - name: Cache
         uses: Swatinem/rust-cache@v1
 
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          override: true
-          components: rust-src, llvm-tools-preview
+      - name: Check code
+        run: |
+          ./sh_script/build.sh -c
 
       - name: Install AFL (Linux)
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: afl
+          args: --force --version 0.12.12 afl
         if: runner.os == 'Linux'
 
       - name: Install Cargo-Fuzz (Linux)
@@ -75,12 +60,6 @@ jobs:
           command: install
           args: cargo-fuzz
         if: runner.os == 'Linux'
-
-      - name: no std check
-        run: |
-          rustup component add rust-src
-          pushd spdmlib
-          cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring"
 
       - name: set core_pattern for core
         run: |
@@ -91,28 +70,42 @@ jobs:
           popd
           exit
           EOF
+        if: runner.os == 'Linux'
 
       - name: cargo build
         env:
-          LLVM_PROFILE_FILE: your_name-%p-%m.profraw
-          RUSTFLAGS: -Zinstrument-coverage
+          LLVM_PROFILE_FILE: build-%p-%m.profraw
+          RUSTFLAGS: "-C instrument-coverage"
+          CC_x86_64_unknown_none: clang
+          AR_x86_64_unknown_none: llvm-ar
+          RUN_REQUESTER_FEATURES: "spdm-ring"
+          RUN_RESPONDER_FEATURES: "spdm-ring"
         run: |
-          cargo build -p spdm-responder-emu -p spdm-requester-emu
+          ./sh_script/build.sh -r
 
-      - name: Build fuzz
-        run: ./sh_script/fuzz_run.sh -c Scoverage
-
-      - name: cargo tests
-        run: cargo test
-
-      - name: run responder and requester script
+      - name: cargo build enable hashed-transcript-data
         env:
-          LLVM_PROFILE_FILE: rust-spdm-%p%m.profraw
-          RUSTFLAGS: -Zinstrument-coverage
+          LLVM_PROFILE_FILE: build-hashed-transcript-data-%p-%m.profraw
+          RUSTFLAGS: "-C instrument-coverage"
+          CC_x86_64_unknown_none: clang
+          AR_x86_64_unknown_none: llvm-ar
+          RUN_REQUESTER_FEATURES: "spdm-ring,hashed-transcript-data"
+          RUN_RESPONDER_FEATURES: "spdm-ring,hashed-transcript-data"
         run: |
-          cargo run -p spdm-responder-emu &
-          sleep 5
-          cargo run -p spdm-requester-emu
+          ./sh_script/build.sh -r
+
+      - name: Run fuzz
+        env:
+          FUZZ_HASH_TRANSCRIPT_DATA_FEATURE: true
+        run: |
+          ./sh_script/fuzz_run.sh -c Scoverage
+
+      - name: Run fuzz
+        env:
+          FUZZ_HASH_TRANSCRIPT_DATA_FEATURE: false
+        run: |
+          ./sh_script/fuzz_run.sh -c Scoverage
+
       - name: Run tests and collect coverage
         run: |
           grcov $(find . -name "*.profraw") \
