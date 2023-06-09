@@ -32,7 +32,7 @@ jobs:
           profile: minimal
           toolchain: nightly-2022-11-21
           override: true
-          components: rust-src, rustfmt, clippy
+          components: rust-src, rustfmt, clippy, llvm-tools-preview
 
       - name: Run cargo install grcov
         uses: actions-rs/cargo@v1
