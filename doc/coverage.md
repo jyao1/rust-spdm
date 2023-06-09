@@ -6,7 +6,7 @@ The Rust compiler includes two code coverage implementations:
 
 [profile environment](https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/profile.html)
 
-**A source-based code coverage implementation, enabled with -Z instrument-coverage, which uses LLVM's native, efficient coverage instrumentation to generate very precise coverage data.**
+**A source-based code coverage implementation, enabled with -C instrument-coverage, which uses LLVM's native, efficient coverage instrumentation to generate very precise coverage data.**
 
   [instrument-coverage environment](https://doc.rust-lang.org/nightly/unstable-book/compiler-flags/instrument-coverage.html)
 

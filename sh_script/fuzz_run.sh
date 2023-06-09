@@ -118,8 +118,8 @@ done
 
 if [[ $coverage_type == "Scoverage" ]]; then
     echo "$coverage_type"
-    export RUSTFLAGS="-Zinstrument-coverage"
-    export LLVM_PROFILE_FILE='fuzz_run%m.profraw'
+    export RUSTFLAGS="-C instrument-coverage"
+    export LLVM_PROFILE_FILE='fuzz_run-%p-%m.profraw'
 fi
 
 if [[ $coverage_type == "Gcoverage" ]]; then
