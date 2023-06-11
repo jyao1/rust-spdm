@@ -99,6 +99,9 @@ build() {
     echo "Building Rust-SPDM with spdm-ring,hashed-transcript-data feature..."
     echo_command cargo build --release --no-default-features --features=spdm-ring,hashed-transcript-data
     
+    echo "Building Rust-SPDM with spdm-ring,hashed-transcript-data,mut-auth feature..."
+    echo_command cargo build --release --no-default-features --features=spdm-ring,hashed-transcript-data,mut-auth
+
     if [ -z "$RUSTFLAGS" ]; then
         echo "Building Rust-SPDM in no std with no-default-features..."
         echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features
@@ -108,6 +111,9 @@ build() {
     
         echo "Building Rust-SPDM in no std with spdm-ring,hashed-transcript-data feature..."
         echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring,hashed-transcript-data"
+    
+        echo "Building Rust-SPDM in no std with spdm-ring,hashed-transcript-data,mut-auth feature..."
+        echo_command cargo build -Z build-std=core,alloc,compiler_builtins --target x86_64-unknown-none --release --no-default-features --features="spdm-ring,hashed-transcript-data,mut-auth"
     fi
 
     popd
@@ -121,6 +127,8 @@ build() {
 
 RUN_REQUESTER_FEATURES=${RUN_REQUESTER_FEATURES:-spdm-ring,hashed-transcript-data}
 RUN_RESPONDER_FEATURES=${RUN_RESPONDER_FEATURES:-spdm-ring,hashed-transcript-data}
+RUN_REQUESTER_MUTAUTH_FEATURES="${RUN_REQUESTER_FEATURES},mut-auth"
+RUN_RESPONDER_MUTAUTH_FEATURES="${RUN_RESPONDER_FEATURES},mut-auth"
 
 run_with_spdm_emu() {
     echo "Running with spdm-emu..."
@@ -140,6 +148,24 @@ run_with_spdm_emu() {
     popd
 }
 
+run_with_spdm_emu_mut_auth() {
+    echo "Running mutual authentication with spdm-emu..."
+    pushd test_key
+    chmod +x ./spdm_responder_emu
+    echo_command  ./spdm_responder_emu --trans PCI_DOE --mut_auth DIGESTS --req_asym ECDSA_P384 --basic_mut_auth NO &
+    popd
+    sleep 5
+    echo_command cargo run -p spdm-requester-emu --no-default-features --features="$RUN_RESPONDER_MUTAUTH_FEATURES"
+    cleanup
+    
+    echo_command cargo run -p spdm-responder-emu --no-default-features --features="$RUN_REQUESTER_MUTAUTH_FEATURES" &
+    sleep 5
+    pushd test_key
+    chmod +x ./spdm_requester_emu
+    echo_command  ./spdm_requester_emu --trans PCI_DOE --req_asym ECDSA_P384 --exe_conn DIGEST,CERT,CHAL,MEAS --exe_session KEY_EX,PSK,KEY_UPDATE,HEARTBEAT,MEAS,DIGEST,CERT
+    popd
+}
+
 run_basic_test() {
     echo "Running basic tests..."
     echo_command cargo test -- --test-threads=1
@@ -155,9 +181,19 @@ run_rust_spdm_emu() {
     cleanup
 }
 
+run_rust_spdm_emu_mut_auth() {
+    echo "Running requester and responder mutual authentication..."
+    echo $RUN_REQUESTER_MUTAUTH_FEATURES
+    echo_command cargo run -p spdm-responder-emu --no-default-features --features="$RUN_REQUESTER_MUTAUTH_FEATURES" &
+    sleep 5
+    echo_command cargo run -p spdm-requester-emu --no-default-features --features="$RUN_RESPONDER_MUTAUTH_FEATURES"
+    cleanup
+}
+
 run() {
     run_basic_test
     run_rust_spdm_emu
+    run_rust_spdm_emu_mut_auth
 }
 
 CHECK_OPTION=false
@@ -205,6 +241,7 @@ main() {
         run
         if [ "$RUNNER_OS" == "Linux" ]; then
             run_with_spdm_emu
+            run_with_spdm_emu_mut_auth
         fi
     fi
 }
