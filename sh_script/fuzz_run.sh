@@ -94,6 +94,7 @@ cmds=(
     "key_update_rsp"
     "end_session_rsp"
     "vendor_rsp"
+    "encap_get_digest"
     "version_req"
     "capability_req"
     "algorithm_req"
@@ -109,6 +110,7 @@ cmds=(
     "key_update_req"
     "end_session_req"
     "vendor_req"
+    "encap_digest"
 )
 
 buildpackage=''
