@@ -18,3 +18,4 @@ spdmlib-test = { path = "../../test/spdmlib-test" }
 [features]
 default = ["hashed-transcript-data", "afl"]
 hashed-transcript-data = ["spdmlib/hashed-transcript-data"]
+mut-auth = ["spdmlib/mut-auth"]

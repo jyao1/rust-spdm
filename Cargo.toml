@@ -29,6 +29,7 @@ members = [
     "fuzz-target/responder/key_update_rsp",
     "fuzz-target/responder/end_session_rsp",
     "fuzz-target/responder/vendor_rsp",
+    "fuzz-target/responder/encap_get_digest",
 
     "fuzz-target/requester/version_req",
     "fuzz-target/requester/capability_req",
@@ -45,6 +46,7 @@ members = [
     "fuzz-target/requester/key_update_req",
     "fuzz-target/requester/end_session_req",
     "fuzz-target/requester/vendor_req",
+    "fuzz-target/requester/encap_digest",
 
     "fuzz-target/random_requester",
     "fuzz-target/pass_context",
