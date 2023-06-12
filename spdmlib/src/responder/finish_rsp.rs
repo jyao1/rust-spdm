@@ -83,13 +83,25 @@ impl<'a> ResponderContext<'a> {
             return Err(SPDM_STATUS_CRYPTO_ERROR);
         }
 
-        let mut is_mut_auth = false;
-        if finish_req
-            .finish_request_attributes
-            .contains(SpdmFinishRequestAttributes::SIGNATURE_INCLUDED)
-        {
-            is_mut_auth = true;
+        let mut_auth_attributes = self
+            .common
+            .get_immutable_session_via_id(session_id)
+            .unwrap()
+            .get_mut_auth_requested();
+        let finish_request_attributes = finish_req.finish_request_attributes;
 
+        if (!mut_auth_attributes.is_empty()
+            && !finish_request_attributes.contains(SpdmFinishRequestAttributes::SIGNATURE_INCLUDED))
+            || (mut_auth_attributes.is_empty()
+                && finish_request_attributes
+                    .contains(SpdmFinishRequestAttributes::SIGNATURE_INCLUDED))
+        {
+            self.write_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0, writer);
+            return Err(SPDM_STATUS_INVALID_MSG_FIELD);
+        }
+
+        let is_mut_auth = !mut_auth_attributes.is_empty();
+        if is_mut_auth {
             let session = self
                 .common
                 .get_immutable_session_via_id(session_id)
