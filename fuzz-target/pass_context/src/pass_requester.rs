@@ -24,8 +24,7 @@ pub fn fuzz_total_requesters() {
     );
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-    let mut device_io_requester =
-        fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+    let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
 
     let mut requester = requester::RequesterContext::new(
         &mut device_io_requester,

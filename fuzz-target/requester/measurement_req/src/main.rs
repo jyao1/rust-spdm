@@ -12,229 +12,25 @@ use spdmlib::message::*;
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
-    let (rsp_config_info, rsp_provision_info) = rsp_create_info();
-    let (req_config_info, req_provision_info) = req_create_info();
-    let (rsp_config_info1, rsp_provision_info1) = rsp_create_info();
-    let (req_config_info1, req_provision_info1) = req_create_info();
-    let (rsp_config_info2, rsp_provision_info2) = rsp_create_info();
-    let (req_config_info2, req_provision_info2) = req_create_info();
-    let (rsp_config_info3, rsp_provision_info3) = rsp_create_info();
-    let (req_config_info3, req_provision_info3) = req_create_info();
-    let (rsp_config_info4, rsp_provision_info4) = rsp_create_info();
-    let (req_config_info4, req_provision_info4) = req_create_info();
-    let (rsp_config_info5, rsp_provision_info5) = rsp_create_info();
-    let (req_config_info5, req_provision_info5) = req_create_info();
-    let (rsp_config_info6, rsp_provision_info6) = rsp_create_info();
-    let (req_config_info6, req_provision_info6) = req_create_info();
-    {
-        let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info3,
-            rsp_provision_info3,
-        );
-
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info3,
-            req_provision_info3,
-        );
-
-        requester.common.negotiate_info.req_ct_exponent_sel = 0;
-        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        requester.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-        requester
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        requester.common.reset_runtime_info();
-        let mut total_number = 0;
-        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
-        let _ = requester.send_receive_spdm_measurement(
-            None,
-            0,
-            SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
-            SpdmMeasurementOperation::SpdmMeasurementRequestAll,
-            &mut total_number,
-            &mut spdm_measurement_record_structure,
-        );
-    }
-    {
-        let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-
-        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
-
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
-
-        let mut requester = requester::RequesterContext::new(
-            &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info,
-            req_provision_info,
-        );
-
-        requester.common.negotiate_info.req_ct_exponent_sel = 0;
-        requester.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        requester.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        requester.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-        requester
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-        requester.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        requester.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        requester.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        requester.common.reset_runtime_info();
-
-        let mut total_number = 0;
-        let mut spdm_measurement_record_structure = SpdmMeasurementRecordStructure::default();
-        let _ = requester.send_receive_spdm_measurement(
-            None,
-            0,
-            SpdmMeasurementAttributes::SIGNATURE_REQUESTED,
-            SpdmMeasurementOperation::SpdmMeasurementQueryTotalNumber,
-            &mut total_number,
-            &mut spdm_measurement_record_structure,
-        );
-    }
     // TCD:
     // - id: 0
     // - title: 'Fuzz SPDM handle measurement response'
     // - description: '<p>Request with SIGNATURE_REQUESTED attribute and SpdmMeasurementRequestAll operation.</p>'
     // -
     {
+        let (req_config_info, req_provision_info) = req_create_info();
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info1,
-            rsp_provision_info1,
-        );
-
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info1,
-            req_provision_info1,
+            pcidoe_transport_encap,
+            req_config_info,
+            req_provision_info,
         );
 
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
@@ -274,52 +70,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     // - description: '<p>No peer cert chain set, but request with SIGNATURE_REQUESTED.</p><p>When requester receive measurements, it will verify signature and return error.</p>'
     // -
     {
+        let (req_config_info, req_provision_info) = req_create_info();
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info2,
-            rsp_provision_info2,
-        );
-
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info2,
-            req_provision_info2,
+            pcidoe_transport_encap,
+            req_config_info,
+            req_provision_info,
         );
 
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
@@ -357,52 +121,21 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     // - description: '<p>Request raw bit stream measurement and signature verification is not required.</p>'
     // -
     {
+        let (req_config_info, req_provision_info) = req_create_info();
+
         let shared_buffer = SharedBuffer::new();
         let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info4,
-            rsp_provision_info4,
-        );
-
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info4,
-            req_provision_info4,
+            pcidoe_transport_encap,
+            req_config_info,
+            req_provision_info,
         );
 
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
@@ -440,52 +173,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     // - description: '<p>Request with empty attribute and unknown operation value.</p>'
     // -
     {
+        let (req_config_info, req_provision_info) = req_create_info();
+
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info5,
-            rsp_provision_info5,
-        );
-
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info5,
-            req_provision_info5,
+            pcidoe_transport_encap,
+            req_config_info,
+            req_provision_info,
         );
 
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
@@ -523,77 +224,20 @@ fn fuzz_send_receive_spdm_measurement(fuzzdata: &[u8]) {
     // - description: '<p>Request measurement in a session.</p>'
     // -
     {
+        let (req_config_info, req_provision_info) = req_create_info();
+
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        let mut responder = responder::ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info6,
-            rsp_provision_info6,
-        );
-
-        spdmlib::crypto::aead::register(FAKE_AEAD.clone());
-
-        responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-        responder.common.negotiate_info.req_ct_exponent_sel = 0;
-        responder.common.negotiate_info.req_capabilities_sel = SpdmRequestCapabilityFlags::CERT_CAP;
-        responder.common.negotiate_info.rsp_ct_exponent_sel = 0;
-        responder.common.negotiate_info.rsp_capabilities_sel =
-            SpdmResponseCapabilityFlags::CERT_CAP;
-
-        responder
-            .common
-            .negotiate_info
-            .measurement_specification_sel = SpdmMeasurementSpecification::DMTF;
-
-        responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.base_asym_sel =
-            SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-        responder.common.negotiate_info.measurement_hash_sel =
-            SpdmMeasurementHashAlgo::TPM_ALG_SHA_384;
-        responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-        responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-        responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-
-        responder.common.session[0] = SpdmSession::new();
-        responder.common.session[0].setup(4294836221).unwrap();
-        responder.common.session[0].set_crypto_param(
-            SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-            SpdmDheAlgo::SECP_384_R1,
-            SpdmAeadAlgo::AES_256_GCM,
-            SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-        );
-        responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
-
-        #[cfg(feature = "hashed-transcript-data")]
-        {
-            let mut dhe_secret = SpdmDheFinalKeyStruct::default();
-            dhe_secret.data_size = SpdmDheAlgo::SECP_384_R1.get_size();
-            responder.common.session[0]
-                .set_dhe_secret(SpdmVersion::SpdmVersion12, dhe_secret)
-                .unwrap();
-            responder.common.session[0].runtime_info.digest_context_th =
-                spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-        }
-
-        responder.common.reset_runtime_info();
-        responder
-            .common
-            .runtime_info
-            .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester =
-            fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = requester::RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
-            req_config_info6,
-            req_provision_info6,
+            pcidoe_transport_encap,
+            req_config_info,
+            req_provision_info,
         );
 
         requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;

@@ -13,51 +13,17 @@ fn fuzz_send_receive_spdm_psk_finish(fuzzdata: &[u8]) {
     spdmlib::secret::psk::register(fuzzlib::secret::SECRET_PSK_IMPL_INSTANCE.clone());
     spdmlib::crypto::aead::register(FAKE_AEAD.clone());
 
-    let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
     let shared_buffer = SharedBuffer::new();
-    let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-    let mut responder = responder::ResponderContext::new(
-        &mut device_io_responder,
-        pcidoe_transport_encap,
-        rsp_config_info,
-        rsp_provision_info,
-    );
-    responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-    responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
-    responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
-    responder.common.negotiate_info.aead_sel = SpdmAeadAlgo::AES_256_GCM;
-    responder.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_RSAPSS_2048;
-
-    responder.common.session[0] = SpdmSession::new();
-    responder.common.session[0].setup(4294836221).unwrap();
-    responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
-    responder.common.session[0].set_crypto_param(
-        SpdmBaseHashAlgo::TPM_ALG_SHA_384,
-        SpdmDheAlgo::SECP_384_R1,
-        SpdmAeadAlgo::AES_256_GCM,
-        SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
-    );
-    responder.common.session[0].set_use_psk(true);
-    responder.common.session[0].runtime_info.psk_hint = Some(SpdmPskHintStruct::default());
-
-    #[cfg(feature = "hashed-transcript-data")]
-    {
-        responder.common.session[0].runtime_info.digest_context_th =
-            spdmlib::crypto::hash::hash_ctx_init(SpdmBaseHashAlgo::TPM_ALG_SHA_384);
-    }
-
-    let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-    let mut device_io_requester =
-        fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+    let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+    device_io_requester.set_rx(fuzzdata);
 
     let mut requester = requester::RequesterContext::new(
         &mut device_io_requester,
-        pcidoe_transport_encap2,
+        pcidoe_transport_encap,
         req_config_info,
         req_provision_info,
     );

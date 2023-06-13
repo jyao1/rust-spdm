@@ -184,6 +184,7 @@ fi
 
 if [[ $coverage_type == "Scoverage" || $coverage_type == "Gcoverage" ]]; then
     set -x
+    rm -rf "${CARGO_TARGET_DIR:-target}"/debug/fuzz_coverage
     grcov --branch --guess-directory-when-missing --ignore-not-existing --llvm \
         --output-type html \
         --binary-path "${CARGO_TARGET_DIR:-target}"/debug/ \
