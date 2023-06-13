@@ -4,11 +4,11 @@
 
 use fuzzlib::{
     fake_device_io::FakeSpdmDeviceIo,
-    req_create_info, rsp_create_info, spdmlib,
+    req_create_info, spdmlib,
+    spdmlib::protocol::MAX_SPDM_VERSION_COUNT,
     spdmlib::{protocol::SpdmVersion, requester::RequesterContext},
-    spdmlib::{protocol::MAX_SPDM_VERSION_COUNT, responder::ResponderContext},
     time::SPDM_TIME_IMPL,
-    FuzzSpdmDeviceIoReceve, PciDoeTransportEncap, SharedBuffer, SECRET_ASYM_IMPL_INSTANCE,
+    PciDoeTransportEncap, SharedBuffer, SECRET_ASYM_IMPL_INSTANCE,
 };
 
 #[allow(unused)]
@@ -21,29 +21,17 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
     // - description: '<p>Version can be negotiated.</p>'
     // -
     {
-        let (rsp_config_info, rsp_provision_info) = rsp_create_info();
         let (req_config_info, req_provision_info) = req_create_info();
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-        spdmlib::time::register(SPDM_TIME_IMPL.clone());
-
-        let mut responder = ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
+            pcidoe_transport_encap,
             req_config_info,
             req_provision_info,
         );
@@ -56,33 +44,21 @@ fn fuzz_send_receive_spdm_version(fuzzdata: &[u8]) {
     // - description: '<p>Version can not be negotiated.</p>'
     // -
     {
-        let (rsp_config_info, rsp_provision_info) = rsp_create_info();
         let (mut req_config_info, req_provision_info) = req_create_info();
         for i in 0..MAX_SPDM_VERSION_COUNT {
             req_config_info.spdm_version[i] = SpdmVersion::default();
         }
 
         let shared_buffer = SharedBuffer::new();
-        let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
 
         let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
-        spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-        spdmlib::time::register(SPDM_TIME_IMPL.clone());
-
-        let mut responder = ResponderContext::new(
-            &mut device_io_responder,
-            pcidoe_transport_encap,
-            rsp_config_info,
-            rsp_provision_info,
-        );
-
-        let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
+        let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer);
+        device_io_requester.set_rx(fuzzdata);
 
         let mut requester = RequesterContext::new(
             &mut device_io_requester,
-            pcidoe_transport_encap2,
+            pcidoe_transport_encap,
             req_config_info,
             req_provision_info,
         );
@@ -107,6 +83,9 @@ fn main() {
         .create_symlink("current_run")
         .start()
         .unwrap();
+
+    spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
+    spdmlib::time::register(SPDM_TIME_IMPL.clone());
 
     #[cfg(not(feature = "fuzz"))]
     {

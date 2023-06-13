@@ -105,33 +105,27 @@ impl SpdmDeviceIo for FuzzSpdmDeviceIoReceve<'_> {
 }
 
 pub struct FakeSpdmDeviceIo<'a> {
-    pub data: &'a SharedBuffer,
-    pub responder: &'a mut responder::ResponderContext<'a>,
+    pub rx: &'a SharedBuffer,
 }
 
 impl<'a> FakeSpdmDeviceIo<'a> {
-    pub fn new(data: &'a SharedBuffer, responder: &'a mut responder::ResponderContext<'a>) -> Self {
-        FakeSpdmDeviceIo {
-            data: data,
-            responder,
-        }
+    pub fn new(rx: &'a SharedBuffer) -> Self {
+        FakeSpdmDeviceIo { rx }
+    }
+    pub fn set_rx(&mut self, buffer: &[u8]) {
+        self.rx.set_buffer(buffer);
     }
 }
 
 impl SpdmDeviceIo for FakeSpdmDeviceIo<'_> {
     fn receive(&mut self, read_buffer: &mut [u8], _timeout: usize) -> Result<usize, usize> {
-        let len = self.data.get_buffer(read_buffer);
+        let len = self.rx.get_buffer(read_buffer);
         log::info!("requester receive RAW - {:02x?}\n", &read_buffer[0..len]);
         Ok(len)
     }
 
     fn send(&mut self, buffer: &[u8]) -> SpdmResult {
-        self.data.set_buffer(buffer);
         log::info!("requester send    RAW - {:02x?}\n", buffer);
-        let timeout = 60;
-        if self.responder.process_message(timeout, &[0]).is_err() {
-            return Err(SPDM_STATUS_SEND_FAIL);
-        }
         Ok(())
     }
 

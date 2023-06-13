@@ -3,15 +3,12 @@
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
 use fuzzlib::*;
-use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
-    let (rsp_config_info, rsp_provision_info) = rsp_create_info();
     let (req_config_info, req_provision_info) = req_create_info();
 
     let shared_buffer = SharedBuffer::new();
-    let mut device_io_responder = FuzzSpdmDeviceIoReceve::new(&shared_buffer, fuzzdata);
     let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
 
     spdmlib::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
@@ -20,40 +17,12 @@ fn fuzz_send_receive_spdm_challenge(fuzzdata: &[u8]) {
     );
     spdmlib::crypto::rand::register(FUZZ_RAND.clone());
 
-    let mut responder = responder::ResponderContext::new(
-        &mut device_io_responder,
-        pcidoe_transport_encap,
-        rsp_config_info,
-        rsp_provision_info,
-    );
-    responder.common.reset_runtime_info();
-    responder
-        .common
-        .runtime_info
-        .set_connection_state(SpdmConnectionState::SpdmConnectionNegotiated);
-    responder.common.provision_info.my_cert_chain = [
-        Some(SpdmCertChainBuffer {
-            data_size: 512u16,
-            data: [0u8; 4 + SPDM_MAX_HASH_SIZE + config::MAX_SPDM_CERT_CHAIN_DATA_SIZE],
-        }),
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-    ];
-    responder.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
-    responder.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-    responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+    let mut device_io_requester = fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer);
+    device_io_requester.set_rx(fuzzdata);
 
-    let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
-    let mut device_io_requester =
-        fake_device_io::FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
     let mut requester = requester::RequesterContext::new(
         &mut device_io_requester,
-        pcidoe_transport_encap2,
+        pcidoe_transport_encap,
         req_config_info,
         req_provision_info,
     );
