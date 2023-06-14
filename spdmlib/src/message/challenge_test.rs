@@ -5,7 +5,7 @@
 use super::*;
 use crate::{
     common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo},
-    testlib::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SHA256_DIGEST_SIZE},
+    protocol::{SpdmBaseAsymAlgo, SpdmBaseHashAlgo, SHA256_DIGEST_SIZE},
 };
 use byteorder::{ByteOrder, LittleEndian};
 use testlib::{create_spdm_context, DeviceIO, TransportEncap};
