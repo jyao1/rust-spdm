@@ -40,7 +40,35 @@ fn test_case0_send_receive_spdm_end_session() {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
-    responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+    assert!(responder.common.session[0]
+        .set_dhe_secret(
+            SpdmVersion::SpdmVersion12,
+            SpdmDheFinalKeyStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(responder.common.session[0]
+        .generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(responder.common.session[0]
+        .generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    responder.common.session[0]
+        .set_session_state(spdmlib::common::session::SpdmSessionState::SpdmSessionEstablished);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
     let mut device_io_requester = FakeSpdmDeviceIo::new(&shared_buffer, &mut responder);
@@ -91,7 +119,7 @@ fn test_case0_send_receive_spdm_end_session() {
         )
         .is_ok());
     requester.common.session[0]
-        .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
+        .set_session_state(spdmlib::common::session::SpdmSessionState::SpdmSessionEstablished);
 
     let status = requester.end_session(session_id).is_ok();
     assert!(status);
