@@ -40,6 +40,33 @@ fn test_case0_send_receive_spdm_heartbeat() {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    assert!(responder.common.session[0]
+        .set_dhe_secret(
+            SpdmVersion::SpdmVersion12,
+            SpdmDheFinalKeyStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(responder.common.session[0]
+        .generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(responder.common.session[0]
+        .generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
     responder.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     let pcidoe_transport_encap2 = &mut PciDoeTransportEncap {};
@@ -63,6 +90,33 @@ fn test_case0_send_receive_spdm_heartbeat() {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    assert!(requester.common.session[0]
+        .set_dhe_secret(
+            SpdmVersion::SpdmVersion12,
+            SpdmDheFinalKeyStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(requester.common.session[0]
+        .generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(requester.common.session[0]
+        .generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
     requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
 
     let status = requester.send_receive_spdm_heartbeat(session_id).is_ok();
