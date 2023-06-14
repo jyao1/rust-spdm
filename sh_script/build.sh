@@ -171,6 +171,12 @@ run_basic_test() {
     echo_command cargo test -- --test-threads=1
     echo_command cargo test --no-default-features --features "spdmlib/std,spdmlib/spdm-ring" -- --test-threads=1
     echo "Running basic tests finished..."
+
+    echo "Running spdmlib-test..."
+    pushd test/spdmlib-test
+    echo_command cargo test -- --test-threads=1
+    echo_command cargo test --no-default-features -- --test-threads=1
+    popd
 }
 
 run_rust_spdm_emu() {
