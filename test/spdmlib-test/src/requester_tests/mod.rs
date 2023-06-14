@@ -10,6 +10,18 @@ mod context;
 
 mod end_session_req;
 
+#[cfg(feature = "mut-auth")]
+mod encap_certificate;
+
+#[cfg(feature = "mut-auth")]
+mod encap_digest;
+
+#[cfg(feature = "mut-auth")]
+mod encap_error;
+
+#[cfg(feature = "mut-auth")]
+mod encap_req;
+
 mod finish_req;
 
 mod get_capabilities_req;

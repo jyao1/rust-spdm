@@ -13,5 +13,6 @@ ring = { version = "0.16.20" }
 bytes = { version="1", default-features=false }
 
 [features]
-default = ["hashed-transcript-data"]
+default = ["hashed-transcript-data", "mut-auth"]
 hashed-transcript-data = ["spdmlib/hashed-transcript-data"]
+mut-auth = ["spdmlib/mut-auth"]

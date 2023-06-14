@@ -61,6 +61,7 @@ fn test_case0_handle_spdm_capability() {
         | SpdmResponseCapabilityFlags::KEY_EX_CAP
         | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
         | SpdmResponseCapabilityFlags::ENCAP_CAP
+        | SpdmResponseCapabilityFlags::MUT_AUTH_CAP
         | SpdmResponseCapabilityFlags::HBEAT_CAP
         | SpdmResponseCapabilityFlags::KEY_UPD_CAP;
     let data = context.common.runtime_info.message_a.as_ref();

@@ -46,6 +46,13 @@ fn test_case0_send_receive_spdm_key_exchange() {
     responder.common.negotiate_info.dhe_sel = SpdmDheAlgo::SECP_384_R1;
     responder.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     responder.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
+    #[cfg(feature = "mut-auth")]
+    {
+        responder.common.negotiate_info.rsp_capabilities_sel |=
+            SpdmResponseCapabilityFlags::MUT_AUTH_CAP;
+        responder.common.negotiate_info.req_capabilities_sel |=
+            SpdmRequestCapabilityFlags::MUT_AUTH_CAP;
+    }
 
     responder.common.reset_runtime_info();
 
@@ -81,6 +88,13 @@ fn test_case0_send_receive_spdm_key_exchange() {
     requester.common.negotiate_info.base_asym_sel = SpdmBaseAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
     requester.common.negotiate_info.opaque_data_support = SpdmOpaqueSupport::OPAQUE_DATA_FMT1;
     requester.common.negotiate_info.spdm_version_sel = SpdmVersion::SpdmVersion12;
+    #[cfg(feature = "mut-auth")]
+    {
+        requester.common.negotiate_info.rsp_capabilities_sel |=
+            SpdmResponseCapabilityFlags::MUT_AUTH_CAP;
+        requester.common.negotiate_info.req_capabilities_sel |=
+            SpdmRequestCapabilityFlags::MUT_AUTH_CAP;
+    }
 
     requester.common.reset_runtime_info();
 

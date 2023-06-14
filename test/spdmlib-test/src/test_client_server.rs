@@ -5,8 +5,11 @@
 use crate::common::device_io::{FakeSpdmDeviceIo, FakeSpdmDeviceIoReceve, SharedBuffer};
 use crate::common::secret_callback::SECRET_ASYM_IMPL_INSTANCE;
 use crate::common::transport::PciDoeTransportEncap;
-use crate::common::util::{req_create_info, rsp_create_info};
-use spdmlib::protocol::SpdmMeasurementSummaryHashType;
+use crate::common::util::{get_rsp_cert_chain_buff, req_create_info, rsp_create_info};
+use spdmlib::protocol::{
+    SpdmMeasurementSummaryHashType, SpdmReqAsymAlgo, SpdmRequestCapabilityFlags,
+    SpdmResponseCapabilityFlags,
+};
 use spdmlib::requester;
 use spdmlib::responder;
 
@@ -26,6 +29,14 @@ fn intergration_client_server() {
         provision_info,
     );
 
+    #[cfg(feature = "mut-auth")]
+    {
+        responder_context.common.negotiate_info.rsp_capabilities_sel |=
+            SpdmResponseCapabilityFlags::MUT_AUTH_CAP;
+        responder_context.common.negotiate_info.req_capabilities_sel |=
+            SpdmRequestCapabilityFlags::MUT_AUTH_CAP;
+    }
+
     let device_io_requester = &mut FakeSpdmDeviceIo::new(&shared_buffer, &mut responder_context);
     let transport_encap_requester = &mut PciDoeTransportEncap {};
 
@@ -44,6 +55,26 @@ fn intergration_client_server() {
     assert!(!requester_context
         .send_receive_spdm_certificate(None, 0)
         .is_err());
+
+    #[cfg(feature = "mut-auth")]
+    {
+        requester_context.common.negotiate_info.rsp_capabilities_sel |=
+            SpdmResponseCapabilityFlags::MUT_AUTH_CAP;
+        requester_context.common.negotiate_info.req_capabilities_sel |=
+            SpdmRequestCapabilityFlags::MUT_AUTH_CAP;
+        requester_context.common.negotiate_info.req_asym_sel =
+            SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+        requester_context.common.provision_info.my_cert_chain = [
+            Some(get_rsp_cert_chain_buff()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
+    }
 
     let result = requester_context.start_session(
         false,

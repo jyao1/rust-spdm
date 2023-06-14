@@ -53,6 +53,11 @@ fn test_case0_start_session() {
     let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
     assert!(status);
 
+    #[cfg(feature = "mut-auth")]
+    {
+        requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+    }
+
     let result = requester.start_session(
         false,
         0,
@@ -113,6 +118,11 @@ fn test_case0_get_next_half_session() {
 
     let status = requester.send_receive_spdm_certificate(None, 0).is_ok();
     assert!(status);
+
+    #[cfg(feature = "mut-auth")]
+    {
+        requester.common.negotiate_info.req_asym_sel = SpdmReqAsymAlgo::TPM_ALG_ECDSA_ECC_NIST_P384;
+    }
 
     let result = requester.start_session(
         false,
