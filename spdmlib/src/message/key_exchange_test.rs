@@ -135,6 +135,17 @@ fn test_key_exchange_rsp_struct() {
     let ret = SpdmKeyExchangeResponsePayload::spdm_read(context, reader);
     assert!(ret.is_some());
     assert_eq!(reader.left(), 0);
+
+    // Verify the MutAuthRequested parameter, 0/1/2/4 is ok
+    u8_slice[6] = 0x2;
+    let reader = &mut Reader::init(&u8_slice[2..]);
+    let ret = SpdmKeyExchangeResponsePayload::spdm_read(context, reader);
+    assert!(ret.is_some());
+
+    u8_slice[6] = 0x8;
+    let reader = &mut Reader::init(&u8_slice[2..]);
+    let ret = SpdmKeyExchangeResponsePayload::spdm_read(context, reader);
+    assert!(ret.is_none());
 }
 
 #[ignore = "extended unit test"]

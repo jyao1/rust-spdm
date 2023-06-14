@@ -36,14 +36,18 @@ pub fn create_info() -> (SpdmConfigInfo, SpdmProvisionInfo) {
             | SpdmResponseCapabilityFlags::PSK_CAP_WITH_CONTEXT
             | SpdmResponseCapabilityFlags::ENCAP_CAP
             | SpdmResponseCapabilityFlags::HBEAT_CAP
-            | SpdmResponseCapabilityFlags::KEY_UPD_CAP,
+            | SpdmResponseCapabilityFlags::KEY_UPD_CAP
+            | SpdmResponseCapabilityFlags::MUT_AUTH_CAP
+            | SpdmResponseCapabilityFlags::ENCAP_CAP,
         req_capabilities: SpdmRequestCapabilityFlags::CERT_CAP
             | SpdmRequestCapabilityFlags::ENCRYPT_CAP
             | SpdmRequestCapabilityFlags::MAC_CAP
             | SpdmRequestCapabilityFlags::KEY_EX_CAP
             | SpdmRequestCapabilityFlags::ENCAP_CAP
             | SpdmRequestCapabilityFlags::HBEAT_CAP
-            | SpdmRequestCapabilityFlags::KEY_UPD_CAP,
+            | SpdmRequestCapabilityFlags::KEY_UPD_CAP
+            | SpdmRequestCapabilityFlags::MUT_AUTH_CAP
+            | SpdmRequestCapabilityFlags::ENCAP_CAP,
         rsp_ct_exponent: 0,
         req_ct_exponent: 0,
         measurement_specification: SpdmMeasurementSpecification::DMTF,

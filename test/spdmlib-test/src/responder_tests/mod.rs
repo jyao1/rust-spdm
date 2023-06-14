@@ -19,6 +19,15 @@ mod certificate_rsp;
 
 mod digest_rsp;
 
+#[cfg(feature = "mut-auth")]
+mod encap_get_certificate;
+
+#[cfg(feature = "mut-auth")]
+mod encap_get_digest;
+
+#[cfg(feature = "mut-auth")]
+mod encap_rsp;
+
 mod end_session_rsp;
 
 mod error_rsp;
