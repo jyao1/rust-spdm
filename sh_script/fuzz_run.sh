@@ -95,6 +95,7 @@ cmds=(
     "end_session_rsp"
     "vendor_rsp"
     "encap_get_digest"
+    "encap_get_certificate"
     "version_req"
     "capability_req"
     "algorithm_req"
@@ -111,6 +112,7 @@ cmds=(
     "end_session_req"
     "vendor_req"
     "encap_digest"
+    "encap_certificate"
 )
 
 buildpackage=''
