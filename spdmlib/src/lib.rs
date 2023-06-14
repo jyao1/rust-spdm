@@ -27,6 +27,3 @@ pub mod secret;
 pub mod time;
 
 pub mod config;
-
-#[cfg(test)]
-mod testlib;

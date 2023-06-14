@@ -5,7 +5,7 @@
 use super::*;
 use crate::{
     common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo},
-    testlib::SpdmBaseHashAlgo,
+    protocol::SpdmBaseHashAlgo,
 };
 use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 

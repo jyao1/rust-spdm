@@ -51,7 +51,7 @@ fn hmac_verify(
 
 #[cfg(all(test,))]
 mod tests {
-    use crate::testlib::{SpdmFinishedKeyStruct, SPDM_MAX_HASH_SIZE};
+    use crate::protocol::{SpdmFinishedKeyStruct, SPDM_MAX_HASH_SIZE};
 
     use super::*;
 

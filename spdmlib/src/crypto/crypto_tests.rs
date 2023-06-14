@@ -9,7 +9,9 @@ use super::hash;
 use crate::protocol::SpdmBaseHashAlgo;
 use crate::{
     protocol::SpdmAeadAlgo,
-    testlib::{SpdmAeadIvStruct, SpdmAeadKeyStruct, SPDM_MAX_AEAD_IV_SIZE, SPDM_MAX_AEAD_KEY_SIZE},
+    protocol::{
+        SpdmAeadIvStruct, SpdmAeadKeyStruct, SPDM_MAX_AEAD_IV_SIZE, SPDM_MAX_AEAD_KEY_SIZE,
+    },
 };
 
 #[cfg(feature = "hashed-transcript-data")]

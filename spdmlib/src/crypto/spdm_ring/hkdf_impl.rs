@@ -89,7 +89,7 @@ impl ring::hkdf::KeyType for SpdmCryptoHkdfKeyLen {
 
 #[cfg(all(test,))]
 mod tests {
-    use crate::testlib::SPDM_MAX_HASH_SIZE;
+    use crate::protocol::SPDM_MAX_HASH_SIZE;
 
     use super::*;
 

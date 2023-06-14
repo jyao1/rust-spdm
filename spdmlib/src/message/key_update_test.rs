@@ -6,7 +6,7 @@ use super::*;
 use crate::{
     common::{SpdmCodec, SpdmConfigInfo, SpdmContext, SpdmProvisionInfo},
     message::SpdmRequestResponseCode,
-    testlib::SpdmVersion,
+    protocol::SpdmVersion,
 };
 use testlib::{create_spdm_context, DeviceIO, TransportEncap};
 
