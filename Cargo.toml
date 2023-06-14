@@ -31,6 +31,8 @@ members = [
     "fuzz-target/responder/vendor_rsp",
     "fuzz-target/responder/encap_get_digest",
     "fuzz-target/responder/encap_get_certificate",
+    "fuzz-target/responder/encap_rsp",
+    "fuzz-target/responder/encap_ack_rsp",
 
     "fuzz-target/requester/version_req",
     "fuzz-target/requester/capability_req",
@@ -49,6 +51,7 @@ members = [
     "fuzz-target/requester/vendor_req",
     "fuzz-target/requester/encap_digest",
     "fuzz-target/requester/encap_certificate",
+    "fuzz-target/requester/encap_req",
 
     "fuzz-target/random_requester",
     "fuzz-target/pass_context",
