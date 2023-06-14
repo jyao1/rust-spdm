@@ -37,6 +37,33 @@ fn test_case0_handle_spdm_heartbeat() {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
+    assert!(context.common.session[0]
+        .set_dhe_secret(
+            SpdmVersion::SpdmVersion12,
+            SpdmDheFinalKeyStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(context.common.session[0]
+        .generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(context.common.session[0]
+        .generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
     context.common.session[0].set_session_state(SpdmSessionState::SpdmSessionHandshaking);
 
     let bytes = &mut [0u8; 1024];
@@ -47,5 +74,5 @@ fn test_case0_handle_spdm_heartbeat() {
     };
     assert!(value.encode(&mut writer).is_ok());
 
-    context.handle_spdm_heartbeat(session_id, bytes);
+    assert!(context.handle_spdm_heartbeat(session_id, bytes).is_ok());
 }

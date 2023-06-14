@@ -63,7 +63,35 @@ fn test_case0_send_receive_spdm_end_session() {
         SpdmAeadAlgo::AES_256_GCM,
         SpdmKeyScheduleAlgo::SPDM_KEY_SCHEDULE,
     );
-    requester.common.session[0].set_session_state(SpdmSessionState::SpdmSessionEstablished);
+    assert!(requester.common.session[0]
+        .set_dhe_secret(
+            SpdmVersion::SpdmVersion12,
+            SpdmDheFinalKeyStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_DHE_KEY_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(requester.common.session[0]
+        .generate_handshake_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    assert!(requester.common.session[0]
+        .generate_data_secret(
+            SpdmVersion::SpdmVersion12,
+            &SpdmDigestStruct {
+                data_size: 5,
+                data: Box::new([100u8; SPDM_MAX_HASH_SIZE])
+            }
+        )
+        .is_ok());
+    requester.common.session[0]
+        .set_session_state(crate::common::session::SpdmSessionState::SpdmSessionEstablished);
 
     let status = requester.end_session(session_id).is_ok();
     assert!(status);
