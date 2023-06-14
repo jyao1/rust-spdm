@@ -80,28 +80,3 @@ impl<'a> ResponderContext<'a> {
         }
     }
 }
-
-#[cfg(all(test,))]
-mod tests_responder {
-    use super::*;
-    use crate::responder;
-    use crate::testlib::*;
-    #[test]
-    fn test_case0_send_spdm_error() {
-        let (config_info, provision_info) = create_info();
-        let pcidoe_transport_encap = &mut PciDoeTransportEncap {};
-        let shared_buffer = SharedBuffer::new();
-        let mut socket_io_transport = FakeSpdmDeviceIoReceve::new(&shared_buffer);
-        crate::secret::asym_sign::register(SECRET_ASYM_IMPL_INSTANCE.clone());
-        let mut context = responder::ResponderContext::new(
-            &mut socket_io_transport,
-            pcidoe_transport_encap,
-            config_info,
-            provision_info,
-        );
-
-        context.common.negotiate_info.base_hash_sel = SpdmBaseHashAlgo::TPM_ALG_SHA_384;
-
-        context.send_spdm_error(SpdmErrorCode::SpdmErrorInvalidRequest, 0);
-    }
-}

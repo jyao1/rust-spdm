@@ -57,8 +57,8 @@ fn fake_hmac_verify(
 
 fn fake_encrypt(
     _aead_algo: SpdmAeadAlgo,
-    _key: &[u8],
-    _iv: &[u8],
+    _key: &SpdmAeadKeyStruct,
+    _iv: &SpdmAeadIvStruct,
     _aad: &[u8],
     plain_text: &[u8],
     tag: &mut [u8],
@@ -75,8 +75,8 @@ fn fake_encrypt(
 
 fn fake_decrypt(
     _aead_algo: SpdmAeadAlgo,
-    _key: &[u8],
-    _iv: &[u8],
+    _key: &SpdmAeadKeyStruct,
+    _iv: &SpdmAeadIvStruct,
     _aad: &[u8],
     cipher_text: &[u8],
     _tag: &[u8],
@@ -113,16 +113,16 @@ fn fake_asym_verify(
 fn fake_hkdf_extract(
     _hash_algo: SpdmBaseHashAlgo,
     _salt: &[u8],
-    _ikm: &[u8],
-) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
+    _ikm: &SpdmHkdfInputKeyingMaterial,
+) -> Option<SpdmHkdfPseudoRandomKey> {
+    Some(SpdmHkdfPseudoRandomKey::default())
 }
 
 fn fake_hkdf_expand(
     _hash_algo: SpdmBaseHashAlgo,
-    _pk: &[u8],
+    _pk: &SpdmHkdfPseudoRandomKey,
     _info: &[u8],
     _out_size: u16,
-) -> Option<SpdmDigestStruct> {
-    Some(SpdmDigestStruct::default())
+) -> Option<SpdmHkdfOutputKeyingMaterial> {
+    Some(SpdmHkdfOutputKeyingMaterial::default())
 }
