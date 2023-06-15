@@ -117,7 +117,7 @@ fn main() {
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
             let fuzzdata =
-                include_bytes!("../../../in/encap_get_certificate/encap_get_certificate.raw");
+                include_bytes!("../../../in/deliver_encapsulated_response_certificate_rsp/encap_get_certificate.raw");
             fuzz_handle_encap_response_certificate(fuzzdata);
         } else {
             let path = &args[1];

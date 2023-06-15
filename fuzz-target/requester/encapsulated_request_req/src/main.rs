@@ -5,7 +5,6 @@
 use fuzzlib::spdmlib::message::SpdmKeyExchangeMutAuthAttributes;
 use fuzzlib::*;
 use spdmlib::common::session::{SpdmSession, SpdmSessionState};
-use spdmlib::common::SpdmConnectionState;
 use spdmlib::protocol::*;
 
 fn fuzz_session_based_mutual_authenticate(fuzzdata: &[u8]) {
@@ -219,7 +218,8 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = include_bytes!("../../../in/encap_req/encap_resp_ack.raw");
+            let fuzzdata =
+                include_bytes!("../../../in/encapsulated_request_req/encap_resp_ack.raw");
             fuzz_session_based_mutual_authenticate(fuzzdata);
         } else {
             let path = &args[1];

@@ -145,7 +145,9 @@ fn main() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() < 2 {
             // Here you can replace the single-step debugging value in the fuzzdata array.
-            let fuzzdata = include_bytes!("../../../in/encap_ack_rsp/encap_certificate.raw");
+            let fuzzdata = include_bytes!(
+                "../../../in/deliver_encapsulated_response_rsp/encap_certificate.raw"
+            );
             fuzz_handle_deliver_encapsulated_reponse(fuzzdata);
         } else {
             let path = &args[1];
