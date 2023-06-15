@@ -1,5 +1,5 @@
 [package]
-name = "encap_req"
+name = "encapsulated_request_digest_req"
 version = "0.1.0"
 authors = ["Xiaotian Chen <xiaotian.chen@intel.com>"]
 edition = "2018"

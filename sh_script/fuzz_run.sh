@@ -94,10 +94,10 @@ cmds=(
     "key_update_rsp"
     "end_session_rsp"
     "vendor_rsp"
-    "encap_get_digest"
-    "encap_get_certificate"
-    "encap_rsp"
-    "encap_ack_rsp"
+    "deliver_encapsulated_response_digest_rsp"
+    "deliver_encapsulated_response_certificate_rsp"
+    "get_encapsulated_request_rsp"
+    "deliver_encapsulated_response_rsp"
     "version_req"
     "capability_req"
     "algorithm_req"
@@ -113,9 +113,9 @@ cmds=(
     "key_update_req"
     "end_session_req"
     "vendor_req"
-    "encap_digest"
-    "encap_certificate"
-    "encap_req"
+    "encapsulated_request_digest_req"
+    "encapsulated_request_certificate_req"
+    "encapsulated_request_req"
 )
 
 buildpackage=''

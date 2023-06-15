@@ -117,6 +117,30 @@ test = false
 doc = false
 
 [[bin]]
+name = "deliver_encapsulated_response_digest_rsp"
+path = "fuzz_targets/deliver_encapsulated_response_digest_rsp.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "deliver_encapsulated_response_certificate_rsp"
+path = "fuzz_targets/deliver_encapsulated_response_certificate_rsp.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "get_encapsulated_request_rsp"
+path = "fuzz_targets/get_encapsulated_request_rsp.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "deliver_encapsulated_response_rsp"
+path = "fuzz_targets/deliver_encapsulated_response_rsp.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "version_req"
 path = "fuzz_targets/version_req.rs"
 test = false
@@ -203,5 +227,23 @@ doc = false
 [[bin]]
 name = "vendor_req"
 path = "fuzz_targets/vendor_req.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "encapsulated_request_digest_req"
+path = "fuzz_targets/encapsulated_request_digest_req.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "encapsulated_request_certificate_req"
+path = "fuzz_targets/encapsulated_request_certificate_req.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "encapsulated_request_req"
+path = "fuzz_targets/encapsulated_request_req.rs"
 test = false
 doc = false
