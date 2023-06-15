@@ -111,18 +111,46 @@ fn fake_asym_verify(
 }
 
 fn fake_hkdf_extract(
-    _hash_algo: SpdmBaseHashAlgo,
+    hash_algo: SpdmBaseHashAlgo,
     _salt: &[u8],
     _ikm: &SpdmHkdfInputKeyingMaterial,
 ) -> Option<SpdmHkdfPseudoRandomKey> {
-    Some(SpdmHkdfPseudoRandomKey::default())
+    match hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => Some(SpdmHkdfPseudoRandomKey {
+            data_size: SHA256_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => Some(SpdmHkdfPseudoRandomKey {
+            data_size: SHA384_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => Some(SpdmHkdfPseudoRandomKey {
+            data_size: SHA512_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HASH_SIZE]),
+        }),
+        _ => None,
+    }
 }
 
 fn fake_hkdf_expand(
-    _hash_algo: SpdmBaseHashAlgo,
+    hash_algo: SpdmBaseHashAlgo,
     _pk: &SpdmHkdfPseudoRandomKey,
     _info: &[u8],
     _out_size: u16,
 ) -> Option<SpdmHkdfOutputKeyingMaterial> {
-    Some(SpdmHkdfOutputKeyingMaterial::default())
+    match hash_algo {
+        SpdmBaseHashAlgo::TPM_ALG_SHA_256 => Some(SpdmHkdfOutputKeyingMaterial {
+            data_size: SHA256_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HKDF_OKM_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_384 => Some(SpdmHkdfOutputKeyingMaterial {
+            data_size: SHA384_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HKDF_OKM_SIZE]),
+        }),
+        SpdmBaseHashAlgo::TPM_ALG_SHA_512 => Some(SpdmHkdfOutputKeyingMaterial {
+            data_size: SHA512_DIGEST_SIZE as u16,
+            data: Box::new([100u8; SPDM_MAX_HKDF_OKM_SIZE]),
+        }),
+        _ => None,
+    }
 }
