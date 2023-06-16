@@ -168,3 +168,9 @@ fn fake_get_cert_from_cert_chain(cert_chain: &[u8], _index: isize) -> SpdmResult
 fn fake_verify_cert_chain(_cert_chain: &[u8]) -> SpdmResult {
     Ok(())
 }
+
+#[test]
+// Make sure this is the first test case running by `cargo test`
+fn test_0_crypto_init() {
+    spdmlib::crypto::aead::register(FAKE_AEAD.clone());
+}
