@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
+use spdmlib::crypto::SpdmCertOperation;
 use spdmlib::crypto::SpdmCryptoRandom;
 use spdmlib::crypto::{SpdmAead, SpdmAsymVerify, SpdmHkdf, SpdmHmac};
 use spdmlib::error::{SpdmResult, SPDM_STATUS_VERIF_FAIL};
@@ -28,6 +29,11 @@ pub static FAKE_ASYM_VERIFY: SpdmAsymVerify = SpdmAsymVerify {
 pub static FAKE_HKDF: SpdmHkdf = SpdmHkdf {
     hkdf_extract_cb: fake_hkdf_extract,
     hkdf_expand_cb: fake_hkdf_expand,
+};
+
+pub static FAKE_CERT_OPERATION: SpdmCertOperation = SpdmCertOperation {
+    get_cert_from_cert_chain_cb: fake_get_cert_from_cert_chain,
+    verify_cert_chain_cb: fake_verify_cert_chain,
 };
 
 fn fake_hmac(
@@ -153,4 +159,12 @@ fn fake_hkdf_expand(
         }),
         _ => None,
     }
+}
+
+fn fake_get_cert_from_cert_chain(cert_chain: &[u8], _index: isize) -> SpdmResult<(usize, usize)> {
+    return Ok((0, cert_chain.len()));
+}
+
+fn fake_verify_cert_chain(_cert_chain: &[u8]) -> SpdmResult {
+    Ok(())
 }
