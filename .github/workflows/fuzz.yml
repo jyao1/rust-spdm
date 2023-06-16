@@ -13,6 +13,7 @@ jobs:
     strategy:
       matrix:
         fuzz_hash_transcript_data_feature: [true, false]
+        fuzz_mut_auth_feature: [true, false]
 
     runs-on: self-hosted
 
@@ -30,5 +31,6 @@ jobs:
       - name: Run fuzz
         env:
           FUZZ_HASH_TRANSCRIPT_DATA_FEATURE: ${{ matrix.fuzz_hash_transcript_data_feature }}
+          FUZZ_MUT_AUTH_FEATURE: ${{ matrix.fuzz_mut_auth_feature }}
         run: |
           ./sh_script/fuzz_run.sh

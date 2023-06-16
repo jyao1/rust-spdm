@@ -17,6 +17,7 @@ EOM
 
 EACH_FUZZ_TIMEOUT=${EACH_FUZZ_TIMEOUT:-10}
 FUZZ_HASH_TRANSCRIPT_DATA_FEATURE=${FUZZ_HASH_TRANSCRIPT_DATA_FEATURE:-true}
+FUZZ_MUT_AUTH_FEATURE=${FUZZ_MUT_AUTH_FEATURE:-true}
 coverage_type=""
 
 process_args() {
@@ -94,10 +95,6 @@ cmds=(
     "key_update_rsp"
     "end_session_rsp"
     "vendor_rsp"
-    "deliver_encapsulated_response_digest_rsp"
-    "deliver_encapsulated_response_certificate_rsp"
-    "get_encapsulated_request_rsp"
-    "deliver_encapsulated_response_rsp"
     "version_req"
     "capability_req"
     "algorithm_req"
@@ -113,6 +110,13 @@ cmds=(
     "key_update_req"
     "end_session_req"
     "vendor_req"
+)
+
+mut_auth_cmds=(
+    "deliver_encapsulated_response_digest_rsp"
+    "deliver_encapsulated_response_certificate_rsp"
+    "get_encapsulated_request_rsp"
+    "deliver_encapsulated_response_rsp"
     "encapsulated_request_digest_req"
     "encapsulated_request_certificate_req"
     "encapsulated_request_req"
@@ -122,6 +126,12 @@ buildpackage=''
 for i in "${cmds[@]}"; do
     buildpackage="-p $i $buildpackage"
 done
+
+if [ "${FUZZ_MUT_AUTH_FEATURE}" == "true" ]; then
+    for i in "${mut_auth_cmds[@]}"; do
+        buildpackage="-p $i $buildpackage"
+    done
+fi
 
 if [[ $coverage_type == "Scoverage" ]]; then
     echo "$coverage_type"
@@ -142,13 +152,19 @@ else
     FUZZ_NO_DEFAULT_FEATURES="--no-default-features"
 fi
 
+if [ "${FUZZ_MUT_AUTH_FEATURE}" == "true" ]; then
+    MUT_AUTH_FEATURE=mut-auth
+else
+    MUT_AUTH_FEATURE=
+fi
+
 if [[ $fuzz_target_name ]]; then
     set -x
-    cargo afl build --features fuzz ${FUZZ_NO_DEFAULT_FEATURES} -p "$fuzz_target_name"
+    cargo afl build --features "fuzz ${MUT_AUTH_FEATURE}" ${FUZZ_NO_DEFAULT_FEATURES} -p "$fuzz_target_name"
     set +x
 else
     set -x
-    cargo afl build --features fuzz ${FUZZ_NO_DEFAULT_FEATURES} $buildpackage
+    cargo afl build --features "fuzz ${MUT_AUTH_FEATURE}" ${FUZZ_NO_DEFAULT_FEATURES} $buildpackage
     set -x
 fi
 
@@ -185,6 +201,11 @@ if [ ! "${build_only}" ]; then
         for ((i = 0; i < ${#cmds[*]}; i++)); do
             run_fuzz_target "${cmds[$i]}"
         done
+        if [ "${FUZZ_MUT_AUTH_FEATURE}" == "true" ]; then
+            for ((i = 0; i < ${#mut_auth_cmds[*]}; i++)); do
+                run_fuzz_target "${mut_auth_cmds[$i]}"
+            done
+        fi
         echo "All fuzzing tests PASS"
     fi
 fi
