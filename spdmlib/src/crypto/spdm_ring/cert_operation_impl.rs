@@ -91,7 +91,13 @@ fn verify_cert_chain(cert_chain: &[u8]) -> SpdmResult {
     };
 
     #[cfg(any(target_os = "uefi", target_os = "none"))]
-    let timestamp = uefi_time::get_rtc_time() as u64;
+    let timestamp = {
+        if let Some(ts) = sys_time::get_sys_time() {
+            ts as u64
+        } else {
+            return Err(SPDM_STATUS_INVALID_STATE_LOCAL);
+        }
+    };
     #[cfg(not(any(target_os = "uefi", target_os = "none")))]
     let timestamp = {
         extern crate std;
