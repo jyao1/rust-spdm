@@ -24,7 +24,7 @@ untrusted = { version = "0.7.1", optional = true }
 zeroize = { version = "1.5.0", features = ["zeroize_derive"]}
 
 [target.'cfg(any(target_os = "uefi", target_os = "none"))'.dependencies]
-uefi_time = {git = "https://github.com/jyao1/rust-uefi-time.git", optional = true}
+sys_time = { path = "../sys_time" }
 
 [build-dependencies]
 serde_json = "1.0"
@@ -38,7 +38,7 @@ bit_field = "0.10.1"
 [features]
 default = ["spdm-ring", "std", "hashed-transcript-data"]
 std = ["webpki/std"]
-spdm-ring = ["ring", "webpki", "untrusted", "uefi_time", "lazy_static", "spin"]
+spdm-ring = ["ring", "webpki", "untrusted", "lazy_static", "spin"]
 downcast = []
 hashed-transcript-data = []
 mut-auth = []
