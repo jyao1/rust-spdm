@@ -5,6 +5,10 @@
 
 A rust version SPDM implementation.
 
+## NOTE
+
+This project is moved to https://github.com/intel/rust-spdm. This repo will be achieved as read-only.
+
 ## Features
 
 ### Specification
