@@ -4,7 +4,6 @@
 
 //! Untrusted time get from CMOS/RTC device commonly seen on x86 I/O port 0x70/0x71
 
-use lazy_static::lazy_static;
 use x86_64::instructions::port::{PortRead, PortWrite};
 
 const CMOS_ADDRESS_PORT: u16 = 0x70;
@@ -32,11 +31,6 @@ const CMOS_BINARY_MODE_FLAG: u8 = 1 << 2;
 const CMOS_PM_BIT: u8 = 0x80;
 
 const CMOS_YEARS_OFFSET: u16 = 2000;
-
-// Format bits of status register b cannot be changed.
-lazy_static! {
-    static ref STATUS_REGISTER_B: u8 = read_cmos_register(CMOS_STATUS_REGISTER_B);
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DateTime {
@@ -78,11 +72,13 @@ const fn bcd_to_binary(bcd: u8) -> u8 {
 }
 
 fn is_24_hour_format() -> bool {
-    *STATUS_REGISTER_B & CMOS_24_HOUR_FORMAT_FLAG > 0
+    let status_register_b: u8 = read_cmos_register(CMOS_STATUS_REGISTER_B);
+    status_register_b & CMOS_24_HOUR_FORMAT_FLAG > 0
 }
 
 fn is_binary_mode() -> bool {
-    *STATUS_REGISTER_B & CMOS_BINARY_MODE_FLAG > 0
+    let status_register_b: u8 = read_cmos_register(CMOS_STATUS_REGISTER_B);
+    status_register_b & CMOS_BINARY_MODE_FLAG > 0
 }
 
 fn read_cmos_register(reg: u8) -> u8 {
